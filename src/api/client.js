@@ -62,6 +62,17 @@ export const api = {
   },
   post: (id) => request(`/posts/${id}`),
   categories: () => request('/posts/categories'),
+  listCategories: () => request('/categories'),
+  createCategory: (payload) =>
+    request('/admin/categories', { method: 'POST', body: JSON.stringify(payload) }),
+  updateCategory: (id, payload) =>
+    request(`/admin/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteCategory: (id) => request(`/admin/categories/${id}`, { method: 'DELETE' }),
+  listTags: () => request('/tags'),
+  createTag: (payload) => request('/admin/tags', { method: 'POST', body: JSON.stringify(payload) }),
+  updateTag: (id, payload) =>
+    request(`/admin/tags/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteTag: (id) => request(`/admin/tags/${id}`, { method: 'DELETE' }),
   purchasePost: (id) => request(`/posts/${id}/purchase`, { method: 'POST' }),
   myPurchases: () => request('/my-purchases'),
   createPost: (formData) => request('/admin/posts', { method: 'POST', body: formData }),

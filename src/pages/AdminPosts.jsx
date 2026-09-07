@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 
 const emptyForm = {
   title: '',
   description: '',
   category: '',
-  tags: '',
+  tags: [],
   credits_cost: 10,
   is_active: true,
   attachment: null,
@@ -13,6 +14,8 @@ const emptyForm = {
 
 export default function AdminPosts() {
   const [posts, setPosts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [tags, setTags] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -23,8 +26,14 @@ export default function AdminPosts() {
   const load = async () => {
     setLoading(true)
     try {
-      const data = await api.posts({ per_page: 50 })
-      setPosts(data.data || [])
+      const [postsRes, catsRes, tagsRes] = await Promise.all([
+        api.posts({ per_page: 50 }),
+        api.listCategories(),
+        api.listTags(),
+      ])
+      setPosts(postsRes.data || [])
+      setCategories(catsRes.categories || [])
+      setTags(tagsRes.tags || [])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -41,11 +50,20 @@ export default function AdminPosts() {
     fd.append('title', form.title)
     fd.append('description', form.description || '')
     fd.append('category', form.category)
-    fd.append('tags', form.tags)
+    fd.append('tags', JSON.stringify(form.tags))
     fd.append('credits_cost', String(form.credits_cost))
     fd.append('is_active', form.is_active ? '1' : '0')
     if (form.attachment) fd.append('attachment', form.attachment)
     return fd
+  }
+
+  const toggleTag = (tagName) => {
+    setForm((prev) => {
+      const selected = prev.tags.includes(tagName)
+        ? prev.tags.filter((t) => t !== tagName)
+        : [...prev.tags, tagName]
+      return { ...prev, tags: selected }
+    })
   }
 
   const onSubmit = async (e) => {
@@ -65,7 +83,11 @@ export default function AdminPosts() {
       setEditingId(null)
       await load()
     } catch (err) {
-      setError(err.message)
+      const validation =
+        err.data?.errors?.category?.[0] ||
+        err.data?.errors?.tags?.[0] ||
+        err.message
+      setError(validation)
     } finally {
       setSaving(false)
     }
@@ -77,7 +99,7 @@ export default function AdminPosts() {
       title: post.title || '',
       description: post.description || '',
       category: post.category || '',
-      tags: (post.tags || []).join(', '),
+      tags: post.tags || [],
       credits_cost: post.credits_cost || 10,
       is_active: post.is_active !== false,
       attachment: null,
@@ -95,6 +117,18 @@ export default function AdminPosts() {
     }
   }
 
+  const categoryOptions = categories.some((c) => c.name === form.category) || !form.category
+    ? categories
+    : [...categories, { id: `legacy-${form.category}`, name: form.category }]
+
+  const tagOptions = (() => {
+    const known = new Set(tags.map((t) => t.name))
+    const extras = (form.tags || [])
+      .filter((name) => !known.has(name))
+      .map((name) => ({ id: `legacy-${name}`, name }))
+    return [...tags, ...extras]
+  })()
+
   return (
     <section>
       <div className="page-head">
@@ -102,6 +136,13 @@ export default function AdminPosts() {
           <p className="eyebrow">Admin</p>
           <h1>{editingId ? 'Edit post' : 'Add social media post'}</h1>
           <p className="muted">Upload attachment, set credits, category, and tags.</p>
+        </div>
+        <div className="admin-subnav">
+          <Link to="/admin/posts" className="active">
+            Posts
+          </Link>
+          <Link to="/admin/categories">Categories</Link>
+          <Link to="/admin/tags">Tags</Link>
         </div>
       </div>
 
@@ -119,12 +160,23 @@ export default function AdminPosts() {
           </label>
           <label>
             Category
-            <input
+            <select
               required
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              placeholder="LinkedIn, Instagram..."
-            />
+            >
+              <option value="">Select a category</option>
+              {categoryOptions.map((category) => (
+                <option key={category.id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            {categories.length === 0 && (
+              <span className="field-hint">
+                No categories yet. <Link to="/admin/categories">Add categories</Link> first.
+              </span>
+            )}
           </label>
           <label>
             Credits cost
@@ -136,15 +188,28 @@ export default function AdminPosts() {
               onChange={(e) => setForm({ ...form, credits_cost: e.target.value })}
             />
           </label>
-          <label>
-            Tags (comma separated)
-            <input
-              value={form.tags}
-              onChange={(e) => setForm({ ...form, tags: e.target.value })}
-              placeholder="finance, promo"
-            />
-          </label>
         </div>
+        <fieldset className="tag-picker">
+          <legend>Tags</legend>
+          {tagOptions.length === 0 ? (
+            <p className="field-hint">
+              No tags yet. <Link to="/admin/tags">Add tags</Link> first.
+            </p>
+          ) : (
+            <div className="tag-options">
+              {tagOptions.map((tag) => (
+                <label key={tag.id} className="checkbox tag-option">
+                  <input
+                    type="checkbox"
+                    checked={form.tags.includes(tag.name)}
+                    onChange={() => toggleTag(tag.name)}
+                  />
+                  {tag.name}
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
         <label>
           Description
           <textarea
@@ -171,7 +236,7 @@ export default function AdminPosts() {
           Active
         </label>
         <div className="actions">
-          <button className="btn primary" disabled={saving}>
+          <button className="btn primary" disabled={saving || categories.length === 0}>
             {saving ? 'Saving...' : editingId ? 'Update post' : 'Create post'}
           </button>
           {editingId && (

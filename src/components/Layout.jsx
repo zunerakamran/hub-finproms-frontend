@@ -14,7 +14,13 @@ export default function Layout() {
           <NavLink to="/">Posts</NavLink>
           <NavLink to="/subscriptions">Plans</NavLink>
           {isAuthenticated && <NavLink to="/my-purchases">My Purchases</NavLink>}
-          {isAdmin && <NavLink to="/admin/posts">Admin</NavLink>}
+          {isAdmin && (
+            <>
+              <NavLink to="/admin/posts">Admin Posts</NavLink>
+              <NavLink to="/admin/categories">Categories</NavLink>
+              <NavLink to="/admin/tags">Tags</NavLink>
+            </>
+          )}
         </nav>
         <div className="topbar-right">
           {isAuthenticated ? (

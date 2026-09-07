@@ -2,7 +2,9 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
+import AdminCategories from './pages/AdminCategories'
 import AdminPosts from './pages/AdminPosts'
+import AdminTags from './pages/AdminTags'
 import Login from './pages/Login'
 import MyPurchases from './pages/MyPurchases'
 import PostDetail from './pages/PostDetail'
@@ -44,6 +46,22 @@ export default function App() {
               element={
                 <ProtectedRoute adminOnly>
                   <AdminPosts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/categories"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdminCategories />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/tags"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdminTags />
                 </ProtectedRoute>
               }
             />

@@ -22,6 +22,11 @@ const sections = [
     title: 'Subscription plans',
     description: 'Add and update credit packages users can purchase.',
   },
+  {
+    to: '/admin/bank-transfers',
+    title: 'Bank transfers',
+    description: 'Confirm pending bank payments and grant credits (temporary until Stripe).',
+  },
 ]
 
 export default function AdminDashboard() {

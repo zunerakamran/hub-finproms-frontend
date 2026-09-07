@@ -858,6 +858,40 @@ label {
   gap: 1rem;
 }
 
+.plan-actions {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.bank-details {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f7faf8;
+}
+
+.bank-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.95rem;
+}
+
+.bank-row span {
+  color: var(--muted);
+}
+
+.bank-row.highlight {
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(15, 92, 69, 0.08);
+}
+
 .post-tile,
 .plan-tile,
 .auth-panel,

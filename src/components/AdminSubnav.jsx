@@ -6,6 +6,7 @@ const links = [
   { to: '/admin/categories', label: 'Categories' },
   { to: '/admin/tags', label: 'Tags' },
   { to: '/admin/plans', label: 'Plans' },
+  { to: '/admin/bank-transfers', label: 'Bank transfers' },
 ]
 
 export default function AdminSubnav() {

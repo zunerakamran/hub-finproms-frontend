@@ -56,10 +56,17 @@ export const api = {
   updatePlan: (id, payload) =>
     request(`/admin/subscription-plans/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deletePlan: (id) => request(`/admin/subscription-plans/${id}`, { method: 'DELETE' }),
-  checkout: (planId) => request(`/subscription-plans/${planId}/checkout`, { method: 'POST' }),
+  checkout: (planId, paymentMethod = 'stripe') =>
+    request(`/subscription-plans/${planId}/checkout`, {
+      method: 'POST',
+      body: JSON.stringify({ payment_method: paymentMethod }),
+    }),
   confirmSubscription: (sessionId) =>
     request('/subscriptions/confirm', { method: 'POST', body: JSON.stringify({ session_id: sessionId }) }),
   mySubscriptions: () => request('/my-subscriptions'),
+  pendingBankTransfers: () => request('/admin/bank-transfers/pending'),
+  confirmBankTransfer: (id) =>
+    request(`/admin/bank-transfers/${id}/confirm`, { method: 'POST' }),
   posts: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')

@@ -2,11 +2,13 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
+import AdminBankTransfers from './pages/AdminBankTransfers'
 import AdminCategories from './pages/AdminCategories'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminPlans from './pages/AdminPlans'
 import AdminPosts from './pages/AdminPosts'
 import AdminTags from './pages/AdminTags'
+import BankTransferPending from './pages/BankTransferPending'
 import Login from './pages/Login'
 import MyPurchases from './pages/MyPurchases'
 import PostDetail from './pages/PostDetail'
@@ -32,6 +34,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <SubscriptionSuccess />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="subscriptions/bank-transfer"
+              element={
+                <ProtectedRoute>
+                  <BankTransferPending />
                 </ProtectedRoute>
               }
             />
@@ -80,6 +90,14 @@ export default function App() {
               element={
                 <ProtectedRoute adminOnly>
                   <AdminPlans />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/bank-transfers"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdminBankTransfers />
                 </ProtectedRoute>
               }
             />

@@ -3,6 +3,8 @@ import Layout from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 import AdminCategories from './pages/AdminCategories'
+import AdminDashboard from './pages/AdminDashboard'
+import AdminPlans from './pages/AdminPlans'
 import AdminPosts from './pages/AdminPosts'
 import AdminTags from './pages/AdminTags'
 import Login from './pages/Login'
@@ -42,6 +44,14 @@ export default function App() {
               }
             />
             <Route
+              path="admin"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="admin/posts"
               element={
                 <ProtectedRoute adminOnly>
@@ -62,6 +72,14 @@ export default function App() {
               element={
                 <ProtectedRoute adminOnly>
                   <AdminTags />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/plans"
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdminPlans />
                 </ProtectedRoute>
               }
             />

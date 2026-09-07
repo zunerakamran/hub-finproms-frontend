@@ -690,6 +690,51 @@ label {
   background: #dceee5;
 }
 
+.admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-dashboard-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.admin-dashboard-card:hover {
+  border-color: var(--brand);
+  transform: translateY(-2px);
+}
+
+.admin-dashboard-card h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.admin-dashboard-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.admin-dashboard-link {
+  margin-top: 0.35rem;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+@media (max-width: 800px) {
+  .admin-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .tag-picker {
   border: 1px solid var(--line);
   border-radius: 12px;

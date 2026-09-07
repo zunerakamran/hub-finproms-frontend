@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import AdminSubnav from '../components/AdminSubnav'
 import { api } from '../api/client'
 
 export default function AdminCategories() {
@@ -83,13 +83,7 @@ export default function AdminCategories() {
           <h1>{editingId ? 'Edit category' : 'Post categories'}</h1>
           <p className="muted">Manage categories available when creating posts.</p>
         </div>
-        <div className="admin-subnav">
-          <Link to="/admin/posts">Posts</Link>
-          <Link to="/admin/categories" className="active">
-            Categories
-          </Link>
-          <Link to="/admin/tags">Tags</Link>
-        </div>
+        <AdminSubnav />
       </div>
 
       <form className="admin-form" onSubmit={onSubmit}>

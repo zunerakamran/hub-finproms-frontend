@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import AdminSubnav from '../components/AdminSubnav'
 import { api } from '../api/client'
 
 export default function AdminTags() {
@@ -83,13 +83,7 @@ export default function AdminTags() {
           <h1>{editingId ? 'Edit tag' : 'Post tags'}</h1>
           <p className="muted">Manage tags available when creating posts.</p>
         </div>
-        <div className="admin-subnav">
-          <Link to="/admin/posts">Posts</Link>
-          <Link to="/admin/categories">Categories</Link>
-          <Link to="/admin/tags" className="active">
-            Tags
-          </Link>
-        </div>
+        <AdminSubnav />
       </div>
 
       <form className="admin-form" onSubmit={onSubmit}>

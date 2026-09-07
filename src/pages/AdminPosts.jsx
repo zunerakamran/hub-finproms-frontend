@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import AdminSubnav from '../components/AdminSubnav'
 import { api } from '../api/client'
 
 const emptyForm = {
@@ -137,13 +138,7 @@ export default function AdminPosts() {
           <h1>{editingId ? 'Edit post' : 'Add social media post'}</h1>
           <p className="muted">Upload attachment, set credits, category, and tags.</p>
         </div>
-        <div className="admin-subnav">
-          <Link to="/admin/posts" className="active">
-            Posts
-          </Link>
-          <Link to="/admin/categories">Categories</Link>
-          <Link to="/admin/tags">Tags</Link>
-        </div>
+        <AdminSubnav />
       </div>
 
       <form className="admin-form" onSubmit={onSubmit}>

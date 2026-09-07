@@ -50,6 +50,12 @@ export const api = {
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
   plans: () => request('/subscription-plans'),
+  adminPlans: () => request('/admin/subscription-plans'),
+  createPlan: (payload) =>
+    request('/admin/subscription-plans', { method: 'POST', body: JSON.stringify(payload) }),
+  updatePlan: (id, payload) =>
+    request(`/admin/subscription-plans/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deletePlan: (id) => request(`/admin/subscription-plans/${id}`, { method: 'DELETE' }),
   checkout: (planId) => request(`/subscription-plans/${planId}/checkout`, { method: 'POST' }),
   confirmSubscription: (sessionId) =>
     request('/subscriptions/confirm', { method: 'POST', body: JSON.stringify({ session_id: sessionId }) }),

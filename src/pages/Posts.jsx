@@ -12,25 +12,34 @@ function formatDate(value) {
 }
 
 export default function Posts() {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user, isAdmin } = useAuth()
   const navigate = useNavigate()
   const [posts, setPosts] = useState([])
+  const [totalResults, setTotalResults] = useState(0)
   const [categories, setCategories] = useState([])
-  const [filters, setFilters] = useState({ search: '', category: '' })
+  const [tags, setTags] = useState([])
+  const [totalPosts, setTotalPosts] = useState(0)
+  const [canViewCatalog, setCanViewCatalog] = useState(true)
+  const [filters, setFilters] = useState({ search: '', category: '', tag: '' })
   const [searchDraft, setSearchDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const load = async (nextFilters = filters) => {
+  const loadFilters = async () => {
+    const [catsRes, tagsRes] = await Promise.all([api.listCategories(), api.listTags()])
+    setCategories(catsRes.categories || [])
+    setTotalPosts(catsRes.total_posts ?? 0)
+    setTags(tagsRes.tags || [])
+  }
+
+  const loadPosts = async (nextFilters = filters) => {
     setLoading(true)
     setError('')
     try {
-      const [postsRes, catsRes] = await Promise.all([
-        api.posts(nextFilters),
-        api.categories(),
-      ])
+      const postsRes = await api.posts(nextFilters)
       setPosts(postsRes.data || [])
-      setCategories(catsRes.categories || [])
+      setTotalResults(postsRes.total ?? postsRes.data?.length ?? 0)
+      setCanViewCatalog(Boolean(postsRes.can_view_catalog) || isAdmin)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -39,9 +48,13 @@ export default function Posts() {
   }
 
   useEffect(() => {
-    load()
+    loadFilters().catch((err) => setError(err.message))
+  }, [])
+
+  useEffect(() => {
+    loadPosts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.category, filters.search])
+  }, [filters.category, filters.tag, filters.search, user?.credits, user?.id])
 
   const onSearch = (e) => {
     e.preventDefault()
@@ -50,16 +63,17 @@ export default function Posts() {
 
   const clearFilters = () => {
     setSearchDraft('')
-    setFilters({ search: '', category: '' })
+    setFilters({ search: '', category: '', tag: '' })
   }
 
-  const hasFilters = Boolean(filters.search || filters.category)
+  const hasFilters = Boolean(filters.search || filters.category || filters.tag)
+  const catalogLocked = !canViewCatalog && !isAdmin
 
   const resultLabel = useMemo(() => {
     if (loading) return 'Finding posts...'
-    if (posts.length === 0) return 'No posts match'
-    return `${posts.length} post${posts.length === 1 ? '' : 's'}`
-  }, [loading, posts.length])
+    if (totalResults === 0) return 'No posts match'
+    return `${totalResults} post${totalResults === 1 ? '' : 's'} found`
+  }, [loading, totalResults])
 
   return (
     <section className="listing-page">
@@ -92,44 +106,124 @@ export default function Posts() {
         </div>
       </div>
 
-      <div className="listing-toolbar">
-        <form className="listing-search" onSubmit={onSearch}>
-          <input
-            placeholder="Search by title or description..."
-            value={searchDraft}
-            onChange={(e) => setSearchDraft(e.target.value)}
-            aria-label="Search posts"
-          />
-          <button className="btn primary" type="submit">
-            Search
-          </button>
-        </form>
+      {catalogLocked && (
+        <div className="catalog-lock-banner">
+          <div>
+            <strong>Posts are locked</strong>
+            <p className="muted">Subscribe or buy credits to preview and unlock post content.</p>
+          </div>
+          <div className="actions">
+            {!isAuthenticated ? (
+              <>
+                <Link to="/login" className="btn ghost">
+                  Login
+                </Link>
+                <Link to="/subscriptions" className="btn primary">
+                  View plans
+                </Link>
+              </>
+            ) : (
+              <Link to="/subscriptions" className="btn primary">
+                Get credits
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
-        <div className="category-chips" role="list">
-          <button
-            type="button"
-            className={`chip ${!filters.category ? 'active' : ''}`}
-            onClick={() => setFilters((prev) => ({ ...prev, category: '' }))}
-          >
-            All
-          </button>
-          {categories.map((category) => (
-            <button
-              key={category}
-              type="button"
-              className={`chip ${filters.category === category ? 'active' : ''}`}
-              onClick={() => setFilters((prev) => ({ ...prev, category }))}
-            >
-              {category}
+      <div className="listing-filters">
+        <div className="listing-filter-row">
+          <form className="listing-search" onSubmit={onSearch}>
+            <input
+              placeholder="Search by title or description..."
+              value={searchDraft}
+              onChange={(e) => setSearchDraft(e.target.value)}
+              aria-label="Search posts"
+            />
+            <button className="btn primary" type="submit">
+              Search
             </button>
-          ))}
+          </form>
+
+          <label className="filter-select">
+            <span>Category</span>
+            <select
+              value={filters.category}
+              onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
+              aria-label="Filter by category"
+            >
+              <option value="">All categories ({totalPosts})</option>
+              {categories.map((category) => (
+                <option key={category.id || category.name} value={category.name}>
+                  {category.name} ({category.posts_count ?? 0})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {tags.length > 0 && (
+            <label className="filter-select">
+              <span>Tag</span>
+              <select
+                value={filters.tag}
+                onChange={(e) => setFilters((prev) => ({ ...prev, tag: e.target.value }))}
+                aria-label="Filter by tag"
+              >
+                <option value="">All tags</option>
+                {tags.map((tag) => (
+                  <option key={tag.id || tag.name} value={tag.name}>
+                    {tag.name} ({tag.posts_count ?? 0})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
 
         <div className="listing-meta-row">
-          <p className="listing-count">{resultLabel}</p>
+          <div>
+            <p className="listing-count">{resultLabel}</p>
+            {hasFilters && (
+              <div className="active-filter-pills">
+                {filters.category && (
+                  <button
+                    type="button"
+                    className="filter-pill"
+                    onClick={() => setFilters((prev) => ({ ...prev, category: '' }))}
+                  >
+                    {filters.category}
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
+                {filters.tag && (
+                  <button
+                    type="button"
+                    className="filter-pill"
+                    onClick={() => setFilters((prev) => ({ ...prev, tag: '' }))}
+                  >
+                    #{filters.tag}
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
+                {filters.search && (
+                  <button
+                    type="button"
+                    className="filter-pill"
+                    onClick={() => {
+                      setSearchDraft('')
+                      setFilters((prev) => ({ ...prev, search: '' }))
+                    }}
+                  >
+                    “{filters.search}”
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           {hasFilters && (
             <button type="button" className="text-btn" onClick={clearFilters}>
-              Clear filters
+              Clear all
             </button>
           )}
         </div>
@@ -155,7 +249,7 @@ export default function Posts() {
           <h2>No posts found</h2>
           <p className="muted">
             {hasFilters
-              ? 'Try another category or clear your search.'
+              ? 'Try another category, tag, or clear your search.'
               : 'New posts will appear here once the admin adds them.'}
           </p>
           {hasFilters && (
@@ -166,49 +260,63 @@ export default function Posts() {
         </div>
       ) : (
         <div className="post-grid listing-grid">
-          {posts.map((post, index) => (
-            <Link
-              to={`/posts/${post.id}`}
-              key={post.id}
-              className="post-tile listing-tile"
-              style={{ animationDelay: `${index * 40}ms` }}
-            >
-              <div className="post-cover">
-                {post.cover_url ? (
-                  <img src={post.cover_url} alt={post.title} loading="lazy" />
-                ) : (
-                  <div className="post-cover-fallback">{post.category}</div>
-                )}
-                <div className="cover-overlay">
-                  <span className={`badge ${post.is_purchased ? 'ok' : ''}`}>
-                    {post.is_purchased ? 'Owned' : 'Locked'}
-                  </span>
-                  <span className="credit-chip">{post.credits_cost} credits</span>
-                </div>
-              </div>
-              <div className="post-tile-body">
-                <div className="post-meta">
-                  <span className="category-label">{post.category}</span>
-                  <span>{formatDate(post.last_updated || post.updated_at)}</span>
-                </div>
-                <h2>{post.title}</h2>
-                <p className="post-excerpt">
-                  {post.description?.slice(0, 110) || 'No description provided.'}
-                  {post.description?.length > 110 ? '…' : ''}
-                </p>
-                {!!post.tags?.length && (
-                  <div className="tags">
-                    {post.tags.slice(0, 3).map((tag) => (
-                      <span key={tag}>{tag}</span>
-                    ))}
+          {posts.map((post, index) => {
+            const locked = post.is_locked && !post.is_purchased && !isAdmin
+
+            return (
+              <Link
+                to={`/posts/${post.id}`}
+                key={post.id}
+                className={`post-tile listing-tile ${locked ? 'is-locked' : ''}`}
+                style={{ animationDelay: `${index * 40}ms` }}
+              >
+                <div className="post-cover">
+                  {!locked && post.cover_url ? (
+                    <img src={post.cover_url} alt={post.title} loading="lazy" />
+                  ) : (
+                    <div className="post-cover-fallback locked-cover">
+                      {locked ? 'Locked' : post.category}
+                    </div>
+                  )}
+                  <div className="cover-overlay">
+                    <span className={`badge ${post.is_purchased ? 'ok' : ''}`}>
+                      {post.is_purchased ? 'Owned' : 'Locked'}
+                    </span>
+                    <span className="credit-chip">{post.credits_cost} credits</span>
                   </div>
-                )}
-                <div className="post-footer">
-                  <span className="view-link">View post →</span>
                 </div>
-              </div>
-            </Link>
-          ))}
+                <div className="post-tile-body">
+                  <div className="post-meta">
+                    <span className="category-label">{post.category}</span>
+                    <span>{formatDate(post.last_updated || post.updated_at)}</span>
+                  </div>
+                  <h2>{post.title}</h2>
+                  {locked ? (
+                    <p className="post-excerpt muted">
+                      Content is hidden. Get credits to preview and unlock this post.
+                    </p>
+                  ) : (
+                    <p className="post-excerpt">
+                      {post.description?.slice(0, 110) || 'No description provided.'}
+                      {post.description?.length > 110 ? '…' : ''}
+                    </p>
+                  )}
+                  {!locked && !!post.tags?.length && (
+                    <div className="tags">
+                      {post.tags.slice(0, 3).map((tag) => (
+                        <span key={tag}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="post-footer">
+                    <span className="view-link">
+                      {locked ? 'Unlock access →' : 'View post →'}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            )
+          })}
         </div>
       )}
     </section>

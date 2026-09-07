@@ -154,11 +154,13 @@ export default function AdminPosts() {
           />
         </label>
         <label>
-          Attachment
+          Attachment / cover image
           <input
             type="file"
+            accept="image/*,.pdf,.doc,.docx,.mp4,.mov,.zip"
             onChange={(e) => setForm({ ...form, attachment: e.target.files?.[0] || null })}
           />
+          <span className="field-hint">If you upload an image, it is also shown as the post cover.</span>
         </label>
         <label className="checkbox">
           <input
@@ -194,6 +196,9 @@ export default function AdminPosts() {
         <div className="admin-list">
           {posts.map((post) => (
             <div key={post.id} className="admin-row">
+              {post.cover_url && (
+                <img className="admin-thumb" src={post.cover_url} alt="" />
+              )}
               <div>
                 <strong>{post.title}</strong>
                 <p className="muted">

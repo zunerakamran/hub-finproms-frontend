@@ -61,6 +61,11 @@ export default function PostDetail() {
         ← Back to posts
       </Link>
       <div className="detail-panel">
+        {post.cover_url && (
+          <div className="detail-cover">
+            <img src={post.cover_url} alt={post.title} />
+          </div>
+        )}
         <div className="post-meta">
           <span>{post.category}</span>
           <span>{post.credits_cost} credits</span>

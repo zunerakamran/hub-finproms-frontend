@@ -35,15 +35,24 @@ export default function MyPurchases() {
         <div className="post-grid">
           {items.map((purchase) => (
             <Link to={`/posts/${purchase.post_id}`} key={purchase.id} className="post-tile">
-              <div className="post-meta">
-                <span>{purchase.post?.category}</span>
-                <span>{purchase.credits_spent} credits spent</span>
+              <div className="post-cover">
+                {purchase.post?.cover_url ? (
+                  <img src={purchase.post.cover_url} alt={purchase.post?.title} />
+                ) : (
+                  <div className="post-cover-fallback">{purchase.post?.category}</div>
+                )}
               </div>
-              <h2>{purchase.post?.title}</h2>
-              <p>{purchase.post?.description?.slice(0, 120)}</p>
-              <div className="post-footer">
-                <span>Bought {new Date(purchase.purchased_at).toLocaleDateString()}</span>
-                <span className="badge ok">Owned</span>
+              <div className="post-tile-body">
+                <div className="post-meta">
+                  <span>{purchase.post?.category}</span>
+                  <span>{purchase.credits_spent} credits spent</span>
+                </div>
+                <h2>{purchase.post?.title}</h2>
+                <p>{purchase.post?.description?.slice(0, 120)}</p>
+                <div className="post-footer">
+                  <span>Bought {new Date(purchase.purchased_at).toLocaleDateString()}</span>
+                  <span className="badge ok">Owned</span>
+                </div>
               </div>
             </Link>
           ))}

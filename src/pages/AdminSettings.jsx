@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import AdminSubnav from '../components/AdminSubnav'
 import { api } from '../api/client'
 
 export default function AdminSettings() {
@@ -52,7 +51,6 @@ export default function AdminSettings() {
           <h1>Settings</h1>
           <p className="muted">Hub options stored in the database (not hard-coded).</p>
         </div>
-        <AdminSubnav />
       </div>
 
       {loading ? (

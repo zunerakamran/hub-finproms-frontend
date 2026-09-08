@@ -9,6 +9,7 @@ export default function SubscriptionSuccess() {
   const [status, setStatus] = useState('confirming')
   const [message, setMessage] = useState('Confirming your Stripe payment...')
   const [subscription, setSubscription] = useState(null)
+  const [invoice, setInvoice] = useState(null)
 
   useEffect(() => {
     const sessionId = params.get('session_id')
@@ -22,6 +23,7 @@ export default function SubscriptionSuccess() {
       .confirmSubscription(sessionId)
       .then(async (data) => {
         setSubscription(data.subscription)
+        setInvoice(data.invoice || null)
         setMessage(data.message)
         setStatus('success')
         await refreshUser()
@@ -43,13 +45,25 @@ export default function SubscriptionSuccess() {
           <strong>{subscription.credits_granted}</strong>
         </p>
       )}
+      {invoice && (
+        <p className="muted">
+          Invoice <strong>{invoice.invoice_number}</strong> for £
+          {Number(invoice.amount).toFixed(2)} has been created.
+        </p>
+      )}
       <div className="actions">
         <Link to="/" className="btn primary">
           Browse posts
         </Link>
-        <Link to="/subscriptions" className="btn ghost">
-          View plans
-        </Link>
+        {invoice ? (
+          <Link to={`/invoices/${invoice.id}`} className="btn ghost">
+            View invoice
+          </Link>
+        ) : (
+          <Link to="/subscriptions" className="btn ghost">
+            View plans
+          </Link>
+        )}
       </div>
     </section>
   )

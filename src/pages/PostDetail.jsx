@@ -8,11 +8,11 @@ export default function PostDetail() {
   const { user, isAuthenticated, isClientAdmin, setUser, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [post, setPost] = useState(null)
-  const [canViewCatalog, setCanViewCatalog] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [buying, setBuying] = useState(false)
+  const [invoice, setInvoice] = useState(null)
 
   const load = async () => {
     setLoading(true)
@@ -20,7 +20,6 @@ export default function PostDetail() {
     try {
       const data = await api.post(id)
       setPost(data.post)
-      setCanViewCatalog(Boolean(data.can_view_catalog) || isClientAdmin)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -41,11 +40,13 @@ export default function PostDetail() {
     setBuying(true)
     setError('')
     setMessage('')
+    setInvoice(null)
     try {
       const data = await api.purchasePost(id)
       setPost(data.post)
       setUser(data.user)
       setMessage(data.message)
+      setInvoice(data.invoice || null)
       await refreshUser()
       await load()
     } catch (err) {
@@ -59,7 +60,7 @@ export default function PostDetail() {
   if (error && !post) return <div className="alert">{error}</div>
   if (!post) return null
 
-  const locked = post.is_locked && !post.is_purchased && !isClientAdmin
+  const locked = Boolean(post.is_locked) && !post.is_purchased && !isClientAdmin
   const unlocked = post.is_purchased || isClientAdmin
 
   if (locked) {
@@ -84,39 +85,41 @@ export default function PostDetail() {
                 <circle cx="12" cy="15" r="1.4" fill="currentColor" />
               </svg>
             </div>
-            <p className="locked-gate-kicker">Members only</p>
+            <p className="locked-gate-kicker">Login required</p>
           </div>
 
           <div className="locked-gate-body">
             <div className="locked-gate-meta">
+              <span className="locked-pill">{post.type}</span>
               <span className="locked-pill">{post.category}</span>
-              <span className="locked-pill cost">{post.credits_cost} credits to unlock</span>
+              <span className="locked-pill cost">{post.credits_cost} credits · £{post.credits_cost}</span>
             </div>
 
             <h1>{post.title}</h1>
             <p className="locked-gate-lead">
-              Preview and download are hidden until you have an active plan or credits.
+              Sign in to preview this post and buy it with credits — no subscription required. 1
+              credit = £1.
             </p>
 
             <div className="locked-steps">
               <div className="locked-step">
                 <span className="locked-step-num">1</span>
                 <div>
-                  <strong>Get credits</strong>
-                  <p>Choose a subscription plan that fits your posting volume.</p>
+                  <strong>Create an account</strong>
+                  <p>Register or log in to browse the full catalog.</p>
                 </div>
               </div>
               <div className="locked-step">
                 <span className="locked-step-num">2</span>
                 <div>
-                  <strong>Browse the catalog</strong>
-                  <p>Covers, descriptions, and tags become visible once you have credits.</p>
+                  <strong>Get credits</strong>
+                  <p>Subscribe for a pack, or top up as you go (1 credit = £1).</p>
                 </div>
               </div>
               <div className="locked-step">
                 <span className="locked-step-num">3</span>
                 <div>
-                  <strong>Unlock this post</strong>
+                  <strong>Buy this post</strong>
                   <p>Spend {post.credits_cost} credits to download the creative asset.</p>
                 </div>
               </div>
@@ -125,25 +128,12 @@ export default function PostDetail() {
             {error && <div className="alert">{error}</div>}
 
             <div className="locked-gate-actions">
-              {!isAuthenticated ? (
-                <>
-                  <Link to="/subscriptions" className="btn primary">
-                    View plans
-                  </Link>
-                  <Link to="/login" className="btn ghost">
-                    Login
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link to="/subscriptions" className="btn primary">
-                    Get credits
-                  </Link>
-                  <p className="locked-balance">
-                    Your balance: <strong>{user?.credits ?? 0}</strong> credits
-                  </p>
-                </>
-              )}
+              <Link to="/login" className="btn primary">
+                Login
+              </Link>
+              <Link to="/register" className="btn ghost">
+                Sign up free
+              </Link>
             </div>
           </div>
         </div>
@@ -163,8 +153,11 @@ export default function PostDetail() {
           </div>
         )}
         <div className="post-meta">
+          <span>{post.type}</span>
           <span>{post.category}</span>
-          <span>{post.credits_cost} credits</span>
+          <span>
+            {post.credits_cost} credits · £{post.credits_cost}
+          </span>
           {post.is_new && <span className="badge new-inline">NEW</span>}
         </div>
         <h1>{post.title}</h1>
@@ -204,14 +197,20 @@ export default function PostDetail() {
             ) : (
               <p className="muted">No attachment uploaded for this post.</p>
             )}
+            {invoice && (
+              <p className="muted">
+                Invoice {invoice.invoice_number} created ·{' '}
+                <Link to={`/invoices/${invoice.id}`}>View invoice</Link>
+              </p>
+            )}
           </div>
         ) : (
           <div className="unlock-box">
-            <p>You need {post.credits_cost} credits to unlock this post.</p>
+            <p>
+              Buy this post for {post.credits_cost} credits (£{post.credits_cost}). No subscription
+              required.
+            </p>
             <p className="muted">Your balance: {user?.credits ?? 0} credits</p>
-            {!canViewCatalog && (
-              <p className="muted">Get a subscription plan to keep browsing the catalog.</p>
-            )}
             <div className="actions">
               <button
                 className="btn primary"

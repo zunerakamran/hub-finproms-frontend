@@ -20,19 +20,24 @@ export default function Posts() {
   const navigate = useNavigate()
   const [posts, setPosts] = useState([])
   const [totalResults, setTotalResults] = useState(0)
+  const [types, setTypes] = useState([])
   const [categories, setCategories] = useState([])
   const [tags, setTags] = useState([])
   const [totalPosts, setTotalPosts] = useState(0)
-  const [canViewCatalog, setCanViewCatalog] = useState(true)
-  const [filters, setFilters] = useState({ search: '', category: '', tag: '' })
+  const [filters, setFilters] = useState({ search: '', type: '', category: '', tag: '' })
   const [searchDraft, setSearchDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const loadFilters = async () => {
-    const [catsRes, tagsRes] = await Promise.all([api.listCategories(), api.listTags()])
-    setCategories(catsRes.categories || catsRes.types || [])
-    setTotalPosts(catsRes.total_posts ?? 0)
+    const [typesRes, catsRes, tagsRes] = await Promise.all([
+      api.listTypes(),
+      api.listCategories(),
+      api.listTags(),
+    ])
+    setTypes(typesRes.types || [])
+    setCategories(catsRes.categories || [])
+    setTotalPosts(catsRes.total_posts ?? typesRes.total_posts ?? 0)
     setTags(tagsRes.tags || [])
   }
 
@@ -43,7 +48,6 @@ export default function Posts() {
       const postsRes = await api.posts(nextFilters)
       setPosts(postsRes.data || [])
       setTotalResults(postsRes.total ?? postsRes.data?.length ?? 0)
-      setCanViewCatalog(Boolean(postsRes.can_view_catalog) || isClientAdmin)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -58,7 +62,7 @@ export default function Posts() {
   useEffect(() => {
     loadPosts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.category, filters.tag, filters.search, user?.credits, user?.id])
+  }, [filters.type, filters.category, filters.tag, filters.search, user?.credits, user?.id])
 
   const onSearch = (e) => {
     e.preventDefault()
@@ -67,11 +71,11 @@ export default function Posts() {
 
   const clearFilters = () => {
     setSearchDraft('')
-    setFilters({ search: '', category: '', tag: '' })
+    setFilters({ search: '', type: '', category: '', tag: '' })
   }
 
-  const hasFilters = Boolean(filters.search || filters.category || filters.tag)
-  const catalogLocked = !canViewCatalog && !isClientAdmin
+  const hasFilters = Boolean(filters.search || filters.type || filters.category || filters.tag)
+  const catalogLocked = !isAuthenticated && !isClientAdmin
 
   const resultLabel = useMemo(() => {
     if (loading) return 'Finding content...'
@@ -87,7 +91,7 @@ export default function Posts() {
           <h1>Ready-to-post social content</h1>
           <p className="listing-lead">
             Browse promo posts and reels, unlock with credits, and download the creative assets you
-            need.
+            need. No subscription required — 1 credit = £1.
           </p>
         </div>
         <div className="listing-hero-aside">
@@ -102,7 +106,7 @@ export default function Posts() {
             </div>
           ) : (
             <div className="listing-cta-panel">
-              <p>Create an account to buy credits and unlock posts.</p>
+              <p>Create an account to browse full previews and buy posts with credits.</p>
               <button className="btn primary" onClick={() => navigate('/register')}>
                 Sign up free
               </button>
@@ -115,23 +119,15 @@ export default function Posts() {
         <div className="catalog-lock-banner">
           <div>
             <strong>Content is locked</strong>
-            <p className="muted">Subscribe or buy credits to preview and unlock content.</p>
+            <p className="muted">Log in to preview posts and buy them with credits (1 credit = £1).</p>
           </div>
           <div className="actions">
-            {!isAuthenticated ? (
-              <>
-                <Link to="/login" className="btn ghost">
-                  Login
-                </Link>
-                <Link to="/subscriptions" className="btn primary">
-                  View plans
-                </Link>
-              </>
-            ) : (
-              <Link to="/subscriptions" className="btn primary">
-                Get credits
-              </Link>
-            )}
+            <Link to="/login" className="btn ghost">
+              Login
+            </Link>
+            <Link to="/register" className="btn primary">
+              Sign up
+            </Link>
           </div>
         </div>
       )}
@@ -153,11 +149,27 @@ export default function Posts() {
           <label className="filter-select">
             <span>Type</span>
             <select
-              value={filters.category}
-              onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
+              value={filters.type}
+              onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value }))}
               aria-label="Filter by type"
             >
               <option value="">All types ({totalPosts})</option>
+              {types.map((type) => (
+                <option key={type.id || type.name} value={type.name}>
+                  {type.name} ({type.posts_count ?? 0})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="filter-select">
+            <span>Category</span>
+            <select
+              value={filters.category}
+              onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
+              aria-label="Filter by category"
+            >
+              <option value="">All categories</option>
               {categories.map((category) => (
                 <option key={category.id || category.name} value={category.name}>
                   {category.name} ({category.posts_count ?? 0})
@@ -190,6 +202,16 @@ export default function Posts() {
             <p className="listing-count">{resultLabel}</p>
             {hasFilters && (
               <div className="active-filter-pills">
+                {filters.type && (
+                  <button
+                    type="button"
+                    className="filter-pill"
+                    onClick={() => setFilters((prev) => ({ ...prev, type: '' }))}
+                  >
+                    Type: {filters.type}
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
                 {filters.category && (
                   <button
                     type="button"
@@ -254,7 +276,7 @@ export default function Posts() {
           <h2>No content found</h2>
           <p className="muted">
             {hasFilters
-              ? 'Try another type, tag, or clear your search.'
+              ? 'Try another type, category, tag, or clear your search.'
               : 'New posts and reels will appear here once the client admin adds them.'}
           </p>
           {hasFilters && (
@@ -281,7 +303,7 @@ export default function Posts() {
                     <img src={post.cover_url} alt={post.title} loading="lazy" />
                   ) : (
                     <div className="post-cover-fallback locked-cover">
-                      {locked ? 'Locked' : post.category}
+                      {locked ? 'Locked' : post.type || post.category}
                     </div>
                   )}
 
@@ -296,21 +318,24 @@ export default function Posts() {
                   )}
 
                   <div className="cover-overlay">
-                    <span className={`badge ${post.is_purchased ? 'ok' : ''}`}>
-                      {post.is_purchased ? 'Owned' : 'Locked'}
+                    <span className={`badge ${post.is_purchased ? 'ok' : locked ? '' : 'ok'}`}>
+                      {post.is_purchased ? 'Owned' : locked ? 'Locked' : 'Available'}
                     </span>
-                    <span className="credit-chip">{post.credits_cost} credits</span>
+                    <span className="credit-chip">
+                      {post.credits_cost} credits · £{post.credits_cost}
+                    </span>
                   </div>
                 </div>
                 <div className="post-tile-body">
                   <div className="post-meta">
-                    <span className="category-label">{post.category}</span>
+                    <span className="category-label">{post.type}</span>
+                    <span className="muted">{post.category}</span>
                     <span>{formatDate(post.last_updated || post.updated_at)}</span>
                   </div>
                   <h2>{post.title}</h2>
                   {locked ? (
                     <p className="post-excerpt muted">
-                      Content is hidden. Get credits to preview and unlock this item.
+                      Log in to preview this item and buy it with credits.
                     </p>
                   ) : (
                     <p className="post-excerpt">
@@ -332,7 +357,15 @@ export default function Posts() {
                   </div>
                   <div className="post-footer">
                     <span className="view-link">
-                      {locked ? 'Unlock access →' : isReel ? 'Play reel →' : 'View post →'}
+                      {locked
+                        ? 'Login to unlock →'
+                        : post.is_purchased
+                          ? isReel
+                            ? 'Play reel →'
+                            : 'View post →'
+                          : isReel
+                            ? 'Buy & play →'
+                            : 'Buy post →'}
                     </span>
                   </div>
                 </div>

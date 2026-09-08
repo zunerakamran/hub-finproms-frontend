@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 
-export default function AdminTags() {
-  const [tags, setTags] = useState([])
+export default function AdminTypes() {
+  const [types, setTypes] = useState([])
   const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -13,8 +14,8 @@ export default function AdminTags() {
   const load = async () => {
     setLoading(true)
     try {
-      const data = await api.listTags()
-      setTags(data.tags || [])
+      const data = await api.listTypes()
+      setTypes(data.types || [])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -28,6 +29,7 @@ export default function AdminTags() {
 
   const reset = () => {
     setName('')
+    setSlug('')
     setEditingId(null)
   }
 
@@ -37,36 +39,38 @@ export default function AdminTags() {
     setError('')
     setMessage('')
     try {
+      const payload = { name: name.trim(), slug: slug.trim() || undefined }
       if (editingId) {
-        await api.updateTag(editingId, { name: name.trim() })
-        setMessage('Tag updated.')
+        await api.updateType(editingId, payload)
+        setMessage('Type updated.')
       } else {
-        await api.createTag({ name: name.trim() })
-        setMessage('Tag created.')
+        await api.createType(payload)
+        setMessage('Type created.')
       }
       reset()
       await load()
     } catch (err) {
-      setError(err.data?.errors?.name?.[0] || err.message)
+      setError(err.data?.errors?.name?.[0] || err.data?.errors?.slug?.[0] || err.message)
     } finally {
       setSaving(false)
     }
   }
 
-  const edit = (tag) => {
-    setEditingId(tag.id)
-    setName(tag.name)
+  const edit = (type) => {
+    setEditingId(type.id)
+    setName(type.name)
+    setSlug(type.slug || '')
     setMessage('')
     setError('')
   }
 
   const remove = async (id) => {
-    if (!window.confirm('Delete this tag?')) return
+    if (!window.confirm('Delete this type?')) return
     setError('')
     setMessage('')
     try {
-      await api.deleteTag(id)
-      setMessage('Tag deleted.')
+      await api.deleteType(id)
+      setMessage('Type deleted.')
       if (editingId === id) reset()
       await load()
     } catch (err) {
@@ -79,8 +83,11 @@ export default function AdminTags() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Client Admin</p>
-          <h1>{editingId ? 'Edit tag' : 'Post tags'}</h1>
-          <p className="muted">Manage tags available when creating posts.</p>
+          <h1>{editingId ? 'Edit type' : 'Content types'}</h1>
+          <p className="muted">
+            Type is separate from category and tags. Use slug <code>reel</code> for play-button
+            behaviour on the listing.
+          </p>
         </div>
       </div>
 
@@ -88,17 +95,25 @@ export default function AdminTags() {
         {error && <div className="alert">{error}</div>}
         {message && <div className="alert success">{message}</div>}
         <label>
-          Tag name
+          Type name
           <input
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="finance, promo..."
+            placeholder="Post, Reel..."
+          />
+        </label>
+        <label>
+          Slug (optional)
+          <input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="post, reel..."
           />
         </label>
         <div className="actions">
           <button className="btn primary" disabled={saving}>
-            {saving ? 'Saving...' : editingId ? 'Update tag' : 'Add tag'}
+            {saving ? 'Saving...' : editingId ? 'Update type' : 'Add type'}
           </button>
           {editingId && (
             <button type="button" className="btn ghost" onClick={reset}>
@@ -108,23 +123,26 @@ export default function AdminTags() {
         </div>
       </form>
 
-      <h2 className="section-title">Existing tags</h2>
+      <h2 className="section-title">Existing types</h2>
       {loading ? (
         <div className="state">Loading...</div>
-      ) : tags.length === 0 ? (
-        <div className="state">No tags yet. Add one above.</div>
+      ) : types.length === 0 ? (
+        <div className="state">No types yet. Add Post and Reel above.</div>
       ) : (
         <div className="admin-list">
-          {tags.map((tag) => (
-            <div key={tag.id} className="admin-row">
+          {types.map((type) => (
+            <div key={type.id} className="admin-row">
               <div>
-                <strong>{tag.name}</strong>
+                <strong>{type.name}</strong>
+                <p className="muted">
+                  slug: {type.slug || '—'} · {type.posts_count ?? 0} items
+                </p>
               </div>
               <div className="actions">
-                <button className="btn ghost" onClick={() => edit(tag)}>
+                <button className="btn ghost" onClick={() => edit(type)}>
                   Edit
                 </button>
-                <button className="btn danger" onClick={() => remove(tag.id)}>
+                <button className="btn danger" onClick={() => remove(type.id)}>
                   Delete
                 </button>
               </div>

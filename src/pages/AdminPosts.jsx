@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import AdminSubnav from '../components/AdminSubnav'
 import { api } from '../api/client'
 
 const emptyForm = {
   title: '',
   description: '',
+  type: '',
   category: '',
   tags: [],
   credits_cost: 10,
@@ -15,6 +15,7 @@ const emptyForm = {
 
 export default function AdminPosts() {
   const [posts, setPosts] = useState([])
+  const [types, setTypes] = useState([])
   const [categories, setCategories] = useState([])
   const [tags, setTags] = useState([])
   const [form, setForm] = useState(emptyForm)
@@ -27,12 +28,14 @@ export default function AdminPosts() {
   const load = async () => {
     setLoading(true)
     try {
-      const [postsRes, catsRes, tagsRes] = await Promise.all([
+      const [postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
         api.posts({ per_page: 50 }),
+        api.listTypes(),
         api.listCategories(),
         api.listTags(),
       ])
       setPosts(postsRes.data || [])
+      setTypes(typesRes.types || [])
       setCategories(catsRes.categories || [])
       setTags(tagsRes.tags || [])
     } catch (err) {
@@ -50,6 +53,7 @@ export default function AdminPosts() {
     const fd = new FormData()
     fd.append('title', form.title)
     fd.append('description', form.description || '')
+    fd.append('type', form.type)
     fd.append('category', form.category)
     fd.append('tags', JSON.stringify(form.tags))
     fd.append('credits_cost', String(form.credits_cost))
@@ -85,6 +89,7 @@ export default function AdminPosts() {
       await load()
     } catch (err) {
       const validation =
+        err.data?.errors?.type?.[0] ||
         err.data?.errors?.category?.[0] ||
         err.data?.errors?.tags?.[0] ||
         err.message
@@ -99,6 +104,7 @@ export default function AdminPosts() {
     setForm({
       title: post.title || '',
       description: post.description || '',
+      type: post.type || '',
       category: post.category || '',
       tags: post.tags || [],
       credits_cost: post.credits_cost || 10,
@@ -118,9 +124,15 @@ export default function AdminPosts() {
     }
   }
 
-  const categoryOptions = categories.some((c) => c.name === form.category) || !form.category
-    ? categories
-    : [...categories, { id: `legacy-${form.category}`, name: form.category }]
+  const typeOptions =
+    types.some((t) => t.name === form.type) || !form.type
+      ? types
+      : [...types, { id: `legacy-type-${form.type}`, name: form.type }]
+
+  const categoryOptions =
+    categories.some((c) => c.name === form.category) || !form.category
+      ? categories
+      : [...categories, { id: `legacy-${form.category}`, name: form.category }]
 
   const tagOptions = (() => {
     const known = new Set(tags.map((t) => t.name))
@@ -136,9 +148,8 @@ export default function AdminPosts() {
         <div>
           <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit post' : 'Add social media post'}</h1>
-          <p className="muted">Upload attachment, set credits, type, and tags.</p>
+          <p className="muted">Set type, category, tags, credits, and attachment.</p>
         </div>
-        <AdminSubnav />
       </div>
 
       <form className="admin-form" onSubmit={onSubmit}>
@@ -157,10 +168,30 @@ export default function AdminPosts() {
             Type
             <select
               required
+              value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value })}
+            >
+              <option value="">Select a type</option>
+              {typeOptions.map((type) => (
+                <option key={type.id} value={type.name}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+            {types.length === 0 && (
+              <span className="field-hint">
+                No types yet. <Link to="/client-admin/types">Add types</Link> first.
+              </span>
+            )}
+          </label>
+          <label>
+            Category
+            <select
+              required
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             >
-              <option value="">Select a type</option>
+              <option value="">Select a category</option>
               {categoryOptions.map((category) => (
                 <option key={category.id} value={category.name}>
                   {category.name}
@@ -169,7 +200,7 @@ export default function AdminPosts() {
             </select>
             {categories.length === 0 && (
               <span className="field-hint">
-                No types yet. <Link to="/client-admin/types">Add content types</Link> first.
+                No categories yet. <Link to="/client-admin/categories">Add categories</Link> first.
               </span>
             )}
           </label>
@@ -214,13 +245,12 @@ export default function AdminPosts() {
           />
         </label>
         <label>
-          Attachment / cover image
+          Attachment
           <input
             type="file"
-            accept="image/*,.pdf,.doc,.docx,.mp4,.mov,.zip"
+            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.mp4,.mov,.zip"
             onChange={(e) => setForm({ ...form, attachment: e.target.files?.[0] || null })}
           />
-          <span className="field-hint">If you upload an image, it is also shown as the post cover.</span>
         </label>
         <label className="checkbox">
           <input
@@ -231,7 +261,7 @@ export default function AdminPosts() {
           Active
         </label>
         <div className="actions">
-          <button className="btn primary" disabled={saving || categories.length === 0}>
+          <button className="btn primary" disabled={saving}>
             {saving ? 'Saving...' : editingId ? 'Update post' : 'Create post'}
           </button>
           {editingId && (
@@ -256,14 +286,16 @@ export default function AdminPosts() {
         <div className="admin-list">
           {posts.map((post) => (
             <div key={post.id} className="admin-row">
-              {post.cover_url && (
+              {post.cover_url ? (
                 <img className="admin-thumb" src={post.cover_url} alt="" />
+              ) : (
+                <div className="admin-thumb fallback" />
               )}
               <div>
                 <strong>{post.title}</strong>
                 <p className="muted">
-                  {post.category} · {post.credits_cost} credits · updated{' '}
-                  {new Date(post.updated_at).toLocaleDateString()}
+                  {post.type} · {post.category} · {post.credits_cost} credits · updated{' '}
+                  {new Date(post.last_updated || post.updated_at).toLocaleString()}
                 </p>
               </div>
               <div className="actions">

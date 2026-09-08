@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import AdminSubnav from '../components/AdminSubnav'
 
 const sections = [
   {
@@ -9,8 +8,13 @@ const sections = [
   },
   {
     to: '/client-admin/types',
-    title: 'Content types',
-    description: 'Manage types such as Post and Reel (category = type).',
+    title: 'Types',
+    description: 'Manage content types such as Post and Reel (separate from category).',
+  },
+  {
+    to: '/client-admin/categories',
+    title: 'Categories',
+    description: 'Manage topical categories (separate from type and tags).',
   },
   {
     to: '/client-admin/tags',
@@ -41,9 +45,8 @@ export default function AdminDashboard() {
         <div>
           <p className="eyebrow">Client Admin</p>
           <h1>Dashboard</h1>
-          <p className="muted">Manage content types, posts, tags, plans, and hub settings.</p>
+          <p className="muted">Manage types, categories, posts, tags, plans, and hub settings.</p>
         </div>
-        <AdminSubnav />
       </div>
 
       <div className="admin-dashboard-grid">

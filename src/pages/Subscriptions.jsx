@@ -37,6 +37,7 @@ export default function Subscriptions() {
         navigate('/subscriptions/bank-transfer', {
           state: {
             subscription: data.subscription,
+            invoice: data.invoice,
             bank_details: data.bank_details,
             payment_reference: data.payment_reference,
             amount: data.amount,

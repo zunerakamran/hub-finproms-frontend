@@ -22,6 +22,7 @@ export default function BankTransferPending() {
 
   const {
     subscription,
+    invoice,
     bank_details: bank,
     payment_reference,
     amount,
@@ -44,6 +45,13 @@ export default function BankTransferPending() {
         <p>
           Plan: <strong>{subscription.plan?.name}</strong> · Credits added:{' '}
           <strong>{subscription.credits_granted}</strong>
+        </p>
+      )}
+
+      {invoice && (
+        <p className="muted">
+          Invoice <strong>{invoice.invoice_number}</strong> for £
+          {Number(invoice.amount).toFixed(2)} has been created.
         </p>
       )}
 
@@ -108,9 +116,15 @@ export default function BankTransferPending() {
         <Link to="/" className="btn primary">
           Browse posts
         </Link>
-        <Link to="/subscriptions" className="btn ghost">
-          Back to plans
-        </Link>
+        {invoice ? (
+          <Link to={`/invoices/${invoice.id}`} className="btn ghost">
+            View invoice
+          </Link>
+        ) : (
+          <Link to="/subscriptions" className="btn ghost">
+            Back to plans
+          </Link>
+        )}
       </div>
     </section>
   )

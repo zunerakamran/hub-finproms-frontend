@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import AdminSubnav from '../components/AdminSubnav'
 import { api } from '../api/client'
 
 /** TEMPORARY admin page — remove when BANK_TRANSFER_ENABLED is turned off. */
@@ -50,7 +49,6 @@ export default function AdminBankTransfers() {
           <h1>Bank transfers</h1>
           <p className="muted">Confirm pending bank payments to grant credits. Temporary until Stripe is configured.</p>
         </div>
-        <AdminSubnav />
       </div>
 
       {error && <div className="alert">{error}</div>}

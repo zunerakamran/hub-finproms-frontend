@@ -84,6 +84,12 @@ export const api = {
   updateCategory: (id, payload) =>
     request(`${CLIENT_ADMIN}/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteCategory: (id) => request(`${CLIENT_ADMIN}/categories/${id}`, { method: 'DELETE' }),
+  listTypes: () => request('/types'),
+  createType: (payload) =>
+    request(`${CLIENT_ADMIN}/types`, { method: 'POST', body: JSON.stringify(payload) }),
+  updateType: (id, payload) =>
+    request(`${CLIENT_ADMIN}/types/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteType: (id) => request(`${CLIENT_ADMIN}/types/${id}`, { method: 'DELETE' }),
   listTags: () => request('/tags'),
   createTag: (payload) => request(`${CLIENT_ADMIN}/tags`, { method: 'POST', body: JSON.stringify(payload) }),
   updateTag: (id, payload) =>
@@ -91,6 +97,8 @@ export const api = {
   deleteTag: (id) => request(`${CLIENT_ADMIN}/tags/${id}`, { method: 'DELETE' }),
   purchasePost: (id) => request(`/posts/${id}/purchase`, { method: 'POST' }),
   myPurchases: () => request('/my-purchases'),
+  myInvoices: () => request('/my-invoices'),
+  invoice: (id) => request(`/invoices/${id}`),
   createPost: (formData) => request(`${CLIENT_ADMIN}/posts`, { method: 'POST', body: formData }),
   updatePost: (id, formData) => request(`${CLIENT_ADMIN}/posts/${id}`, { method: 'POST', body: formData }),
   deletePost: (id) => request(`${CLIENT_ADMIN}/posts/${id}`, { method: 'DELETE' }),

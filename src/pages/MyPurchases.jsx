@@ -39,11 +39,12 @@ export default function MyPurchases() {
                 {purchase.post?.cover_url ? (
                   <img src={purchase.post.cover_url} alt={purchase.post?.title} />
                 ) : (
-                  <div className="post-cover-fallback">{purchase.post?.category}</div>
+                  <div className="post-cover-fallback">{purchase.post?.type || purchase.post?.category}</div>
                 )}
               </div>
               <div className="post-tile-body">
                 <div className="post-meta">
+                  <span>{purchase.post?.type}</span>
                   <span>{purchase.post?.category}</span>
                   <span>{purchase.credits_spent} credits spent</span>
                 </div>

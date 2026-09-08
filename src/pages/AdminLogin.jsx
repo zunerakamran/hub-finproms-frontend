@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 function roleHome(user) {
@@ -8,15 +8,24 @@ function roleHome(user) {
   return '/'
 }
 
-export default function Login() {
+export default function AdminLogin({ portal = 'client' }) {
   const { login, isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  if (isAuthenticated) return <Navigate to={roleHome(user)} replace />
+  const isPower = portal === 'power'
+  const expectedRole = isPower ? 'power_admin' : 'client_admin'
+  const title = isPower ? 'Power Admin' : 'Client Admin'
+  const home = isPower ? '/power-admin' : '/client-admin'
+
+  if (isAuthenticated) {
+    const ok =
+      user?.role === expectedRole ||
+      (!isPower && (user?.role === 'client_admin' || user?.role === 'admin'))
+    return <Navigate to={ok ? home : roleHome(user)} replace />
+  }
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -24,11 +33,16 @@ export default function Login() {
     setSubmitting(true)
     try {
       const loggedIn = await login(form)
-      if (loggedIn?.role === 'power_admin' || loggedIn?.role === 'client_admin' || loggedIn?.role === 'admin') {
+      const ok =
+        loggedIn?.role === expectedRole ||
+        (!isPower && (loggedIn?.role === 'client_admin' || loggedIn?.role === 'admin'))
+      if (!ok) {
+        setError(`This login is for ${title} accounts only.`)
+        // Keep session but send them to their correct portal
         navigate(roleHome(loggedIn), { replace: true })
         return
       }
-      navigate(location.state?.from?.pathname || '/')
+      navigate(home, { replace: true })
     } catch (err) {
       setError(err.data?.errors?.email?.[0] || err.message)
     } finally {
@@ -37,11 +51,15 @@ export default function Login() {
   }
 
   return (
-    <div className="auth-wrap">
+    <div className={`auth-wrap admin-auth-wrap ${isPower ? 'power-auth' : 'client-auth'}`}>
       <form className="auth-panel" onSubmit={onSubmit}>
-        <p className="eyebrow">Welcome back</p>
-        <h1>Login to Hub Finproms</h1>
-        <p className="muted">Access social posts with your credits.</p>
+        <p className="eyebrow">{title}</p>
+        <h1>Sign in</h1>
+        <p className="muted">
+          {isPower
+            ? 'Platform dashboard — separate from the member hub.'
+            : 'Hub management dashboard — separate from the member hub.'}
+        </p>
         {error && <div className="alert">{error}</div>}
         <label>
           Email
@@ -62,15 +80,10 @@ export default function Login() {
           />
         </label>
         <button className="btn primary full" disabled={submitting}>
-          {submitting ? 'Signing in...' : 'Login'}
+          {submitting ? 'Signing in...' : `Login to ${title}`}
         </button>
         <p className="muted center">
-          No account? <Link to="/register">Sign up</Link>
-        </p>
-        <p className="muted center">
-          Staff? <Link to="/client-admin/login">Client Admin</Link>
-          {' · '}
-          <Link to="/power-admin/login">Power Admin</Link>
+          Member login? <Link to="/login">Go to hub login</Link>
         </p>
       </form>
     </div>

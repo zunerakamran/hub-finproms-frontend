@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import AdminSubnav from '../components/AdminSubnav'
 import { api } from '../api/client'
 
 const emptyForm = {
@@ -115,7 +114,6 @@ export default function AdminPlans() {
           <h1>{editingId ? 'Edit plan' : 'Subscription plans'}</h1>
           <p className="muted">Create credit packages users can buy on the Plans page.</p>
         </div>
-        <AdminSubnav />
       </div>
 
       <form className="admin-form" onSubmit={onSubmit}>

@@ -2,7 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Layout() {
-  const { user, logout, isClientAdmin, isAuthenticated } = useAuth()
+  const { user, logout, isAuthenticated, isClientAdmin, isPowerAdmin } = useAuth()
 
   return (
     <div className="app-shell">
@@ -14,7 +14,9 @@ export default function Layout() {
           <NavLink to="/">Posts</NavLink>
           <NavLink to="/subscriptions">Plans</NavLink>
           {isAuthenticated && <NavLink to="/my-purchases">My Purchases</NavLink>}
+          {isAuthenticated && <NavLink to="/my-invoices">Invoices</NavLink>}
           {isClientAdmin && <NavLink to="/client-admin">Client Admin</NavLink>}
+          {isPowerAdmin && <NavLink to="/power-admin">Power Admin</NavLink>}
         </nav>
         <div className="topbar-right">
           {isAuthenticated ? (

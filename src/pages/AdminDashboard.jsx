@@ -3,27 +3,32 @@ import AdminSubnav from '../components/AdminSubnav'
 
 const sections = [
   {
-    to: '/admin/posts',
-    title: 'Posts',
-    description: 'Create and edit social media posts, attachments, and credit costs.',
+    to: '/client-admin/posts',
+    title: 'Posts & reels',
+    description: 'Create and edit social content, attachments, and credit costs.',
   },
   {
-    to: '/admin/categories',
-    title: 'Categories',
-    description: 'Manage post categories shown in the post form dropdown.',
+    to: '/client-admin/types',
+    title: 'Content types',
+    description: 'Manage types such as Post and Reel (category = type).',
   },
   {
-    to: '/admin/tags',
+    to: '/client-admin/tags',
     title: 'Tags',
-    description: 'Manage tags available when creating or editing posts.',
+    description: 'Manage tags available when creating or editing content.',
   },
   {
-    to: '/admin/plans',
+    to: '/client-admin/plans',
     title: 'Subscription plans',
     description: 'Add and update credit packages users can purchase.',
   },
   {
-    to: '/admin/bank-transfers',
+    to: '/client-admin/settings',
+    title: 'Settings',
+    description: 'Configure NEW banner duration and other hub options.',
+  },
+  {
+    to: '/client-admin/bank-transfers',
     title: 'Bank transfers',
     description: 'Confirm pending bank payments and grant credits (temporary until Stripe).',
   },
@@ -34,9 +39,9 @@ export default function AdminDashboard() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Admin</p>
+          <p className="eyebrow">Client Admin</p>
           <h1>Dashboard</h1>
-          <p className="muted">Manage posts, categories, tags, and subscription plans.</p>
+          <p className="muted">Manage content types, posts, tags, plans, and hub settings.</p>
         </div>
         <AdminSubnav />
       </div>

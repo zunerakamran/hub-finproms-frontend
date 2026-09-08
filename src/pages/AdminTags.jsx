@@ -79,7 +79,7 @@ export default function AdminTags() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Admin</p>
+          <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit tag' : 'Post tags'}</h1>
           <p className="muted">Manage tags available when creating posts.</p>
         </div>

@@ -1,17 +1,18 @@
 import { NavLink } from 'react-router-dom'
 
 const links = [
-  { to: '/admin', label: 'Dashboard', end: true },
-  { to: '/admin/posts', label: 'Posts' },
-  { to: '/admin/categories', label: 'Categories' },
-  { to: '/admin/tags', label: 'Tags' },
-  { to: '/admin/plans', label: 'Plans' },
-  { to: '/admin/bank-transfers', label: 'Bank transfers' },
+  { to: '/client-admin', label: 'Dashboard', end: true },
+  { to: '/client-admin/posts', label: 'Posts' },
+  { to: '/client-admin/types', label: 'Types' },
+  { to: '/client-admin/tags', label: 'Tags' },
+  { to: '/client-admin/plans', label: 'Plans' },
+  { to: '/client-admin/settings', label: 'Settings' },
+  { to: '/client-admin/bank-transfers', label: 'Bank transfers' },
 ]
 
 export default function AdminSubnav() {
   return (
-    <nav className="admin-subnav" aria-label="Admin sections">
+    <nav className="admin-subnav" aria-label="Client admin sections">
       {links.map((link) => (
         <NavLink key={link.to} to={link.to} end={link.end}>
           {link.label}

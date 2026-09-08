@@ -134,9 +134,9 @@ export default function AdminPosts() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Admin</p>
+          <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit post' : 'Add social media post'}</h1>
-          <p className="muted">Upload attachment, set credits, category, and tags.</p>
+          <p className="muted">Upload attachment, set credits, type, and tags.</p>
         </div>
         <AdminSubnav />
       </div>
@@ -154,13 +154,13 @@ export default function AdminPosts() {
             />
           </label>
           <label>
-            Category
+            Type
             <select
               required
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             >
-              <option value="">Select a category</option>
+              <option value="">Select a type</option>
               {categoryOptions.map((category) => (
                 <option key={category.id} value={category.name}>
                   {category.name}
@@ -169,7 +169,7 @@ export default function AdminPosts() {
             </select>
             {categories.length === 0 && (
               <span className="field-hint">
-                No categories yet. <Link to="/admin/categories">Add categories</Link> first.
+                No types yet. <Link to="/client-admin/types">Add content types</Link> first.
               </span>
             )}
           </label>
@@ -188,7 +188,7 @@ export default function AdminPosts() {
           <legend>Tags</legend>
           {tagOptions.length === 0 ? (
             <p className="field-hint">
-              No tags yet. <Link to="/admin/tags">Add tags</Link> first.
+              No tags yet. <Link to="/client-admin/tags">Add tags</Link> first.
             </p>
           ) : (
             <div className="tag-options">

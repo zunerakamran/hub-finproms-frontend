@@ -7,6 +7,7 @@ import AdminCategories from './pages/AdminCategories'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminPlans from './pages/AdminPlans'
 import AdminPosts from './pages/AdminPosts'
+import AdminSettings from './pages/AdminSettings'
 import AdminTags from './pages/AdminTags'
 import BankTransferPending from './pages/BankTransferPending'
 import Login from './pages/Login'
@@ -17,6 +18,10 @@ import Register from './pages/Register'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import Subscriptions from './pages/Subscriptions'
 import './App.css'
+
+function ClientAdminRoute({ children }) {
+  return <ProtectedRoute clientAdminOnly>{children}</ProtectedRoute>
+}
 
 export default function App() {
   return (
@@ -54,53 +59,67 @@ export default function App() {
               }
             />
             <Route
-              path="admin"
+              path="client-admin"
               element={
-                <ProtectedRoute adminOnly>
+                <ClientAdminRoute>
                   <AdminDashboard />
-                </ProtectedRoute>
+                </ClientAdminRoute>
               }
             />
             <Route
-              path="admin/posts"
+              path="client-admin/posts"
               element={
-                <ProtectedRoute adminOnly>
+                <ClientAdminRoute>
                   <AdminPosts />
-                </ProtectedRoute>
+                </ClientAdminRoute>
               }
             />
             <Route
-              path="admin/categories"
+              path="client-admin/types"
               element={
-                <ProtectedRoute adminOnly>
+                <ClientAdminRoute>
                   <AdminCategories />
-                </ProtectedRoute>
+                </ClientAdminRoute>
               }
             />
             <Route
-              path="admin/tags"
+              path="client-admin/categories"
+              element={<Navigate to="/client-admin/types" replace />}
+            />
+            <Route
+              path="client-admin/tags"
               element={
-                <ProtectedRoute adminOnly>
+                <ClientAdminRoute>
                   <AdminTags />
-                </ProtectedRoute>
+                </ClientAdminRoute>
               }
             />
             <Route
-              path="admin/plans"
+              path="client-admin/plans"
               element={
-                <ProtectedRoute adminOnly>
+                <ClientAdminRoute>
                   <AdminPlans />
-                </ProtectedRoute>
+                </ClientAdminRoute>
               }
             />
             <Route
-              path="admin/bank-transfers"
+              path="client-admin/settings"
               element={
-                <ProtectedRoute adminOnly>
-                  <AdminBankTransfers />
-                </ProtectedRoute>
+                <ClientAdminRoute>
+                  <AdminSettings />
+                </ClientAdminRoute>
               }
             />
+            <Route
+              path="client-admin/bank-transfers"
+              element={
+                <ClientAdminRoute>
+                  <AdminBankTransfers />
+                </ClientAdminRoute>
+              }
+            />
+            {/* Legacy /admin redirects */}
+            <Route path="admin/*" element={<Navigate to="/client-admin" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

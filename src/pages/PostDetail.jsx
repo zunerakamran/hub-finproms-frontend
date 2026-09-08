@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 
 export default function PostDetail() {
   const { id } = useParams()
-  const { user, isAuthenticated, isAdmin, setUser, refreshUser } = useAuth()
+  const { user, isAuthenticated, isClientAdmin, setUser, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [post, setPost] = useState(null)
   const [canViewCatalog, setCanViewCatalog] = useState(true)
@@ -20,7 +20,7 @@ export default function PostDetail() {
     try {
       const data = await api.post(id)
       setPost(data.post)
-      setCanViewCatalog(Boolean(data.can_view_catalog) || isAdmin)
+      setCanViewCatalog(Boolean(data.can_view_catalog) || isClientAdmin)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -59,8 +59,8 @@ export default function PostDetail() {
   if (error && !post) return <div className="alert">{error}</div>
   if (!post) return null
 
-  const locked = post.is_locked && !post.is_purchased && !isAdmin
-  const unlocked = post.is_purchased || isAdmin
+  const locked = post.is_locked && !post.is_purchased && !isClientAdmin
+  const unlocked = post.is_purchased || isClientAdmin
 
   if (locked) {
     return (
@@ -165,11 +165,17 @@ export default function PostDetail() {
         <div className="post-meta">
           <span>{post.category}</span>
           <span>{post.credits_cost} credits</span>
+          {post.is_new && <span className="badge new-inline">NEW</span>}
         </div>
         <h1>{post.title}</h1>
         <p className="muted">
           Last updated {new Date(post.last_updated || post.updated_at).toLocaleString()}
         </p>
+        <div className="post-metrics detail-metrics">
+          <span>{Number(post.views_count || 0).toLocaleString()} views</span>
+          <span>{Number(post.reach_count || 0).toLocaleString()} reach</span>
+          <span>{Number(post.buy_count || 0).toLocaleString()} buys</span>
+        </div>
 
         <p>{post.description || 'No description provided.'}</p>
         {!!post.tags?.length && (

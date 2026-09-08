@@ -412,6 +412,65 @@ h2,
   justify-content: space-between;
   align-items: flex-start;
   pointer-events: none;
+  z-index: 2;
+}
+
+.new-banner {
+  position: absolute;
+  top: 0.85rem;
+  left: 0.85rem;
+  z-index: 3;
+  background: #c4512a;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 0.28rem 0.55rem;
+  border-radius: 4px;
+  box-shadow: 0 6px 16px rgba(196, 81, 42, 0.28);
+}
+
+.listing-tile .cover-overlay .badge {
+  margin-top: 1.85rem;
+}
+
+.reel-play-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 92, 69, 0.92);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(15, 35, 28, 0.28);
+}
+
+.post-tile.is-reel .post-cover {
+  background: #10241c;
+}
+
+.post-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.9rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.detail-metrics {
+  margin: 0.35rem 0 0.85rem;
+}
+
+.badge.new-inline {
+  background: #c4512a;
+  color: #fff;
 }
 
 .post-cover {

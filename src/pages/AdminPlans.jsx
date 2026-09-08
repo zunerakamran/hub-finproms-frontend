@@ -111,7 +111,7 @@ export default function AdminPlans() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Admin</p>
+          <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit plan' : 'Subscription plans'}</h1>
           <p className="muted">Create credit packages users can buy on the Plans page.</p>
         </div>

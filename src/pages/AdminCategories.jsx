@@ -5,6 +5,7 @@ import { api } from '../api/client'
 export default function AdminCategories() {
   const [categories, setCategories] = useState([])
   const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -15,7 +16,7 @@ export default function AdminCategories() {
     setLoading(true)
     try {
       const data = await api.listCategories()
-      setCategories(data.categories || [])
+      setCategories(data.categories || data.types || [])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -29,6 +30,7 @@ export default function AdminCategories() {
 
   const reset = () => {
     setName('')
+    setSlug('')
     setEditingId(null)
   }
 
@@ -38,17 +40,18 @@ export default function AdminCategories() {
     setError('')
     setMessage('')
     try {
+      const payload = { name: name.trim(), slug: slug.trim() || undefined }
       if (editingId) {
-        await api.updateCategory(editingId, { name: name.trim() })
-        setMessage('Category updated.')
+        await api.updateCategory(editingId, payload)
+        setMessage('Content type updated.')
       } else {
-        await api.createCategory({ name: name.trim() })
-        setMessage('Category created.')
+        await api.createCategory(payload)
+        setMessage('Content type created.')
       }
       reset()
       await load()
     } catch (err) {
-      setError(err.data?.errors?.name?.[0] || err.message)
+      setError(err.data?.errors?.name?.[0] || err.data?.errors?.slug?.[0] || err.message)
     } finally {
       setSaving(false)
     }
@@ -57,17 +60,18 @@ export default function AdminCategories() {
   const edit = (category) => {
     setEditingId(category.id)
     setName(category.name)
+    setSlug(category.slug || '')
     setMessage('')
     setError('')
   }
 
   const remove = async (id) => {
-    if (!window.confirm('Delete this category?')) return
+    if (!window.confirm('Delete this content type?')) return
     setError('')
     setMessage('')
     try {
       await api.deleteCategory(id)
-      setMessage('Category deleted.')
+      setMessage('Content type deleted.')
       if (editingId === id) reset()
       await load()
     } catch (err) {
@@ -79,9 +83,12 @@ export default function AdminCategories() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Admin</p>
-          <h1>{editingId ? 'Edit category' : 'Post categories'}</h1>
-          <p className="muted">Manage categories available when creating posts.</p>
+          <p className="eyebrow">Client Admin</p>
+          <h1>{editingId ? 'Edit content type' : 'Content types'}</h1>
+          <p className="muted">
+            Category is the content type (Post, Reel, etc.). Use slug <code>reel</code> for play
+            button behaviour on the listing.
+          </p>
         </div>
         <AdminSubnav />
       </div>
@@ -90,17 +97,25 @@ export default function AdminCategories() {
         {error && <div className="alert">{error}</div>}
         {message && <div className="alert success">{message}</div>}
         <label>
-          Category name
+          Type name
           <input
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="LinkedIn, Instagram..."
+            placeholder="Post, Reel..."
+          />
+        </label>
+        <label>
+          Slug (optional)
+          <input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="post, reel..."
           />
         </label>
         <div className="actions">
           <button className="btn primary" disabled={saving}>
-            {saving ? 'Saving...' : editingId ? 'Update category' : 'Add category'}
+            {saving ? 'Saving...' : editingId ? 'Update type' : 'Add type'}
           </button>
           {editingId && (
             <button type="button" className="btn ghost" onClick={reset}>
@@ -110,17 +125,20 @@ export default function AdminCategories() {
         </div>
       </form>
 
-      <h2 className="section-title">Existing categories</h2>
+      <h2 className="section-title">Existing types</h2>
       {loading ? (
         <div className="state">Loading...</div>
       ) : categories.length === 0 ? (
-        <div className="state">No categories yet. Add one above.</div>
+        <div className="state">No types yet. Add Post and Reel above.</div>
       ) : (
         <div className="admin-list">
           {categories.map((category) => (
             <div key={category.id} className="admin-row">
               <div>
                 <strong>{category.name}</strong>
+                <p className="muted">
+                  slug: {category.slug || '—'} · {category.posts_count ?? 0} items
+                </p>
               </div>
               <div className="actions">
                 <button className="btn ghost" onClick={() => edit(category)}>

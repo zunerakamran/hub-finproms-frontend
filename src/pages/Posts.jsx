@@ -11,8 +11,12 @@ function formatDate(value) {
   })
 }
 
+function formatCount(value) {
+  return Number(value || 0).toLocaleString()
+}
+
 export default function Posts() {
-  const { isAuthenticated, user, isAdmin } = useAuth()
+  const { isAuthenticated, user, isClientAdmin } = useAuth()
   const navigate = useNavigate()
   const [posts, setPosts] = useState([])
   const [totalResults, setTotalResults] = useState(0)
@@ -27,7 +31,7 @@ export default function Posts() {
 
   const loadFilters = async () => {
     const [catsRes, tagsRes] = await Promise.all([api.listCategories(), api.listTags()])
-    setCategories(catsRes.categories || [])
+    setCategories(catsRes.categories || catsRes.types || [])
     setTotalPosts(catsRes.total_posts ?? 0)
     setTags(tagsRes.tags || [])
   }
@@ -39,7 +43,7 @@ export default function Posts() {
       const postsRes = await api.posts(nextFilters)
       setPosts(postsRes.data || [])
       setTotalResults(postsRes.total ?? postsRes.data?.length ?? 0)
-      setCanViewCatalog(Boolean(postsRes.can_view_catalog) || isAdmin)
+      setCanViewCatalog(Boolean(postsRes.can_view_catalog) || isClientAdmin)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -67,12 +71,12 @@ export default function Posts() {
   }
 
   const hasFilters = Boolean(filters.search || filters.category || filters.tag)
-  const catalogLocked = !canViewCatalog && !isAdmin
+  const catalogLocked = !canViewCatalog && !isClientAdmin
 
   const resultLabel = useMemo(() => {
-    if (loading) return 'Finding posts...'
-    if (totalResults === 0) return 'No posts match'
-    return `${totalResults} post${totalResults === 1 ? '' : 's'} found`
+    if (loading) return 'Finding content...'
+    if (totalResults === 0) return 'No content match'
+    return `${totalResults} item${totalResults === 1 ? '' : 's'} found`
   }, [loading, totalResults])
 
   return (
@@ -82,7 +86,8 @@ export default function Posts() {
           <p className="eyebrow">Hub Finproms catalog</p>
           <h1>Ready-to-post social content</h1>
           <p className="listing-lead">
-            Browse promo posts, unlock with credits, and download the creative assets you need.
+            Browse promo posts and reels, unlock with credits, and download the creative assets you
+            need.
           </p>
         </div>
         <div className="listing-hero-aside">
@@ -109,8 +114,8 @@ export default function Posts() {
       {catalogLocked && (
         <div className="catalog-lock-banner">
           <div>
-            <strong>Posts are locked</strong>
-            <p className="muted">Subscribe or buy credits to preview and unlock post content.</p>
+            <strong>Content is locked</strong>
+            <p className="muted">Subscribe or buy credits to preview and unlock content.</p>
           </div>
           <div className="actions">
             {!isAuthenticated ? (
@@ -138,7 +143,7 @@ export default function Posts() {
               placeholder="Search by title or description..."
               value={searchDraft}
               onChange={(e) => setSearchDraft(e.target.value)}
-              aria-label="Search posts"
+              aria-label="Search content"
             />
             <button className="btn primary" type="submit">
               Search
@@ -146,13 +151,13 @@ export default function Posts() {
           </form>
 
           <label className="filter-select">
-            <span>Category</span>
+            <span>Type</span>
             <select
               value={filters.category}
               onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
-              aria-label="Filter by category"
+              aria-label="Filter by type"
             >
-              <option value="">All categories ({totalPosts})</option>
+              <option value="">All types ({totalPosts})</option>
               {categories.map((category) => (
                 <option key={category.id || category.name} value={category.name}>
                   {category.name} ({category.posts_count ?? 0})
@@ -246,11 +251,11 @@ export default function Posts() {
         </div>
       ) : posts.length === 0 ? (
         <div className="empty-state">
-          <h2>No posts found</h2>
+          <h2>No content found</h2>
           <p className="muted">
             {hasFilters
-              ? 'Try another category, tag, or clear your search.'
-              : 'New posts will appear here once the admin adds them.'}
+              ? 'Try another type, tag, or clear your search.'
+              : 'New posts and reels will appear here once the client admin adds them.'}
           </p>
           {hasFilters && (
             <button className="btn primary" onClick={clearFilters}>
@@ -261,13 +266,14 @@ export default function Posts() {
       ) : (
         <div className="post-grid listing-grid">
           {posts.map((post, index) => {
-            const locked = post.is_locked && !post.is_purchased && !isAdmin
+            const locked = post.is_locked && !post.is_purchased && !isClientAdmin
+            const isReel = Boolean(post.is_reel)
 
             return (
               <Link
                 to={`/posts/${post.id}`}
                 key={post.id}
-                className={`post-tile listing-tile ${locked ? 'is-locked' : ''}`}
+                className={`post-tile listing-tile ${locked ? 'is-locked' : ''} ${isReel ? 'is-reel' : ''}`}
                 style={{ animationDelay: `${index * 40}ms` }}
               >
                 <div className="post-cover">
@@ -278,6 +284,17 @@ export default function Posts() {
                       {locked ? 'Locked' : post.category}
                     </div>
                   )}
+
+                  {post.is_new && <span className="new-banner">NEW</span>}
+
+                  {isReel && !locked && (
+                    <span className="reel-play-btn" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                        <path d="M8 5v14l11-7L8 5z" />
+                      </svg>
+                    </span>
+                  )}
+
                   <div className="cover-overlay">
                     <span className={`badge ${post.is_purchased ? 'ok' : ''}`}>
                       {post.is_purchased ? 'Owned' : 'Locked'}
@@ -293,7 +310,7 @@ export default function Posts() {
                   <h2>{post.title}</h2>
                   {locked ? (
                     <p className="post-excerpt muted">
-                      Content is hidden. Get credits to preview and unlock this post.
+                      Content is hidden. Get credits to preview and unlock this item.
                     </p>
                   ) : (
                     <p className="post-excerpt">
@@ -308,9 +325,14 @@ export default function Posts() {
                       ))}
                     </div>
                   )}
+                  <div className="post-metrics">
+                    <span title="Views">{formatCount(post.views_count)} views</span>
+                    <span title="Reach">{formatCount(post.reach_count)} reach</span>
+                    <span title="Buys">{formatCount(post.buy_count)} buys</span>
+                  </div>
                   <div className="post-footer">
                     <span className="view-link">
-                      {locked ? 'Unlock access →' : 'View post →'}
+                      {locked ? 'Unlock access →' : isReel ? 'Play reel →' : 'View post →'}
                     </span>
                   </div>
                 </div>

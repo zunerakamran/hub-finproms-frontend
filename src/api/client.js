@@ -44,18 +44,21 @@ async function request(path, options = {}) {
   return data
 }
 
+const CLIENT_ADMIN = '/client-admin'
+
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   login: (payload) => request('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
   plans: () => request('/subscription-plans'),
-  adminPlans: () => request('/admin/subscription-plans'),
+  settings: () => request('/settings'),
+  adminPlans: () => request(`${CLIENT_ADMIN}/subscription-plans`),
   createPlan: (payload) =>
-    request('/admin/subscription-plans', { method: 'POST', body: JSON.stringify(payload) }),
+    request(`${CLIENT_ADMIN}/subscription-plans`, { method: 'POST', body: JSON.stringify(payload) }),
   updatePlan: (id, payload) =>
-    request(`/admin/subscription-plans/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  deletePlan: (id) => request(`/admin/subscription-plans/${id}`, { method: 'DELETE' }),
+    request(`${CLIENT_ADMIN}/subscription-plans/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deletePlan: (id) => request(`${CLIENT_ADMIN}/subscription-plans/${id}`, { method: 'DELETE' }),
   checkout: (planId, paymentMethod = 'stripe') =>
     request(`/subscription-plans/${planId}/checkout`, {
       method: 'POST',
@@ -64,9 +67,9 @@ export const api = {
   confirmSubscription: (sessionId) =>
     request('/subscriptions/confirm', { method: 'POST', body: JSON.stringify({ session_id: sessionId }) }),
   mySubscriptions: () => request('/my-subscriptions'),
-  pendingBankTransfers: () => request('/admin/bank-transfers/pending'),
+  pendingBankTransfers: () => request(`${CLIENT_ADMIN}/bank-transfers/pending`),
   confirmBankTransfer: (id) =>
-    request(`/admin/bank-transfers/${id}/confirm`, { method: 'POST' }),
+    request(`${CLIENT_ADMIN}/bank-transfers/${id}/confirm`, { method: 'POST' }),
   posts: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
@@ -77,18 +80,21 @@ export const api = {
   categories: () => request('/posts/categories'),
   listCategories: () => request('/categories'),
   createCategory: (payload) =>
-    request('/admin/categories', { method: 'POST', body: JSON.stringify(payload) }),
+    request(`${CLIENT_ADMIN}/categories`, { method: 'POST', body: JSON.stringify(payload) }),
   updateCategory: (id, payload) =>
-    request(`/admin/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  deleteCategory: (id) => request(`/admin/categories/${id}`, { method: 'DELETE' }),
+    request(`${CLIENT_ADMIN}/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteCategory: (id) => request(`${CLIENT_ADMIN}/categories/${id}`, { method: 'DELETE' }),
   listTags: () => request('/tags'),
-  createTag: (payload) => request('/admin/tags', { method: 'POST', body: JSON.stringify(payload) }),
+  createTag: (payload) => request(`${CLIENT_ADMIN}/tags`, { method: 'POST', body: JSON.stringify(payload) }),
   updateTag: (id, payload) =>
-    request(`/admin/tags/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  deleteTag: (id) => request(`/admin/tags/${id}`, { method: 'DELETE' }),
+    request(`${CLIENT_ADMIN}/tags/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteTag: (id) => request(`${CLIENT_ADMIN}/tags/${id}`, { method: 'DELETE' }),
   purchasePost: (id) => request(`/posts/${id}/purchase`, { method: 'POST' }),
   myPurchases: () => request('/my-purchases'),
-  createPost: (formData) => request('/admin/posts', { method: 'POST', body: formData }),
-  updatePost: (id, formData) => request(`/admin/posts/${id}`, { method: 'POST', body: formData }),
-  deletePost: (id) => request(`/admin/posts/${id}`, { method: 'DELETE' }),
+  createPost: (formData) => request(`${CLIENT_ADMIN}/posts`, { method: 'POST', body: formData }),
+  updatePost: (id, formData) => request(`${CLIENT_ADMIN}/posts/${id}`, { method: 'POST', body: formData }),
+  deletePost: (id) => request(`${CLIENT_ADMIN}/posts/${id}`, { method: 'DELETE' }),
+  adminSettings: () => request(`${CLIENT_ADMIN}/settings`),
+  updateSettings: (payload) =>
+    request(`${CLIENT_ADMIN}/settings`, { method: 'PUT', body: JSON.stringify(payload) }),
 }

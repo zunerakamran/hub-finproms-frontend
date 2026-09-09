@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
 
 const GROUP_ORDER = ['power_admin', 'member', 'dashboard']
 
 export default function PowerAdminCapabilities() {
   const { canPower, setPowerCapabilities, refreshUser } = useAuth()
+  const { refreshHub } = useHub()
   const allowed = canPower('pa_manage_power_capabilities')
 
   const [hubs, setHubs] = useState([])
@@ -102,6 +104,7 @@ export default function PowerAdminCapabilities() {
       applyMatrix(data.matrix, data.resolved)
       setMessage(data.message || 'Capabilities matrix saved.')
       await refreshUser()
+      await refreshHub()
     } catch (err) {
       setError(err.message)
     } finally {

@@ -1105,6 +1105,23 @@ label {
 .admin-form,
 .success-panel {
   width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+/* Auth screens stay compact; admin shell forms use full content width */
+.auth-wrap .auth-panel,
+.admin-auth-wrap .auth-panel {
+  width: min(520px, 100%);
+}
+
+.admin-app-shell .admin-form,
+.admin-app-shell .payment-methods-form,
+.admin-app-shell .checklist-form,
+.admin-app-shell .hub-meta-form,
+.admin-app-shell .hub-create-form {
+  width: 100%;
+  max-width: none;
 }
 
 .alert {
@@ -1162,11 +1179,15 @@ label {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+  width: 100%;
 }
 
 .admin-dashboard-card {
   display: grid;
   gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 1.25rem 1.35rem;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -1174,6 +1195,11 @@ label {
   box-shadow: var(--shadow);
   color: inherit;
   transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+/* Odd leftover card (e.g. 3rd or 5th) spans the full row */
+.admin-dashboard-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .admin-dashboard-card:hover {
@@ -1200,6 +1226,10 @@ label {
 @media (max-width: 800px) {
   .admin-dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-dashboard-card:last-child:nth-child(odd) {
+    grid-column: auto;
   }
 }
 
@@ -1385,6 +1415,13 @@ label {
 
 .admin-page {
   padding: 1.25rem 1.4rem 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-page > section {
+  width: 100%;
+  max-width: none;
 }
 
 .power-admin-shell .admin-sidebar {
@@ -1502,7 +1539,8 @@ label {
 .payment-methods-form {
   display: grid;
   gap: 1rem;
-  max-width: 720px;
+  width: 100%;
+  max-width: none;
 }
 
 .payment-method-card {
@@ -1512,6 +1550,8 @@ label {
   padding: 1.15rem 1.25rem;
   display: grid;
   gap: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .payment-method-card-head {
@@ -1544,7 +1584,8 @@ label {
 .hub-create-form,
 .hub-meta-form,
 .checklist-form {
-  max-width: 820px;
+  width: 100%;
+  max-width: none;
   margin-bottom: 1.5rem;
 }
 
@@ -1588,7 +1629,9 @@ label {
 
 .checklist-grid {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
+  width: 100%;
 }
 
 .checklist-item {
@@ -1600,6 +1643,9 @@ label {
   border-radius: 12px;
   padding: 0.85rem 1rem;
   background: var(--panel);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .checklist-item input {
@@ -1612,12 +1658,19 @@ label {
   margin-bottom: 0.2rem;
 }
 
+/* Odd leftover functionality option spans the full row */
+.checklist-item:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
 .checklist-section {
   margin-bottom: 1.5rem;
+  width: 100%;
 }
 
 .capabilities-matrix-page {
-  max-width: 100%;
+  width: 100%;
+  max-width: none;
 }
 
 .matrix-wrap {
@@ -1625,6 +1678,8 @@ label {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--panel);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .capabilities-matrix {
@@ -1780,8 +1835,13 @@ label {
     text-align: left;
   }
 
-  .form-row.two {
+  .form-row.two,
+  .checklist-grid {
     grid-template-columns: 1fr;
+  }
+
+  .checklist-item:last-child:nth-child(odd) {
+    grid-column: auto;
   }
 
   .checklist-hub-summary,

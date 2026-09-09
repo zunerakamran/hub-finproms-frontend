@@ -18,7 +18,7 @@ function formatCount(value) {
 
 export default function Posts() {
   const { isAuthenticated, user, isClientAdmin } = useAuth()
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, registrationEnabled } = useHub()
   const navigate = useNavigate()
   const [posts, setPosts] = useState([])
   const [totalResults, setTotalResults] = useState(0)
@@ -121,10 +121,20 @@ export default function Posts() {
             </div>
           ) : (
             <div className="listing-cta-panel">
-              <p>Create an account to browse full previews and buy posts with credits.</p>
-              <button className="btn primary" onClick={() => navigate('/register')}>
-                Sign up free
-              </button>
+              <p>
+                {registrationEnabled
+                  ? 'Create an account to browse full previews and buy posts with credits.'
+                  : 'This hub is invite-only. Sign in with your invited advisor account to continue.'}
+              </p>
+              {registrationEnabled ? (
+                <button className="btn primary" onClick={() => navigate('/register')}>
+                  Sign up free
+                </button>
+              ) : (
+                <button className="btn primary" onClick={() => navigate('/login')}>
+                  Login
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -140,9 +150,11 @@ export default function Posts() {
             <Link to="/login" className="btn ghost">
               Login
             </Link>
-            <Link to="/register" className="btn primary">
-              Sign up
-            </Link>
+            {registrationEnabled && (
+              <Link to="/register" className="btn primary">
+                Sign up
+              </Link>
+            )}
           </div>
         </div>
       )}

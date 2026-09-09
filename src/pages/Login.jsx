@@ -13,7 +13,7 @@ function roleHome(user) {
 
 export default function Login() {
   const { login, isAuthenticated, user } = useAuth()
-  const { can, hub } = useHub()
+  const { hub, registrationEnabled, inviteOnly } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
@@ -54,7 +54,11 @@ export default function Login() {
       <form className="auth-panel" onSubmit={onSubmit}>
         <p className="eyebrow">{hub?.name || 'Hub Finproms'}</p>
         <h1>Sign in</h1>
-        <p className="muted">One login for members, Client Admin, and Power Admin.</p>
+        <p className="muted">
+          {inviteOnly
+            ? 'Invite-only hub — sign in with your invited advisor account, or as an admin.'
+            : 'One login for members, Client Admin, and Power Admin.'}
+        </p>
         {error && <div className="alert">{error}</div>}
         <label>
           Email
@@ -77,7 +81,7 @@ export default function Login() {
         <button className="btn primary full" disabled={submitting}>
           {submitting ? 'Signing in...' : 'Login'}
         </button>
-        {can('public_subscribe') && (
+        {registrationEnabled && (
           <p className="muted center">
             No account? <Link to="/register">Sign up</Link>
           </p>

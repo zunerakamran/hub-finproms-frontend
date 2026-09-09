@@ -5,6 +5,16 @@ import { useHub } from '../context/HubContext'
 const links = [
   { to: '/power-admin', label: 'Dashboard', end: true, capability: 'pa_view_dashboard' },
   { to: '/power-admin/payment-methods', label: 'Payment methods', capability: 'pa_manage_payment_methods' },
+  {
+    to: '/power-admin/advisor-pricing',
+    label: 'Advisor rates',
+    hubCapability: 'dashboard_manage_advisor_pricing',
+  },
+  {
+    to: '/power-admin/advisor-renewal',
+    label: 'Advisor renew day',
+    hubCapability: 'dashboard_manage_advisor_renewal',
+  },
   { to: '/power-admin/hubs', label: 'White-label hubs', capability: 'pa_manage_hubs' },
   { to: '/power-admin/checklist', label: 'Functionalities', capability: 'pa_manage_hub_checklists' },
   {
@@ -16,6 +26,11 @@ const links = [
     to: '/power-admin/advisors',
     label: 'Advisors',
     hubCapability: 'advisor_excel_import',
+  },
+  {
+    to: '/power-admin/advisor-invoices',
+    label: 'Advisor invoices',
+    hubCapability: 'dashboard_view_advisor_invoices',
   },
 ]
 

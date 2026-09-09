@@ -21,10 +21,20 @@ async function request(path, options = {}) {
   const token = getToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-  })
+  let response
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+    })
+  } catch (err) {
+    const error = new Error(err?.message === 'Failed to fetch'
+      ? 'Cannot reach the API server. Is the backend running?'
+      : (err?.message || 'Network error'))
+    error.status = 0
+    error.data = null
+    throw error
+  }
 
   const text = await response.text()
   let data = null
@@ -105,7 +115,10 @@ export const api = {
   adminSettings: () => request(`${CLIENT_ADMIN}/settings`),
   updateSettings: (payload) =>
     request(`${CLIENT_ADMIN}/settings`, { method: 'PUT', body: JSON.stringify(payload) }),
-  powerAdminPaymentMethods: () => request('/power-admin/payment-methods'),
+  powerAdminPaymentMethods: (hubId) => {
+    const query = hubId ? `?hub_id=${hubId}` : ''
+    return request(`/power-admin/payment-methods${query}`)
+  },
   updatePowerAdminPaymentMethods: (payload) =>
     request('/power-admin/payment-methods', { method: 'PUT', body: JSON.stringify(payload) }),
   powerAdminCapabilitiesMe: () => request('/power-admin/capabilities/me'),
@@ -152,5 +165,74 @@ export const api = {
     const basePath = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
     return `${base}${basePath}/advisors/template`
+  },
+  advisorBillingCheckout: (billingId, paymentMethod, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisor-billings/${billingId}/checkout`, {
+      method: 'POST',
+      body: JSON.stringify({ payment_method: paymentMethod }),
+    })
+  },
+  confirmAdvisorBilling: (sessionId, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisor-billings/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId }),
+    })
+  },
+  confirmAdvisorBankTransfer: (billingId, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisor-billings/${billingId}/confirm-bank-transfer`, {
+      method: 'POST',
+    })
+  },
+  paymentCard: () => request(`${CLIENT_ADMIN}/payment-card`),
+  setupPaymentCard: () =>
+    request(`${CLIENT_ADMIN}/payment-card/setup`, { method: 'POST' }),
+  confirmPaymentCard: (sessionId) =>
+    request(`${CLIENT_ADMIN}/payment-card/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId }),
+    }),
+  advisorBillingRenewal: (options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisor-billing-renewal`)
+  },
+  updateAdvisorBillingRenewal: (payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisor-billing-renewal`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  advisorInvoices: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/advisor-invoices${query ? `?${query}` : ''}`)
+  },
+  powerAdminAdvisorPricing: () => request('/power-admin/advisor-pricing'),
+  createPowerAdminAdvisorPricing: (payload) =>
+    request('/power-admin/advisor-pricing', { method: 'POST', body: JSON.stringify(payload) }),
+  updatePowerAdminAdvisorPricing: (id, payload) =>
+    request(`/power-admin/advisor-pricing/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deletePowerAdminAdvisorPricing: (id) =>
+    request(`/power-admin/advisor-pricing/${id}`, { method: 'DELETE' }),
+  advisorPricing: (options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisor-pricing`)
+  },
+  createAdvisorPricing: (payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisor-pricing`, { method: 'POST', body: JSON.stringify(payload) })
+  },
+  updateAdvisorPricing: (id, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisor-pricing/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+  },
+  deleteAdvisorPricing: (id, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisor-pricing/${id}`, { method: 'DELETE' })
   },
 }

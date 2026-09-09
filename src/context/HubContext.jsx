@@ -32,13 +32,41 @@ export function HubProvider({ children }) {
 
   const can = useCallback(
     (flag) => {
-      if (hub?.effective_capabilities && Object.prototype.hasOwnProperty.call(hub.effective_capabilities, flag)) {
-        return Boolean(hub.effective_capabilities[flag])
+      // Authenticated viewers must use role-resolved caps — never the hub-wide
+      // OR checklist (that would show tools unchecked for this role).
+      if (hub?.effective_capabilities) {
+        if (Object.prototype.hasOwnProperty.call(hub.effective_capabilities, flag)) {
+          return Boolean(hub.effective_capabilities[flag])
+        }
+        // Unknown capability key while logged in → deny dashboard/member tools.
+        if (String(flag).startsWith('dashboard_') || String(flag).startsWith('member_') || flag === 'advisor_excel_import') {
+          return false
+        }
       }
       return Boolean(hub?.checklist?.[flag])
     },
     [hub]
   )
+
+  /** Advisor billing card settings — not a capabilities-matrix flag. */
+  const advisorBillingEnabled = useMemo(() => {
+    return Boolean(hub?.checklist?.advisor_subscriber_billing || hub?.checklist?.private_invite_only)
+  }, [hub])
+
+  // Prefer explicit auth payload from API; fall back to checklist exclusivity.
+  const registrationEnabled = useMemo(() => {
+    if (hub?.auth && typeof hub.auth.registration_enabled === 'boolean') {
+      return hub.auth.registration_enabled
+    }
+    return Boolean(hub?.checklist?.public_subscribe) && !Boolean(hub?.checklist?.private_invite_only)
+  }, [hub])
+
+  const inviteOnly = useMemo(() => {
+    if (hub?.auth && typeof hub.auth.invite_only === 'boolean') {
+      return hub.auth.invite_only
+    }
+    return Boolean(hub?.checklist?.private_invite_only)
+  }, [hub])
 
   const value = useMemo(
     () => ({
@@ -47,10 +75,13 @@ export function HubProvider({ children }) {
       error,
       refreshHub,
       can,
+      advisorBillingEnabled,
+      registrationEnabled,
+      inviteOnly,
       checklist: hub?.checklist || {},
       branding: hub?.branding || {},
     }),
-    [hub, loading, authLoading, error, refreshHub, can]
+    [hub, loading, authLoading, error, refreshHub, can, advisorBillingEnabled, registrationEnabled, inviteOnly]
   )
 
   return <HubContext.Provider value={value}>{children}</HubContext.Provider>

@@ -14,6 +14,18 @@ export default function PowerAdminDashboard() {
       capability: 'pa_manage_payment_methods',
     },
     {
+      to: '/power-admin/advisor-pricing',
+      title: 'Advisor billing rates',
+      description: 'Set rate-per-advisor tiers / quotas for private hub billing (rate × advisors).',
+      hubCapability: 'dashboard_manage_advisor_pricing',
+    },
+    {
+      to: '/power-admin/advisor-renewal',
+      title: 'Advisor auto-renew day',
+      description: 'Set the monthly day the client admin card is charged for advisor seats.',
+      hubCapability: 'dashboard_manage_advisor_renewal',
+    },
+    {
       to: '/power-admin/hubs',
       title: 'White-label hubs',
       description: 'Create and configure white-labelled hubs (branding, private access).',
@@ -37,6 +49,12 @@ export default function PowerAdminDashboard() {
       title: 'Import advisors',
       description: 'Upload Excel/CSV advisors for the current hub (when enabled in Capabilities).',
       hubCapability: 'advisor_excel_import',
+    },
+    {
+      to: '/power-admin/advisor-invoices',
+      title: 'Advisor invoices',
+      description: 'View invoices for advisor subscriber billing on this hub.',
+      hubCapability: 'dashboard_view_advisor_invoices',
     },
   ].filter((card) => {
     if (card.hubCapability) return can(card.hubCapability)

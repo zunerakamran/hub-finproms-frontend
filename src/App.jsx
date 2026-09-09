@@ -8,13 +8,19 @@ import { AuthProvider } from './context/AuthContext'
 import { HubProvider } from './context/HubContext'
 import AdminBankTransfers from './pages/AdminBankTransfers'
 import AdminAdvisors from './pages/AdminAdvisors'
+import AdminAdvisorInvoices from './pages/AdminAdvisorInvoices'
+import AdminAdvisorPricing from './pages/AdminAdvisorPricing'
+import AdminAdvisorRenewal from './pages/AdminAdvisorRenewal'
 import AdminCategories from './pages/AdminCategories'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminPaymentCard from './pages/AdminPaymentCard'
+import AdminPaymentCardSuccess from './pages/AdminPaymentCardSuccess'
 import AdminPlans from './pages/AdminPlans'
 import AdminPosts from './pages/AdminPosts'
 import AdminSettings from './pages/AdminSettings'
 import AdminTags from './pages/AdminTags'
 import AdminTypes from './pages/AdminTypes'
+import AdvisorBillingSuccess from './pages/AdvisorBillingSuccess'
 import BankTransferPending from './pages/BankTransferPending'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Login from './pages/Login'
@@ -160,6 +166,40 @@ export default function App() {
                     </HubCapabilityRoute>
                   }
                 />
+                <Route path="payment-card" element={<AdminPaymentCard />} />
+                <Route path="payment-card/success" element={<AdminPaymentCardSuccess />} />
+                <Route
+                  path="advisor-invoices"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_view_advisor_invoices">
+                      <AdminAdvisorInvoices />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="advisor-pricing"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_advisor_pricing">
+                      <AdminAdvisorPricing />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="advisor-renewal"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_advisor_renewal">
+                      <AdminAdvisorRenewal />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="advisor-billing/success"
+                  element={
+                    <HubCapabilityRoute capability="advisor_excel_import">
+                      <AdvisorBillingSuccess />
+                    </HubCapabilityRoute>
+                  }
+                />
                 <Route
                   path="settings"
                   element={
@@ -184,6 +224,28 @@ export default function App() {
               <Route path="power-admin" element={<PowerAdminLayout />}>
                 <Route index element={<PowerAdminDashboard />} />
                 <Route path="payment-methods" element={<PowerAdminPaymentMethods />} />
+                <Route
+                  path="advisor-pricing"
+                  element={
+                    <HubCapabilityRoute
+                      capability="dashboard_manage_advisor_pricing"
+                      fallback="/power-admin"
+                    >
+                      <AdminAdvisorPricing shell="power-admin" />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="advisor-renewal"
+                  element={
+                    <HubCapabilityRoute
+                      capability="dashboard_manage_advisor_renewal"
+                      fallback="/power-admin"
+                    >
+                      <AdminAdvisorRenewal shell="power-admin" />
+                    </HubCapabilityRoute>
+                  }
+                />
                 <Route path="hubs" element={<PowerAdminHubs />} />
                 <Route path="hubs/:hubId" element={<PowerAdminHubDetail />} />
                 <Route path="checklist" element={<PowerAdminChecklist />} />
@@ -193,6 +255,17 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="advisor_excel_import" fallback="/power-admin">
                       <AdminAdvisors shell="power-admin" />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="advisor-invoices"
+                  element={
+                    <HubCapabilityRoute
+                      capability="dashboard_view_advisor_invoices"
+                      fallback="/power-admin"
+                    >
+                      <AdminAdvisorInvoices shell="power-admin" />
                     </HubCapabilityRoute>
                   }
                 />

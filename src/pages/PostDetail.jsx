@@ -7,7 +7,7 @@ import { useHub } from '../context/HubContext'
 export default function PostDetail() {
   const { id } = useParams()
   const { user, isAuthenticated, isClientAdmin, setUser, refreshUser } = useAuth()
-  const { can } = useHub()
+  const { can, registrationEnabled } = useHub()
   const navigate = useNavigate()
   const [post, setPost] = useState(null)
   const [error, setError] = useState('')
@@ -138,9 +138,11 @@ export default function PostDetail() {
               <Link to="/login" className="btn primary">
                 Login
               </Link>
-              <Link to="/register" className="btn ghost">
-                Sign up free
-              </Link>
+              {registrationEnabled && (
+                <Link to="/register" className="btn ghost">
+                  Sign up free
+                </Link>
+              )}
             </div>
           </div>
         </div>

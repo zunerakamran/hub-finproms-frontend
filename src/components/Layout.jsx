@@ -5,8 +5,7 @@ import { useHub } from '../context/HubContext'
 export default function Layout() {
   const { user, logout, isAuthenticated, isClientAdmin, isPowerAdmin, isFinpromsAdmin, isAdvisor } =
     useAuth()
-  const { can, hub } = useHub()
-  const allowPublicSignup = can('public_subscribe')
+  const { can, hub, registrationEnabled } = useHub()
   const brandName = hub?.name || 'Hub Finproms'
   const showPlans =
     can('member_view_plans') && (can('public_subscribe') || can('paid_credits'))
@@ -49,7 +48,7 @@ export default function Layout() {
               <NavLink to="/login" className="btn ghost">
                 Login
               </NavLink>
-              {allowPublicSignup && (
+              {registrationEnabled && (
                 <NavLink to="/register" className="btn primary">
                   Sign up
                 </NavLink>

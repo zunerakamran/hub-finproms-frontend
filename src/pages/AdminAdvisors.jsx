@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
+function formatMoney(amount, currency = 'gbp') {
+  try {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: (currency || 'gbp').toUpperCase(),
+    }).format(Number(amount || 0))
+  } catch {
+    return `£${Number(amount || 0).toFixed(2)}`
+  }
+}
+
 export default function AdminAdvisors({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, advisorBillingEnabled } = useHub()
   const [advisors, setAdvisors] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -13,11 +25,20 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const [message, setMessage] = useState('')
   const [result, setResult] = useState(null)
   const [file, setFile] = useState(null)
+  const [quote, setQuote] = useState(null)
+  const [paymentMethod, setPaymentMethod] = useState('stripe')
+  const [paying, setPaying] = useState(false)
+  const [bankResult, setBankResult] = useState(null)
 
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('advisor_excel_import')
+  const billingEnabled = advisorBillingEnabled
+  const canViewInvoices = can('dashboard_view_advisor_invoices')
   const eyebrow = asPowerAdmin ? 'Power Admin' : 'Client Admin'
   const apiOpts = { asPowerAdmin }
+  const invoicesPath = asPowerAdmin
+    ? '/power-admin/advisor-invoices'
+    : '/client-admin/advisor-invoices'
 
   const load = async () => {
     if (!enabled) {
@@ -71,23 +92,65 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const onImport = async (e) => {
     e.preventDefault()
     if (!file) {
-      setError('Choose a CSV file to import.')
+      setError('Choose a CSV or Excel file to import.')
       return
     }
     setUploading(true)
     setError('')
     setMessage('')
     setResult(null)
+    setQuote(null)
+    setBankResult(null)
     try {
       const data = await api.importAdvisors(file, apiOpts)
       setMessage(data.message || 'Import finished.')
       setResult(data)
+      setQuote(data.quote || null)
+      if (data.quote?.error) {
+        setError(data.quote.error)
+      }
+      const methods = data.quote?.payment_methods || []
+      const preferred =
+        methods.find((m) => m.id === 'saved_card' && m.available) ||
+        methods.find((m) => m.available)
+      if (preferred) setPaymentMethod(preferred.id)
       setFile(null)
       await load()
     } catch (err) {
       setError(err.message)
     } finally {
       setUploading(false)
+    }
+  }
+
+  const onPay = async () => {
+    const billingId = quote?.billing?.id
+    if (!billingId) {
+      setError(quote?.error || 'No billing quote available. Check pricing tiers and try importing again.')
+      return
+    }
+    setPaying(true)
+    setError('')
+    setBankResult(null)
+    try {
+      const data = await api.advisorBillingCheckout(billingId, paymentMethod, apiOpts)
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url
+        return
+      }
+      setBankResult(data)
+      if (data.charged_saved_card || data.auto_confirmed) {
+        setMessage(data.message || 'Payment successful. Invoice created.')
+        setQuote({
+          ...quote,
+          billing: data.billing,
+          payment_required: false,
+        })
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setPaying(false)
     }
   }
 
@@ -100,13 +163,17 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
             <h1>Advisor import</h1>
             <p className="muted">
               Advisor Excel/CSV import is disabled for your role on this hub. Enable
-              &quot;Import advisors (Excel/CSV)&quot; for Power Admin under Capabilities.
+              &quot;Import advisors (Excel/CSV)&quot; under Power Admin → Capabilities.
             </p>
           </div>
         </div>
       </section>
     )
   }
+
+  const pendingBilling =
+    quote?.payment_required && quote?.billing && quote.billing.payment_status !== 'paid'
+  const showPaymentPanel = Boolean(pendingBilling || (quote?.payment_required && quote?.error))
 
   return (
     <section>
@@ -115,13 +182,28 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           <p className="eyebrow">{eyebrow}</p>
           <h1>Advisor import</h1>
           <p className="muted">
-            Upload a CSV of advisors (export from Excel). Imported advisors are marked subscribed
+            Upload a CSV or Excel sheet of advisors. Imported advisors are marked subscribed
             with unlimited credits.
+            {billingEnabled
+              ? ' The client admin pays rate × advisors after each import (card is saved for auto-renew).'
+              : ''}
           </p>
         </div>
-        <button type="button" className="btn ghost" onClick={downloadTemplate}>
-          Download CSV template
-        </button>
+        <div className="actions">
+          {billingEnabled && !asPowerAdmin && (
+            <Link className="btn ghost" to="/client-admin/payment-card">
+              Payment card
+            </Link>
+          )}
+          {canViewInvoices && (
+            <Link className="btn ghost" to={invoicesPath}>
+              Advisor invoices
+            </Link>
+          )}
+          <button type="button" className="btn ghost" onClick={downloadTemplate}>
+            Download CSV template
+          </button>
+        </div>
       </div>
 
       {error && <div className="alert">{error}</div>}
@@ -131,14 +213,14 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         <h2>Upload advisors</h2>
         <p className="muted">
           Columns: <code>name</code>, <code>email</code>, optional <code>password</code>. If
-          password is blank, a temporary password is generated (shown once after import). From
-          Excel: <strong>File → Save As → CSV</strong>.
+          password is blank, a temporary password is generated (shown once after import). You can
+          upload <strong>.csv</strong> or <strong>.xlsx</strong>.
         </p>
         <label>
-          CSV file
+          Excel / CSV file
           <input
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
         </label>
@@ -148,6 +230,101 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           </button>
         </div>
       </form>
+
+      {showPaymentPanel && (
+        <div className="import-result">
+          <h2>Payment required</h2>
+          {quote?.payer && (
+            <p className="muted">
+              Payer (client admin): <strong>{quote.payer.name}</strong> ({quote.payer.email})
+            </p>
+          )}
+          {quote?.billing ? (
+            <p>
+              Applied rate: <strong>{formatMoney(quote.rate_per_advisor, quote.currency)}</strong> ×{' '}
+              <strong>{quote.advisor_count}</strong> advisors ={' '}
+              <strong>{formatMoney(quote.amount, quote.currency)}</strong>
+              {quote.tier?.label ? ` (${quote.tier.label})` : ''}
+            </p>
+          ) : (
+            <p className="muted">{quote?.error || 'Unable to build billing quote.'}</p>
+          )}
+          <p className="muted">
+            {quote?.formula || 'amount = rate_per_advisor × advisor_count'}
+            {quote?.renew_day
+              ? ` · Auto-renew day: ${quote.renew_day} of each month`
+              : ''}
+          </p>
+
+          {quote?.billing && (
+            <div className="admin-form" style={{ marginTop: '1rem' }}>
+              <h3>Choose payment method</h3>
+              <p className="muted">
+                {quote?.has_saved_card
+                  ? 'Stripe will charge the client admin card on file from Payment card settings.'
+                  : 'No card on file yet — Stripe Checkout will collect a card, or add one under Payment card first.'}
+              </p>
+              {(quote.payment_methods || []).map((method) => (
+                <label key={method.id} className="checklist-item">
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    value={method.id}
+                    checked={paymentMethod === method.id}
+                    disabled={!method.available}
+                    onChange={() => setPaymentMethod(method.id)}
+                  />
+                  <span>
+                    {method.label}
+                    {method.id === 'stripe'
+                      ? quote?.has_saved_card
+                        ? ' (charge card on file)'
+                        : ' (enter card + auto-renew)'
+                      : ''}
+                    {method.id === 'saved_card' ? ' (charge now + keep auto-renew)' : ''}
+                    {!method.available && method.unavailable_reason
+                      ? ` — ${method.unavailable_reason}`
+                      : ''}
+                  </span>
+                </label>
+              ))}
+              <div className="actions">
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={paying || !(quote.payment_methods || []).some((m) => m.available)}
+                  onClick={onPay}
+                >
+                  {paying
+                    ? 'Processing...'
+                    : paymentMethod === 'saved_card' ||
+                        (paymentMethod === 'stripe' && quote?.has_saved_card)
+                      ? 'Charge saved card'
+                      : 'Pay now'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {bankResult && !bankResult.auto_confirmed && !bankResult.charged_saved_card && (
+        <div className="import-result">
+          <h2>Bank transfer pending</h2>
+          <p className="muted">
+            Reference:{' '}
+            <code>{bankResult.payment_reference || bankResult.billing?.payment_reference}</code>
+          </p>
+          {bankResult.bank_details && (
+            <ul className="muted">
+              <li>Account: {bankResult.bank_details.account_name}</li>
+              <li>Bank: {bankResult.bank_details.bank_name}</li>
+              <li>Sort code: {bankResult.bank_details.sort_code}</li>
+              <li>Account number: {bankResult.bank_details.account_number}</li>
+            </ul>
+          )}
+        </div>
+      )}
 
       {result && (
         <div className="import-result">

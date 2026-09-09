@@ -21,16 +21,19 @@ export function AuthProvider({ children }) {
           const caps = await api.powerAdminCapabilitiesMe()
           setPowerCapabilities(caps.resolved || {})
         } catch {
-          setPowerCapabilities({})
+          // Keep existing caps if the secondary call fails.
         }
       } else {
         setPowerCapabilities({})
       }
       return data.user
-    } catch {
-      setToken(null)
-      setUser(null)
-      setPowerCapabilities({})
+    } catch (err) {
+      // Only clear the session on auth failures — not on network / server errors.
+      if (err?.status === 401 || err?.status === 403) {
+        setToken(null)
+        setUser(null)
+        setPowerCapabilities({})
+      }
       return null
     }
   }, [])

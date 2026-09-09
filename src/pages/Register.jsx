@@ -5,7 +5,7 @@ import { useHub } from '../context/HubContext'
 
 export default function Register() {
   const { register, isAuthenticated } = useAuth()
-  const { can, hub, loading: hubLoading } = useHub()
+  const { hub, loading: hubLoading, registrationEnabled } = useHub()
   const navigate = useNavigate()
   const [form, setForm] = useState({
     name: '',
@@ -18,18 +18,18 @@ export default function Register() {
 
   if (isAuthenticated) return <Navigate to="/" replace />
 
-  if (!hubLoading && !can('public_subscribe')) {
+  if (!hubLoading && !registrationEnabled) {
     return (
       <div className="auth-wrap admin-auth-wrap power-auth">
         <div className="auth-panel">
           <p className="eyebrow">{hub?.name || 'Hub Finproms'}</p>
           <h1>Invite only</h1>
           <p className="muted">
-            Public registration is disabled for this hub. Please contact your administrator for
-            access.
+            Public registration is disabled for this hub. Access is for invited advisors only —
+            please sign in with the account from your invite list.
           </p>
           <p className="muted center">
-            Already have an account? <Link to="/login">Login</Link>
+            Already invited? <Link to="/login">Login</Link>
           </p>
         </div>
       </div>

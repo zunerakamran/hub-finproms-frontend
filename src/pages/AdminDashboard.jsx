@@ -39,6 +39,30 @@ const sections = [
     capability: 'advisor_excel_import',
   },
   {
+    to: '/client-admin/payment-card',
+    title: 'Payment card',
+    description: 'Enter or update the card charged when importing advisors (Stripe).',
+    billingOnly: true,
+  },
+  {
+    to: '/client-admin/advisor-pricing',
+    title: 'Advisor billing rates / quotas',
+    description: 'Set rate-per-advisor tiers used for private hub billing (rate × advisors).',
+    capability: 'dashboard_manage_advisor_pricing',
+  },
+  {
+    to: '/client-admin/advisor-renewal',
+    title: 'Advisor auto-renew day',
+    description: 'Set the monthly day the client admin card is charged for advisor seats.',
+    capability: 'dashboard_manage_advisor_renewal',
+  },
+  {
+    to: '/client-admin/advisor-invoices',
+    title: 'Advisor billing invoices',
+    description: 'View invoices created for advisor subscriber billing.',
+    capability: 'dashboard_view_advisor_invoices',
+  },
+  {
     to: '/client-admin/settings',
     title: 'Settings',
     description: 'Configure NEW banner duration and other hub options.',
@@ -53,8 +77,11 @@ const sections = [
 ]
 
 export default function AdminDashboard() {
-  const { can } = useHub()
-  const visible = sections.filter((section) => can(section.capability))
+  const { can, advisorBillingEnabled } = useHub()
+  const visible = sections.filter((section) => {
+    if (section.billingOnly) return advisorBillingEnabled
+    return can(section.capability)
+  })
 
   return (
     <section>

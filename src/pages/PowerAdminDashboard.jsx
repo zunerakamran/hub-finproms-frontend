@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function PowerAdminDashboard() {
   return (
     <section>
@@ -13,16 +15,21 @@ export default function PowerAdminDashboard() {
       </div>
 
       <div className="admin-dashboard-grid">
-        <div className="admin-dashboard-card">
+        <Link to="/power-admin/payment-methods" className="admin-dashboard-card">
+          <h2>Payment methods</h2>
+          <p>Enable or disable Stripe and bank transfer checkout for members.</p>
+          <span className="admin-dashboard-link">Manage payments →</span>
+        </Link>
+        <Link to="/power-admin/hubs" className="admin-dashboard-card">
           <h2>White-label hubs</h2>
-          <p>Create and configure white-labelled hubs (branding, private access, pricing tiers).</p>
-          <span className="admin-dashboard-link">Coming next →</span>
-        </div>
-        <div className="admin-dashboard-card">
+          <p>Create and configure white-labelled hubs (branding, private access, checklist).</p>
+          <span className="admin-dashboard-link">Manage hubs →</span>
+        </Link>
+        <Link to="/power-admin/checklist" className="admin-dashboard-card">
           <h2>Rights checklist</h2>
           <p>Turn features on/off per hub so shared and white-label behave correctly from one codebase.</p>
-          <span className="admin-dashboard-link">Coming next →</span>
-        </div>
+          <span className="admin-dashboard-link">Edit checklist →</span>
+        </Link>
       </div>
     </section>
   )

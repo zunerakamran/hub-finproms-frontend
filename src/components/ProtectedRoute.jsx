@@ -12,12 +12,7 @@ export function ProtectedRoute({
 
   if (loading) return <div className="state">Loading...</div>
   if (!isAuthenticated) {
-    const loginPath = powerAdminOnly
-      ? '/power-admin/login'
-      : clientAdminOnly || adminOnly
-        ? '/client-admin/login'
-        : '/login'
-    return <Navigate to={loginPath} replace state={{ from: location }} />
+    return <Navigate to="/login" replace state={{ from: location }} />
   }
   if (powerAdminOnly && !isPowerAdmin) return <Navigate to="/" replace />
   if ((adminOnly || clientAdminOnly) && !isClientAdmin) return <Navigate to="/" replace />

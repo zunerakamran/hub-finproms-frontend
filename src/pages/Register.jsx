@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
 
 export default function Register() {
   const { register, isAuthenticated } = useAuth()
+  const { can, hub, loading: hubLoading } = useHub()
   const navigate = useNavigate()
   const [form, setForm] = useState({
     name: '',
@@ -15,6 +17,24 @@ export default function Register() {
   const [submitting, setSubmitting] = useState(false)
 
   if (isAuthenticated) return <Navigate to="/" replace />
+
+  if (!hubLoading && !can('public_subscribe')) {
+    return (
+      <div className="auth-wrap admin-auth-wrap power-auth">
+        <div className="auth-panel">
+          <p className="eyebrow">{hub?.name || 'Hub Finproms'}</p>
+          <h1>Invite only</h1>
+          <p className="muted">
+            Public registration is disabled for this hub. Please contact your administrator for
+            access.
+          </p>
+          <p className="muted center">
+            Already have an account? <Link to="/login">Login</Link>
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -36,9 +56,9 @@ export default function Register() {
   }
 
   return (
-    <div className="auth-wrap">
+    <div className="auth-wrap admin-auth-wrap power-auth">
       <form className="auth-panel" onSubmit={onSubmit}>
-        <p className="eyebrow">Get started</p>
+        <p className="eyebrow">{hub?.name || 'Hub Finproms'}</p>
         <h1>Create your account</h1>
         <p className="muted">Buy credits and unlock social media posts.</p>
         {error && <div className="alert">{error}</div>}
@@ -77,7 +97,7 @@ export default function Register() {
             onChange={(e) => setForm({ ...form, password_confirmation: e.target.value })}
           />
         </label>
-        <button className="btn primary full" disabled={submitting}>
+        <button className="btn primary full" disabled={submitting || hubLoading}>
           {submitting ? 'Creating...' : 'Sign up'}
         </button>
         <p className="muted center">

@@ -105,4 +105,34 @@ export const api = {
   adminSettings: () => request(`${CLIENT_ADMIN}/settings`),
   updateSettings: (payload) =>
     request(`${CLIENT_ADMIN}/settings`, { method: 'PUT', body: JSON.stringify(payload) }),
+  powerAdminPaymentMethods: () => request('/power-admin/payment-methods'),
+  updatePowerAdminPaymentMethods: (payload) =>
+    request('/power-admin/payment-methods', { method: 'PUT', body: JSON.stringify(payload) }),
+  currentHub: () => request('/hub'),
+  powerAdminHubs: () => request('/power-admin/hubs'),
+  powerAdminHub: (id) => request(`/power-admin/hubs/${id}`),
+  createPowerAdminHub: (payload) =>
+    request('/power-admin/hubs', { method: 'POST', body: JSON.stringify(payload) }),
+  updatePowerAdminHub: (id, payload) =>
+    request(`/power-admin/hubs/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  updatePowerAdminHubChecklist: (id, checklist) =>
+    request(`/power-admin/hubs/${id}/checklist`, {
+      method: 'PUT',
+      body: JSON.stringify({ checklist }),
+    }),
+  advisors: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${CLIENT_ADMIN}/advisors${query ? `?${query}` : ''}`)
+  },
+  importAdvisors: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request(`${CLIENT_ADMIN}/advisors/import`, { method: 'POST', body: formData })
+  },
+  advisorTemplateUrl: () => {
+    const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
+    return `${base}${CLIENT_ADMIN}/advisors/template`
+  },
 }

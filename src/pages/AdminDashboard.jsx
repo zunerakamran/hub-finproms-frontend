@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useHub } from '../context/HubContext'
 
 const sections = [
   {
@@ -27,6 +28,12 @@ const sections = [
     description: 'Add and update credit packages users can purchase.',
   },
   {
+    to: '/client-admin/advisors',
+    title: 'Advisor import',
+    description: 'Import advisors from an Excel/CSV sheet with unlimited credits.',
+    requires: 'advisor_excel_import',
+  },
+  {
     to: '/client-admin/settings',
     title: 'Settings',
     description: 'Configure NEW banner duration and other hub options.',
@@ -39,6 +46,9 @@ const sections = [
 ]
 
 export default function AdminDashboard() {
+  const { can } = useHub()
+  const visible = sections.filter((section) => !section.requires || can(section.requires))
+
   return (
     <section>
       <div className="page-head">
@@ -50,7 +60,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="admin-dashboard-grid">
-        {sections.map((section) => (
+        {visible.map((section) => (
           <Link key={section.to} to={section.to} className="admin-dashboard-card">
             <h2>{section.title}</h2>
             <p>{section.description}</p>

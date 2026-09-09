@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
 
 function roleHome(user) {
   if (user?.role === 'power_admin') return '/power-admin'
@@ -10,13 +11,21 @@ function roleHome(user) {
 
 export default function Login() {
   const { login, isAuthenticated, user } = useAuth()
+  const { can, hub } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  if (isAuthenticated) return <Navigate to={roleHome(user)} replace />
+  if (isAuthenticated) {
+    const fallback = roleHome(user)
+    const from = location.state?.from?.pathname
+    // Don't bounce staff back into a portal they can't access
+    const target =
+      from && from !== '/login' && from !== '/register' ? from : fallback
+    return <Navigate to={target} replace />
+  }
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -24,11 +33,13 @@ export default function Login() {
     setSubmitting(true)
     try {
       const loggedIn = await login(form)
-      if (loggedIn?.role === 'power_admin' || loggedIn?.role === 'client_admin' || loggedIn?.role === 'admin') {
-        navigate(roleHome(loggedIn), { replace: true })
+      const home = roleHome(loggedIn)
+      const from = location.state?.from?.pathname
+      if (from && from !== '/login' && from !== '/register') {
+        navigate(from, { replace: true })
         return
       }
-      navigate(location.state?.from?.pathname || '/')
+      navigate(home, { replace: true })
     } catch (err) {
       setError(err.data?.errors?.email?.[0] || err.message)
     } finally {
@@ -37,11 +48,11 @@ export default function Login() {
   }
 
   return (
-    <div className="auth-wrap">
+    <div className="auth-wrap admin-auth-wrap power-auth">
       <form className="auth-panel" onSubmit={onSubmit}>
-        <p className="eyebrow">Welcome back</p>
-        <h1>Login to Hub Finproms</h1>
-        <p className="muted">Access social posts with your credits.</p>
+        <p className="eyebrow">{hub?.name || 'Hub Finproms'}</p>
+        <h1>Sign in</h1>
+        <p className="muted">One login for members, Client Admin, and Power Admin.</p>
         {error && <div className="alert">{error}</div>}
         <label>
           Email
@@ -64,13 +75,13 @@ export default function Login() {
         <button className="btn primary full" disabled={submitting}>
           {submitting ? 'Signing in...' : 'Login'}
         </button>
+        {can('public_subscribe') && (
+          <p className="muted center">
+            No account? <Link to="/register">Sign up</Link>
+          </p>
+        )}
         <p className="muted center">
-          No account? <Link to="/register">Sign up</Link>
-        </p>
-        <p className="muted center">
-          Staff? <Link to="/client-admin/login">Client Admin</Link>
-          {' · '}
-          <Link to="/power-admin/login">Power Admin</Link>
+          <Link to="/">← Back to hub</Link>
         </p>
       </form>
     </div>

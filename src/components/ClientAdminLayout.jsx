@@ -8,7 +8,7 @@ export default function ClientAdminLayout() {
 
   const onLogout = async () => {
     await logout()
-    navigate('/client-admin/login', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return (

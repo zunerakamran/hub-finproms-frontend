@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
+import { useHub } from '../context/HubContext'
 
-const links = [
+const baseLinks = [
   { to: '/client-admin', label: 'Dashboard', end: true },
   { to: '/client-admin/posts', label: 'Posts' },
   { to: '/client-admin/types', label: 'Types' },
@@ -12,6 +13,12 @@ const links = [
 ]
 
 export default function AdminSubnav() {
+  const { can } = useHub()
+  const links = [...baseLinks]
+  if (can('advisor_excel_import')) {
+    links.splice(6, 0, { to: '/client-admin/advisors', label: 'Advisors' })
+  }
+
   return (
     <nav className="admin-subnav admin-sidebar-nav" aria-label="Client admin sections">
       {links.map((link) => (

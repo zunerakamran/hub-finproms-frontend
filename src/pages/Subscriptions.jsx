@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
 
 export default function Subscriptions() {
   const { isAuthenticated } = useAuth()
+  const { can, loading: hubLoading } = useHub()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const [plans, setPlans] = useState([])
@@ -13,7 +15,14 @@ export default function Subscriptions() {
   const [error, setError] = useState('')
   const [checkoutKey, setCheckoutKey] = useState(null)
 
+  const selfServeAllowed = can('public_subscribe') || can('paid_credits')
+
   useEffect(() => {
+    if (hubLoading) return
+    if (!selfServeAllowed) {
+      setLoading(false)
+      return
+    }
     api
       .plans()
       .then((data) => {
@@ -22,7 +31,7 @@ export default function Subscriptions() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [hubLoading, selfServeAllowed])
 
   const buy = async (planId, paymentMethod) => {
     if (!isAuthenticated) {
@@ -63,6 +72,23 @@ export default function Subscriptions() {
   const bankMethod = paymentMethods.find((m) => m.id === 'bank_transfer') || {
     id: 'bank_transfer',
     available: true,
+  }
+
+  if (!hubLoading && !selfServeAllowed) {
+    return (
+      <section>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Credits</p>
+            <h1>Subscription plans</h1>
+            <p className="muted">
+              Self-serve subscriptions are disabled for this hub. Access and credits are managed by
+              your administrator.
+            </p>
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (

@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 
 const links = [
   { to: '/power-admin', label: 'Dashboard', end: true },
+  { to: '/power-admin/payment-methods', label: 'Payment methods' },
   { to: '/power-admin/hubs', label: 'White-label hubs' },
   { to: '/power-admin/checklist', label: 'Rights checklist' },
 ]
@@ -13,7 +14,7 @@ export default function PowerAdminLayout() {
 
   const onLogout = async () => {
     await logout()
-    navigate('/power-admin/login', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return (

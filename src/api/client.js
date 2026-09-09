@@ -108,6 +108,21 @@ export const api = {
   powerAdminPaymentMethods: () => request('/power-admin/payment-methods'),
   updatePowerAdminPaymentMethods: (payload) =>
     request('/power-admin/payment-methods', { method: 'PUT', body: JSON.stringify(payload) }),
+  powerAdminCapabilitiesMe: () => request('/power-admin/capabilities/me'),
+  updatePowerAdminCapabilities: (capabilities) =>
+    request('/power-admin/capabilities', {
+      method: 'PUT',
+      body: JSON.stringify({ capabilities }),
+    }),
+  powerAdminCapabilitiesMatrix: (hubId) => {
+    const query = hubId ? `?hub_id=${hubId}` : ''
+    return request(`/power-admin/capabilities/matrix${query}`)
+  },
+  updatePowerAdminCapabilitiesMatrix: (payload) =>
+    request('/power-admin/capabilities/matrix', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
   currentHub: () => request('/hub'),
   powerAdminHubs: () => request('/power-admin/hubs'),
   powerAdminHub: (id) => request(`/power-admin/hubs/${id}`),
@@ -120,19 +135,22 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ checklist }),
     }),
-  advisors: (params = {}) => {
+  advisors: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
     ).toString()
-    return request(`${CLIENT_ADMIN}/advisors${query ? `?${query}` : ''}`)
+    return request(`${base}/advisors${query ? `?${query}` : ''}`)
   },
-  importAdvisors: (file) => {
+  importAdvisors: (file, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const formData = new FormData()
     formData.append('file', file)
-    return request(`${CLIENT_ADMIN}/advisors/import`, { method: 'POST', body: formData })
+    return request(`${base}/advisors/import`, { method: 'POST', body: formData })
   },
-  advisorTemplateUrl: () => {
+  advisorTemplateUrl: (options = {}) => {
+    const basePath = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
-    return `${base}${CLIENT_ADMIN}/advisors/template`
+    return `${base}${basePath}/advisors/template`
   },
 }

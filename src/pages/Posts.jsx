@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
 
 function formatDate(value) {
   return new Date(value).toLocaleDateString(undefined, {
@@ -17,6 +18,7 @@ function formatCount(value) {
 
 export default function Posts() {
   const { isAuthenticated, user, isClientAdmin } = useAuth()
+  const { can, loading: hubLoading } = useHub()
   const navigate = useNavigate()
   const [posts, setPosts] = useState([])
   const [totalResults, setTotalResults] = useState(0)
@@ -28,6 +30,19 @@ export default function Posts() {
   const [searchDraft, setSearchDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  if (!hubLoading && !can('member_browse_catalog')) {
+    return (
+      <section>
+        <div className="page-head">
+          <div>
+            <h1>Catalog unavailable</h1>
+            <p className="muted">Browsing posts is disabled for this hub by Power Admin.</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   const loadFilters = async () => {
     const [typesRes, catsRes, tagsRes] = await Promise.all([

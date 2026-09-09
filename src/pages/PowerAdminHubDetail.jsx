@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import { checklistToMap, toggleChecklistFlag } from '../utils/checklist'
+import ChecklistGroupedForm from '../components/ChecklistGroupedForm'
+import { checklistToMap } from '../utils/checklist'
 
 export default function PowerAdminHubDetail() {
   const { hubId } = useParams()
@@ -48,7 +49,7 @@ export default function PowerAdminHubDetail() {
     load()
   }, [hubId])
 
-  const checklistItems = useMemo(() => hub?.checklist || [], [hub])
+  const checklistItems = hub?.checklist || []
 
   const onSaveMeta = async (e) => {
     e.preventDefault()
@@ -115,7 +116,7 @@ export default function PowerAdminHubDetail() {
           <p className="eyebrow">Power Admin</p>
           <h1>{hub.name}</h1>
           <p className="muted">
-            Update branding and the rights checklist for this{' '}
+            Update branding and Functionalities for this{' '}
             {hub.type === 'shared' ? 'shared' : 'white-labelled'} hub.
           </p>
         </div>
@@ -188,44 +189,25 @@ export default function PowerAdminHubDetail() {
         </div>
       </form>
 
-      <form className="admin-form checklist-form" id="checklist" onSubmit={onSaveChecklist}>
-        <h2>Rights checklist</h2>
-        <p className="muted">
-          Check or uncheck features for this hub. Opposite options cannot both be on — checking one
-          automatically unchecks the other (e.g. public vs private, paid vs unlimited credits).
-        </p>
-
-        <div className="checklist-grid">
-          {checklistItems.map((item) => (
-            <label key={item.key} className="checklist-item">
-              <input
-                type="checkbox"
-                checked={Boolean(flags[item.key])}
-                onChange={(e) =>
-                  setFlags((prev) =>
-                    toggleChecklistFlag(prev, item.key, e.target.checked, item.exclusive_with)
-                  )
-                }
-              />
-              <span>
-                <strong>{item.label}</strong>
-                <small className="muted">{item.description}</small>
-                {item.exclusive_with && (
-                  <small className="muted exclusive-hint">
-                    Opposite of <code>{item.exclusive_with}</code>
-                  </small>
-                )}
-              </span>
-            </label>
-          ))}
+      <div id="checklist">
+        <div className="page-head" style={{ marginTop: '1.5rem' }}>
+          <div>
+            <h2>Functionalities</h2>
+            <p className="muted">
+              How this hub works (access, credits, distribution). Opposite options cannot both be
+              on. User capabilities are under Capabilities.
+            </p>
+          </div>
         </div>
-
-        <div className="actions">
-          <button className="btn primary" disabled={savingChecklist}>
-            {savingChecklist ? 'Saving...' : 'Save checklist'}
-          </button>
-        </div>
-      </form>
+        <ChecklistGroupedForm
+          items={checklistItems}
+          flags={flags}
+          setFlags={setFlags}
+          onSubmit={onSaveChecklist}
+          saving={savingChecklist}
+          submitLabel="Save checklist"
+        />
+      </div>
     </section>
   )
 }

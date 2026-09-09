@@ -1,9 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
+import { useAuth } from './AuthContext'
 
 const HubContext = createContext(null)
 
 export function HubProvider({ children }) {
+  const { user, loading: authLoading } = useAuth()
   const [hub, setHub] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -23,25 +25,32 @@ export function HubProvider({ children }) {
   }, [])
 
   useEffect(() => {
+    if (authLoading) return
+    setLoading(true)
     refreshHub()
-  }, [refreshHub])
+  }, [refreshHub, authLoading, user?.id, user?.role])
 
   const can = useCallback(
-    (flag) => Boolean(hub?.checklist?.[flag]),
+    (flag) => {
+      if (hub?.effective_capabilities && Object.prototype.hasOwnProperty.call(hub.effective_capabilities, flag)) {
+        return Boolean(hub.effective_capabilities[flag])
+      }
+      return Boolean(hub?.checklist?.[flag])
+    },
     [hub]
   )
 
   const value = useMemo(
     () => ({
       hub,
-      loading,
+      loading: loading || authLoading,
       error,
       refreshHub,
       can,
       checklist: hub?.checklist || {},
       branding: hub?.branding || {},
     }),
-    [hub, loading, error, refreshHub, can]
+    [hub, loading, authLoading, error, refreshHub, can]
   )
 
   return <HubContext.Provider value={value}>{children}</HubContext.Provider>

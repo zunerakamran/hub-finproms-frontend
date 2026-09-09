@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import AdminSubnav from './AdminSubnav'
 
 export default function ClientAdminLayout() {
-  const { user, logout } = useAuth()
+  const { user, logout, isFinpromsAdmin, isManager } = useAuth()
   const navigate = useNavigate()
 
   const onLogout = async () => {
@@ -11,12 +11,18 @@ export default function ClientAdminLayout() {
     navigate('/login', { replace: true })
   }
 
+  const shellTitle = isFinpromsAdmin
+    ? 'FinProms Admin'
+    : isManager
+      ? 'Manager'
+      : 'Client Admin'
+
   return (
     <div className="admin-app-shell client-admin-shell">
       <aside className="admin-sidebar">
         <div className="admin-sidebar-brand">
           <span className="admin-shell-kicker">Hub Finproms</span>
-          <strong>Client Admin</strong>
+          <strong>{shellTitle}</strong>
         </div>
         <AdminSubnav />
         <div className="admin-sidebar-footer">
@@ -31,7 +37,11 @@ export default function ClientAdminLayout() {
       </aside>
       <div className="admin-app-main">
         <header className="admin-topbar">
-          <p className="muted">Manage hub content, types, categories, plans, and settings</p>
+          <p className="muted">
+            {isFinpromsAdmin
+              ? 'Shared hub operator — content, plans, and distribution tools'
+              : 'Manage hub content, types, categories, plans, and settings'}
+          </p>
           <div className="admin-topbar-links">
             <NavLink to="/" className="admin-home-link">
               Main website

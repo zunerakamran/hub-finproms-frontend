@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import ClientAdminLayout from './components/ClientAdminLayout'
+import HubCapabilityRoute from './components/HubCapabilityRoute'
 import Layout from './components/Layout'
 import PowerAdminLayout from './components/PowerAdminLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -21,6 +22,7 @@ import MyInvoices from './pages/MyInvoices'
 import MyPurchases from './pages/MyPurchases'
 import PostDetail from './pages/PostDetail'
 import Posts from './pages/Posts'
+import PowerAdminCapabilities from './pages/PowerAdminCapabilities'
 import PowerAdminChecklist from './pages/PowerAdminChecklist'
 import PowerAdminDashboard from './pages/PowerAdminDashboard'
 import PowerAdminHubDetail from './pages/PowerAdminHubDetail'
@@ -110,14 +112,70 @@ export default function App() {
             <Route element={<ClientAdminRoute />}>
               <Route path="client-admin" element={<ClientAdminLayout />}>
                 <Route index element={<AdminDashboard />} />
-                <Route path="posts" element={<AdminPosts />} />
-                <Route path="types" element={<AdminTypes />} />
-                <Route path="categories" element={<AdminCategories />} />
-                <Route path="tags" element={<AdminTags />} />
-                <Route path="plans" element={<AdminPlans />} />
-                <Route path="advisors" element={<AdminAdvisors />} />
-                <Route path="settings" element={<AdminSettings />} />
-                <Route path="bank-transfers" element={<AdminBankTransfers />} />
+                <Route
+                  path="posts"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_posts">
+                      <AdminPosts />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="types"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_types">
+                      <AdminTypes />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="categories"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_categories">
+                      <AdminCategories />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="tags"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_tags">
+                      <AdminTags />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="plans"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_plans">
+                      <AdminPlans />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="advisors"
+                  element={
+                    <HubCapabilityRoute capability="advisor_excel_import">
+                      <AdminAdvisors />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_settings">
+                      <AdminSettings />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="bank-transfers"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_bank_transfers">
+                      <AdminBankTransfers />
+                    </HubCapabilityRoute>
+                  }
+                />
               </Route>
             </Route>
 
@@ -129,6 +187,15 @@ export default function App() {
                 <Route path="hubs" element={<PowerAdminHubs />} />
                 <Route path="hubs/:hubId" element={<PowerAdminHubDetail />} />
                 <Route path="checklist" element={<PowerAdminChecklist />} />
+                <Route path="capabilities" element={<PowerAdminCapabilities />} />
+                <Route
+                  path="advisors"
+                  element={
+                    <HubCapabilityRoute capability="advisor_excel_import" fallback="/power-admin">
+                      <AdminAdvisors shell="power-admin" />
+                    </HubCapabilityRoute>
+                  }
+                />
               </Route>
             </Route>
 

@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
 
 export default function PostDetail() {
   const { id } = useParams()
   const { user, isAuthenticated, isClientAdmin, setUser, refreshUser } = useAuth()
+  const { can } = useHub()
   const navigate = useNavigate()
   const [post, setPost] = useState(null)
   const [error, setError] = useState('')
@@ -13,6 +15,11 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true)
   const [buying, setBuying] = useState(false)
   const [invoice, setInvoice] = useState(null)
+
+  const canPurchase = can('member_purchase_content')
+  const canDownload = can('member_download_content')
+  const unlimited =
+    user?.has_unlimited_credits || (can('unlimited_credits') && user?.is_advisor)
 
   const load = async () => {
     setLoading(true)
@@ -185,7 +192,7 @@ export default function PostDetail() {
         {unlocked ? (
           <div className="unlock-box">
             <p className="badge ok">Unlocked</p>
-            {post.attachment_url ? (
+            {canDownload && post.attachment_url ? (
               <a
                 className="btn primary"
                 href={post.attachment_url}
@@ -194,35 +201,48 @@ export default function PostDetail() {
               >
                 Download attachment ({post.attachment_name || 'file'})
               </a>
-            ) : (
+            ) : canDownload ? (
               <p className="muted">No attachment uploaded for this post.</p>
+            ) : (
+              <p className="muted">Downloads are disabled for this hub by Power Admin.</p>
             )}
-            {invoice && (
+            {invoice && can('member_view_invoices') && (
               <p className="muted">
                 Invoice {invoice.invoice_number} created ·{' '}
                 <Link to={`/invoices/${invoice.id}`}>View invoice</Link>
               </p>
             )}
           </div>
-        ) : (
+        ) : canPurchase ? (
           <div className="unlock-box">
             <p>
               Buy this post for {post.credits_cost} credits (£{post.credits_cost}). No subscription
               required.
             </p>
-            <p className="muted">Your balance: {user?.credits ?? 0} credits</p>
+            <p className="muted">
+              Your balance:{' '}
+              {unlimited ? 'Unlimited' : `${user?.credits ?? 0} credits`}
+            </p>
             <div className="actions">
               <button
                 className="btn primary"
                 onClick={buy}
-                disabled={buying || (user?.credits ?? 0) < post.credits_cost}
+                disabled={
+                  buying || (!unlimited && (user?.credits ?? 0) < post.credits_cost)
+                }
               >
                 {buying ? 'Purchasing...' : 'Buy with credits'}
               </button>
-              <Link to="/subscriptions" className="btn ghost">
-                Get more credits
-              </Link>
+              {can('member_view_plans') && (
+                <Link to="/subscriptions" className="btn ghost">
+                  Get more credits
+                </Link>
+              )}
             </div>
+          </div>
+        ) : (
+          <div className="unlock-box">
+            <p className="muted">Purchasing content is disabled for this hub by Power Admin.</p>
           </div>
         )}
       </div>

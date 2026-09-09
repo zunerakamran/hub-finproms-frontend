@@ -5,7 +5,9 @@ import { useHub } from '../context/HubContext'
 
 function roleHome(user) {
   if (user?.role === 'power_admin') return '/power-admin'
-  if (user?.role === 'client_admin' || user?.role === 'admin') return '/client-admin'
+  if (['finproms_admin', 'client_admin', 'manager', 'admin'].includes(user?.role)) {
+    return '/client-admin'
+  }
   return '/'
 }
 

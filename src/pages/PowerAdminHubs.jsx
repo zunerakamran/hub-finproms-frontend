@@ -69,7 +69,7 @@ export default function PowerAdminHubs() {
           <h1>White-label hubs</h1>
           <p className="muted">
             Shared and white-labelled hubs share one codebase. Create hubs here, then configure
-            each hub&apos;s rights checklist.
+            each hub&apos;s Functionalities and user Capabilities.
           </p>
         </div>
         <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
@@ -164,14 +164,14 @@ export default function PowerAdminHubs() {
                   </div>
                 </div>
                 <p className="muted">
-                  {enabledCount} of {(hub.checklist || []).length} checklist features enabled
+                  {enabledCount} of {(hub.checklist || []).length} Functionalities enabled
                 </p>
                 <div className="actions">
                   <Link className="btn primary" to={`/power-admin/hubs/${hub.id}`}>
-                    Manage hub & checklist
+                    Manage hub &amp; Functionalities
                   </Link>
                   <Link className="btn ghost" to={`/power-admin/checklist?hub=${hub.id}`}>
-                    Checklist only
+                    Functionalities only
                   </Link>
                 </div>
               </article>

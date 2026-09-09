@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
-import { checklistToMap, toggleChecklistFlag } from '../utils/checklist'
+import ChecklistGroupedForm from '../components/ChecklistGroupedForm'
+import { checklistToMap } from '../utils/checklist'
 
 export default function PowerAdminChecklist() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -60,7 +61,7 @@ export default function PowerAdminChecklist() {
     }
   }, [selectedId])
 
-  const items = useMemo(() => hub?.checklist || [], [hub])
+  const items = hub?.checklist || []
 
   const onSave = async (e) => {
     e.preventDefault()
@@ -86,10 +87,10 @@ export default function PowerAdminChecklist() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Power Admin</p>
-          <h1>Rights checklist</h1>
+          <h1>Hub Functionalities</h1>
           <p className="muted">
-            Pick a hub and toggle which functionalities are available. Opposite options cannot both
-            be on — checking one automatically unchecks the other.
+            Per-hub Functionalities (access, credits, distribution). User capabilities by role are
+            managed under Capabilities.
           </p>
         </div>
         <Link to="/power-admin/hubs" className="btn ghost">
@@ -127,7 +128,7 @@ export default function PowerAdminChecklist() {
           </label>
 
           {hub && (
-            <form className="admin-form checklist-form" onSubmit={onSave}>
+            <>
               <div className="checklist-hub-summary">
                 <div>
                   <h2>{hub.name}</h2>
@@ -139,38 +140,14 @@ export default function PowerAdminChecklist() {
                   Open full hub settings
                 </Link>
               </div>
-
-              <div className="checklist-grid">
-                {items.map((item) => (
-                  <label key={item.key} className="checklist-item">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(flags[item.key])}
-                      onChange={(e) =>
-                        setFlags((prev) =>
-                          toggleChecklistFlag(prev, item.key, e.target.checked, item.exclusive_with)
-                        )
-                      }
-                    />
-                    <span>
-                      <strong>{item.label}</strong>
-                      <small className="muted">{item.description}</small>
-                      {item.exclusive_with && (
-                        <small className="muted exclusive-hint">
-                          Opposite of <code>{item.exclusive_with}</code>
-                        </small>
-                      )}
-                    </span>
-                  </label>
-                ))}
-              </div>
-
-              <div className="actions">
-                <button className="btn primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save checklist'}
-                </button>
-              </div>
-            </form>
+              <ChecklistGroupedForm
+                items={items}
+                flags={flags}
+                setFlags={setFlags}
+                onSubmit={onSave}
+                saving={saving}
+              />
+            </>
           )}
         </>
       )}

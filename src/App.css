@@ -1612,6 +1612,86 @@ label {
   margin-bottom: 0.2rem;
 }
 
+.checklist-section {
+  margin-bottom: 1.5rem;
+}
+
+.capabilities-matrix-page {
+  max-width: 100%;
+}
+
+.matrix-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.capabilities-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+.capabilities-matrix th,
+.capabilities-matrix td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.65rem 0.75rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.capabilities-matrix th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.capabilities-matrix .matrix-capability-col {
+  text-align: left;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.capabilities-matrix .matrix-capability-col strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.capabilities-matrix .matrix-capability-col small {
+  display: block;
+  line-height: 1.35;
+}
+
+.capabilities-matrix input[type='checkbox'] {
+  width: auto;
+  transform: scale(1.15);
+}
+
+.capabilities-matrix td.matrix-na {
+  background: rgba(0, 0, 0, 0.02);
+  color: #94a3b8;
+}
+
+.matrix-dash {
+  opacity: 0.55;
+}
+
+.matrix-section {
+  margin-top: 1.25rem;
+}
+
+.checklist-section h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.checklist-section-hint {
+  margin: 0 0 0.85rem;
+}
+
 .checklist-item small {
   display: block;
   line-height: 1.4;

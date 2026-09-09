@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
-export default function AdminAdvisors() {
+export default function AdminAdvisors({ shell = 'client-admin' }) {
+  const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading } = useHub()
   const [advisors, setAdvisors] = useState([])
   const [loading, setLoading] = useState(true)
@@ -12,7 +14,10 @@ export default function AdminAdvisors() {
   const [result, setResult] = useState(null)
   const [file, setFile] = useState(null)
 
+  const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('advisor_excel_import')
+  const eyebrow = asPowerAdmin ? 'Power Admin' : 'Client Admin'
+  const apiOpts = { asPowerAdmin }
 
   const load = async () => {
     if (!enabled) {
@@ -22,7 +27,7 @@ export default function AdminAdvisors() {
     setLoading(true)
     setError('')
     try {
-      const data = await api.advisors()
+      const data = await api.advisors({}, apiOpts)
       setAdvisors(data.data || data.advisors || [])
     } catch (err) {
       setError(err.message)
@@ -35,13 +40,13 @@ export default function AdminAdvisors() {
     if (hubLoading) return
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hubLoading, enabled])
+  }, [hubLoading, enabled, asPowerAdmin])
 
   const downloadTemplate = async () => {
     setError('')
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(api.advisorTemplateUrl(), {
+      const response = await fetch(api.advisorTemplateUrl(apiOpts), {
         headers: {
           Accept: 'text/csv',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -74,7 +79,7 @@ export default function AdminAdvisors() {
     setMessage('')
     setResult(null)
     try {
-      const data = await api.importAdvisors(file)
+      const data = await api.importAdvisors(file, apiOpts)
       setMessage(data.message || 'Import finished.')
       setResult(data)
       setFile(null)
@@ -91,11 +96,11 @@ export default function AdminAdvisors() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Client Admin</p>
+            <p className="eyebrow">{eyebrow}</p>
             <h1>Advisor import</h1>
             <p className="muted">
-              Advisor Excel/CSV import is disabled for this hub. Ask Power Admin to enable
-              &quot;Advisor Excel import&quot; in the rights checklist.
+              Advisor Excel/CSV import is disabled for your role on this hub. Enable
+              &quot;Import advisors (Excel/CSV)&quot; for Power Admin under Capabilities.
             </p>
           </div>
         </div>
@@ -107,7 +112,7 @@ export default function AdminAdvisors() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Client Admin</p>
+          <p className="eyebrow">{eyebrow}</p>
           <h1>Advisor import</h1>
           <p className="muted">
             Upload a CSV of advisors (export from Excel). Imported advisors are marked subscribed

@@ -15,7 +15,8 @@ export default function Subscriptions() {
   const [error, setError] = useState('')
   const [checkoutKey, setCheckoutKey] = useState(null)
 
-  const selfServeAllowed = can('public_subscribe') || can('paid_credits')
+  const selfServeAllowed =
+    can('member_view_plans') && (can('public_subscribe') || can('paid_credits'))
 
   useEffect(() => {
     if (hubLoading) return

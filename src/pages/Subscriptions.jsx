@@ -4,6 +4,19 @@ import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
+function formatLastUpdated(value) {
+  if (!value) return null
+  try {
+    return new Date(value).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  } catch {
+    return value
+  }
+}
+
 export default function Subscriptions() {
   const { isAuthenticated } = useAuth()
   const { can, loading: hubLoading } = useHub()
@@ -99,7 +112,8 @@ export default function Subscriptions() {
           <p className="eyebrow">Credits</p>
           <h1>Subscription plans</h1>
           <p className="muted">
-            Choose Stripe or bank transfer (test). Bank transfer uses dummy details and grants credits immediately.
+            Choose Stripe or bank transfer (test). Bank transfer uses dummy details and grants credits
+            immediately.
           </p>
         </div>
       </div>
@@ -115,39 +129,79 @@ export default function Subscriptions() {
         <div className="plan-grid">
           {plans.map((plan) => (
             <article key={plan.id} className="plan-tile">
-              <h2>{plan.name}</h2>
-              <p className="price">${Number(plan.price).toFixed(2)}</p>
-              <p className="credits-line">{plan.credits} credits</p>
-              <p>{plan.description}</p>
-              <p className="muted">{plan.duration_days} days access window</p>
-              <div className="plan-actions">
-                <button
-                  className="btn primary full"
-                  onClick={() => buy(plan.id, 'stripe')}
-                  disabled={!stripeMethod.available || checkoutKey === `${plan.id}-stripe`}
-                  title={stripeMethod.unavailable_reason || undefined}
-                >
-                  {checkoutKey === `${plan.id}-stripe`
-                    ? 'Redirecting to Stripe...'
-                    : stripeMethod.available
-                      ? 'Pay with Stripe'
-                      : 'Stripe unavailable'}
-                </button>
-                {bankMethod.available && (
+              {plan.image_url ? (
+                <div className="plan-cover">
+                  <img src={plan.image_url} alt="" />
+                </div>
+              ) : (
+                <div className="plan-cover plan-cover-fallback" aria-hidden>
+                  {plan.name}
+                </div>
+              )}
+              <div className="plan-tile-body">
+                <h2>{plan.name}</h2>
+                <p className="price">£{Number(plan.price).toFixed(2)}</p>
+                <p className="credits-line">{plan.credits} credits</p>
+                {plan.description && <p>{plan.description}</p>}
+                {plan.overview && (
+                  <div className="plan-section">
+                    <h3>Overview</h3>
+                    <p>{plan.overview}</p>
+                  </div>
+                )}
+                {Array.isArray(plan.features) && plan.features.length > 0 && (
+                  <div className="plan-section">
+                    <h3>Features</h3>
+                    <ul className="plan-list">
+                      {plan.features.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {Array.isArray(plan.benefits) && plan.benefits.length > 0 && (
+                  <div className="plan-section">
+                    <h3>Benefits</h3>
+                    <ul className="plan-list">
+                      {plan.benefits.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <p className="muted">{plan.duration_days} days access window</p>
+                {formatLastUpdated(plan.last_updated) && (
+                  <p className="field-hint">Last updated: {formatLastUpdated(plan.last_updated)}</p>
+                )}
+                <div className="plan-actions">
                   <button
-                    className="btn ghost full"
-                    onClick={() => buy(plan.id, 'bank_transfer')}
-                    disabled={checkoutKey === `${plan.id}-bank_transfer`}
+                    className="btn primary full"
+                    onClick={() => buy(plan.id, 'stripe')}
+                    disabled={!stripeMethod.available || checkoutKey === `${plan.id}-stripe`}
+                    title={stripeMethod.unavailable_reason || undefined}
                   >
-                    {checkoutKey === `${plan.id}-bank_transfer`
-                      ? 'Completing test payment...'
-                      : 'Pay by bank transfer (test)'}
+                    {checkoutKey === `${plan.id}-stripe`
+                      ? 'Redirecting to Stripe...'
+                      : stripeMethod.available
+                        ? 'Pay with Stripe'
+                        : 'Stripe unavailable'}
                   </button>
+                  {bankMethod.available && (
+                    <button
+                      className="btn ghost full"
+                      onClick={() => buy(plan.id, 'bank_transfer')}
+                      disabled={checkoutKey === `${plan.id}-bank_transfer`}
+                    >
+                      {checkoutKey === `${plan.id}-bank_transfer`
+                        ? 'Completing test payment...'
+                        : 'Pay by bank transfer (test)'}
+                    </button>
+                  )}
+                </div>
+                {!stripeMethod.available && stripeMethod.unavailable_reason && (
+                  <p className="field-hint">{stripeMethod.unavailable_reason}</p>
                 )}
               </div>
-              {!stripeMethod.available && stripeMethod.unavailable_reason && (
-                <p className="field-hint">{stripeMethod.unavailable_reason}</p>
-              )}
             </article>
           ))}
         </div>

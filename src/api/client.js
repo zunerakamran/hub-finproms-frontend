@@ -69,11 +69,17 @@ export const api = {
   },
   createPlan: (payload, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
-    return request(`${base}/subscription-plans`, { method: 'POST', body: JSON.stringify(payload) })
+    const body = payload instanceof FormData ? payload : JSON.stringify(payload)
+    return request(`${base}/subscription-plans`, { method: 'POST', body })
   },
   updatePlan: (id, payload, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
-    return request(`${base}/subscription-plans/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+    const body = payload instanceof FormData ? payload : JSON.stringify(payload)
+    // POST so multipart image uploads work (same pattern as posts).
+    return request(`${base}/subscription-plans/${id}`, {
+      method: payload instanceof FormData ? 'POST' : 'PUT',
+      body,
+    })
   },
   deletePlan: (id, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN

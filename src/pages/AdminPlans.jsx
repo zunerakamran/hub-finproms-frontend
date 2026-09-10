@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -6,10 +6,35 @@ import { useHub } from '../context/HubContext'
 const emptyForm = {
   name: '',
   description: '',
+  overview: '',
+  features: '',
+  benefits: '',
   price: '',
   credits: '',
   duration_days: 30,
   is_active: true,
+  image: null,
+}
+
+function linesToList(text) {
+  return String(text || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+function listToLines(list) {
+  if (!Array.isArray(list)) return ''
+  return list.join('\n')
+}
+
+function formatLastUpdated(value) {
+  if (!value) return null
+  try {
+    return new Date(value).toLocaleString()
+  } catch {
+    return value
+  }
 }
 
 export default function AdminPlans({ shell = 'client-admin' }) {
@@ -18,6 +43,7 @@ export default function AdminPlans({ shell = 'client-admin' }) {
   const [plans, setPlans] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
+  const [existingImageUrl, setExistingImageUrl] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -27,6 +53,16 @@ export default function AdminPlans({ shell = 'client-admin' }) {
   const enabled = can('dashboard_manage_plans')
   const eyebrow = asPowerAdmin ? 'Power Admin' : 'Client Admin'
   const apiOpts = { asPowerAdmin }
+
+  const imagePreviewUrl = useMemo(() => {
+    if (form.image) return URL.createObjectURL(form.image)
+    return existingImageUrl
+  }, [form.image, existingImageUrl])
+
+  useEffect(() => {
+    if (!form.image || !imagePreviewUrl) return undefined
+    return () => URL.revokeObjectURL(imagePreviewUrl)
+  }, [form.image, imagePreviewUrl])
 
   const load = async () => {
     if (!enabled) {
@@ -54,16 +90,23 @@ export default function AdminPlans({ shell = 'client-admin' }) {
   const reset = () => {
     setForm(emptyForm)
     setEditingId(null)
+    setExistingImageUrl(null)
   }
 
-  const payload = () => ({
-    name: form.name.trim(),
-    description: form.description.trim() || null,
-    price: Number(form.price),
-    credits: Number(form.credits),
-    duration_days: Number(form.duration_days),
-    is_active: form.is_active,
-  })
+  const toFormData = () => {
+    const fd = new FormData()
+    fd.append('name', form.name.trim())
+    fd.append('description', form.description.trim())
+    fd.append('overview', form.overview.trim())
+    fd.append('features', JSON.stringify(linesToList(form.features)))
+    fd.append('benefits', JSON.stringify(linesToList(form.benefits)))
+    fd.append('price', String(Number(form.price)))
+    fd.append('credits', String(Number(form.credits)))
+    fd.append('duration_days', String(Number(form.duration_days)))
+    fd.append('is_active', form.is_active ? '1' : '0')
+    if (form.image) fd.append('image', form.image)
+    return fd
+  }
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -71,11 +114,12 @@ export default function AdminPlans({ shell = 'client-admin' }) {
     setError('')
     setMessage('')
     try {
+      const payload = toFormData()
       if (editingId) {
-        await api.updatePlan(editingId, payload(), apiOpts)
+        await api.updatePlan(editingId, payload, apiOpts)
         setMessage('Plan updated.')
       } else {
-        await api.createPlan(payload(), apiOpts)
+        await api.createPlan(payload, apiOpts)
         setMessage('Plan created.')
       }
       reset()
@@ -86,6 +130,9 @@ export default function AdminPlans({ shell = 'client-admin' }) {
         err.data?.errors?.price?.[0] ||
         err.data?.errors?.credits?.[0] ||
         err.data?.errors?.duration_days?.[0] ||
+        err.data?.errors?.image?.[0] ||
+        err.data?.errors?.features?.[0] ||
+        err.data?.errors?.benefits?.[0] ||
         err.message
       setError(firstError)
     } finally {
@@ -95,13 +142,18 @@ export default function AdminPlans({ shell = 'client-admin' }) {
 
   const edit = (plan) => {
     setEditingId(plan.id)
+    setExistingImageUrl(plan.image_url || null)
     setForm({
       name: plan.name || '',
       description: plan.description || '',
+      overview: plan.overview || '',
+      features: listToLines(plan.features),
+      benefits: listToLines(plan.benefits),
       price: String(plan.price ?? ''),
       credits: String(plan.credits ?? ''),
       duration_days: plan.duration_days || 30,
       is_active: plan.is_active !== false,
+      image: null,
     })
     setMessage('')
     setError('')
@@ -159,11 +211,11 @@ export default function AdminPlans({ shell = 'client-admin' }) {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Starter, Pro..."
+              placeholder="Basic, Standard, Premium..."
             />
           </label>
           <label>
-            Price (USD)
+            Price (GBP)
             <input
               type="number"
               min="0.01"
@@ -197,12 +249,55 @@ export default function AdminPlans({ shell = 'client-admin' }) {
         <label>
           Description
           <textarea
-            rows={3}
+            rows={2}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="What this plan includes..."
+            placeholder="Short summary shown with the plan..."
           />
         </label>
+        <label>
+          Overview
+          <textarea
+            rows={3}
+            value={form.overview}
+            onChange={(e) => setForm({ ...form, overview: e.target.value })}
+            placeholder="Longer overview of what this subscription offers..."
+          />
+        </label>
+        <div className="form-grid">
+          <label>
+            Features (one per line)
+            <textarea
+              rows={5}
+              value={form.features}
+              onChange={(e) => setForm({ ...form, features: e.target.value })}
+              placeholder={'90 credits per month\nAccess to shared FinProms library'}
+            />
+          </label>
+          <label>
+            Benefits (one per line)
+            <textarea
+              rows={5}
+              value={form.benefits}
+              onChange={(e) => setForm({ ...form, benefits: e.target.value })}
+              placeholder={'Affordable entry point\nPredictable monthly credits'}
+            />
+          </label>
+        </div>
+        <label>
+          Plan image
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })}
+          />
+          <span className="field-hint">JPG, PNG, GIF or WebP. Max 5MB.</span>
+        </label>
+        {(form.image || existingImageUrl) && (
+          <div className="plan-image-preview">
+            <img src={imagePreviewUrl} alt="Plan preview" />
+          </div>
+        )}
         <label className="checkbox">
           <input
             type="checkbox"
@@ -232,12 +327,23 @@ export default function AdminPlans({ shell = 'client-admin' }) {
         <div className="admin-list">
           {plans.map((plan) => (
             <div key={plan.id} className="admin-row">
+              {plan.image_url ? (
+                <img className="admin-thumb" src={plan.image_url} alt="" />
+              ) : (
+                <div className="admin-thumb plan-thumb-fallback" aria-hidden>
+                  {plan.name?.[0] || '?'}
+                </div>
+              )}
               <div>
                 <strong>{plan.name}</strong>
                 <p className="muted">
-                  ${Number(plan.price).toFixed(2)} · {plan.credits} credits · {plan.duration_days}{' '}
+                  £{Number(plan.price).toFixed(2)} · {plan.credits} credits · {plan.duration_days}{' '}
                   days · {plan.is_active ? 'Active' : 'Inactive'}
                 </p>
+                {plan.overview && <p className="muted plan-overview-snip">{plan.overview}</p>}
+                {formatLastUpdated(plan.last_updated) && (
+                  <p className="field-hint">Last updated: {formatLastUpdated(plan.last_updated)}</p>
+                )}
               </div>
               <div className="actions">
                 <button className="btn ghost" onClick={() => edit(plan)}>

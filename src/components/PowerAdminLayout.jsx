@@ -5,6 +5,7 @@ import { useHub } from '../context/HubContext'
 const links = [
   { to: '/power-admin', label: 'Dashboard', end: true, capability: 'pa_view_dashboard' },
   { to: '/power-admin/payment-methods', label: 'Payment methods', capability: 'pa_manage_payment_methods' },
+  { to: '/power-admin/users', label: 'Users & roles', capability: 'pa_manage_users_roles' },
   {
     to: '/power-admin/advisor-pricing',
     label: 'Advisor rates',

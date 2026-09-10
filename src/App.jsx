@@ -35,6 +35,7 @@ import PowerAdminDashboard from './pages/PowerAdminDashboard'
 import PowerAdminHubDetail from './pages/PowerAdminHubDetail'
 import PowerAdminHubs from './pages/PowerAdminHubs'
 import PowerAdminPaymentMethods from './pages/PowerAdminPaymentMethods'
+import PowerAdminUsers from './pages/PowerAdminUsers'
 import Register from './pages/Register'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import Subscriptions from './pages/Subscriptions'
@@ -233,6 +234,7 @@ export default function App() {
               <Route path="power-admin" element={<PowerAdminLayout />}>
                 <Route index element={<PowerAdminDashboard />} />
                 <Route path="payment-methods" element={<PowerAdminPaymentMethods />} />
+                <Route path="users" element={<PowerAdminUsers />} />
                 <Route
                   path="advisor-pricing"
                   element={

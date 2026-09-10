@@ -14,6 +14,12 @@ export default function PowerAdminDashboard() {
       capability: 'pa_manage_payment_methods',
     },
     {
+      to: '/power-admin/users',
+      title: 'Users & roles',
+      description: 'Create users, update accounts, and assign roles across the platform.',
+      capability: 'pa_manage_users_roles',
+    },
+    {
       to: '/power-admin/advisor-pricing',
       title: 'Advisor billing rates',
       description: 'Set rate-per-advisor tiers / quotas for private hub billing (rate × advisors).',

@@ -138,6 +138,19 @@ export const api = {
   updatePowerAdminPaymentMethods: (payload) =>
     request('/power-admin/payment-methods', { method: 'PUT', body: JSON.stringify(payload) }),
   powerAdminCapabilitiesMe: () => request('/power-admin/capabilities/me'),
+  powerAdminUsers: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/power-admin/users${query ? `?${query}` : ''}`)
+  },
+  powerAdminUser: (id) => request(`/power-admin/users/${id}`),
+  createPowerAdminUser: (payload) =>
+    request('/power-admin/users', { method: 'POST', body: JSON.stringify(payload) }),
+  updatePowerAdminUser: (id, payload) =>
+    request(`/power-admin/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deletePowerAdminUser: (id) =>
+    request(`/power-admin/users/${id}`, { method: 'DELETE' }),
   updatePowerAdminCapabilities: (capabilities) =>
     request('/power-admin/capabilities', {
       method: 'PUT',

@@ -37,6 +37,7 @@ import PowerAdminHubs from './pages/PowerAdminHubs'
 import PowerAdminPaymentMethods from './pages/PowerAdminPaymentMethods'
 import PowerAdminUsers from './pages/PowerAdminUsers'
 import Register from './pages/Register'
+import SubscriptionDetail from './pages/SubscriptionDetail'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import Subscriptions from './pages/Subscriptions'
 import './App.css'
@@ -84,6 +85,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="subscriptions/:id" element={<SubscriptionDetail />} />
               <Route
                 path="my-purchases"
                 element={

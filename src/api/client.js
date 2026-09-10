@@ -62,6 +62,7 @@ export const api = {
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
   plans: () => request('/subscription-plans'),
+  plan: (id) => request(`/subscription-plans/${id}`),
   settings: () => request('/settings'),
   adminPlans: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN

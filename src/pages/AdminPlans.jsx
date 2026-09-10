@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -37,22 +37,60 @@ function formatLastUpdated(value) {
   }
 }
 
+function draftKey(shell) {
+  return `hub-finproms:admin-plans-draft:${shell}`
+}
+
+function readDraft(shell) {
+  try {
+    const raw = sessionStorage.getItem(draftKey(shell))
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeDraft(shell, payload) {
+  try {
+    sessionStorage.setItem(draftKey(shell), JSON.stringify(payload))
+  } catch {
+    // Ignore quota / private-mode failures.
+  }
+}
+
+function clearDraft(shell) {
+  try {
+    sessionStorage.removeItem(draftKey(shell))
+  } catch {
+    // ignore
+  }
+}
+
 export default function AdminPlans({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading } = useHub()
-  const [plans, setPlans] = useState([])
-  const [form, setForm] = useState(emptyForm)
-  const [editingId, setEditingId] = useState(null)
-  const [existingImageUrl, setExistingImageUrl] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
-
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('dashboard_manage_plans')
   const eyebrow = asPowerAdmin ? 'Power Admin' : 'Client Admin'
   const apiOpts = { asPowerAdmin }
+
+  const draft = useMemo(() => readDraft(shell), [shell])
+  const [plans, setPlans] = useState([])
+  const [form, setForm] = useState(() => ({
+    ...emptyForm,
+    ...(draft?.form || {}),
+    image: null,
+  }))
+  const [editingId, setEditingId] = useState(() => draft?.editingId ?? null)
+  const [existingImageUrl, setExistingImageUrl] = useState(() => draft?.existingImageUrl ?? null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const hasLoadedRef = useRef(false)
 
   const imagePreviewUrl = useMemo(() => {
     if (form.image) return URL.createObjectURL(form.image)
@@ -64,16 +102,48 @@ export default function AdminPlans({ shell = 'client-admin' }) {
     return () => URL.revokeObjectURL(imagePreviewUrl)
   }, [form.image, imagePreviewUrl])
 
-  const load = async () => {
+  // Persist in-progress form so leaving the page / remounting does not wipe fields.
+  useEffect(() => {
+    const isDirty =
+      editingId != null ||
+      Object.entries(form).some(([key, value]) => {
+        if (key === 'image') return false
+        return String(value ?? '') !== String(emptyForm[key] ?? '')
+      })
+
+    if (!isDirty) {
+      clearDraft(shell)
+      return
+    }
+
+    writeDraft(shell, {
+      editingId,
+      existingImageUrl,
+      form: {
+        name: form.name,
+        description: form.description,
+        overview: form.overview,
+        features: form.features,
+        benefits: form.benefits,
+        price: form.price,
+        credits: form.credits,
+        duration_days: form.duration_days,
+        is_active: form.is_active,
+      },
+    })
+  }, [shell, form, editingId, existingImageUrl])
+
+  const load = async ({ silent = false } = {}) => {
     if (!enabled) {
       setLoading(false)
       return
     }
-    setLoading(true)
+    if (!silent) setLoading(true)
     setError('')
     try {
       const data = await api.adminPlans(apiOpts)
       setPlans(data.plans || [])
+      hasLoadedRef.current = true
     } catch (err) {
       setError(err.message)
     } finally {
@@ -82,8 +152,10 @@ export default function AdminPlans({ shell = 'client-admin' }) {
   }
 
   useEffect(() => {
-    if (hubLoading) return
-    load()
+    if (hubLoading || !enabled) return
+    // Fetch once when the page becomes ready — do not re-fetch on hub re-renders.
+    if (hasLoadedRef.current) return
+    load({ silent: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hubLoading, enabled, asPowerAdmin])
 
@@ -91,6 +163,7 @@ export default function AdminPlans({ shell = 'client-admin' }) {
     setForm(emptyForm)
     setEditingId(null)
     setExistingImageUrl(null)
+    clearDraft(shell)
   }
 
   const toFormData = () => {
@@ -123,7 +196,7 @@ export default function AdminPlans({ shell = 'client-admin' }) {
         setMessage('Plan created.')
       }
       reset()
-      await load()
+      await load({ silent: true })
     } catch (err) {
       const firstError =
         err.data?.errors?.name?.[0] ||
@@ -168,7 +241,7 @@ export default function AdminPlans({ shell = 'client-admin' }) {
       await api.deletePlan(id, apiOpts)
       setMessage('Plan deleted.')
       if (editingId === id) reset()
-      await load()
+      await load({ silent: true })
     } catch (err) {
       setError(err.message)
     }
@@ -307,7 +380,7 @@ export default function AdminPlans({ shell = 'client-admin' }) {
           Active (visible on public Plans page)
         </label>
         <div className="actions">
-          <button className="btn primary" disabled={saving}>
+          <button type="submit" className="btn primary" disabled={saving}>
             {saving ? 'Saving...' : editingId ? 'Update plan' : 'Add plan'}
           </button>
           {editingId && (
@@ -346,10 +419,10 @@ export default function AdminPlans({ shell = 'client-admin' }) {
                 )}
               </div>
               <div className="actions">
-                <button className="btn ghost" onClick={() => edit(plan)}>
+                <button type="button" className="btn ghost" onClick={() => edit(plan)}>
                   Edit
                 </button>
-                <button className="btn danger" onClick={() => remove(plan.id)}>
+                <button type="button" className="btn danger" onClick={() => remove(plan.id)}>
                   Delete
                 </button>
               </div>

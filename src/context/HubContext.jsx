@@ -1,16 +1,44 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from './AuthContext'
 
 const HubContext = createContext(null)
 
+function sameHub(a, b) {
+  if (a === b) return true
+  if (!a || !b) return false
+  return (
+    a.id === b.id &&
+    a.viewer_role === b.viewer_role &&
+    JSON.stringify(a.checklist) === JSON.stringify(b.checklist) &&
+    JSON.stringify(a.effective_capabilities) === JSON.stringify(b.effective_capabilities) &&
+    JSON.stringify(a.branding) === JSON.stringify(b.branding) &&
+    JSON.stringify(a.auth) === JSON.stringify(b.auth)
+  )
+}
+
 export function HubProvider({ children }) {
   const { user, loading: authLoading } = useAuth()
-  const [hub, setHub] = useState(null)
+  const [hub, setHubState] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const hubRef = useRef(null)
+  const lastIdentityRef = useRef(null)
 
-  const refreshHub = useCallback(async () => {
+  const setHub = useCallback((next) => {
+    setHubState((prev) => {
+      const resolved = typeof next === 'function' ? next(prev) : next
+      const stable = sameHub(prev, resolved) ? prev : resolved
+      hubRef.current = stable
+      return stable
+    })
+  }, [])
+
+  const refreshHub = useCallback(async ({ silent = false } = {}) => {
+    // Keep existing UI mounted during background refreshes.
+    if (!silent && !hubRef.current) {
+      setLoading(true)
+    }
     try {
       const data = await api.currentHub()
       setHub(data.hub)
@@ -22,12 +50,19 @@ export function HubProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [setHub])
 
   useEffect(() => {
     if (authLoading) return
-    setLoading(true)
-    refreshHub()
+
+    const identity = `${user?.id ?? 'guest'}:${user?.role ?? ''}`
+    // Skip duplicate fetches for the same signed-in identity (avoids remount flashes).
+    if (lastIdentityRef.current === identity && hubRef.current) {
+      return
+    }
+    lastIdentityRef.current = identity
+
+    refreshHub({ silent: Boolean(hubRef.current) })
   }, [refreshHub, authLoading, user?.id, user?.role])
 
   const can = useCallback(
@@ -39,7 +74,12 @@ export function HubProvider({ children }) {
           return Boolean(hub.effective_capabilities[flag])
         }
         // Unknown capability key while logged in → deny dashboard/member tools.
-        if (String(flag).startsWith('dashboard_') || String(flag).startsWith('member_') || flag === 'advisor_excel_import' || flag === 'advisor_discontinue') {
+        if (
+          String(flag).startsWith('dashboard_') ||
+          String(flag).startsWith('member_') ||
+          flag === 'advisor_excel_import' ||
+          flag === 'advisor_discontinue'
+        ) {
           return false
         }
       }
@@ -71,7 +111,8 @@ export function HubProvider({ children }) {
   const value = useMemo(
     () => ({
       hub,
-      loading: loading || authLoading,
+      // Only block the tree on the first hub fetch — not background refreshes.
+      loading: (loading && !hub) || authLoading,
       error,
       refreshHub,
       can,

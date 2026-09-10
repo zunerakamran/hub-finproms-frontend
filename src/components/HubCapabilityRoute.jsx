@@ -11,9 +11,10 @@ export default function HubCapabilityRoute({
   children,
   fallback = '/client-admin',
 }) {
-  const { can, loading } = useHub()
+  const { can, loading, hub } = useHub()
 
-  if (loading) {
+  // Only block on the initial hub load — never blank / remount the page afterward.
+  if (loading && !hub) {
     return <div className="state">Loading...</div>
   }
 
@@ -23,7 +24,7 @@ export default function HubCapabilityRoute({
       ? [capability]
       : []
 
-  const allowed = flags.some((flag) => can(flag))
+  const allowed = flags.length === 0 ? true : flags.some((flag) => can(flag))
 
   if (!allowed) {
     return <Navigate to={fallback} replace />

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
 
 const emptyForm = {
   name: '',
@@ -10,7 +12,9 @@ const emptyForm = {
   is_active: true,
 }
 
-export default function AdminPlans() {
+export default function AdminPlans({ shell = 'client-admin' }) {
+  const { isPowerAdmin } = useAuth()
+  const { can, loading: hubLoading } = useHub()
   const [plans, setPlans] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
@@ -19,10 +23,20 @@ export default function AdminPlans() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
+  const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
+  const enabled = can('dashboard_manage_plans')
+  const eyebrow = asPowerAdmin ? 'Power Admin' : 'Client Admin'
+  const apiOpts = { asPowerAdmin }
+
   const load = async () => {
+    if (!enabled) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
+    setError('')
     try {
-      const data = await api.adminPlans()
+      const data = await api.adminPlans(apiOpts)
       setPlans(data.plans || [])
     } catch (err) {
       setError(err.message)
@@ -32,8 +46,10 @@ export default function AdminPlans() {
   }
 
   useEffect(() => {
+    if (hubLoading) return
     load()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hubLoading, enabled, asPowerAdmin])
 
   const reset = () => {
     setForm(emptyForm)
@@ -56,10 +72,10 @@ export default function AdminPlans() {
     setMessage('')
     try {
       if (editingId) {
-        await api.updatePlan(editingId, payload())
+        await api.updatePlan(editingId, payload(), apiOpts)
         setMessage('Plan updated.')
       } else {
-        await api.createPlan(payload())
+        await api.createPlan(payload(), apiOpts)
         setMessage('Plan created.')
       }
       reset()
@@ -97,7 +113,7 @@ export default function AdminPlans() {
     setError('')
     setMessage('')
     try {
-      await api.deletePlan(id)
+      await api.deletePlan(id, apiOpts)
       setMessage('Plan deleted.')
       if (editingId === id) reset()
       await load()
@@ -106,11 +122,28 @@ export default function AdminPlans() {
     }
   }
 
+  if (!hubLoading && !enabled) {
+    return (
+      <section>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">{eyebrow}</p>
+            <h1>Subscription plans</h1>
+            <p className="muted">
+              Managing subscription plans is disabled for your role on this hub. Enable
+              &quot;Manage subscription plans&quot; under Power Admin → Capabilities.
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Client Admin</p>
+          <p className="eyebrow">{eyebrow}</p>
           <h1>{editingId ? 'Edit plan' : 'Subscription plans'}</h1>
           <p className="muted">Create credit packages users can buy on the Plans page.</p>
         </div>

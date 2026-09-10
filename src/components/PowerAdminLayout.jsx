@@ -15,6 +15,11 @@ const links = [
     label: 'Advisor renew day',
     hubCapability: 'dashboard_manage_advisor_renewal',
   },
+  {
+    to: '/power-admin/plans',
+    label: 'Subscription plans',
+    hubCapability: 'dashboard_manage_plans',
+  },
   { to: '/power-admin/hubs', label: 'White-label hubs', capability: 'pa_manage_hubs' },
   { to: '/power-admin/checklist', label: 'Functionalities', capability: 'pa_manage_hub_checklists' },
   {
@@ -25,7 +30,7 @@ const links = [
   {
     to: '/power-admin/advisors',
     label: 'Advisors',
-    hubCapability: 'advisor_excel_import',
+    hubAnyOf: ['advisor_excel_import', 'advisor_discontinue'],
   },
   {
     to: '/power-admin/advisor-invoices',
@@ -45,6 +50,9 @@ export default function PowerAdminLayout() {
   }
 
   const visible = links.filter((link) => {
+    if (Array.isArray(link.hubAnyOf) && link.hubAnyOf.length > 0) {
+      return link.hubAnyOf.some((flag) => can(flag))
+    }
     if (link.hubCapability) return can(link.hubCapability)
     if (link.capability) return canPower(link.capability)
     return true

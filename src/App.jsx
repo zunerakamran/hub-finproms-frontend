@@ -161,7 +161,7 @@ export default function App() {
                 <Route
                   path="advisors"
                   element={
-                    <HubCapabilityRoute capability="advisor_excel_import">
+                    <HubCapabilityRoute anyOf={['advisor_excel_import', 'advisor_discontinue']}>
                       <AdminAdvisors />
                     </HubCapabilityRoute>
                   }
@@ -246,6 +246,17 @@ export default function App() {
                     </HubCapabilityRoute>
                   }
                 />
+                <Route
+                  path="plans"
+                  element={
+                    <HubCapabilityRoute
+                      capability="dashboard_manage_plans"
+                      fallback="/power-admin"
+                    >
+                      <AdminPlans shell="power-admin" />
+                    </HubCapabilityRoute>
+                  }
+                />
                 <Route path="hubs" element={<PowerAdminHubs />} />
                 <Route path="hubs/:hubId" element={<PowerAdminHubDetail />} />
                 <Route path="checklist" element={<PowerAdminChecklist />} />
@@ -253,7 +264,10 @@ export default function App() {
                 <Route
                   path="advisors"
                   element={
-                    <HubCapabilityRoute capability="advisor_excel_import" fallback="/power-admin">
+                    <HubCapabilityRoute
+                      anyOf={['advisor_excel_import', 'advisor_discontinue']}
+                      fallback="/power-admin"
+                    >
                       <AdminAdvisors shell="power-admin" />
                     </HubCapabilityRoute>
                   }

@@ -8,7 +8,7 @@ const links = [
   { to: '/client-admin/categories', label: 'Categories', capability: 'dashboard_manage_categories' },
   { to: '/client-admin/tags', label: 'Tags', capability: 'dashboard_manage_tags' },
   { to: '/client-admin/plans', label: 'Plans', capability: 'dashboard_manage_plans' },
-  { to: '/client-admin/advisors', label: 'Advisors', capability: 'advisor_excel_import' },
+  { to: '/client-admin/advisors', label: 'Advisors', anyOf: ['advisor_excel_import', 'advisor_discontinue'] },
   {
     to: '/client-admin/payment-card',
     label: 'Payment card',
@@ -37,6 +37,9 @@ export default function AdminSubnav() {
   const { can, advisorBillingEnabled } = useHub()
   const visible = links.filter((link) => {
     if (link.billingOnly) return advisorBillingEnabled
+    if (Array.isArray(link.anyOf) && link.anyOf.length > 0) {
+      return link.anyOf.some((flag) => can(flag))
+    }
     return !link.capability || can(link.capability)
   })
 

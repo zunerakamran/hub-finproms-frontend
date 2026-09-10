@@ -1738,6 +1738,36 @@ label {
   margin-top: 1.25rem;
 }
 
+.capabilities-matrix tr.matrix-row-inactive {
+  opacity: 0.55;
+  filter: grayscale(0.35) blur(0.4px);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.capabilities-matrix tr.matrix-row-inactive td {
+  pointer-events: none;
+  user-select: none;
+}
+
+.capabilities-matrix td.matrix-cell-inactive {
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.matrix-inactive-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  color: #64748b;
+  background: rgba(100, 116, 139, 0.15);
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
+
 .checklist-section h2 {
   margin: 0 0 0.35rem;
   font-size: 1.15rem;

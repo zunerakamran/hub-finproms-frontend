@@ -39,7 +39,7 @@ export function HubProvider({ children }) {
           return Boolean(hub.effective_capabilities[flag])
         }
         // Unknown capability key while logged in → deny dashboard/member tools.
-        if (String(flag).startsWith('dashboard_') || String(flag).startsWith('member_') || flag === 'advisor_excel_import') {
+        if (String(flag).startsWith('dashboard_') || String(flag).startsWith('member_') || flag === 'advisor_excel_import' || flag === 'advisor_discontinue') {
           return false
         }
       }

@@ -26,6 +26,12 @@ export default function PowerAdminDashboard() {
       hubCapability: 'dashboard_manage_advisor_renewal',
     },
     {
+      to: '/power-admin/plans',
+      title: 'Subscription plans',
+      description: 'Create and edit credit packages for public hub self-serve subscriptions.',
+      hubCapability: 'dashboard_manage_plans',
+    },
+    {
       to: '/power-admin/hubs',
       title: 'White-label hubs',
       description: 'Create and configure white-labelled hubs (branding, private access).',
@@ -46,9 +52,9 @@ export default function PowerAdminDashboard() {
     },
     {
       to: '/power-admin/advisors',
-      title: 'Import advisors',
-      description: 'Upload Excel/CSV advisors for the current hub (when enabled in Capabilities).',
-      hubCapability: 'advisor_excel_import',
+      title: 'Advisors',
+      description: 'Import and/or discontinue advisors for the current hub (when enabled in Capabilities).',
+      hubAnyOf: ['advisor_excel_import', 'advisor_discontinue'],
     },
     {
       to: '/power-admin/advisor-invoices',
@@ -57,6 +63,9 @@ export default function PowerAdminDashboard() {
       hubCapability: 'dashboard_view_advisor_invoices',
     },
   ].filter((card) => {
+    if (Array.isArray(card.hubAnyOf) && card.hubAnyOf.length > 0) {
+      return card.hubAnyOf.some((flag) => can(flag))
+    }
     if (card.hubCapability) return can(card.hubCapability)
     return canPower(card.capability)
   })

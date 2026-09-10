@@ -63,12 +63,22 @@ export const api = {
   me: () => request('/auth/me'),
   plans: () => request('/subscription-plans'),
   settings: () => request('/settings'),
-  adminPlans: () => request(`${CLIENT_ADMIN}/subscription-plans`),
-  createPlan: (payload) =>
-    request(`${CLIENT_ADMIN}/subscription-plans`, { method: 'POST', body: JSON.stringify(payload) }),
-  updatePlan: (id, payload) =>
-    request(`${CLIENT_ADMIN}/subscription-plans/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  deletePlan: (id) => request(`${CLIENT_ADMIN}/subscription-plans/${id}`, { method: 'DELETE' }),
+  adminPlans: (options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/subscription-plans`)
+  },
+  createPlan: (payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/subscription-plans`, { method: 'POST', body: JSON.stringify(payload) })
+  },
+  updatePlan: (id, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/subscription-plans/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+  },
+  deletePlan: (id, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/subscription-plans/${id}`, { method: 'DELETE' })
+  },
   checkout: (planId, paymentMethod = 'stripe') =>
     request(`/subscription-plans/${planId}/checkout`, {
       method: 'POST',
@@ -154,6 +164,10 @@ export const api = {
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
     ).toString()
     return request(`${base}/advisors${query ? `?${query}` : ''}`)
+  },
+  discontinueAdvisor: (advisorId, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisors/${advisorId}/discontinue`, { method: 'POST' })
   },
   importAdvisors: (file, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN

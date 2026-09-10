@@ -29,9 +29,12 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const [paymentMethod, setPaymentMethod] = useState('stripe')
   const [paying, setPaying] = useState(false)
   const [bankResult, setBankResult] = useState(null)
+  const [discontinuingId, setDiscontinuingId] = useState(null)
 
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
-  const enabled = can('advisor_excel_import')
+  const canImport = can('advisor_excel_import')
+  const canDiscontinue = can('advisor_discontinue')
+  const enabled = canImport || canDiscontinue
   const billingEnabled = advisorBillingEnabled
   const canViewInvoices = can('dashboard_view_advisor_invoices')
   const eyebrow = asPowerAdmin ? 'Power Admin' : 'Client Admin'
@@ -62,6 +65,26 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hubLoading, enabled, asPowerAdmin])
+
+  const onDiscontinue = async (advisor) => {
+    const ok = window.confirm(
+      `Discontinue ${advisor.name} (${advisor.email})?\n\nThey will lose access immediately. You can restore them later by re-importing the same email.`
+    )
+    if (!ok) return
+
+    setDiscontinuingId(advisor.id)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.discontinueAdvisor(advisor.id, apiOpts)
+      setMessage(data.message || 'Advisor discontinued.')
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setDiscontinuingId(null)
+    }
+  }
 
   const downloadTemplate = async () => {
     setError('')
@@ -160,10 +183,11 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         <div className="page-head">
           <div>
             <p className="eyebrow">{eyebrow}</p>
-            <h1>Advisor import</h1>
+            <h1>Advisors</h1>
             <p className="muted">
-              Advisor Excel/CSV import is disabled for your role on this hub. Enable
-              &quot;Import advisors (Excel/CSV)&quot; under Power Admin → Capabilities.
+              Advisor tools are disabled for your role on this hub. Enable
+              &quot;Import advisors&quot; and/or &quot;Discontinue advisors&quot; under Power Admin →
+              Capabilities.
             </p>
           </div>
         </div>
@@ -180,17 +204,18 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       <div className="page-head">
         <div>
           <p className="eyebrow">{eyebrow}</p>
-          <h1>Advisor import</h1>
+          <h1>Advisors</h1>
           <p className="muted">
-            Upload a CSV or Excel sheet of advisors. Imported advisors are marked subscribed
-            with unlimited credits.
-            {billingEnabled
+            {canImport
+              ? 'Upload a CSV or Excel sheet of advisors. Imported advisors are marked subscribed with unlimited credits.'
+              : 'Manage imported advisors for this private hub.'}
+            {canImport && billingEnabled
               ? ' The client admin pays rate × advisors after each import (card is saved for auto-renew).'
               : ''}
           </p>
         </div>
         <div className="actions">
-          {billingEnabled && !asPowerAdmin && (
+          {billingEnabled && !asPowerAdmin && canImport && (
             <Link className="btn ghost" to="/client-admin/payment-card">
               Payment card
             </Link>
@@ -200,15 +225,18 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
               Advisor invoices
             </Link>
           )}
-          <button type="button" className="btn ghost" onClick={downloadTemplate}>
-            Download CSV template
-          </button>
+          {canImport && (
+            <button type="button" className="btn ghost" onClick={downloadTemplate}>
+              Download CSV template
+            </button>
+          )}
         </div>
       </div>
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
+      {canImport && (
       <form className="admin-form advisor-import-form" onSubmit={onImport}>
         <h2>Upload advisors</h2>
         <p className="muted">
@@ -230,8 +258,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           </button>
         </div>
       </form>
+      )}
 
-      {showPaymentPanel && (
+      {canImport && showPaymentPanel && (
         <div className="import-result">
           <h2>Payment required</h2>
           {quote?.payer && (
@@ -240,17 +269,33 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
             </p>
           )}
           {quote?.billing ? (
-            <p>
-              Applied rate: <strong>{formatMoney(quote.rate_per_advisor, quote.currency)}</strong> ×{' '}
-              <strong>{quote.advisor_count}</strong> advisors ={' '}
-              <strong>{formatMoney(quote.amount, quote.currency)}</strong>
-              {quote.tier?.label ? ` (${quote.tier.label})` : ''}
-            </p>
+            <>
+              <p>
+                This import batch: <strong>{formatMoney(quote.rate_per_advisor, quote.currency)}</strong> ×{' '}
+                <strong>{quote.batch_count ?? quote.advisor_count}</strong> new advisors ={' '}
+                <strong>{formatMoney(quote.amount, quote.currency)}</strong>
+                {quote.tier?.label ? ` (${quote.tier.label})` : ''}
+              </p>
+              {quote.total_advisors != null && (
+                <p className="muted">
+                  Tier rate is based on <strong>{quote.total_advisors}</strong> total advisors on the hub.
+                  Previously paid advisors are not charged again on this invoice.
+                </p>
+              )}
+              {quote.renewal_preview && (
+                <p className="muted">
+                  Monthly auto-renew (one invoice):{' '}
+                  {formatMoney(quote.renewal_preview.rate_per_advisor, quote.renewal_preview.currency)} ×{' '}
+                  {quote.renewal_preview.advisor_count} ={' '}
+                  {formatMoney(quote.renewal_preview.amount, quote.renewal_preview.currency)}
+                </p>
+              )}
+            </>
           ) : (
             <p className="muted">{quote?.error || 'Unable to build billing quote.'}</p>
           )}
           <p className="muted">
-            {quote?.formula || 'amount = rate_per_advisor × advisor_count'}
+            {quote?.formula || 'amount = rate(total_advisors) × batch_count'}
             {quote?.renew_day
               ? ` · Auto-renew day: ${quote.renew_day} of each month`
               : ''}
@@ -326,7 +371,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         </div>
       )}
 
-      {result && (
+      {canImport && result && (
         <div className="import-result">
           <h2>Import result</h2>
           <p className="muted">
@@ -394,6 +439,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Credits</th>
+                  {canDiscontinue && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -402,6 +448,18 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
                     <td>{advisor.name}</td>
                     <td>{advisor.email}</td>
                     <td>{advisor.has_unlimited_credits ? 'Unlimited' : advisor.credits}</td>
+                    {canDiscontinue && (
+                      <td>
+                        <button
+                          type="button"
+                          className="btn danger"
+                          disabled={discontinuingId === advisor.id}
+                          onClick={() => onDiscontinue(advisor)}
+                        >
+                          {discontinuingId === advisor.id ? 'Ending...' : 'Discontinue'}
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

@@ -68,7 +68,7 @@ export default function PowerAdminCapabilities() {
   const setCell = (capabilityKey, roleKey, enabled) => {
     setRows((prev) =>
       prev.map((row) => {
-        if (row.key !== capabilityKey) return row
+        if (row.key !== capabilityKey || row.inactive) return row
         const cells = { ...row.cells }
         if (!cells[roleKey]?.applicable) return row
         cells[roleKey] = { ...cells[roleKey], enabled }
@@ -89,6 +89,8 @@ export default function PowerAdminCapabilities() {
         matrixPayload[role.key] = {}
       }
       for (const row of rows) {
+        // Keep stored private-hub caps when public (inactive) — don't overwrite with false.
+        if (row.inactive) continue
         for (const role of roles) {
           const cell = row.cells?.[role.key]
           if (cell?.applicable) {
@@ -171,22 +173,54 @@ export default function PowerAdminCapabilities() {
                   </thead>
                   <tbody>
                     {section.rows.map((row) => (
-                      <tr key={row.key}>
+                      <tr
+                        key={row.key}
+                        className={row.inactive ? 'matrix-row-inactive' : undefined}
+                        title={
+                          row.inactive
+                            ? row.inactive_reason === 'public_only'
+                              ? 'Public hub only — inactive while this hub is private'
+                              : 'Private hub only — inactive while this hub is public'
+                            : undefined
+                        }
+                      >
                         <td className="matrix-capability-col">
-                          <strong>{row.label}</strong>
-                          <small className="muted">{row.description}</small>
+                          <strong>
+                            {row.label}
+                            {row.inactive && (
+                              <span className="matrix-inactive-badge">
+                                {row.inactive_reason === 'public_only' ? 'Public only' : 'Private only'}
+                              </span>
+                            )}
+                          </strong>
+                          <small className="muted">
+                            {row.inactive
+                              ? row.inactive_reason === 'public_only'
+                                ? 'Inactive while the hub is private. Turn on Public subscribe to use this.'
+                                : 'Inactive while the hub is public. Turn on Private invite-only to use this.'
+                              : row.description}
+                          </small>
                         </td>
                         {roles.map((role) => {
                           const cell = row.cells?.[role.key]
                           const applicable = Boolean(cell?.applicable)
                           return (
-                            <td key={role.key} className={applicable ? '' : 'matrix-na'}>
+                            <td
+                              key={role.key}
+                              className={[
+                                applicable ? '' : 'matrix-na',
+                                row.inactive ? 'matrix-cell-inactive' : '',
+                              ]
+                                .filter(Boolean)
+                                .join(' ')}
+                            >
                               {applicable ? (
                                 <input
                                   type="checkbox"
                                   checked={Boolean(cell?.enabled)}
                                   disabled={
                                     !allowed ||
+                                    row.inactive ||
                                     (role.key === 'power_admin' &&
                                       row.key === 'pa_manage_power_capabilities')
                                   }

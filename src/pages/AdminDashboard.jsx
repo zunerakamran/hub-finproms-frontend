@@ -34,9 +34,9 @@ const sections = [
   },
   {
     to: '/client-admin/advisors',
-    title: 'Advisor import',
-    description: 'Import advisors from an Excel/CSV sheet with unlimited credits.',
-    capability: 'advisor_excel_import',
+    title: 'Advisors',
+    description: 'Import advisors from Excel/CSV and/or discontinue advisor access.',
+    anyOf: ['advisor_excel_import', 'advisor_discontinue'],
   },
   {
     to: '/client-admin/payment-card',
@@ -80,6 +80,9 @@ export default function AdminDashboard() {
   const { can, advisorBillingEnabled } = useHub()
   const visible = sections.filter((section) => {
     if (section.billingOnly) return advisorBillingEnabled
+    if (Array.isArray(section.anyOf) && section.anyOf.length > 0) {
+      return section.anyOf.some((flag) => can(flag))
+    }
     return can(section.capability)
   })
 

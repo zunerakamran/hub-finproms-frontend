@@ -37,6 +37,11 @@ const links = [
     label: 'Advisor invoices',
     hubCapability: 'dashboard_view_advisor_invoices',
   },
+  {
+    to: '/power-admin/activity-logs',
+    label: 'Activity logs',
+    hubCapability: 'dashboard_view_activity_logs',
+  },
 ]
 
 export default function PowerAdminLayout() {

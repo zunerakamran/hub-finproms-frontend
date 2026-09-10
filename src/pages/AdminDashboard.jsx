@@ -63,6 +63,12 @@ const sections = [
     capability: 'dashboard_view_advisor_invoices',
   },
   {
+    to: '/client-admin/activity-logs',
+    title: 'Activity logs & report',
+    description: 'Audit trail of user activity and a summary report for this hub.',
+    capability: 'dashboard_view_activity_logs',
+  },
+  {
     to: '/client-admin/settings',
     title: 'Settings',
     description: 'Configure NEW banner duration and other hub options.',

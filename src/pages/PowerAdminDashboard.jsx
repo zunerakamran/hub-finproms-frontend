@@ -62,6 +62,12 @@ export default function PowerAdminDashboard() {
       description: 'View invoices for advisor subscriber billing on this hub.',
       hubCapability: 'dashboard_view_advisor_invoices',
     },
+    {
+      to: '/power-admin/activity-logs',
+      title: 'Activity logs & report',
+      description: 'Audit trail and activity report for the current hub (who can view is per Capabilities).',
+      hubCapability: 'dashboard_view_activity_logs',
+    },
   ].filter((card) => {
     if (Array.isArray(card.hubAnyOf) && card.hubAnyOf.length > 0) {
       return card.hubAnyOf.some((flag) => can(flag))

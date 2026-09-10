@@ -249,4 +249,18 @@ export const api = {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/advisor-pricing/${id}`, { method: 'DELETE' })
   },
+  activityLogs: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/activity-logs${query ? `?${query}` : ''}`)
+  },
+  activityLogReport: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/activity-logs/report${query ? `?${query}` : ''}`)
+  },
 }

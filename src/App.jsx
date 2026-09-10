@@ -8,6 +8,7 @@ import { AuthProvider } from './context/AuthContext'
 import { HubProvider } from './context/HubContext'
 import AdminBankTransfers from './pages/AdminBankTransfers'
 import AdminAdvisors from './pages/AdminAdvisors'
+import AdminActivityLogs from './pages/AdminActivityLogs'
 import AdminAdvisorInvoices from './pages/AdminAdvisorInvoices'
 import AdminAdvisorPricing from './pages/AdminAdvisorPricing'
 import AdminAdvisorRenewal from './pages/AdminAdvisorRenewal'
@@ -177,6 +178,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="activity-logs"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_view_activity_logs">
+                      <AdminActivityLogs />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
                   path="advisor-pricing"
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_advisor_pricing">
@@ -280,6 +289,17 @@ export default function App() {
                       fallback="/power-admin"
                     >
                       <AdminAdvisorInvoices shell="power-admin" />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="activity-logs"
+                  element={
+                    <HubCapabilityRoute
+                      capability="dashboard_view_activity_logs"
+                      fallback="/power-admin"
+                    >
+                      <AdminActivityLogs shell="power-admin" />
                     </HubCapabilityRoute>
                   }
                 />

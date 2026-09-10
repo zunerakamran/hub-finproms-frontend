@@ -29,6 +29,11 @@ const links = [
     label: 'Advisor invoices',
     capability: 'dashboard_view_advisor_invoices',
   },
+  {
+    to: '/client-admin/activity-logs',
+    label: 'Activity logs',
+    capability: 'dashboard_view_activity_logs',
+  },
   { to: '/client-admin/settings', label: 'Settings', capability: 'dashboard_manage_settings' },
   { to: '/client-admin/bank-transfers', label: 'Bank transfers', capability: 'dashboard_bank_transfers' },
 ]

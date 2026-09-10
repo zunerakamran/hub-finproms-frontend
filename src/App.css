@@ -370,8 +370,20 @@ h2,
 }
 
 .listing-grid {
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
+}
+
+@media (max-width: 960px) {
+  .listing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .listing-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .listing-tile {
@@ -451,8 +463,83 @@ h2,
   box-shadow: 0 10px 24px rgba(15, 35, 28, 0.28);
 }
 
+.reel-player {
+  position: relative;
+  width: 100%;
+  background: #0b1a14;
+  overflow: hidden;
+}
+
+.reel-player video {
+  width: 100%;
+  height: auto;
+  display: block;
+  vertical-align: middle;
+  object-fit: contain;
+  max-height: 70vh;
+  background: #0b1a14;
+}
+
+.reel-player.is-compact video {
+  aspect-ratio: 9 / 16;
+  max-height: none;
+  height: 100%;
+  min-height: 220px;
+  object-fit: cover;
+}
+
+.reel-toggle {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(12, 28, 22, 0.78);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.reel-toggle:hover {
+  background: rgba(15, 92, 69, 0.95);
+}
+
+.reel-toggle-label {
+  line-height: 1;
+}
+
+.admin-thumb.reel-thumb {
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e8f2ec;
+  background: #10241c;
+}
+
 .post-tile.is-reel .post-cover {
   background: #10241c;
+}
+
+.detail-cover.is-reel {
+  background: #0b1a14;
+}
+
+.detail-cover .reel-player {
+  width: 100%;
 }
 
 .post-metrics {
@@ -1068,6 +1155,21 @@ label {
   width: 100%;
   display: block;
   object-fit: cover;
+}
+
+.plan-metrics-fieldset {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.plan-metrics-fieldset legend {
+  padding: 0 0.35rem;
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .plan-thumb-fallback {

@@ -129,6 +129,12 @@ export default function AdminPosts() {
       ? types
       : [...types, { id: `legacy-type-${form.type}`, name: form.type }]
 
+  const selectedType = types.find((t) => t.name === form.type)
+  const isReelType =
+    selectedType?.slug === 'reel' ||
+    selectedType?.slug === 'reels' ||
+    /^reels?$/i.test(String(form.type || '').trim())
+
   const categoryOptions =
     categories.some((c) => c.name === form.category) || !form.category
       ? categories
@@ -148,7 +154,9 @@ export default function AdminPosts() {
         <div>
           <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit post' : 'Add social media post'}</h1>
-          <p className="muted">Set type, category, tags, credits, and attachment.</p>
+          <p className="muted">
+            Set type, category, tags, credits, and attachment. Choose type Reel to upload a video.
+          </p>
         </div>
       </div>
 
@@ -245,13 +253,30 @@ export default function AdminPosts() {
           />
         </label>
         <label>
-          Attachment
+          {isReelType ? 'Video' : 'Attachment'}
           <input
             type="file"
-            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.mp4,.mov,.zip"
+            accept={
+              isReelType
+                ? 'video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm'
+                : '.jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.mp4,.mov,.webm,.zip'
+            }
             onChange={(e) => setForm({ ...form, attachment: e.target.files?.[0] || null })}
           />
+          {isReelType ? (
+            <span className="field-hint">
+              Upload an MP4, MOV, or WEBM video. It autoplays on the listing and detail pages.
+            </span>
+          ) : (
+            <span className="field-hint">Images, documents, or video files.</span>
+          )}
         </label>
+        {editingId && posts.find((p) => p.id === editingId)?.attachment_name && (
+          <p className="muted field-hint">
+            Current file: {posts.find((p) => p.id === editingId)?.attachment_name}
+            {posts.find((p) => p.id === editingId)?.is_video ? ' (video)' : ''}
+          </p>
+        )}
         <label className="checkbox">
           <input
             type="checkbox"
@@ -288,13 +313,16 @@ export default function AdminPosts() {
             <div key={post.id} className="admin-row">
               {post.cover_url ? (
                 <img className="admin-thumb" src={post.cover_url} alt="" />
+              ) : post.video_url || post.is_reel ? (
+                <div className="admin-thumb fallback reel-thumb">Reel</div>
               ) : (
                 <div className="admin-thumb fallback" />
               )}
               <div>
                 <strong>{post.title}</strong>
                 <p className="muted">
-                  {post.type} · {post.category} · {post.credits_cost} credits · updated{' '}
+                  {post.type} · {post.category} · {post.credits_cost} credits
+                  {post.is_video ? ' · video' : ''} · updated{' '}
                   {new Date(post.last_updated || post.updated_at).toLocaleString()}
                 </p>
               </div>

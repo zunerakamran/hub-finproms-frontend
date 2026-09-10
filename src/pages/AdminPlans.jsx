@@ -13,6 +13,9 @@ const emptyForm = {
   credits: '',
   duration_days: 30,
   is_active: true,
+  show_reach: true,
+  show_views: false,
+  show_buys: false,
   image: null,
 }
 
@@ -129,6 +132,9 @@ export default function AdminPlans({ shell = 'client-admin' }) {
         credits: form.credits,
         duration_days: form.duration_days,
         is_active: form.is_active,
+        show_reach: form.show_reach,
+        show_views: form.show_views,
+        show_buys: form.show_buys,
       },
     })
   }, [shell, form, editingId, existingImageUrl])
@@ -177,6 +183,9 @@ export default function AdminPlans({ shell = 'client-admin' }) {
     fd.append('credits', String(Number(form.credits)))
     fd.append('duration_days', String(Number(form.duration_days)))
     fd.append('is_active', form.is_active ? '1' : '0')
+    fd.append('show_reach', form.show_reach ? '1' : '0')
+    fd.append('show_views', form.show_views ? '1' : '0')
+    fd.append('show_buys', form.show_buys ? '1' : '0')
     if (form.image) fd.append('image', form.image)
     return fd
   }
@@ -226,6 +235,9 @@ export default function AdminPlans({ shell = 'client-admin' }) {
       credits: String(plan.credits ?? ''),
       duration_days: plan.duration_days || 30,
       is_active: plan.is_active !== false,
+      show_reach: plan.show_reach !== false,
+      show_views: !!plan.show_views,
+      show_buys: !!plan.show_buys,
       image: null,
     })
     setMessage('')
@@ -270,7 +282,10 @@ export default function AdminPlans({ shell = 'client-admin' }) {
         <div>
           <p className="eyebrow">{eyebrow}</p>
           <h1>{editingId ? 'Edit plan' : 'Subscription plans'}</h1>
-          <p className="muted">Create credit packages users can buy on the Plans page.</p>
+          <p className="muted">
+            Create credit packages users can buy on the Plans page. Control which post
+            metrics (reach, views, buys) each plan&apos;s subscribers can see.
+          </p>
         </div>
       </div>
 
@@ -371,6 +386,38 @@ export default function AdminPlans({ shell = 'client-admin' }) {
             <img src={imagePreviewUrl} alt="Plan preview" />
           </div>
         )}
+        <fieldset className="plan-metrics-fieldset">
+          <legend>Subscriber content metrics</legend>
+          <p className="field-hint">
+            Choose which post metrics subscribers on this plan can see on listing and
+            detail pages. Typical defaults: Basic = reach only; Standard = reach + views;
+            Premium = reach + views + buys.
+          </p>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={form.show_reach}
+              onChange={(e) => setForm({ ...form, show_reach: e.target.checked })}
+            />
+            Show reach
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={form.show_views}
+              onChange={(e) => setForm({ ...form, show_views: e.target.checked })}
+            />
+            Show views
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={form.show_buys}
+              onChange={(e) => setForm({ ...form, show_buys: e.target.checked })}
+            />
+            Show buys
+          </label>
+        </fieldset>
         <label className="checkbox">
           <input
             type="checkbox"
@@ -412,6 +459,16 @@ export default function AdminPlans({ shell = 'client-admin' }) {
                 <p className="muted">
                   £{Number(plan.price).toFixed(2)} · {plan.credits} credits · {plan.duration_days}{' '}
                   days · {plan.is_active ? 'Active' : 'Inactive'}
+                </p>
+                <p className="muted">
+                  Metrics:{' '}
+                  {[
+                    plan.show_reach !== false ? 'reach' : null,
+                    plan.show_views ? 'views' : null,
+                    plan.show_buys ? 'buys' : null,
+                  ]
+                    .filter(Boolean)
+                    .join(', ') || 'none'}
                 </p>
                 {plan.overview && <p className="muted plan-overview-snip">{plan.overview}</p>}
                 {formatLastUpdated(plan.last_updated) && (

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
+import PostMetrics from '../components/PostMetrics'
+import ReelPlayer from '../components/ReelPlayer'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -10,10 +12,6 @@ function formatDate(value) {
     day: 'numeric',
     year: 'numeric',
   })
-}
-
-function formatCount(value) {
-  return Number(value || 0).toLocaleString()
 }
 
 export default function Posts() {
@@ -326,7 +324,9 @@ export default function Posts() {
                 style={{ animationDelay: `${index * 40}ms` }}
               >
                 <div className="post-cover">
-                  {!locked && post.cover_url ? (
+                  {!locked && post.video_url ? (
+                    <ReelPlayer src={post.video_url} title={post.title} compact />
+                  ) : !locked && post.cover_url ? (
                     <img src={post.cover_url} alt={post.title} loading="lazy" />
                   ) : (
                     <div className="post-cover-fallback locked-cover">
@@ -336,7 +336,7 @@ export default function Posts() {
 
                   {post.is_new && <span className="new-banner">NEW</span>}
 
-                  {isReel && !locked && (
+                  {isReel && !locked && !post.video_url && (
                     <span className="reel-play-btn" aria-hidden="true">
                       <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
                         <path d="M8 5v14l11-7L8 5z" />
@@ -377,11 +377,7 @@ export default function Posts() {
                       ))}
                     </div>
                   )}
-                  <div className="post-metrics">
-                    <span title="Views">{formatCount(post.views_count)} views</span>
-                    <span title="Reach">{formatCount(post.reach_count)} reach</span>
-                    <span title="Buys">{formatCount(post.buy_count)} buys</span>
-                  </div>
+                  <PostMetrics post={post} />
                   <div className="post-footer">
                     <span className="view-link">
                       {locked

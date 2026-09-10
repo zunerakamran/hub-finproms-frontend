@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import PostMetrics from '../components/PostMetrics'
+import ReelPlayer from '../components/ReelPlayer'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -69,6 +71,8 @@ export default function PostDetail() {
 
   const locked = Boolean(post.is_locked) && !post.is_purchased && !isClientAdmin
   const unlocked = post.is_purchased || isClientAdmin
+  const isReel = Boolean(post.is_reel)
+  const previewVideo = post.video_url || (unlocked && post.is_video ? post.attachment_url : null)
 
   if (locked) {
     return (
@@ -156,11 +160,15 @@ export default function PostDetail() {
         ← Back to posts
       </Link>
       <div className="detail-panel">
-        {post.cover_url && (
+        {previewVideo ? (
+          <div className={`detail-cover ${isReel ? 'is-reel' : ''}`}>
+            <ReelPlayer src={previewVideo} title={post.title} />
+          </div>
+        ) : post.cover_url ? (
           <div className="detail-cover">
             <img src={post.cover_url} alt={post.title} />
           </div>
-        )}
+        ) : null}
         <div className="post-meta">
           <span>{post.type}</span>
           <span>{post.category}</span>
@@ -173,11 +181,7 @@ export default function PostDetail() {
         <p className="muted">
           Last updated {new Date(post.last_updated || post.updated_at).toLocaleString()}
         </p>
-        <div className="post-metrics detail-metrics">
-          <span>{Number(post.views_count || 0).toLocaleString()} views</span>
-          <span>{Number(post.reach_count || 0).toLocaleString()} reach</span>
-          <span>{Number(post.buy_count || 0).toLocaleString()} buys</span>
-        </div>
+        <PostMetrics post={post} className="post-metrics detail-metrics" />
 
         <p>{post.description || 'No description provided.'}</p>
         {!!post.tags?.length && (

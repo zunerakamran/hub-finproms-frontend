@@ -19,6 +19,7 @@ import AdminPaymentCard from './pages/AdminPaymentCard'
 import AdminPaymentCardSuccess from './pages/AdminPaymentCardSuccess'
 import AdminPlans from './pages/AdminPlans'
 import AdminPosts from './pages/AdminPosts'
+import AdminPushContent from './pages/AdminPushContent'
 import AdminSettings from './pages/AdminSettings'
 import AdminTags from './pages/AdminTags'
 import AdminTypes from './pages/AdminTypes'
@@ -146,6 +147,14 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_posts">
                       <AdminPosts />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="push-content"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_push_content">
+                      <AdminPushContent />
                     </HubCapabilityRoute>
                   }
                 />

@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import TargetHubSelect from '../components/TargetHubSelect'
 import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
 
 export default function AdminTypes({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
+  const { can, hub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
+  const canTargetHubs = Boolean(can('dashboard_push_content') && hub?.type === 'shared')
+
+  const [targetHubId, setTargetHubId] = useState('')
+  const [targetHubs, setTargetHubs] = useState([])
   const [types, setTypes] = useState([])
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
@@ -15,11 +22,32 @@ export default function AdminTypes({ shell = 'client-admin' }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
+  const selectedTarget = targetHubs.find((h) => String(h.id) === String(targetHubId))
+  const isRemote = Boolean(canTargetHubs && selectedTarget?.type === 'white_label')
+
+  useEffect(() => {
+    if (!canTargetHubs) return
+    ;(async () => {
+      try {
+        const data = await api.hubContentTargets(apiOpts)
+        setTargetHubs(data.hubs || [])
+      } catch {
+        setTargetHubs([])
+      }
+    })()
+  }, [canTargetHubs])
+
   const load = async () => {
     setLoading(true)
+    setError('')
     try {
-      const data = await api.listTypes()
-      setTypes(data.types || [])
+      if (isRemote && targetHubId) {
+        const data = await api.hubContentTypes(targetHubId, apiOpts)
+        setTypes(data.types || [])
+      } else {
+        const data = await api.listTypes()
+        setTypes(data.types || [])
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -28,8 +56,13 @@ export default function AdminTypes({ shell = 'client-admin' }) {
   }
 
   useEffect(() => {
+    if (canTargetHubs && !targetHubId) return
     load()
-  }, [])
+    setEditingId(null)
+    setName('')
+    setSlug('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetHubId, isRemote])
 
   const reset = () => {
     setName('')
@@ -45,11 +78,18 @@ export default function AdminTypes({ shell = 'client-admin' }) {
     try {
       const payload = { name: name.trim(), slug: slug.trim() || undefined }
       if (editingId) {
+        if (isRemote) {
+          setError('Edit on white-label hubs is not available here yet.')
+          return
+        }
         await api.updateType(editingId, payload, apiOpts)
         setMessage('Type updated.')
+      } else if (isRemote) {
+        const data = await api.hubContentCreateType(targetHubId, payload, apiOpts)
+        setMessage(data.message || 'Type created on white-label hub.')
       } else {
-        await api.createType(payload, apiOpts)
-        setMessage('Type created.')
+        const data = await api.createType(payload, apiOpts)
+        setMessage(data.message || 'Type created.')
       }
       reset()
       await load()
@@ -60,28 +100,6 @@ export default function AdminTypes({ shell = 'client-admin' }) {
     }
   }
 
-  const edit = (type) => {
-    setEditingId(type.id)
-    setName(type.name)
-    setSlug(type.slug || '')
-    setMessage('')
-    setError('')
-  }
-
-  const remove = async (id) => {
-    if (!window.confirm('Delete this type?')) return
-    setError('')
-    setMessage('')
-    try {
-      await api.deleteType(id, apiOpts)
-      setMessage('Type deleted.')
-      if (editingId === id) reset()
-      await load()
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
   return (
     <section>
       <div className="page-head">
@@ -89,35 +107,33 @@ export default function AdminTypes({ shell = 'client-admin' }) {
           <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit type' : 'Content types'}</h1>
           <p className="muted">
-            Type is separate from category and tags. Use slug <code>reel</code> for play-button
-            behaviour on the listing.
+            Select the hub. White-label types are stored only on that hub&apos;s database.
           </p>
         </div>
       </div>
+
+      <TargetHubSelect value={targetHubId} onChange={setTargetHubId} asPowerAdmin={asPowerAdmin} />
 
       <form className="admin-form" onSubmit={onSubmit}>
         {error && <div className="alert">{error}</div>}
         {message && <div className="alert success">{message}</div>}
         <label>
           Type name
-          <input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Post, Reel..."
-          />
+          <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Post, Reel..." />
         </label>
         <label>
           Slug (optional)
-          <input
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="post, reel..."
-          />
+          <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="post, reel..." />
         </label>
         <div className="actions">
-          <button className="btn primary" disabled={saving}>
-            {saving ? 'Saving...' : editingId ? 'Update type' : 'Add type'}
+          <button className="btn primary" disabled={saving || (canTargetHubs && !targetHubId)}>
+            {saving
+              ? 'Saving...'
+              : editingId
+                ? 'Update type'
+                : isRemote
+                  ? `Add type on ${selectedTarget?.name || 'hub'}`
+                  : 'Add type'}
           </button>
           {editingId && (
             <button type="button" className="btn ghost" onClick={reset}>
@@ -127,29 +143,41 @@ export default function AdminTypes({ shell = 'client-admin' }) {
         </div>
       </form>
 
-      <h2 className="section-title">Existing types</h2>
+      <h2 className="section-title">{isRemote ? `Types on ${selectedTarget?.name}` : 'Existing types'}</h2>
       {loading ? (
         <div className="state">Loading...</div>
-      ) : types.length === 0 ? (
-        <div className="state">No types yet. Add Post and Reel above.</div>
       ) : (
         <div className="admin-list">
           {types.map((type) => (
             <div key={type.id} className="admin-row">
               <div>
                 <strong>{type.name}</strong>
-                <p className="muted">
-                  slug: {type.slug || '—'} · {type.posts_count ?? 0} items
-                </p>
+                <p className="muted">slug: {type.slug || '—'}</p>
               </div>
-              <div className="actions">
-                <button className="btn ghost" onClick={() => edit(type)}>
-                  Edit
-                </button>
-                <button className="btn danger" onClick={() => remove(type.id)}>
-                  Delete
-                </button>
-              </div>
+              {!isRemote && (
+                <div className="actions">
+                  <button
+                    className="btn ghost"
+                    onClick={() => {
+                      setEditingId(type.id)
+                      setName(type.name)
+                      setSlug(type.slug || '')
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn danger"
+                    onClick={async () => {
+                      if (!window.confirm('Delete this type?')) return
+                      await api.deleteType(type.id, apiOpts)
+                      await load()
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

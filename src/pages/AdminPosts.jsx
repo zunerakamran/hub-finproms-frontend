@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import TargetHubSelect from '../components/TargetHubSelect'
 import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
 
 const emptyForm = {
   title: '',
@@ -16,8 +18,13 @@ const emptyForm = {
 
 export default function AdminPosts({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
+  const { can, hub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
+  const canTargetHubs = Boolean(can('dashboard_push_content') && hub?.type === 'shared')
+
+  const [targetHubId, setTargetHubId] = useState('')
+  const [targetHubs, setTargetHubs] = useState([])
   const [posts, setPosts] = useState([])
   const [types, setTypes] = useState([])
   const [categories, setCategories] = useState([])
@@ -29,19 +36,48 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
+  const selectedTarget = targetHubs.find((h) => String(h.id) === String(targetHubId))
+  const isRemote = Boolean(canTargetHubs && selectedTarget?.type === 'white_label')
+
+  useEffect(() => {
+    if (!canTargetHubs) return
+    ;(async () => {
+      try {
+        const data = await api.hubContentTargets(apiOpts)
+        setTargetHubs(data.hubs || [])
+      } catch {
+        setTargetHubs([])
+      }
+    })()
+  }, [canTargetHubs])
+
   const load = async () => {
     setLoading(true)
+    setError('')
     try {
-      const [postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
-        api.posts({ per_page: 50 }),
-        api.listTypes(),
-        api.listCategories(),
-        api.listTags(),
-      ])
-      setPosts(postsRes.data || [])
-      setTypes(typesRes.types || [])
-      setCategories(catsRes.categories || [])
-      setTags(tagsRes.tags || [])
+      if (isRemote && targetHubId) {
+        const [postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
+          api.hubContentPosts(targetHubId, { per_page: 50 }, apiOpts),
+          api.hubContentTypes(targetHubId, apiOpts),
+          api.hubContentCategories(targetHubId, apiOpts),
+          api.hubContentTags(targetHubId, apiOpts),
+        ])
+        setPosts(postsRes.data || [])
+        setTypes(typesRes.types || [])
+        setCategories(catsRes.categories || [])
+        setTags(tagsRes.tags || [])
+      } else {
+        const [postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
+          api.posts({ per_page: 50 }),
+          api.listTypes(),
+          api.listCategories(),
+          api.listTags(),
+        ])
+        setPosts(postsRes.data || [])
+        setTypes(typesRes.types || [])
+        setCategories(catsRes.categories || [])
+        setTags(tagsRes.tags || [])
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -50,8 +86,12 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   }
 
   useEffect(() => {
+    if (canTargetHubs && !targetHubId) return
     load()
-  }, [])
+    setEditingId(null)
+    setForm(emptyForm)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetHubId, isRemote])
 
   const toFormData = () => {
     const fd = new FormData()
@@ -82,11 +122,18 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     setMessage('')
     try {
       if (editingId) {
+        if (isRemote) {
+          setError('Edit on white-label hubs is not available here yet. Create new content for that hub.')
+          return
+        }
         await api.updatePost(editingId, toFormData(), apiOpts)
         setMessage('Post updated.')
+      } else if (isRemote) {
+        const data = await api.hubContentCreatePost(targetHubId, toFormData(), apiOpts)
+        setMessage(data.message || 'Post created on white-label hub.')
       } else {
-        await api.createPost(toFormData(), apiOpts)
-        setMessage('Post created.')
+        const data = await api.createPost(toFormData(), apiOpts)
+        setMessage(data.message || 'Post created.')
       }
       setForm(emptyForm)
       setEditingId(null)
@@ -104,6 +151,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   }
 
   const edit = (post) => {
+    if (isRemote) return
     setEditingId(post.id)
     setForm({
       title: post.title || '',
@@ -119,6 +167,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   }
 
   const remove = async (id) => {
+    if (isRemote) return
     if (!window.confirm('Delete this post?')) return
     try {
       await api.deletePost(id, apiOpts)
@@ -159,10 +208,17 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit post' : 'Add social media post'}</h1>
           <p className="muted">
-            Set type, category, tags, credits, and attachment. Choose type Reel to upload a video.
+            Choose the hub first (when enabled). White-label posts live only on that hub&apos;s
+            database — not on shared.
           </p>
         </div>
       </div>
+
+      <TargetHubSelect
+        value={targetHubId}
+        onChange={setTargetHubId}
+        asPowerAdmin={asPowerAdmin}
+      />
 
       <form className="admin-form" onSubmit={onSubmit}>
         {error && <div className="alert">{error}</div>}
@@ -192,7 +248,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
             </select>
             {types.length === 0 && (
               <span className="field-hint">
-                No types yet. <Link to="/my-dashboard/types">Add types</Link> first.
+                No types yet. <Link to="/my-dashboard/types">Add types</Link> for this hub first.
               </span>
             )}
           </label>
@@ -205,22 +261,17 @@ export default function AdminPosts({ shell = 'client-admin' }) {
             >
               <option value="">Select a category</option>
               {categoryOptions.map((category) => (
-                <option key={category.id} value={category.name}>
+                <option key={category.id || category.name} value={category.name}>
                   {category.name}
                 </option>
               ))}
             </select>
-            {categories.length === 0 && (
-              <span className="field-hint">
-                No categories yet. <Link to="/my-dashboard/categories">Add categories</Link> first.
-              </span>
-            )}
           </label>
           <label>
             Credits cost
             <input
               type="number"
-              min="1"
+              min={1}
               required
               value={form.credits_cost}
               onChange={(e) => setForm({ ...form, credits_cost: e.target.value })}
@@ -229,24 +280,18 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         </div>
         <fieldset className="tag-picker">
           <legend>Tags</legend>
-          {tagOptions.length === 0 ? (
-            <p className="field-hint">
-              No tags yet. <Link to="/my-dashboard/tags">Add tags</Link> first.
-            </p>
-          ) : (
-            <div className="tag-options">
-              {tagOptions.map((tag) => (
-                <label key={tag.id} className="checkbox tag-option">
-                  <input
-                    type="checkbox"
-                    checked={form.tags.includes(tag.name)}
-                    onChange={() => toggleTag(tag.name)}
-                  />
-                  {tag.name}
-                </label>
-              ))}
-            </div>
-          )}
+          <div className="tag-options">
+            {tagOptions.map((tag) => (
+              <label key={tag.id || tag.name} className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={form.tags.includes(tag.name)}
+                  onChange={() => toggleTag(tag.name)}
+                />
+                {tag.name}
+              </label>
+            ))}
+          </div>
         </fieldset>
         <label>
           Description
@@ -267,20 +312,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
             }
             onChange={(e) => setForm({ ...form, attachment: e.target.files?.[0] || null })}
           />
-          {isReelType ? (
-            <span className="field-hint">
-              Upload an MP4, MOV, or WEBM video. It autoplays on the listing and detail pages.
-            </span>
-          ) : (
-            <span className="field-hint">Images, documents, or video files.</span>
-          )}
         </label>
-        {editingId && posts.find((p) => p.id === editingId)?.attachment_name && (
-          <p className="muted field-hint">
-            Current file: {posts.find((p) => p.id === editingId)?.attachment_name}
-            {posts.find((p) => p.id === editingId)?.is_video ? ' (video)' : ''}
-          </p>
-        )}
         <label className="checkbox">
           <input
             type="checkbox"
@@ -290,8 +322,14 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           Active
         </label>
         <div className="actions">
-          <button className="btn primary" disabled={saving}>
-            {saving ? 'Saving...' : editingId ? 'Update post' : 'Create post'}
+          <button className="btn primary" disabled={saving || (canTargetHubs && !targetHubId)}>
+            {saving
+              ? 'Saving...'
+              : editingId
+                ? 'Update post'
+                : isRemote
+                  ? `Create on ${selectedTarget?.name || 'white-label'}`
+                  : 'Create post'}
           </button>
           {editingId && (
             <button
@@ -308,7 +346,9 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         </div>
       </form>
 
-      <h2 className="section-title">Existing posts</h2>
+      <h2 className="section-title">
+        {isRemote ? `Posts on ${selectedTarget?.name}` : 'Existing posts'}
+      </h2>
       {loading ? (
         <div className="state">Loading...</div>
       ) : (
@@ -317,8 +357,6 @@ export default function AdminPosts({ shell = 'client-admin' }) {
             <div key={post.id} className="admin-row">
               {post.cover_url ? (
                 <img className="admin-thumb" src={post.cover_url} alt="" />
-              ) : post.video_url || post.is_reel ? (
-                <div className="admin-thumb fallback reel-thumb">Reel</div>
               ) : (
                 <div className="admin-thumb fallback" />
               )}
@@ -326,18 +364,18 @@ export default function AdminPosts({ shell = 'client-admin' }) {
                 <strong>{post.title}</strong>
                 <p className="muted">
                   {post.type} · {post.category} · {post.credits_cost} credits
-                  {post.is_video ? ' · video' : ''} · updated{' '}
-                  {new Date(post.last_updated || post.updated_at).toLocaleString()}
                 </p>
               </div>
-              <div className="actions">
-                <button className="btn ghost" onClick={() => edit(post)}>
-                  Edit
-                </button>
-                <button className="btn danger" onClick={() => remove(post.id)}>
-                  Delete
-                </button>
-              </div>
+              {!isRemote && (
+                <div className="actions">
+                  <button className="btn ghost" onClick={() => edit(post)}>
+                    Edit
+                  </button>
+                  <button className="btn danger" onClick={() => remove(post.id)}>
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -69,6 +69,13 @@ export const DASHBOARD_LINKS = [
     capability: 'dashboard_manage_posts',
   },
   {
+    to: '/my-dashboard/push-content',
+    label: 'DB test / bulk tools',
+    title: 'White-label DB tools',
+    description: 'Test white-label DB connections. Prefer the Hub dropdown on Posts / Types / etc. to publish content onto a white-label hub.',
+    capability: 'dashboard_push_content',
+  },
+  {
     to: '/my-dashboard/bundles',
     label: 'Bundles',
     title: 'Post bundles',

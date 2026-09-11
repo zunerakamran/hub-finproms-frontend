@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import TargetHubSelect from '../components/TargetHubSelect'
 import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
 
 const emptyForm = {
   title: '',
@@ -23,8 +25,13 @@ const emptyNewPost = {
 
 export default function AdminBundles({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
+  const { can, hub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
+  const canTargetHubs = Boolean(can('dashboard_push_content') && hub?.type === 'shared')
+
+  const [targetHubId, setTargetHubId] = useState('')
+  const [targetHubs, setTargetHubs] = useState([])
   const [bundles, setBundles] = useState([])
   const [posts, setPosts] = useState([])
   const [types, setTypes] = useState([])
@@ -40,21 +47,49 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   const [message, setMessage] = useState('')
   const [postSearch, setPostSearch] = useState('')
 
+  const selectedTarget = targetHubs.find((h) => String(h.id) === String(targetHubId))
+  const isRemote = Boolean(canTargetHubs && selectedTarget?.type === 'white_label')
+
+  useEffect(() => {
+    if (!canTargetHubs) return
+    ;(async () => {
+      try {
+        const data = await api.hubContentTargets(apiOpts)
+        setTargetHubs(data.hubs || [])
+      } catch {
+        setTargetHubs([])
+      }
+    })()
+  }, [canTargetHubs])
+
   const load = async () => {
     setLoading(true)
     try {
-      const [bundlesRes, postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
-        api.adminBundles({ per_page: 50 }, apiOpts),
-        api.posts({ per_page: 100 }),
-        api.listTypes(),
-        api.listCategories(),
-        api.listTags(),
-      ])
-      setBundles(bundlesRes.data || [])
-      setPosts(postsRes.data || [])
-      setTypes(typesRes.types || [])
-      setCategories(catsRes.categories || [])
-      setTags(tagsRes.tags || [])
+      if (isRemote && targetHubId) {
+        const [bundlesRes, postsRes] = await Promise.all([
+          api.hubContentBundles(targetHubId, { per_page: 50 }, apiOpts),
+          api.hubContentPosts(targetHubId, { per_page: 100 }, apiOpts),
+        ])
+        setBundles(bundlesRes.data || [])
+        setPosts(postsRes.data || [])
+        setTypes([])
+        setCategories([])
+        setTags([])
+        setNewPosts([])
+      } else {
+        const [bundlesRes, postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
+          api.adminBundles({ per_page: 50 }, apiOpts),
+          api.posts({ per_page: 100 }),
+          api.listTypes(),
+          api.listCategories(),
+          api.listTags(),
+        ])
+        setBundles(bundlesRes.data || [])
+        setPosts(postsRes.data || [])
+        setTypes(typesRes.types || [])
+        setCategories(catsRes.categories || [])
+        setTags(tagsRes.tags || [])
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -63,8 +98,13 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   }
 
   useEffect(() => {
+    if (canTargetHubs && !targetHubId) return
     load()
-  }, [])
+    setEditingId(null)
+    setForm(emptyForm)
+    setNewPosts([])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetHubId, isRemote])
 
   const toggleExistingPost = (postId) => {
     setForm((prev) => {
@@ -106,25 +146,31 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     fd.append('is_active', form.is_active ? '1' : '0')
     fd.append('post_ids', JSON.stringify(form.post_ids))
 
-    newPosts.forEach((post, index) => {
-      fd.append(`new_posts[${index}][title]`, post.title)
-      fd.append(`new_posts[${index}][description]`, post.description || '')
-      fd.append(`new_posts[${index}][type]`, post.type)
-      fd.append(`new_posts[${index}][category]`, post.category)
-      fd.append(`new_posts[${index}][tags]`, JSON.stringify(post.tags || []))
-      fd.append(`new_posts[${index}][credits_cost]`, String(post.credits_cost || 1))
-      if (post.attachment) {
-        fd.append(`new_posts[${index}][attachment]`, post.attachment)
-      }
-    })
+    if (!isRemote) {
+      newPosts.forEach((post, index) => {
+        fd.append(`new_posts[${index}][title]`, post.title)
+        fd.append(`new_posts[${index}][description]`, post.description || '')
+        fd.append(`new_posts[${index}][type]`, post.type)
+        fd.append(`new_posts[${index}][category]`, post.category)
+        fd.append(`new_posts[${index}][tags]`, JSON.stringify(post.tags || []))
+        fd.append(`new_posts[${index}][credits_cost]`, String(post.credits_cost || 1))
+        if (post.attachment) {
+          fd.append(`new_posts[${index}][attachment]`, post.attachment)
+        }
+      })
+    }
 
     return fd
   }
 
   const onSubmit = async (e) => {
     e.preventDefault()
-    if (form.post_ids.length === 0 && newPosts.length === 0) {
-      setError('Add at least one existing post or a new post to the bundle.')
+    if (form.post_ids.length === 0 && (!isRemote && newPosts.length === 0)) {
+      setError(
+        isRemote
+          ? 'Select at least one post that already exists on this white-label hub.'
+          : 'Add at least one existing post or a new post to the bundle.'
+      )
       return
     }
 
@@ -133,11 +179,18 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     setMessage('')
     try {
       if (editingId) {
+        if (isRemote) {
+          setError('Edit on white-label hubs is not available here yet.')
+          return
+        }
         await api.updateBundle(editingId, toFormData(), apiOpts)
         setMessage('Bundle updated.')
+      } else if (isRemote) {
+        const data = await api.hubContentCreateBundle(targetHubId, toFormData(), apiOpts)
+        setMessage(data.message || 'Bundle created on white-label hub.')
       } else {
-        await api.createBundle(toFormData(), apiOpts)
-        setMessage('Bundle created.')
+        const data = await api.createBundle(toFormData(), apiOpts)
+        setMessage(data.message || 'Bundle created.')
       }
       setForm(emptyForm)
       setNewPosts([])
@@ -206,11 +259,13 @@ export default function AdminBundles({ shell = 'client-admin' }) {
           <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit bundle' : 'Create post bundle'}</h1>
           <p className="muted">
-            Group existing posts/reels or add new ones, then set a description and total credits for
-            the bundle.
+            Choose the hub first. White-label bundles use posts that already exist on that hub&apos;s
+            database only.
           </p>
         </div>
       </div>
+
+      <TargetHubSelect value={targetHubId} onChange={setTargetHubId} asPowerAdmin={asPowerAdmin} />
 
       <form className="admin-form" onSubmit={onSubmit}>
         {error && <div className="alert">{error}</div>}
@@ -294,6 +349,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
           <p className="field-hint">{form.post_ids.length} existing post(s) selected.</p>
         </fieldset>
 
+        {!isRemote && (
         <fieldset className="tag-picker">
           <legend>Create new post / reel and add to bundle</legend>
           <div className="form-grid">
@@ -401,10 +457,17 @@ export default function AdminBundles({ shell = 'client-admin' }) {
             </div>
           )}
         </fieldset>
+        )}
 
         <div className="actions">
-          <button className="btn primary" disabled={saving}>
-            {saving ? 'Saving...' : editingId ? 'Update bundle' : 'Create bundle'}
+          <button className="btn primary" disabled={saving || (canTargetHubs && !targetHubId)}>
+            {saving
+              ? 'Saving...'
+              : editingId
+                ? 'Update bundle'
+                : isRemote
+                  ? `Create on ${selectedTarget?.name || 'hub'}`
+                  : 'Create bundle'}
           </button>
           {editingId && (
             <button

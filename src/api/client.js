@@ -166,6 +166,76 @@ export const api = {
     request(`${adminBase(options)}/posts/${id}`, { method: 'POST', body: formData }),
   deletePost: (id, options = {}) =>
     request(`${adminBase(options)}/posts/${id}`, { method: 'DELETE' }),
+
+  contentPushTargets: (options = {}) =>
+    request(`${adminBase(options)}/content-push/targets`),
+  contentPushPosts: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/content-push/posts${query ? `?${query}` : ''}`)
+  },
+  contentPushRecent: (options = {}) =>
+    request(`${adminBase(options)}/content-push/recent`),
+  contentPush: (payload, options = {}) =>
+    request(`${adminBase(options)}/content-push`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  contentPushTestConnection: (hubId, options = {}) =>
+    request(`${adminBase(options)}/content-push/hubs/${hubId}/test-connection`, {
+      method: 'POST',
+    }),
+
+  hubContentTargets: (options = {}) =>
+    request(`${adminBase(options)}/hub-content/targets`),
+  hubContentPosts: (hubId, params = {}, options = {}) => {
+    const query = new URLSearchParams({
+      hub_id: String(hubId),
+      ...Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+      ),
+    }).toString()
+    return request(`${adminBase(options)}/hub-content/posts?${query}`)
+  },
+  hubContentCreatePost: (hubId, formData, options = {}) => {
+    formData.append('hub_id', String(hubId))
+    return request(`${adminBase(options)}/hub-content/posts`, { method: 'POST', body: formData })
+  },
+  hubContentTypes: (hubId, options = {}) =>
+    request(`${adminBase(options)}/hub-content/types?hub_id=${hubId}`),
+  hubContentCreateType: (hubId, payload, options = {}) =>
+    request(`${adminBase(options)}/hub-content/types`, {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, hub_id: Number(hubId) }),
+    }),
+  hubContentCategories: (hubId, options = {}) =>
+    request(`${adminBase(options)}/hub-content/categories?hub_id=${hubId}`),
+  hubContentCreateCategory: (hubId, payload, options = {}) =>
+    request(`${adminBase(options)}/hub-content/categories`, {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, hub_id: Number(hubId) }),
+    }),
+  hubContentTags: (hubId, options = {}) =>
+    request(`${adminBase(options)}/hub-content/tags?hub_id=${hubId}`),
+  hubContentCreateTag: (hubId, payload, options = {}) =>
+    request(`${adminBase(options)}/hub-content/tags`, {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, hub_id: Number(hubId) }),
+    }),
+  hubContentBundles: (hubId, params = {}, options = {}) => {
+    const query = new URLSearchParams({
+      hub_id: String(hubId),
+      ...Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+      ),
+    }).toString()
+    return request(`${adminBase(options)}/hub-content/bundles?${query}`)
+  },
+  hubContentCreateBundle: (hubId, formData, options = {}) => {
+    formData.append('hub_id', String(hubId))
+    return request(`${adminBase(options)}/hub-content/bundles`, { method: 'POST', body: formData })
+  },
   adminSettings: () => request(`${CLIENT_ADMIN}/settings`),
   updateSettings: (payload) => {
     const body = payload instanceof FormData ? payload : JSON.stringify(payload)

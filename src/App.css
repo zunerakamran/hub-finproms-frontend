@@ -1336,6 +1336,11 @@ label {
   color: var(--ok);
 }
 
+.badge.warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .price {
   font-size: 2rem;
   margin: 0.4rem 0;
@@ -1893,6 +1898,106 @@ label {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.hub-deploy-checklist {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.hub-deploy-checklist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.hub-deploy-checklist-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.hub-deploy-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.hub-deploy-steps li {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  font-size: 0.92rem;
+}
+
+.hub-deploy-mark {
+  width: 1.1rem;
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+
+.hub-deploy-steps li.done .hub-deploy-mark {
+  color: var(--ok);
+}
+
+.hub-deploy-steps li.missing .hub-deploy-mark {
+  color: #92400e;
+}
+
+.hub-deploy-steps li.optional .hub-deploy-mark {
+  color: var(--muted, #64748b);
+}
+
+.hub-env-snippet {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+  overflow: hidden;
+}
+
+.hub-env-snippet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.hub-env-snippet-head .btn.ghost {
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+.hub-env-snippet pre {
+  margin: 0;
+  padding: 0.85rem 0.9rem;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.target-hub-select {
+  margin: 0 0 1rem;
+}
+
+.target-hub-select .hub-select-label {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 28rem;
+  font-weight: 600;
+}
+
+.target-hub-select select {
+  width: 100%;
 }
 
 .form-row.two {

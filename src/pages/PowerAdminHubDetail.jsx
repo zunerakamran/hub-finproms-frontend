@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import ChecklistGroupedForm from '../components/ChecklistGroupedForm'
+import HubDeployChecklist from '../components/HubDeployChecklist'
 import { checklistToMap } from '../utils/checklist'
+import { buildDeployPreview } from '../utils/hubDeploy'
 
 export default function PowerAdminHubDetail() {
   const { hubId } = useParams()
@@ -18,6 +20,16 @@ export default function PowerAdminHubDetail() {
     primary_color: '',
     secondary_color: '',
     logo_url: '',
+    frontend_url: '',
+    api_url: '',
+    deploy_notes: '',
+    db_driver: 'mysql',
+    db_host: '',
+    db_port: '3306',
+    db_database: '',
+    db_username: '',
+    db_password: '',
+    clear_db_password: false,
     is_active: true,
   })
   const [flags, setFlags] = useState({})
@@ -35,6 +47,16 @@ export default function PowerAdminHubDetail() {
         primary_color: next.branding?.primary_color || '',
         secondary_color: next.branding?.secondary_color || '',
         logo_url: next.branding?.logo_url || '',
+        frontend_url: next.deploy?.frontend_url || '',
+        api_url: next.deploy?.api_url || '',
+        deploy_notes: next.deploy?.deploy_notes || '',
+        db_driver: next.deploy?.database?.driver || 'mysql',
+        db_host: next.deploy?.database?.host || '',
+        db_port: next.deploy?.database?.port != null ? String(next.deploy.database.port) : '3306',
+        db_database: next.deploy?.database?.database || '',
+        db_username: next.deploy?.database?.username || '',
+        db_password: '',
+        clear_db_password: false,
         is_active: Boolean(next.is_active),
       })
       setFlags(checklistToMap(next.checklist))
@@ -63,7 +85,21 @@ export default function PowerAdminHubDetail() {
         primary_color: meta.primary_color.trim() || null,
         secondary_color: meta.secondary_color.trim() || null,
         logo_url: meta.logo_url.trim() || null,
+        frontend_url: meta.frontend_url.trim() || null,
+        api_url: meta.api_url.trim() || null,
+        deploy_notes: meta.deploy_notes.trim() || null,
+        db_driver: meta.db_driver.trim() || 'mysql',
+        db_host: meta.db_host.trim() || null,
+        db_port: meta.db_port.trim() ? Number(meta.db_port.trim()) : null,
+        db_database: meta.db_database.trim() || null,
+        db_username: meta.db_username.trim() || null,
         is_active: meta.is_active,
+      }
+      if (meta.db_password.trim()) {
+        payload.db_password = meta.db_password
+      }
+      if (meta.clear_db_password) {
+        payload.clear_db_password = true
       }
       if (hub?.type !== 'shared') {
         payload.slug = meta.slug.trim()
@@ -71,6 +107,19 @@ export default function PowerAdminHubDetail() {
       const data = await api.updatePowerAdminHub(hubId, payload)
       setHub(data.hub)
       setFlags(checklistToMap(data.hub.checklist))
+      setMeta((prev) => ({
+        ...prev,
+        db_password: '',
+        clear_db_password: false,
+        db_driver: data.hub.deploy?.database?.driver || prev.db_driver,
+        db_host: data.hub.deploy?.database?.host || '',
+        db_port:
+          data.hub.deploy?.database?.port != null
+            ? String(data.hub.deploy.database.port)
+            : prev.db_port,
+        db_database: data.hub.deploy?.database?.database || '',
+        db_username: data.hub.deploy?.database?.username || '',
+      }))
       setMessage(data.message || 'Hub updated.')
     } catch (err) {
       setError(err.message)
@@ -118,9 +167,16 @@ export default function PowerAdminHubDetail() {
           <p className="eyebrow">Power Admin</p>
           <h1>{hub.name}</h1>
           <p className="muted">
-            Update branding and Functionalities for this{' '}
+            Update branding, deploy wiring, and Functionalities for this{' '}
             {hub.type === 'shared' ? 'shared' : 'white-labelled'} hub.
           </p>
+          {hub.deploy?.status_label && (
+            <p style={{ marginTop: '0.5rem' }}>
+              <span className={`badge ${hub.deploy.ready ? 'ok' : 'warn'}`}>
+                {hub.deploy.status_label}
+              </span>
+            </p>
+          )}
         </div>
         <Link to="/my-dashboard/hubs" className="btn ghost">
           ← All hubs
@@ -189,6 +245,137 @@ export default function PowerAdminHubDetail() {
             {savingMeta ? 'Saving...' : 'Save hub details'}
           </button>
         </div>
+      </form>
+
+      <form className="admin-form hub-meta-form" style={{ marginTop: '1.25rem' }} onSubmit={onSaveMeta}>
+        <h2>Deploy wiring</h2>
+        <p className="muted">
+          Record where this hub is hosted and the credentials for its own database. Shared uses
+          these credentials later to push content into that white-label DB.
+        </p>
+        <label>
+          Frontend URL
+          <input
+            type="url"
+            value={meta.frontend_url}
+            onChange={(e) => setMeta({ ...meta, frontend_url: e.target.value })}
+            placeholder="https://acme.example.com"
+          />
+        </label>
+        <label>
+          API URL (optional)
+          <input
+            type="url"
+            value={meta.api_url}
+            onChange={(e) => setMeta({ ...meta, api_url: e.target.value })}
+            placeholder="https://api.acme.example.com"
+          />
+        </label>
+        <label>
+          Deploy notes
+          <textarea
+            rows={4}
+            value={meta.deploy_notes}
+            onChange={(e) => setMeta({ ...meta, deploy_notes: e.target.value })}
+            placeholder="Hosting provider, env checklist, contact, etc."
+          />
+        </label>
+
+        {hub.type !== 'shared' && (
+          <>
+            <h3 style={{ margin: '0.75rem 0 0' }}>White-label database (own DB)</h3>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Password is stored encrypted and never shown again. Leave password blank to keep the
+              current value.
+              {hub.deploy?.database?.password_set ? ' Password is currently set.' : ' No password set yet.'}
+            </p>
+            <div className="form-row two">
+              <label>
+                Driver
+                <select
+                  value={meta.db_driver}
+                  onChange={(e) => setMeta({ ...meta, db_driver: e.target.value })}
+                >
+                  <option value="mysql">mysql</option>
+                  <option value="pgsql">pgsql</option>
+                  <option value="sqlsrv">sqlsrv</option>
+                </select>
+              </label>
+              <label>
+                Port
+                <input
+                  value={meta.db_port}
+                  onChange={(e) => setMeta({ ...meta, db_port: e.target.value })}
+                  placeholder="3306"
+                />
+              </label>
+            </div>
+            <label>
+              Host
+              <input
+                value={meta.db_host}
+                onChange={(e) => setMeta({ ...meta, db_host: e.target.value })}
+                placeholder="db.acme.example.com"
+                autoComplete="off"
+              />
+            </label>
+            <label>
+              Database name
+              <input
+                value={meta.db_database}
+                onChange={(e) => setMeta({ ...meta, db_database: e.target.value })}
+                placeholder="hub_acme"
+                autoComplete="off"
+              />
+            </label>
+            <div className="form-row two">
+              <label>
+                Username
+                <input
+                  value={meta.db_username}
+                  onChange={(e) => setMeta({ ...meta, db_username: e.target.value })}
+                  placeholder="hub_user"
+                  autoComplete="off"
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  value={meta.db_password}
+                  onChange={(e) =>
+                    setMeta({ ...meta, db_password: e.target.value, clear_db_password: false })
+                  }
+                  placeholder={hub.deploy?.database?.password_set ? '•••••••• (unchanged)' : '••••••••'}
+                  autoComplete="new-password"
+                />
+              </label>
+            </div>
+            {hub.deploy?.database?.password_set && (
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={meta.clear_db_password}
+                  onChange={(e) =>
+                    setMeta({
+                      ...meta,
+                      clear_db_password: e.target.checked,
+                      db_password: e.target.checked ? '' : meta.db_password,
+                    })
+                  }
+                />
+                <span>Clear stored database password</span>
+              </label>
+            )}
+          </>
+        )}
+
+        <div className="actions">
+          <button className="btn primary" disabled={savingMeta}>
+            {savingMeta ? 'Saving...' : 'Save deploy wiring'}
+          </button>
+        </div>
+        <HubDeployChecklist deploy={buildDeployPreview(hub, meta)} slug={hub.slug} />
       </form>
 
       <div className="admin-form" style={{ marginTop: '1.25rem' }}>

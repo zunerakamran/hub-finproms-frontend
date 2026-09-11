@@ -9,6 +9,12 @@ const sections = [
     capability: 'dashboard_manage_posts',
   },
   {
+    to: '/client-admin/bundles',
+    title: 'Post bundles',
+    description: 'Group existing or new posts/reels into a bundle with description and total credits.',
+    capability: 'dashboard_manage_bundles',
+  },
+  {
     to: '/client-admin/types',
     title: 'Types',
     description: 'Manage content types such as Post and Reel (separate from category).',

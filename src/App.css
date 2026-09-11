@@ -1461,6 +1461,16 @@ label {
   gap: 0.5rem 1rem;
 }
 
+.bundle-post-picker {
+  max-height: 240px;
+  overflow: auto;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
 .tag-option {
   margin: 0;
 }

@@ -123,6 +123,25 @@ export const api = {
     request(`${CLIENT_ADMIN}/tags/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteTag: (id) => request(`${CLIENT_ADMIN}/tags/${id}`, { method: 'DELETE' }),
   purchasePost: (id) => request(`/posts/${id}/purchase`, { method: 'POST' }),
+  bundles: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/bundles${query ? `?${query}` : ''}`)
+  },
+  bundle: (id) => request(`/bundles/${id}`),
+  purchaseBundle: (id) => request(`/bundles/${id}/purchase`, { method: 'POST' }),
+  adminBundles: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${CLIENT_ADMIN}/bundles${query ? `?${query}` : ''}`)
+  },
+  adminBundle: (id) => request(`${CLIENT_ADMIN}/bundles/${id}`),
+  createBundle: (formData) => request(`${CLIENT_ADMIN}/bundles`, { method: 'POST', body: formData }),
+  updateBundle: (id, formData) =>
+    request(`${CLIENT_ADMIN}/bundles/${id}`, { method: 'POST', body: formData }),
+  deleteBundle: (id) => request(`${CLIENT_ADMIN}/bundles/${id}`, { method: 'DELETE' }),
   myPurchases: () => request('/my-purchases'),
   myInvoices: () => request('/my-invoices'),
   invoice: (id) => request(`/invoices/${id}`),

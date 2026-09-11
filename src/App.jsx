@@ -12,6 +12,7 @@ import AdminActivityLogs from './pages/AdminActivityLogs'
 import AdminAdvisorInvoices from './pages/AdminAdvisorInvoices'
 import AdminAdvisorPricing from './pages/AdminAdvisorPricing'
 import AdminAdvisorRenewal from './pages/AdminAdvisorRenewal'
+import AdminBundles from './pages/AdminBundles'
 import AdminCategories from './pages/AdminCategories'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminPaymentCard from './pages/AdminPaymentCard'
@@ -23,6 +24,8 @@ import AdminTags from './pages/AdminTags'
 import AdminTypes from './pages/AdminTypes'
 import AdvisorBillingSuccess from './pages/AdvisorBillingSuccess'
 import BankTransferPending from './pages/BankTransferPending'
+import BundleDetail from './pages/BundleDetail'
+import Bundles from './pages/Bundles'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Login from './pages/Login'
 import MyInvoices from './pages/MyInvoices'
@@ -68,6 +71,8 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index element={<Posts />} />
               <Route path="posts/:id" element={<PostDetail />} />
+              <Route path="bundles" element={<Bundles />} />
+              <Route path="bundles/:id" element={<BundleDetail />} />
               <Route path="subscriptions" element={<Subscriptions />} />
               <Route
                 path="subscriptions/success"
@@ -127,6 +132,14 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_posts">
                       <AdminPosts />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="bundles"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_bundles">
+                      <AdminBundles />
                     </HubCapabilityRoute>
                   }
                 />

@@ -19,6 +19,7 @@ export default function Layout() {
         </NavLink>
         <nav className="nav">
           {can('member_browse_catalog') && <NavLink to="/">Posts</NavLink>}
+          {can('member_browse_catalog') && <NavLink to="/bundles">Bundles</NavLink>}
           {showPlans && <NavLink to="/subscriptions">Plans</NavLink>}
           {isAuthenticated && can('member_view_purchases') && (
             <NavLink to="/my-purchases">My Purchases</NavLink>

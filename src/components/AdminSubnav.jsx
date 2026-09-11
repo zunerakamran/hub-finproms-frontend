@@ -4,6 +4,7 @@ import { useHub } from '../context/HubContext'
 const links = [
   { to: '/client-admin', label: 'Dashboard', end: true },
   { to: '/client-admin/posts', label: 'Posts', capability: 'dashboard_manage_posts' },
+  { to: '/client-admin/bundles', label: 'Bundles', capability: 'dashboard_manage_bundles' },
   { to: '/client-admin/types', label: 'Types', capability: 'dashboard_manage_types' },
   { to: '/client-admin/categories', label: 'Categories', capability: 'dashboard_manage_categories' },
   { to: '/client-admin/tags', label: 'Tags', capability: 'dashboard_manage_tags' },

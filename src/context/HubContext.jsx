@@ -82,6 +82,25 @@ export function HubProvider({ children }) {
     refreshHub({ silent: Boolean(hubRef.current) })
   }, [refreshHub, authLoading, user?.id, user?.role])
 
+  // Apply hub branding (colour scheme) to CSS variables for the whole app.
+  useEffect(() => {
+    const root = document.documentElement
+    const primary = hub?.branding?.primary_color || hub?.branding?.color_scheme?.primary
+    const secondary = hub?.branding?.secondary_color || hub?.branding?.color_scheme?.secondary
+
+    if (primary) {
+      root.style.setProperty('--brand', primary)
+    } else {
+      root.style.removeProperty('--brand')
+    }
+
+    if (secondary) {
+      root.style.setProperty('--brand-dark', secondary)
+    } else {
+      root.style.removeProperty('--brand-dark')
+    }
+  }, [hub?.branding])
+
   const can = useCallback(
     (flag) => {
       // Authenticated viewers must use role-resolved caps — never the hub-wide

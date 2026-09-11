@@ -63,6 +63,10 @@ function adminBase(options = {}) {
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   login: (payload) => request('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+  forgotPassword: (payload) =>
+    request('/auth/forgot-password', { method: 'POST', body: JSON.stringify(payload) }),
+  resetPassword: (payload) =>
+    request('/auth/reset-password', { method: 'POST', body: JSON.stringify(payload) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
   plans: () => request('/subscription-plans'),
@@ -163,8 +167,13 @@ export const api = {
   deletePost: (id, options = {}) =>
     request(`${adminBase(options)}/posts/${id}`, { method: 'DELETE' }),
   adminSettings: () => request(`${CLIENT_ADMIN}/settings`),
-  updateSettings: (payload) =>
-    request(`${CLIENT_ADMIN}/settings`, { method: 'PUT', body: JSON.stringify(payload) }),
+  updateSettings: (payload) => {
+    const body = payload instanceof FormData ? payload : JSON.stringify(payload)
+    return request(`${CLIENT_ADMIN}/settings`, {
+      method: payload instanceof FormData ? 'POST' : 'PUT',
+      body,
+    })
+  },
   powerAdminPaymentMethods: (hubId) => {
     const query = hubId ? `?hub_id=${hubId}` : ''
     return request(`/power-admin/payment-methods${query}`)

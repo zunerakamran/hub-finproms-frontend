@@ -4,8 +4,9 @@ import { useHub } from '../context/HubContext'
 
 export default function Layout() {
   const { user, logout, isAdvisor } = useAuth()
-  const { can, hub, hasDashboardAccess } = useHub()
-  const brandName = hub?.name || 'Hub Finproms'
+  const { can, hub, hasDashboardAccess, branding } = useHub()
+  const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
+  const logoUrl = branding?.logo_url || null
   const showPlans =
     can('member_view_plans') && (can('public_subscribe') || can('paid_credits'))
 
@@ -13,7 +14,8 @@ export default function Layout() {
     <div className="app-shell">
       <header className="topbar">
         <NavLink to="/" className="brand">
-          {brandName}
+          {logoUrl ? <img src={logoUrl} alt="" className="brand-logo" /> : null}
+          <span>{brandName}</span>
         </NavLink>
         <nav className="nav">
           {can('member_browse_catalog') && <NavLink to="/">Posts</NavLink>}

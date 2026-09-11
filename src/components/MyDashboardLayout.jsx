@@ -5,8 +5,10 @@ import { DASHBOARD_LINKS, isDashboardLinkVisible } from '../dashboard/nav'
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, hub, advisorBillingEnabled } = useHub()
+  const { can, hub, branding, advisorBillingEnabled } = useHub()
   const navigate = useNavigate()
+  const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
+  const logoUrl = branding?.logo_url || null
 
   const onLogout = async () => {
     await logout()
@@ -21,7 +23,8 @@ export default function MyDashboardLayout() {
     <div className="admin-app-shell member-dashboard-shell">
       <aside className="admin-sidebar">
         <div className="admin-sidebar-brand">
-          <span className="admin-shell-kicker">{hub?.name || 'Hub Finproms'}</span>
+          {logoUrl ? <img src={logoUrl} alt="" className="brand-logo brand-logo--sidebar" /> : null}
+          <span className="admin-shell-kicker">{brandName}</span>
           <strong>Dashboard</strong>
         </div>
         <nav className="admin-subnav" aria-label="Dashboard sections">

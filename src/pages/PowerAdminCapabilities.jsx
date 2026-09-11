@@ -3,7 +3,7 @@ import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
-const GROUP_ORDER = ['power_admin', 'member', 'general', 'dashboard']
+const GROUP_ORDER = ['power_admin', 'member', 'general', 'dashboard', 'admin_emails']
 
 export default function PowerAdminCapabilities() {
   const { canPower, setPowerCapabilities, refreshUser } = useAuth()
@@ -129,7 +129,8 @@ export default function PowerAdminCapabilities() {
             What each role can do on the selected hub (users and hub admins), plus Power Admin
             platform tools. User rows (browse catalog, purchases, etc.) and hub-admin dashboard
             rows apply to every role column — remaining roles (approver, advisor, user) get
-            dashboard tools only when you enable them. Hub Functionalities are configured
+            dashboard tools only when you enable them. Admin emails is a single switch for who
+            receives all admin notification emails. Hub Functionalities are configured
             separately under Hub checklists.
           </p>
         </div>

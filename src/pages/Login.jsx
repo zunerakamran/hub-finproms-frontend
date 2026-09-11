@@ -9,12 +9,13 @@ function roleHome() {
 
 export default function Login() {
   const { login, isAuthenticated } = useAuth()
-  const { hub, registrationEnabled, inviteOnly } = useHub()
+  const { hub, branding, registrationEnabled, inviteOnly } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
   if (isAuthenticated) {
     const fallback = roleHome()
@@ -48,7 +49,7 @@ export default function Login() {
   return (
     <div className="auth-wrap admin-auth-wrap power-auth">
       <form className="auth-panel" onSubmit={onSubmit}>
-        <p className="eyebrow">{hub?.name || 'Hub Finproms'}</p>
+        <p className="eyebrow">{brandName}</p>
         <h1>Sign in</h1>
         <p className="muted">
           {inviteOnly
@@ -77,6 +78,9 @@ export default function Login() {
         <button className="btn primary full" disabled={submitting}>
           {submitting ? 'Signing in...' : 'Login'}
         </button>
+        <p className="muted center">
+          <Link to="/forgot-password">Forgot password?</Link>
+        </p>
         {registrationEnabled && (
           <p className="muted center">
             No account? <Link to="/register">Sign up</Link>

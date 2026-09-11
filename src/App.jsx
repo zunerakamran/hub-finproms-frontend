@@ -42,6 +42,8 @@ import PowerAdminHubs from './pages/PowerAdminHubs'
 import PowerAdminPaymentMethods from './pages/PowerAdminPaymentMethods'
 import PowerAdminUsers from './pages/PowerAdminUsers'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import SubscriptionDetail from './pages/SubscriptionDetail'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import Subscriptions from './pages/Subscriptions'
@@ -333,6 +335,8 @@ export default function App() {
             {/* Shared auth */}
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
+            <Route path="forgot-password" element={<ForgotPassword />} />
+            <Route path="reset-password" element={<ResetPassword />} />
             <Route path="client-admin/login" element={<Navigate to="/login" replace />} />
             <Route path="power-admin/login" element={<Navigate to="/login" replace />} />
 

@@ -5,7 +5,7 @@ import { useHub } from '../context/HubContext'
 
 export default function Register() {
   const { register, isAuthenticated } = useAuth()
-  const { hub, loading: hubLoading, registrationEnabled } = useHub()
+  const { hub, branding, loading: hubLoading, registrationEnabled } = useHub()
   const navigate = useNavigate()
   const [form, setForm] = useState({
     name: '',
@@ -15,6 +15,7 @@ export default function Register() {
   })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
   if (isAuthenticated) return <Navigate to="/my-dashboard" replace />
 
@@ -22,7 +23,7 @@ export default function Register() {
     return (
       <div className="auth-wrap admin-auth-wrap power-auth">
         <div className="auth-panel">
-          <p className="eyebrow">{hub?.name || 'Hub Finproms'}</p>
+          <p className="eyebrow">{brandName}</p>
           <h1>Invite only</h1>
           <p className="muted">
             Public registration is disabled for this hub. Access is for invited advisors only —
@@ -58,7 +59,7 @@ export default function Register() {
   return (
     <div className="auth-wrap admin-auth-wrap power-auth">
       <form className="auth-panel" onSubmit={onSubmit}>
-        <p className="eyebrow">{hub?.name || 'Hub Finproms'}</p>
+        <p className="eyebrow">{brandName}</p>
         <h1>Create your account</h1>
         <p className="muted">Buy credits and unlock social media posts.</p>
         {error && <div className="alert">{error}</div>}

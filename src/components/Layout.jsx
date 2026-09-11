@@ -3,13 +3,11 @@ import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
 export default function Layout() {
-  const { user, logout, isAuthenticated, isClientAdmin, isPowerAdmin, isFinpromsAdmin, isAdvisor } =
-    useAuth()
-  const { can, hub, registrationEnabled } = useHub()
+  const { user, logout, isAdvisor } = useAuth()
+  const { can, hub, hasDashboardAccess } = useHub()
   const brandName = hub?.name || 'Hub Finproms'
   const showPlans =
     can('member_view_plans') && (can('public_subscribe') || can('paid_credits'))
-  const hubAdminLabel = isFinpromsAdmin ? 'FinProms Admin' : 'Client Admin'
 
   return (
     <div className="app-shell">
@@ -21,41 +19,19 @@ export default function Layout() {
           {can('member_browse_catalog') && <NavLink to="/">Posts</NavLink>}
           {can('member_browse_catalog') && <NavLink to="/bundles">Bundles</NavLink>}
           {showPlans && <NavLink to="/subscriptions">Plans</NavLink>}
-          {isAuthenticated && can('member_view_purchases') && (
-            <NavLink to="/my-purchases">My Purchases</NavLink>
-          )}
-          {isAuthenticated && can('member_view_invoices') && (
-            <NavLink to="/my-invoices">Invoices</NavLink>
-          )}
-          {isClientAdmin && <NavLink to="/client-admin">{hubAdminLabel}</NavLink>}
-          {isPowerAdmin && <NavLink to="/power-admin">Power Admin</NavLink>}
+          {hasDashboardAccess && <NavLink to="/my-dashboard">Dashboard</NavLink>}
         </nav>
         <div className="topbar-right">
-          {isAuthenticated ? (
-            <>
-              <span className="credits-pill">
-                {user?.has_unlimited_credits ||
-                (can('unlimited_credits') && isAdvisor)
-                  ? 'Unlimited credits'
-                  : `${user.credits} credits`}
-              </span>
-              <span className="user-name">{user.name}</span>
-              <button type="button" className="btn ghost" onClick={logout}>
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <NavLink to="/login" className="btn ghost">
-                Login
-              </NavLink>
-              {registrationEnabled && (
-                <NavLink to="/register" className="btn primary">
-                  Sign up
-                </NavLink>
-              )}
-            </>
-          )}
+          <span className="credits-pill">
+            {user?.has_unlimited_credits ||
+            (can('unlimited_credits') && isAdvisor)
+              ? 'Unlimited credits'
+              : `${user?.credits ?? 0} credits`}
+          </span>
+          <span className="user-name">{user?.name}</span>
+          <button type="button" className="btn ghost" onClick={logout}>
+            Logout
+          </button>
         </div>
       </header>
       <main className="page">

@@ -1647,6 +1647,10 @@ label {
   background: #1a2030;
 }
 
+.member-dashboard-shell .admin-sidebar {
+  background: #14261f;
+}
+
 .admin-auth-wrap {
   min-height: 100vh;
   background: #eef3f0;

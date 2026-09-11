@@ -93,7 +93,7 @@ export default function PowerAdminChecklist() {
             managed under Capabilities.
           </p>
         </div>
-        <Link to="/power-admin/hubs" className="btn ghost">
+        <Link to="/my-dashboard/hubs" className="btn ghost">
           Manage hubs
         </Link>
       </div>
@@ -107,7 +107,7 @@ export default function PowerAdminChecklist() {
         <div className="empty-state">
           <h2>No hubs found</h2>
           <p className="muted">Create a hub first, then configure its checklist.</p>
-          <Link to="/power-admin/hubs" className="btn primary">
+          <Link to="/my-dashboard/hubs" className="btn primary">
             Go to hubs
           </Link>
         </div>
@@ -136,7 +136,7 @@ export default function PowerAdminChecklist() {
                     Slug <code>{hub.slug}</code>
                   </p>
                 </div>
-                <Link className="btn ghost" to={`/power-admin/hubs/${hub.id}`}>
+                <Link className="btn ghost" to={`/my-dashboard/hubs/${hub.id}`}>
                   Open full hub settings
                 </Link>
               </div>

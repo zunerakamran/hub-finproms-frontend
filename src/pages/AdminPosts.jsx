@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
 const emptyForm = {
   title: '',
@@ -13,7 +14,10 @@ const emptyForm = {
   attachment: null,
 }
 
-export default function AdminPosts() {
+export default function AdminPosts({ shell = 'client-admin' }) {
+  const { isPowerAdmin } = useAuth()
+  const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
+  const apiOpts = { asPowerAdmin }
   const [posts, setPosts] = useState([])
   const [types, setTypes] = useState([])
   const [categories, setCategories] = useState([])
@@ -78,10 +82,10 @@ export default function AdminPosts() {
     setMessage('')
     try {
       if (editingId) {
-        await api.updatePost(editingId, toFormData())
+        await api.updatePost(editingId, toFormData(), apiOpts)
         setMessage('Post updated.')
       } else {
-        await api.createPost(toFormData())
+        await api.createPost(toFormData(), apiOpts)
         setMessage('Post created.')
       }
       setForm(emptyForm)
@@ -117,7 +121,7 @@ export default function AdminPosts() {
   const remove = async (id) => {
     if (!window.confirm('Delete this post?')) return
     try {
-      await api.deletePost(id)
+      await api.deletePost(id, apiOpts)
       await load()
     } catch (err) {
       setError(err.message)
@@ -188,7 +192,7 @@ export default function AdminPosts() {
             </select>
             {types.length === 0 && (
               <span className="field-hint">
-                No types yet. <Link to="/client-admin/types">Add types</Link> first.
+                No types yet. <Link to="/my-dashboard/types">Add types</Link> first.
               </span>
             )}
           </label>
@@ -208,7 +212,7 @@ export default function AdminPosts() {
             </select>
             {categories.length === 0 && (
               <span className="field-hint">
-                No categories yet. <Link to="/client-admin/categories">Add categories</Link> first.
+                No categories yet. <Link to="/my-dashboard/categories">Add categories</Link> first.
               </span>
             )}
           </label>
@@ -227,7 +231,7 @@ export default function AdminPosts() {
           <legend>Tags</legend>
           {tagOptions.length === 0 ? (
             <p className="field-hint">
-              No tags yet. <Link to="/client-admin/tags">Add tags</Link> first.
+              No tags yet. <Link to="/my-dashboard/tags">Add tags</Link> first.
             </p>
           ) : (
             <div className="tag-options">

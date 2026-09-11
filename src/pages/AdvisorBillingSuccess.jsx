@@ -46,10 +46,10 @@ export default function AdvisorBillingSuccess() {
               : 'Billing recorded.'}
           </p>
           <div className="actions">
-            <Link className="btn primary" to="/client-admin/advisor-invoices">
+            <Link className="btn primary" to="/my-dashboard/advisor-invoices">
               View advisor invoices
             </Link>
-            <button type="button" className="btn ghost" onClick={() => navigate('/client-admin/advisors')}>
+            <button type="button" className="btn ghost" onClick={() => navigate('/my-dashboard/advisors')}>
               Back to advisors
             </button>
           </div>

@@ -1,8 +1,8 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
-import ClientAdminLayout from './components/ClientAdminLayout'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import HubCapabilityRoute from './components/HubCapabilityRoute'
 import Layout from './components/Layout'
-import PowerAdminLayout from './components/PowerAdminLayout'
+import MyDashboardLayout from './components/MyDashboardLayout'
+import PowerCapabilityRoute from './components/PowerCapabilityRoute'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 import { HubProvider } from './context/HubContext'
@@ -12,9 +12,9 @@ import AdminActivityLogs from './pages/AdminActivityLogs'
 import AdminAdvisorInvoices from './pages/AdminAdvisorInvoices'
 import AdminAdvisorPricing from './pages/AdminAdvisorPricing'
 import AdminAdvisorRenewal from './pages/AdminAdvisorRenewal'
+import AdminSubscriberCredits from './pages/AdminSubscriberCredits'
 import AdminBundles from './pages/AdminBundles'
 import AdminCategories from './pages/AdminCategories'
-import AdminDashboard from './pages/AdminDashboard'
 import AdminPaymentCard from './pages/AdminPaymentCard'
 import AdminPaymentCardSuccess from './pages/AdminPaymentCardSuccess'
 import AdminPlans from './pages/AdminPlans'
@@ -28,13 +28,15 @@ import BundleDetail from './pages/BundleDetail'
 import Bundles from './pages/Bundles'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Login from './pages/Login'
+import MyCredits from './pages/MyCredits'
+import MyDashboard from './pages/MyDashboard'
 import MyInvoices from './pages/MyInvoices'
 import MyPurchases from './pages/MyPurchases'
+import MySubscription from './pages/MySubscription'
 import PostDetail from './pages/PostDetail'
 import Posts from './pages/Posts'
 import PowerAdminCapabilities from './pages/PowerAdminCapabilities'
 import PowerAdminChecklist from './pages/PowerAdminChecklist'
-import PowerAdminDashboard from './pages/PowerAdminDashboard'
 import PowerAdminHubDetail from './pages/PowerAdminHubDetail'
 import PowerAdminHubs from './pages/PowerAdminHubs'
 import PowerAdminPaymentMethods from './pages/PowerAdminPaymentMethods'
@@ -45,20 +47,21 @@ import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import Subscriptions from './pages/Subscriptions'
 import './App.css'
 
-function ClientAdminRoute() {
-  return (
-    <ProtectedRoute clientAdminOnly>
-      <Outlet />
-    </ProtectedRoute>
-  )
+function LegacyInvoiceRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/my-dashboard/invoices/${id}`} replace />
 }
 
-function PowerAdminRoute() {
-  return (
-    <ProtectedRoute powerAdminOnly>
-      <Outlet />
-    </ProtectedRoute>
-  )
+function LegacyHubRedirect() {
+  const { hubId } = useParams()
+  return <Navigate to={`/my-dashboard/hubs/${hubId}`} replace />
+}
+
+function LegacyShellRedirect({ toPrefix }) {
+  const { '*': rest } = useParams()
+  const location = useLocation()
+  const path = rest ? `${toPrefix}/${rest}` : toPrefix
+  return <Navigate to={`${path}${location.search}`} replace />
 }
 
 export default function App() {
@@ -67,66 +70,75 @@ export default function App() {
       <HubProvider>
         <BrowserRouter>
           <Routes>
-            {/* Member application */}
-            <Route element={<Layout />}>
+            {/* Member catalog — login required */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<Posts />} />
               <Route path="posts/:id" element={<PostDetail />} />
               <Route path="bundles" element={<Bundles />} />
               <Route path="bundles/:id" element={<BundleDetail />} />
               <Route path="subscriptions" element={<Subscriptions />} />
-              <Route
-                path="subscriptions/success"
-                element={
-                  <ProtectedRoute>
-                    <SubscriptionSuccess />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="subscriptions/bank-transfer"
-                element={
-                  <ProtectedRoute>
-                    <BankTransferPending />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="subscriptions/success" element={<SubscriptionSuccess />} />
+              <Route path="subscriptions/bank-transfer" element={<BankTransferPending />} />
               <Route path="subscriptions/:id" element={<SubscriptionDetail />} />
-              <Route
-                path="my-purchases"
-                element={
-                  <ProtectedRoute>
-                    <MyPurchases />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="my-invoices"
-                element={
-                  <ProtectedRoute>
-                    <MyInvoices />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="invoices/:id"
-                element={
-                  <ProtectedRoute>
-                    <InvoiceDetail />
-                  </ProtectedRoute>
-                }
-              />
             </Route>
 
-            {/* Shared auth */}
-            <Route path="login" element={<Login />} />
-            <Route path="register" element={<Register />} />
-            <Route path="client-admin/login" element={<Navigate to="/login" replace />} />
-            <Route path="power-admin/login" element={<Navigate to="/login" replace />} />
+            {/* Universal dashboard — tools from Capabilities matrix (+ Power Admin pa_* tools) */}
+            <Route
+              element={
+                <ProtectedRoute dashboardOnly>
+                  <Outlet />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="my-dashboard" element={<MyDashboardLayout />}>
+                <Route index element={<MyDashboard />} />
+                <Route
+                  path="subscription"
+                  element={
+                    <HubCapabilityRoute capability="general_show_subscription">
+                      <MySubscription />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="credits"
+                  element={
+                    <HubCapabilityRoute capability="general_show_credits">
+                      <MyCredits />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="purchases"
+                  element={
+                    <HubCapabilityRoute capability="general_show_purchases">
+                      <MyPurchases />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="invoices"
+                  element={
+                    <HubCapabilityRoute capability="general_show_invoices">
+                      <MyInvoices />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="invoices/:id"
+                  element={
+                    <HubCapabilityRoute capability="general_show_invoices">
+                      <InvoiceDetail />
+                    </HubCapabilityRoute>
+                  }
+                />
 
-            {/* Client Admin — separate shell */}
-            <Route element={<ClientAdminRoute />}>
-              <Route path="client-admin" element={<ClientAdminLayout />}>
-                <Route index element={<AdminDashboard />} />
                 <Route
                   path="posts"
                   element={
@@ -218,6 +230,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="subscriber-credits"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_subscriber_credits">
+                      <AdminSubscriberCredits />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
                   path="advisor-billing/success"
                   element={
                     <HubCapabilityRoute capability="advisor_excel_import">
@@ -241,89 +261,81 @@ export default function App() {
                     </HubCapabilityRoute>
                   }
                 />
-              </Route>
-            </Route>
 
-            {/* Power Admin — separate shell */}
-            <Route element={<PowerAdminRoute />}>
-              <Route path="power-admin" element={<PowerAdminLayout />}>
-                <Route index element={<PowerAdminDashboard />} />
-                <Route path="payment-methods" element={<PowerAdminPaymentMethods />} />
-                <Route path="users" element={<PowerAdminUsers />} />
                 <Route
-                  path="advisor-pricing"
+                  path="payment-methods"
                   element={
-                    <HubCapabilityRoute
-                      capability="dashboard_manage_advisor_pricing"
-                      fallback="/power-admin"
-                    >
-                      <AdminAdvisorPricing shell="power-admin" />
-                    </HubCapabilityRoute>
+                    <PowerCapabilityRoute capability="pa_manage_payment_methods">
+                      <PowerAdminPaymentMethods />
+                    </PowerCapabilityRoute>
                   }
                 />
                 <Route
-                  path="advisor-renewal"
+                  path="users"
                   element={
-                    <HubCapabilityRoute
-                      capability="dashboard_manage_advisor_renewal"
-                      fallback="/power-admin"
-                    >
-                      <AdminAdvisorRenewal shell="power-admin" />
-                    </HubCapabilityRoute>
+                    <PowerCapabilityRoute capability="pa_manage_users_roles">
+                      <PowerAdminUsers />
+                    </PowerCapabilityRoute>
                   }
                 />
                 <Route
-                  path="plans"
+                  path="hubs"
                   element={
-                    <HubCapabilityRoute
-                      capability="dashboard_manage_plans"
-                      fallback="/power-admin"
-                    >
-                      <AdminPlans shell="power-admin" />
-                    </HubCapabilityRoute>
-                  }
-                />
-                <Route path="hubs" element={<PowerAdminHubs />} />
-                <Route path="hubs/:hubId" element={<PowerAdminHubDetail />} />
-                <Route path="checklist" element={<PowerAdminChecklist />} />
-                <Route path="capabilities" element={<PowerAdminCapabilities />} />
-                <Route
-                  path="advisors"
-                  element={
-                    <HubCapabilityRoute
-                      anyOf={['advisor_excel_import', 'advisor_discontinue']}
-                      fallback="/power-admin"
-                    >
-                      <AdminAdvisors shell="power-admin" />
-                    </HubCapabilityRoute>
+                    <PowerCapabilityRoute capability="pa_manage_hubs">
+                      <PowerAdminHubs />
+                    </PowerCapabilityRoute>
                   }
                 />
                 <Route
-                  path="advisor-invoices"
+                  path="hubs/:hubId"
                   element={
-                    <HubCapabilityRoute
-                      capability="dashboard_view_advisor_invoices"
-                      fallback="/power-admin"
-                    >
-                      <AdminAdvisorInvoices shell="power-admin" />
-                    </HubCapabilityRoute>
+                    <PowerCapabilityRoute capability="pa_manage_hubs">
+                      <PowerAdminHubDetail />
+                    </PowerCapabilityRoute>
                   }
                 />
                 <Route
-                  path="activity-logs"
+                  path="checklist"
                   element={
-                    <HubCapabilityRoute
-                      capability="dashboard_view_activity_logs"
-                      fallback="/power-admin"
-                    >
-                      <AdminActivityLogs shell="power-admin" />
-                    </HubCapabilityRoute>
+                    <PowerCapabilityRoute capability="pa_manage_hub_checklists">
+                      <PowerAdminChecklist />
+                    </PowerCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="capabilities"
+                  element={
+                    <PowerCapabilityRoute capability="pa_manage_power_capabilities">
+                      <PowerAdminCapabilities />
+                    </PowerCapabilityRoute>
                   }
                 />
               </Route>
             </Route>
 
-            <Route path="admin/*" element={<Navigate to="/client-admin" replace />} />
+            {/* Legacy URLs → universal dashboard */}
+            <Route path="my-purchases" element={<Navigate to="/my-dashboard/purchases" replace />} />
+            <Route path="my-invoices" element={<Navigate to="/my-dashboard/invoices" replace />} />
+            <Route path="invoices/:id" element={<LegacyInvoiceRedirect />} />
+            <Route path="client-admin" element={<Navigate to="/my-dashboard" replace />} />
+            <Route
+              path="client-admin/*"
+              element={<LegacyShellRedirect toPrefix="/my-dashboard" />}
+            />
+            <Route path="power-admin" element={<Navigate to="/my-dashboard" replace />} />
+            <Route path="power-admin/hubs/:hubId" element={<LegacyHubRedirect />} />
+            <Route
+              path="power-admin/*"
+              element={<LegacyShellRedirect toPrefix="/my-dashboard" />}
+            />
+            <Route path="admin/*" element={<Navigate to="/my-dashboard" replace />} />
+
+            {/* Shared auth */}
+            <Route path="login" element={<Login />} />
+            <Route path="register" element={<Register />} />
+            <Route path="client-admin/login" element={<Navigate to="/login" replace />} />
+            <Route path="power-admin/login" element={<Navigate to="/login" replace />} />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

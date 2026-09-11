@@ -50,6 +50,7 @@ export default function PowerAdminHubDetail() {
   }, [hubId])
 
   const checklistItems = hub?.checklist || []
+  const credits = hub?.subscriber_credits || {}
 
   const onSaveMeta = async (e) => {
     e.preventDefault()
@@ -69,6 +70,7 @@ export default function PowerAdminHubDetail() {
       }
       const data = await api.updatePowerAdminHub(hubId, payload)
       setHub(data.hub)
+      setFlags(checklistToMap(data.hub.checklist))
       setMessage(data.message || 'Hub updated.')
     } catch (err) {
       setError(err.message)
@@ -102,7 +104,7 @@ export default function PowerAdminHubDetail() {
     return (
       <section>
         <div className="alert">{error || 'Hub not found.'}</div>
-        <Link to="/power-admin/hubs" className="btn ghost">
+        <Link to="/my-dashboard/hubs" className="btn ghost">
           ← Back to hubs
         </Link>
       </section>
@@ -120,7 +122,7 @@ export default function PowerAdminHubDetail() {
             {hub.type === 'shared' ? 'shared' : 'white-labelled'} hub.
           </p>
         </div>
-        <Link to="/power-admin/hubs" className="btn ghost">
+        <Link to="/my-dashboard/hubs" className="btn ghost">
           ← All hubs
         </Link>
       </div>
@@ -188,6 +190,24 @@ export default function PowerAdminHubDetail() {
           </button>
         </div>
       </form>
+
+      <div className="admin-form" style={{ marginTop: '1.25rem' }}>
+        <h2>Subscriber credits</h2>
+        <p className="muted">
+          Current allotment:{' '}
+          <strong>
+            {credits.unlimited !== false
+              ? 'Unlimited'
+              : `${credits.credits ?? 0} credits / subscriber / period`}
+          </strong>
+          . Set this from the Power Admin dashboard (gated by Capabilities).
+        </p>
+        <div className="actions">
+          <Link className="btn primary" to={`/my-dashboard/subscriber-credits?hub=${hub.id}`}>
+            Manage subscriber credits
+          </Link>
+        </div>
+      </div>
 
       <div id="checklist">
         <div className="page-head" style={{ marginTop: '1.5rem' }}>

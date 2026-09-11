@@ -56,6 +56,10 @@ async function request(path, options = {}) {
 
 const CLIENT_ADMIN = '/client-admin'
 
+function adminBase(options = {}) {
+  return options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+}
+
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   login: (payload) => request('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
@@ -94,6 +98,7 @@ export const api = {
   confirmSubscription: (sessionId) =>
     request('/subscriptions/confirm', { method: 'POST', body: JSON.stringify({ session_id: sessionId }) }),
   mySubscriptions: () => request('/my-subscriptions'),
+  myDashboard: () => request('/my-dashboard'),
   pendingBankTransfers: () => request(`${CLIENT_ADMIN}/bank-transfers/pending`),
   confirmBankTransfer: (id) =>
     request(`${CLIENT_ADMIN}/bank-transfers/${id}/confirm`, { method: 'POST' }),
@@ -106,22 +111,26 @@ export const api = {
   post: (id) => request(`/posts/${id}`),
   categories: () => request('/posts/categories'),
   listCategories: () => request('/categories'),
-  createCategory: (payload) =>
-    request(`${CLIENT_ADMIN}/categories`, { method: 'POST', body: JSON.stringify(payload) }),
-  updateCategory: (id, payload) =>
-    request(`${CLIENT_ADMIN}/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  deleteCategory: (id) => request(`${CLIENT_ADMIN}/categories/${id}`, { method: 'DELETE' }),
+  createCategory: (payload, options = {}) =>
+    request(`${adminBase(options)}/categories`, { method: 'POST', body: JSON.stringify(payload) }),
+  updateCategory: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteCategory: (id, options = {}) =>
+    request(`${adminBase(options)}/categories/${id}`, { method: 'DELETE' }),
   listTypes: () => request('/types'),
-  createType: (payload) =>
-    request(`${CLIENT_ADMIN}/types`, { method: 'POST', body: JSON.stringify(payload) }),
-  updateType: (id, payload) =>
-    request(`${CLIENT_ADMIN}/types/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  deleteType: (id) => request(`${CLIENT_ADMIN}/types/${id}`, { method: 'DELETE' }),
+  createType: (payload, options = {}) =>
+    request(`${adminBase(options)}/types`, { method: 'POST', body: JSON.stringify(payload) }),
+  updateType: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/types/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteType: (id, options = {}) =>
+    request(`${adminBase(options)}/types/${id}`, { method: 'DELETE' }),
   listTags: () => request('/tags'),
-  createTag: (payload) => request(`${CLIENT_ADMIN}/tags`, { method: 'POST', body: JSON.stringify(payload) }),
-  updateTag: (id, payload) =>
-    request(`${CLIENT_ADMIN}/tags/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  deleteTag: (id) => request(`${CLIENT_ADMIN}/tags/${id}`, { method: 'DELETE' }),
+  createTag: (payload, options = {}) =>
+    request(`${adminBase(options)}/tags`, { method: 'POST', body: JSON.stringify(payload) }),
+  updateTag: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/tags/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteTag: (id, options = {}) =>
+    request(`${adminBase(options)}/tags/${id}`, { method: 'DELETE' }),
   purchasePost: (id) => request(`/posts/${id}/purchase`, { method: 'POST' }),
   bundles: (params = {}) => {
     const query = new URLSearchParams(
@@ -131,23 +140,28 @@ export const api = {
   },
   bundle: (id) => request(`/bundles/${id}`),
   purchaseBundle: (id) => request(`/bundles/${id}/purchase`, { method: 'POST' }),
-  adminBundles: (params = {}) => {
+  adminBundles: (params = {}, options = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
     ).toString()
-    return request(`${CLIENT_ADMIN}/bundles${query ? `?${query}` : ''}`)
+    return request(`${adminBase(options)}/bundles${query ? `?${query}` : ''}`)
   },
-  adminBundle: (id) => request(`${CLIENT_ADMIN}/bundles/${id}`),
-  createBundle: (formData) => request(`${CLIENT_ADMIN}/bundles`, { method: 'POST', body: formData }),
-  updateBundle: (id, formData) =>
-    request(`${CLIENT_ADMIN}/bundles/${id}`, { method: 'POST', body: formData }),
-  deleteBundle: (id) => request(`${CLIENT_ADMIN}/bundles/${id}`, { method: 'DELETE' }),
+  adminBundle: (id, options = {}) => request(`${adminBase(options)}/bundles/${id}`),
+  createBundle: (formData, options = {}) =>
+    request(`${adminBase(options)}/bundles`, { method: 'POST', body: formData }),
+  updateBundle: (id, formData, options = {}) =>
+    request(`${adminBase(options)}/bundles/${id}`, { method: 'POST', body: formData }),
+  deleteBundle: (id, options = {}) =>
+    request(`${adminBase(options)}/bundles/${id}`, { method: 'DELETE' }),
   myPurchases: () => request('/my-purchases'),
   myInvoices: () => request('/my-invoices'),
   invoice: (id) => request(`/invoices/${id}`),
-  createPost: (formData) => request(`${CLIENT_ADMIN}/posts`, { method: 'POST', body: formData }),
-  updatePost: (id, formData) => request(`${CLIENT_ADMIN}/posts/${id}`, { method: 'POST', body: formData }),
-  deletePost: (id) => request(`${CLIENT_ADMIN}/posts/${id}`, { method: 'DELETE' }),
+  createPost: (formData, options = {}) =>
+    request(`${adminBase(options)}/posts`, { method: 'POST', body: formData }),
+  updatePost: (id, formData, options = {}) =>
+    request(`${adminBase(options)}/posts/${id}`, { method: 'POST', body: formData }),
+  deletePost: (id, options = {}) =>
+    request(`${adminBase(options)}/posts/${id}`, { method: 'DELETE' }),
   adminSettings: () => request(`${CLIENT_ADMIN}/settings`),
   updateSettings: (payload) =>
     request(`${CLIENT_ADMIN}/settings`, { method: 'PUT', body: JSON.stringify(payload) }),
@@ -254,6 +268,20 @@ export const api = {
   updateAdvisorBillingRenewal: (payload, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/advisor-billing-renewal`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  subscriberCredits: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/subscriber-credits${query ? `?${query}` : ''}`)
+  },
+  updateSubscriberCredits: (payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/subscriber-credits`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     })

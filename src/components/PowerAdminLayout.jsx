@@ -17,9 +17,39 @@ const links = [
     hubCapability: 'dashboard_manage_advisor_renewal',
   },
   {
+    to: '/power-admin/subscriber-credits',
+    label: 'Subscriber credits',
+    hubCapability: 'dashboard_manage_subscriber_credits',
+  },
+  {
     to: '/power-admin/plans',
     label: 'Subscription plans',
     hubCapability: 'dashboard_manage_plans',
+  },
+  {
+    to: '/power-admin/posts',
+    label: 'Posts / reels',
+    hubCapability: 'dashboard_manage_posts',
+  },
+  {
+    to: '/power-admin/bundles',
+    label: 'Bundles',
+    hubCapability: 'dashboard_manage_bundles',
+  },
+  {
+    to: '/power-admin/types',
+    label: 'Types',
+    hubCapability: 'dashboard_manage_types',
+  },
+  {
+    to: '/power-admin/categories',
+    label: 'Categories',
+    hubCapability: 'dashboard_manage_categories',
+  },
+  {
+    to: '/power-admin/tags',
+    label: 'Tags',
+    hubCapability: 'dashboard_manage_tags',
   },
   { to: '/power-admin/hubs', label: 'White-label hubs', capability: 'pa_manage_hubs' },
   { to: '/power-admin/checklist', label: 'Functionalities', capability: 'pa_manage_hub_checklists' },
@@ -56,6 +86,7 @@ export default function PowerAdminLayout() {
   }
 
   const visible = links.filter((link) => {
+    if (link.alwaysForPowerAdmin) return true
     if (Array.isArray(link.hubAnyOf) && link.hubAnyOf.length > 0) {
       return link.hubAnyOf.some((flag) => can(flag))
     }

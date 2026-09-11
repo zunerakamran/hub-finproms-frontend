@@ -29,18 +29,7 @@ export default function Posts() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  if (!hubLoading && !can('member_browse_catalog')) {
-    return (
-      <section>
-        <div className="page-head">
-          <div>
-            <h1>Catalog unavailable</h1>
-            <p className="muted">Browsing posts is disabled for this hub by Power Admin.</p>
-          </div>
-        </div>
-      </section>
-    )
-  }
+  const catalogAllowed = hubLoading || can('member_browse_catalog')
 
   const loadFilters = async () => {
     const [typesRes, catsRes, tagsRes] = await Promise.all([
@@ -69,13 +58,15 @@ export default function Posts() {
   }
 
   useEffect(() => {
+    if (!catalogAllowed) return
     loadFilters().catch((err) => setError(err.message))
-  }, [])
+  }, [catalogAllowed])
 
   useEffect(() => {
+    if (!catalogAllowed) return
     loadPosts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.type, filters.category, filters.tag, filters.search, user?.credits, user?.id])
+  }, [catalogAllowed, filters.type, filters.category, filters.tag, filters.search, user?.credits, user?.id])
 
   const onSearch = (e) => {
     e.preventDefault()
@@ -95,6 +86,19 @@ export default function Posts() {
     if (totalResults === 0) return 'No content match'
     return `${totalResults} item${totalResults === 1 ? '' : 's'} found`
   }, [loading, totalResults])
+
+  if (!catalogAllowed) {
+    return (
+      <section>
+        <div className="page-head">
+          <div>
+            <h1>Catalog unavailable</h1>
+            <p className="muted">Browsing posts is disabled for this hub by Power Admin.</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="listing-page">

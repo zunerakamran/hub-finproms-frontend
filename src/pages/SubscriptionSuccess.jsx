@@ -56,7 +56,7 @@ export default function SubscriptionSuccess() {
           Browse posts
         </Link>
         {invoice ? (
-          <Link to={`/invoices/${invoice.id}`} className="btn ghost">
+          <Link to={`/my-dashboard/invoices/${invoice.id}`} className="btn ghost">
             View invoice
           </Link>
         ) : (

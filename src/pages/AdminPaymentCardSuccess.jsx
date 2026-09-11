@@ -44,13 +44,13 @@ export default function AdminPaymentCardSuccess() {
               : 'Stripe checkout completed but no card was found on the session.'}
           </p>
           <div className="actions">
-            <Link className="btn primary" to="/client-admin/payment-card">
+            <Link className="btn primary" to="/my-dashboard/payment-card">
               Back to payment card
             </Link>
             <button
               type="button"
               className="btn ghost"
-              onClick={() => navigate('/client-admin/advisors')}
+              onClick={() => navigate('/my-dashboard/advisors')}
             >
               Advisor import
             </button>

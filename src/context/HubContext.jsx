@@ -4,6 +4,23 @@ import { useAuth } from './AuthContext'
 
 const HubContext = createContext(null)
 
+const HUB_ADMIN_ROLES = ['finproms_admin', 'client_admin', 'manager', 'admin']
+
+function isDashboardCapabilityKey(key) {
+  return (
+    String(key).startsWith('dashboard_') ||
+    key === 'advisor_excel_import' ||
+    key === 'advisor_discontinue'
+  )
+}
+
+const GENERAL_DASHBOARD_KEYS = [
+  'general_show_subscription',
+  'general_show_credits',
+  'general_show_invoices',
+  'general_show_purchases',
+]
+
 function sameHub(a, b) {
   if (a === b) return true
   if (!a || !b) return false
@@ -77,6 +94,7 @@ export function HubProvider({ children }) {
         if (
           String(flag).startsWith('dashboard_') ||
           String(flag).startsWith('member_') ||
+          String(flag).startsWith('general_') ||
           flag === 'advisor_excel_import' ||
           flag === 'advisor_discontinue'
         ) {
@@ -108,6 +126,31 @@ export function HubProvider({ children }) {
     return Boolean(hub?.checklist?.private_invite_only)
   }, [hub])
 
+  /** Staff always; remaining roles only when a dashboard capability is on. */
+  const hasHubDashboardAccess = useMemo(() => {
+    if (!user) return false
+    if (HUB_ADMIN_ROLES.includes(user.role)) return true
+    const caps = hub?.effective_capabilities
+    if (!caps) return false
+    return Object.entries(caps).some(
+      ([key, enabled]) => Boolean(enabled) && isDashboardCapabilityKey(key)
+    )
+  }, [user, hub])
+
+  /** Member personal dashboard (General options). */
+  const hasGeneralDashboardAccess = useMemo(() => {
+    if (!user) return false
+    return GENERAL_DASHBOARD_KEYS.some((key) => can(key))
+  }, [user, can])
+
+  /** Any tool that belongs in the universal /my-dashboard shell. */
+  const hasDashboardAccess = useMemo(() => {
+    if (!user) return false
+    if (user.role === 'power_admin') return true
+    if (hasHubDashboardAccess || hasGeneralDashboardAccess) return true
+    return false
+  }, [user, hasHubDashboardAccess, hasGeneralDashboardAccess])
+
   const value = useMemo(
     () => ({
       hub,
@@ -119,10 +162,26 @@ export function HubProvider({ children }) {
       advisorBillingEnabled,
       registrationEnabled,
       inviteOnly,
+      hasHubDashboardAccess,
+      hasGeneralDashboardAccess,
+      hasDashboardAccess,
       checklist: hub?.checklist || {},
       branding: hub?.branding || {},
     }),
-    [hub, loading, authLoading, error, refreshHub, can, advisorBillingEnabled, registrationEnabled, inviteOnly]
+    [
+      hub,
+      loading,
+      authLoading,
+      error,
+      refreshHub,
+      can,
+      advisorBillingEnabled,
+      registrationEnabled,
+      inviteOnly,
+      hasHubDashboardAccess,
+      hasGeneralDashboardAccess,
+      hasDashboardAccess,
+    ]
   )
 
   return <HubContext.Provider value={value}>{children}</HubContext.Provider>

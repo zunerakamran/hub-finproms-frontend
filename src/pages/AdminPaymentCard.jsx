@@ -134,7 +134,7 @@ export default function AdminPaymentCard() {
                   ? 'Update card'
                   : 'Enter card'}
             </button>
-            <Link className="btn ghost" to="/client-admin/advisors">
+            <Link className="btn ghost" to="/my-dashboard/advisors">
               Advisor import
             </Link>
           </div>

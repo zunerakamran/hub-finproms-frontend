@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
-export default function AdminTags() {
+export default function AdminTags({ shell = 'client-admin' }) {
+  const { isPowerAdmin } = useAuth()
+  const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
+  const apiOpts = { asPowerAdmin }
   const [tags, setTags] = useState([])
   const [name, setName] = useState('')
   const [editingId, setEditingId] = useState(null)
@@ -38,10 +42,10 @@ export default function AdminTags() {
     setMessage('')
     try {
       if (editingId) {
-        await api.updateTag(editingId, { name: name.trim() })
+        await api.updateTag(editingId, { name: name.trim() }, apiOpts)
         setMessage('Tag updated.')
       } else {
-        await api.createTag({ name: name.trim() })
+        await api.createTag({ name: name.trim() }, apiOpts)
         setMessage('Tag created.')
       }
       reset()
@@ -65,7 +69,7 @@ export default function AdminTags() {
     setError('')
     setMessage('')
     try {
-      await api.deleteTag(id)
+      await api.deleteTag(id, apiOpts)
       setMessage('Tag deleted.')
       if (editingId === id) reset()
       await load()

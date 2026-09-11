@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
-export default function AdminCategories() {
+export default function AdminCategories({ shell = 'client-admin' }) {
+  const { isPowerAdmin } = useAuth()
+  const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
+  const apiOpts = { asPowerAdmin }
   const [categories, setCategories] = useState([])
   const [name, setName] = useState('')
   const [editingId, setEditingId] = useState(null)
@@ -38,10 +42,10 @@ export default function AdminCategories() {
     setMessage('')
     try {
       if (editingId) {
-        await api.updateCategory(editingId, { name: name.trim() })
+        await api.updateCategory(editingId, { name: name.trim() }, apiOpts)
         setMessage('Category updated.')
       } else {
-        await api.createCategory({ name: name.trim() })
+        await api.createCategory({ name: name.trim() }, apiOpts)
         setMessage('Category created.')
       }
       reset()
@@ -65,7 +69,7 @@ export default function AdminCategories() {
     setError('')
     setMessage('')
     try {
-      await api.deleteCategory(id)
+      await api.deleteCategory(id, apiOpts)
       setMessage('Category deleted.')
       if (editingId === id) reset()
       await load()

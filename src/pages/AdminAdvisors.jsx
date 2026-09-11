@@ -37,11 +37,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const enabled = canImport || canDiscontinue
   const billingEnabled = advisorBillingEnabled
   const canViewInvoices = can('dashboard_view_advisor_invoices')
-  const eyebrow = asPowerAdmin ? 'Power Admin' : 'Client Admin'
+  const eyebrow = 'Dashboard'
   const apiOpts = { asPowerAdmin }
-  const invoicesPath = asPowerAdmin
-    ? '/power-admin/advisor-invoices'
-    : '/client-admin/advisor-invoices'
+  const invoicesPath = '/my-dashboard/advisor-invoices'
 
   const load = async () => {
     if (!enabled) {
@@ -216,7 +214,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         </div>
         <div className="actions">
           {billingEnabled && !asPowerAdmin && canImport && (
-            <Link className="btn ghost" to="/client-admin/payment-card">
+            <Link className="btn ghost" to="/my-dashboard/payment-card">
               Payment card
             </Link>
           )}

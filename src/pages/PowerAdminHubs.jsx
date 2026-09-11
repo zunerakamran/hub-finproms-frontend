@@ -167,10 +167,10 @@ export default function PowerAdminHubs() {
                   {enabledCount} of {(hub.checklist || []).length} Functionalities enabled
                 </p>
                 <div className="actions">
-                  <Link className="btn primary" to={`/power-admin/hubs/${hub.id}`}>
+                  <Link className="btn primary" to={`/my-dashboard/hubs/${hub.id}`}>
                     Manage hub &amp; Functionalities
                   </Link>
-                  <Link className="btn ghost" to={`/power-admin/checklist?hub=${hub.id}`}>
+                  <Link className="btn ghost" to={`/my-dashboard/checklist?hub=${hub.id}`}>
                     Functionalities only
                   </Link>
                 </div>

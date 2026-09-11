@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
-export default function AdminTypes() {
+export default function AdminTypes({ shell = 'client-admin' }) {
+  const { isPowerAdmin } = useAuth()
+  const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
+  const apiOpts = { asPowerAdmin }
   const [types, setTypes] = useState([])
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
@@ -41,10 +45,10 @@ export default function AdminTypes() {
     try {
       const payload = { name: name.trim(), slug: slug.trim() || undefined }
       if (editingId) {
-        await api.updateType(editingId, payload)
+        await api.updateType(editingId, payload, apiOpts)
         setMessage('Type updated.')
       } else {
-        await api.createType(payload)
+        await api.createType(payload, apiOpts)
         setMessage('Type created.')
       }
       reset()
@@ -69,7 +73,7 @@ export default function AdminTypes() {
     setError('')
     setMessage('')
     try {
-      await api.deleteType(id)
+      await api.deleteType(id, apiOpts)
       setMessage('Type deleted.')
       if (editingId === id) reset()
       await load()

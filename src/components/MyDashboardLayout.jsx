@@ -1,9 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import AdminSubnav from './AdminSubnav'
+import { useHub } from '../context/HubContext'
+import { DASHBOARD_LINKS, isDashboardLinkVisible } from '../dashboard/nav'
 
-export default function ClientAdminLayout() {
-  const { user, logout, isFinpromsAdmin, isManager, isApprover, isAdvisor } = useAuth()
+export default function MyDashboardLayout() {
+  const { user, logout, canPower } = useAuth()
+  const { can, hub, advisorBillingEnabled } = useHub()
   const navigate = useNavigate()
 
   const onLogout = async () => {
@@ -11,26 +13,24 @@ export default function ClientAdminLayout() {
     navigate('/login', { replace: true })
   }
 
-  const shellTitle = isFinpromsAdmin
-    ? 'FinProms Admin'
-    : isManager
-      ? 'Manager'
-      : isApprover
-        ? 'Approver'
-        : isAdvisor
-          ? 'Advisor'
-          : user?.role === 'user'
-            ? 'User'
-            : 'Client Admin'
+  const visible = DASHBOARD_LINKS.filter((link) =>
+    isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled })
+  )
 
   return (
-    <div className="admin-app-shell client-admin-shell">
+    <div className="admin-app-shell member-dashboard-shell">
       <aside className="admin-sidebar">
         <div className="admin-sidebar-brand">
-          <span className="admin-shell-kicker">Hub Finproms</span>
-          <strong>{shellTitle}</strong>
+          <span className="admin-shell-kicker">{hub?.name || 'Hub Finproms'}</span>
+          <strong>Dashboard</strong>
         </div>
-        <AdminSubnav />
+        <nav className="admin-subnav" aria-label="Dashboard sections">
+          {visible.map((link) => (
+            <NavLink key={link.to} to={link.to} end={link.end}>
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
         <div className="admin-sidebar-footer">
           <NavLink to="/" className="admin-site-link">
             View main website →
@@ -44,15 +44,13 @@ export default function ClientAdminLayout() {
       <div className="admin-app-main">
         <header className="admin-topbar">
           <p className="muted">
-            {isFinpromsAdmin
-              ? 'Shared hub operator — content, plans, and distribution tools'
-              : 'Manage hub content, types, categories, plans, and settings'}
+            Tools shown here come from Capabilities set by Power Admin for your role.
           </p>
           <div className="admin-topbar-links">
             <NavLink to="/" className="admin-home-link">
               Main website
             </NavLink>
-            <NavLink to="/client-admin" className="admin-home-link" end>
+            <NavLink to="/my-dashboard" className="admin-home-link" end>
               Dashboard home
             </NavLink>
           </div>

@@ -54,7 +54,7 @@ export default function MyInvoices() {
       ) : (
         <div className="invoice-list">
           {items.map((invoice) => (
-            <Link to={`/invoices/${invoice.id}`} key={invoice.id} className="invoice-row">
+            <Link to={`/my-dashboard/invoices/${invoice.id}`} key={invoice.id} className="invoice-row">
               <div>
                 <strong>{invoice.invoice_number}</strong>
                 <p className="muted">{invoice.description}</p>

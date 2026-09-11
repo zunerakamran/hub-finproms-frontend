@@ -211,7 +211,7 @@ export default function PowerAdminUsers() {
               {(roles.length
                 ? roles
                 : [
-                    { key: 'user', label: 'Member' },
+                    { key: 'user', label: 'User' },
                     { key: 'advisor', label: 'Advisor' },
                     { key: 'approver', label: 'Approver' },
                     { key: 'manager', label: 'Manager' },

@@ -35,7 +35,7 @@ export default function InvoiceDetail() {
 
   return (
     <section className="invoice-detail">
-      <Link to="/my-invoices" className="back">
+      <Link to="/my-dashboard/invoices" className="back">
         ← Back to invoices
       </Link>
 

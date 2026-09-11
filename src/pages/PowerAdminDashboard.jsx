@@ -32,10 +32,47 @@ export default function PowerAdminDashboard() {
       hubCapability: 'dashboard_manage_advisor_renewal',
     },
     {
+      to: '/power-admin/subscriber-credits',
+      title: 'Subscriber credits',
+      description:
+        'Set unlimited or fixed credits for private-hub Excel subscribers (import + autorenew).',
+      hubCapability: 'dashboard_manage_subscriber_credits',
+    },
+    {
       to: '/power-admin/plans',
       title: 'Subscription plans',
       description: 'Create and edit credit packages for public hub self-serve subscriptions.',
       hubCapability: 'dashboard_manage_plans',
+    },
+    {
+      to: '/power-admin/posts',
+      title: 'Posts / reels',
+      description: 'Create and edit catalog posts and reels for the current hub.',
+      hubCapability: 'dashboard_manage_posts',
+    },
+    {
+      to: '/power-admin/bundles',
+      title: 'Post bundles',
+      description: 'Group posts/reels into bundles with a total credit price.',
+      hubCapability: 'dashboard_manage_bundles',
+    },
+    {
+      to: '/power-admin/types',
+      title: 'Content types',
+      description: 'Manage content types (post, reel, etc.) for the current hub.',
+      hubCapability: 'dashboard_manage_types',
+    },
+    {
+      to: '/power-admin/categories',
+      title: 'Categories',
+      description: 'Manage topical categories used to group catalog content.',
+      hubCapability: 'dashboard_manage_categories',
+    },
+    {
+      to: '/power-admin/tags',
+      title: 'Tags',
+      description: 'Manage free-form tags for filtering posts and reels.',
+      hubCapability: 'dashboard_manage_tags',
     },
     {
       to: '/power-admin/hubs',
@@ -75,6 +112,7 @@ export default function PowerAdminDashboard() {
       hubCapability: 'dashboard_view_activity_logs',
     },
   ].filter((card) => {
+    if (card.alwaysForPowerAdmin) return true
     if (Array.isArray(card.hubAnyOf) && card.hubAnyOf.length > 0) {
       return card.hubAnyOf.some((flag) => can(flag))
     }

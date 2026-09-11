@@ -9,7 +9,7 @@ export default function HubCapabilityRoute({
   capability,
   anyOf,
   children,
-  fallback = '/client-admin',
+  fallback = '/my-dashboard',
 }) {
   const { can, loading, hub } = useHub()
 

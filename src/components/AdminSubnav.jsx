@@ -26,6 +26,11 @@ const links = [
     capability: 'dashboard_manage_advisor_renewal',
   },
   {
+    to: '/client-admin/subscriber-credits',
+    label: 'Subscriber credits',
+    capability: 'dashboard_manage_subscriber_credits',
+  },
+  {
     to: '/client-admin/advisor-invoices',
     label: 'Advisor invoices',
     capability: 'dashboard_view_advisor_invoices',

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
 const emptyForm = {
   title: '',
@@ -20,7 +21,10 @@ const emptyNewPost = {
   attachment: null,
 }
 
-export default function AdminBundles() {
+export default function AdminBundles({ shell = 'client-admin' }) {
+  const { isPowerAdmin } = useAuth()
+  const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
+  const apiOpts = { asPowerAdmin }
   const [bundles, setBundles] = useState([])
   const [posts, setPosts] = useState([])
   const [types, setTypes] = useState([])
@@ -40,7 +44,7 @@ export default function AdminBundles() {
     setLoading(true)
     try {
       const [bundlesRes, postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
-        api.adminBundles({ per_page: 50 }),
+        api.adminBundles({ per_page: 50 }, apiOpts),
         api.posts({ per_page: 100 }),
         api.listTypes(),
         api.listCategories(),
@@ -129,10 +133,10 @@ export default function AdminBundles() {
     setMessage('')
     try {
       if (editingId) {
-        await api.updateBundle(editingId, toFormData())
+        await api.updateBundle(editingId, toFormData(), apiOpts)
         setMessage('Bundle updated.')
       } else {
-        await api.createBundle(toFormData())
+        await api.createBundle(toFormData(), apiOpts)
         setMessage('Bundle created.')
       }
       setForm(emptyForm)
@@ -151,7 +155,7 @@ export default function AdminBundles() {
     setError('')
     setMessage('')
     try {
-      const data = await api.adminBundle(bundle.id)
+      const data = await api.adminBundle(bundle.id, apiOpts)
       const full = data.bundle || bundle
       setEditingId(full.id)
       setForm({
@@ -172,7 +176,7 @@ export default function AdminBundles() {
   const remove = async (id) => {
     if (!window.confirm('Delete this bundle? Posts inside it are not deleted.')) return
     try {
-      await api.deleteBundle(id)
+      await api.deleteBundle(id, apiOpts)
       await load()
     } catch (err) {
       setError(err.message)
@@ -264,7 +268,7 @@ export default function AdminBundles() {
           </label>
           {filteredPosts.length === 0 ? (
             <p className="field-hint">
-              No posts yet. <Link to="/client-admin/posts">Create posts</Link> first, or add a new
+              No posts yet. <Link to="/my-dashboard/posts">Create posts</Link> first, or add a new
               post below.
             </p>
           ) : (

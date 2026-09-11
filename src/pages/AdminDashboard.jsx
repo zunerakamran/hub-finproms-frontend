@@ -63,6 +63,12 @@ const sections = [
     capability: 'dashboard_manage_advisor_renewal',
   },
   {
+    to: '/client-admin/subscriber-credits',
+    title: 'Subscriber credits',
+    description: 'Set unlimited or fixed credits for Excel-imported private-hub subscribers.',
+    capability: 'dashboard_manage_subscriber_credits',
+  },
+  {
     to: '/client-admin/advisor-invoices',
     title: 'Advisor billing invoices',
     description: 'View invoices created for advisor subscriber billing.',

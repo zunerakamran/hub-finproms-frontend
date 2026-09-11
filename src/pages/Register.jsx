@@ -16,7 +16,7 @@ export default function Register() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  if (isAuthenticated) return <Navigate to="/" replace />
+  if (isAuthenticated) return <Navigate to="/my-dashboard" replace />
 
   if (!hubLoading && !registrationEnabled) {
     return (

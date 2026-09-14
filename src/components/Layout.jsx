@@ -10,35 +10,81 @@ export default function Layout() {
   const showPlans =
     can('member_view_plans') && (can('public_subscribe') || can('paid_credits'))
 
+  const creditsLabel =
+    user?.has_unlimited_credits || (can('unlimited_credits') && isAdvisor)
+      ? 'Unlimited'
+      : `${user?.credits ?? 0}`
+
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <NavLink to="/" className="brand">
-          {logoUrl ? <img src={logoUrl} alt="" className="brand-logo" /> : null}
-          <span>{brandName}</span>
-        </NavLink>
-        <nav className="nav">
-          {can('member_browse_catalog') && <NavLink to="/">Posts</NavLink>}
-          {can('member_browse_catalog') && <NavLink to="/bundles">Bundles</NavLink>}
-          {showPlans && <NavLink to="/subscriptions">Plans</NavLink>}
-          {hasDashboardAccess && <NavLink to="/my-dashboard">Dashboard</NavLink>}
-        </nav>
-        <div className="topbar-right">
-          <span className="credits-pill">
-            {user?.has_unlimited_credits ||
-            (can('unlimited_credits') && isAdvisor)
-              ? 'Unlimited credits'
-              : `${user?.credits ?? 0} credits`}
-          </span>
-          <span className="user-name">{user?.name}</span>
-          <button type="button" className="btn ghost" onClick={logout}>
-            Logout
-          </button>
+    <div className="site-shell">
+      <header className="site-header">
+        <div className="site-header__inner">
+          <NavLink to="/" className="site-brand">
+            {logoUrl ? <img src={logoUrl} alt="" className="site-brand__logo" /> : (
+              <span className="site-brand__mark" aria-hidden="true">
+                {String(brandName).charAt(0)}
+              </span>
+            )}
+            <span className="site-brand__text">{brandName}</span>
+          </NavLink>
+
+          <nav className="site-nav" aria-label="Main">
+            {can('member_browse_catalog') && (
+              <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : undefined)}>
+                Posts
+              </NavLink>
+            )}
+            {can('member_browse_catalog') && (
+              <NavLink to="/bundles" className={({ isActive }) => (isActive ? 'is-active' : undefined)}>
+                Bundles
+              </NavLink>
+            )}
+            {showPlans && (
+              <NavLink
+                to="/subscriptions"
+                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+              >
+                Plans
+              </NavLink>
+            )}
+            {hasDashboardAccess && (
+              <NavLink
+                to="/my-dashboard"
+                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+              >
+                Dashboard
+              </NavLink>
+            )}
+          </nav>
+
+          <div className="site-header__actions">
+            <div className="site-credit-chip" title="Credit balance">
+              <span className="site-credit-chip__label">Credits</span>
+              <strong>{creditsLabel}</strong>
+            </div>
+            <div className="site-user">
+              <span className="site-user__avatar" aria-hidden="true">
+                {String(user?.name || 'U').charAt(0).toUpperCase()}
+              </span>
+              <span className="site-user__name">{user?.name}</span>
+            </div>
+            <button type="button" className="btn site-logout" onClick={logout}>
+              Log out
+            </button>
+          </div>
         </div>
       </header>
-      <main className="page">
+
+      <main className="site-main">
         <Outlet />
       </main>
+
+      <footer className="site-footer">
+        <div className="site-footer__inner">
+          <span>{brandName}</span>
+          <span className="muted">Compliant content, ready to publish</span>
+        </div>
+      </footer>
     </div>
   )
 }

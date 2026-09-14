@@ -64,7 +64,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Client Admin</p>
+          <p className="eyebrow">Content</p>
           <h1>{editingId ? 'Edit category' : 'Categories'}</h1>
           <p className="muted">
             {isActingOnWhiteLabel

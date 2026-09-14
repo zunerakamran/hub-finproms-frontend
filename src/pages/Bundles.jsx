@@ -1,17 +1,25 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import PageLoader from '../components/PageLoader'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
 export default function Bundles() {
   const { user } = useAuth()
-  const { can } = useHub()
+  const { can, loading: hubLoading } = useHub()
   const [bundles, setBundles] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const catalogAllowed = can('member_browse_catalog')
 
   useEffect(() => {
+    if (hubLoading) return undefined
+    if (!catalogAllowed) {
+      setLoading(false)
+      return undefined
+    }
+
     let cancelled = false
     ;(async () => {
       setLoading(true)
@@ -27,9 +35,13 @@ export default function Bundles() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [hubLoading, catalogAllowed])
 
-  if (!can('member_browse_catalog')) {
+  if (hubLoading || (catalogAllowed && loading)) {
+    return <PageLoader />
+  }
+
+  if (!catalogAllowed) {
     return (
       <section>
         <div className="empty-state">
@@ -41,19 +53,19 @@ export default function Bundles() {
   }
 
   return (
-    <section>
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">Catalog</p>
+    <section className="listing-page">
+      <div className="catalog-hero catalog-hero--compact">
+        <div className="catalog-hero__copy">
+          <p className="catalog-hero__eyebrow">Catalog</p>
           <h1>Bundles</h1>
-          <p className="muted">Buy a set of posts/reels together for a single credit price.</p>
+          <p className="catalog-hero__lead">
+            Buy a set of posts and reels together for a single credit price.
+          </p>
         </div>
       </div>
 
       {error && <div className="alert">{error}</div>}
-      {loading ? (
-        <div className="state">Loading bundles...</div>
-      ) : bundles.length === 0 ? (
+      {bundles.length === 0 ? (
         <div className="empty-state">
           <h2>No bundles yet</h2>
           <p className="muted">Check back later, or browse individual posts.</p>
@@ -62,18 +74,23 @@ export default function Bundles() {
           </Link>
         </div>
       ) : (
-        <div className="posts-grid">
-          {bundles.map((bundle) => (
-            <Link key={bundle.id} to={`/bundles/${bundle.id}`} className="post-card">
-              <div className="post-card-body">
-                <p className="eyebrow">Bundle · {bundle.posts_count ?? 0} items</p>
-                <h2>{bundle.title}</h2>
-                <p className="muted">{bundle.description || 'No description.'}</p>
-                <div className="post-card-meta">
-                  <span>{bundle.credits_cost} credits</span>
-                  {bundle.is_purchased && <span className="badge">Owned</span>}
-                  {!user && <span className="badge">Sign in to buy</span>}
-                </div>
+        <div className="tool-grid">
+          {bundles.map((bundle, index) => (
+            <Link
+              key={bundle.id}
+              to={`/bundles/${bundle.id}`}
+              className="tool-card"
+              style={{ '--card-i': index }}
+            >
+              <span className="tool-card__index">
+                {bundle.posts_count ?? 0} items
+              </span>
+              <h2>{bundle.title}</h2>
+              <p>{bundle.description || 'No description.'}</p>
+              <div className="tool-card__meta">
+                <strong>{bundle.credits_cost} credits</strong>
+                {bundle.is_purchased && <span className="badge ok">Owned</span>}
+                {!user && <span className="badge">Sign in to buy</span>}
               </div>
             </Link>
           ))}

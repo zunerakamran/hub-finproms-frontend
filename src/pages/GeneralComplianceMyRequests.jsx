@@ -95,6 +95,7 @@ export default function GeneralComplianceMyRequests() {
             <Link
               key={row.id}
               to={`/my-dashboard/general-compliance/${row.id}`}
+              state={{ from: 'mine' }}
               className="gc-list-item"
             >
               <div>

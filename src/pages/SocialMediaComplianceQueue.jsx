@@ -236,7 +236,11 @@ export default function SocialMediaComplianceQueue() {
                   )}
                   <td>{formatSmcDate(row.submission_date)}</td>
                   <td>
-                    <Link className="btn ghost" to={`/my-dashboard/social-media-compliance/${row.id}`}>
+                    <Link
+                      className="btn ghost"
+                      to={`/my-dashboard/social-media-compliance/${row.id}`}
+                      state={{ from: 'queue' }}
+                    >
                       Open
                     </Link>
                   </td>

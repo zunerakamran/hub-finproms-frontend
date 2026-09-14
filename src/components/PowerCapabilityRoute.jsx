@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom'
+import PageLoader from './PageLoader'
 import { useAuth } from '../context/AuthContext'
 
 /**
@@ -13,7 +14,7 @@ export default function PowerCapabilityRoute({
   const { canPower, isPowerAdmin, loading } = useAuth()
 
   if (loading) {
-    return <div className="state">Loading...</div>
+    return <PageLoader />
   }
 
   if (!isPowerAdmin) {

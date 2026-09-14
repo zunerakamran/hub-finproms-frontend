@@ -24,7 +24,7 @@ export default function MyPurchases() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Library</p>
+          <p className="eyebrow">Account</p>
           <h1>My purchases</h1>
           <p className="muted">Posts you unlocked with credits.</p>
         </div>

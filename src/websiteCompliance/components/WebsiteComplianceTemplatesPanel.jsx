@@ -65,7 +65,7 @@ function StatusBadge({ status }) {
     <span
       className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${config.className}`}
     >
-      <Icon className="w-3 h-3" />
+      <Icon className="w-3 h-3 shrink-0" aria-hidden="true" />
       {config.label}
     </span>
   )
@@ -400,8 +400,8 @@ export default function WebsiteComplianceTemplatesPanel() {
               <p className="text-xs text-gray-500 mt-0.5">Register and edit templates available for deployments.</p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative w-full sm:w-64">
-                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <div className="wc-icon-field w-full sm:w-64">
+                <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
                 <input
                   type="search"
                   placeholder="Search templates…"
@@ -426,16 +426,16 @@ export default function WebsiteComplianceTemplatesPanel() {
             ) : (
               <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {filteredTemplates.map((tpl) => (
-                  <article key={tpl.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                  <article key={tpl.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[#0B1B3D]/25 hover:shadow-md transition-all duration-300">
                     <TemplateScrollPreview
                       template={tpl}
-                      className="h-36 w-full"
+                      className="h-40 w-full"
                       overlay={
                         <>
-                          <div className="absolute top-3 left-3 bg-[#0B1B3D]/90 text-white font-mono text-[10px] font-bold px-2 py-1 rounded-md z-10">
+                          <div className="absolute top-3 left-3 bg-[#0B1B3D]/90 text-white font-mono text-[10px] font-bold px-2 py-1 rounded-md z-10 pointer-events-none">
                             {tpl.slug}
                           </div>
-                          <div className="absolute top-3 right-3 z-10">
+                          <div className="absolute top-3 right-3 z-10 pointer-events-none">
                             {tpl.is_active ? (
                               <span className="inline-flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">
                                 <FaCheckCircle className="w-2.5 h-2.5" /> Active
@@ -449,21 +449,22 @@ export default function WebsiteComplianceTemplatesPanel() {
                         </>
                       }
                     />
-                    <div className="p-4">
+                    <div className="p-4 flex-1 flex flex-col">
                       <h3 className="font-extrabold text-[#0B1B3D]">{tpl.name}</h3>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{tpl.description || 'No description.'}</p>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">{tpl.description || 'No description.'}</p>
                       <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                         <button
                           type="button"
                           onClick={() => openEditTemplateModal(tpl)}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#0B1B3D] bg-slate-50 px-3 py-2 rounded-lg"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#0B1B3D] bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-lg transition"
                         >
                           <FaEdit className="w-3 h-3" /> Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteTemplate(tpl)}
-                          className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 px-3 py-2 rounded-lg"
+                          className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-lg transition"
+                          aria-label={`Delete ${tpl.name}`}
                         >
                           <FaTrash className="w-3 h-3" />
                         </button>
@@ -489,8 +490,8 @@ export default function WebsiteComplianceTemplatesPanel() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <div className="wc-icon-field flex-1">
+                <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
                 <input
                   type="search"
                   placeholder="Search domain, template, requester…"

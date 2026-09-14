@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import SmcStatusBadge, { SmcVersionCard } from '../components/SocialMediaComplianceUI'
 import { useAuth } from '../context/AuthContext'
@@ -8,7 +8,7 @@ import { SMC_STATUSES, formatSmcDate } from '../utils/socialMediaCompliance'
 
 export default function SocialMediaComplianceRequestDetail() {
   const { id } = useParams()
-  const navigate = useNavigate()
+  const location = useLocation()
   const { user, isPowerAdmin } = useAuth()
   const { can, loading: hubLoading } = useHub()
 
@@ -29,6 +29,18 @@ export default function SocialMediaComplianceRequestDetail() {
   const canReview = can('smc_review_requests')
   const canViewAll = can('smc_view_all_requests') || can('smc_assign_requests')
   const asPowerAdmin = isPowerAdmin
+
+  const backFrom = location.state?.from
+  const backTo =
+    backFrom === 'queue'
+      ? '/my-dashboard/social-media-compliance/queue'
+      : backFrom === 'mine' || backFrom === 'submit'
+        ? '/my-dashboard/social-media-compliance'
+        : canViewAll || canReview
+          ? '/my-dashboard/social-media-compliance/queue'
+          : '/my-dashboard/social-media-compliance'
+  const backLabel =
+    backTo.endsWith('/queue') ? '← Back to queue' : '← Back to my requests'
 
   const load = async () => {
     setLoading(true)
@@ -158,8 +170,8 @@ export default function SocialMediaComplianceRequestDetail() {
   if (error && !row) {
     return (
       <section>
-        <Link to="/my-dashboard/social-media-compliance" className="back">
-          ← Back
+        <Link to={backTo} className="back">
+          {backLabel}
         </Link>
         <div className="alert">{error}</div>
       </section>
@@ -171,9 +183,9 @@ export default function SocialMediaComplianceRequestDetail() {
 
   return (
     <section>
-      <button type="button" className="back" onClick={() => navigate(-1)}>
-        ← Back
-      </button>
+      <Link to={backTo} className="back">
+        {backLabel}
+      </Link>
 
       <div className="page-head">
         <div>

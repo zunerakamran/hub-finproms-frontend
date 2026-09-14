@@ -144,7 +144,7 @@ export default function PowerAdminUsers() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Power Admin</p>
+            <p className="eyebrow">Platform</p>
             <h1>Users & roles</h1>
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function PowerAdminUsers() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Power Admin</p>
+          <p className="eyebrow">Platform</p>
           <h1>Users & roles</h1>
           <p className="muted">Create accounts, update details, and assign platform roles.</p>
         </div>

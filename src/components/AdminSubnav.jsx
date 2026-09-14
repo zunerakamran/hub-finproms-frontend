@@ -55,9 +55,14 @@ export default function AdminSubnav() {
   })
 
   return (
-    <nav className="admin-subnav admin-sidebar-nav" aria-label="Client admin sections">
+    <nav className="dash-nav" aria-label="Client admin sections">
       {visible.map((link) => (
-        <NavLink key={link.to} to={link.to} end={link.end}>
+        <NavLink
+          key={link.to}
+          to={link.to}
+          end={link.end}
+          className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+        >
           {link.label}
         </NavLink>
       ))}

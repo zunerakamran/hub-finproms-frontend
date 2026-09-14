@@ -128,14 +128,13 @@ export default function PowerAdminDashboard() {
   })
 
   return (
-    <section>
-      <div className="page-head">
+    <section className="dash-home">
+      <div className="dash-welcome">
         <div>
-          <p className="eyebrow">Power Admin</p>
+          <p className="eyebrow">Platform</p>
           <h1>Platform dashboard</h1>
           <p className="muted">
-            Central control plane. Hub Functionalities control how each hub works; Capabilities
-            control what each role can do.
+            Functionalities control how each hub works; Capabilities control what each role can do.
           </p>
         </div>
       </div>
@@ -146,12 +145,13 @@ export default function PowerAdminDashboard() {
           <p className="muted">Your Power Admin capability checklist has no tools turned on.</p>
         </div>
       ) : (
-        <div className="admin-dashboard-grid">
-          {cards.map((card) => (
-            <Link key={card.to} to={card.to} className="admin-dashboard-card">
+        <div className="tool-grid">
+          {cards.map((card, index) => (
+            <Link key={card.to} to={card.to} className="tool-card" style={{ '--card-i': index }}>
+              <span className="tool-card__index">{String(index + 1).padStart(2, '0')}</span>
               <h2>{card.title}</h2>
               <p>{card.description}</p>
-              <span className="admin-dashboard-link">Open →</span>
+              <span className="tool-card__cta">Open</span>
             </Link>
           ))}
         </div>

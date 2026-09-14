@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom'
+import PageLoader from './PageLoader'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -13,8 +14,8 @@ export function ProtectedRoute({
   const { hasHubDashboardAccess, hasDashboardAccess, loading: hubLoading } = useHub()
   const location = useLocation()
 
-  if (authLoading || ((clientAdminOnly || dashboardOnly) && hubLoading)) {
-    return <div className="state">Loading...</div>
+  if (authLoading || hubLoading) {
+    return <PageLoader />
   }
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />

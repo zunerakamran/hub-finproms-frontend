@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
- * Autoplaying muted reel preview with a top play/pause badge
- * that marks the item as a reel.
+ * Autoplaying muted reel preview with a play/pause control.
+ * Use compact on listing cards (cropped into the shared media frame).
  */
 export default function ReelPlayer({ src, title = '', className = '', compact = false }) {
   const videoRef = useRef(null)
@@ -53,7 +53,7 @@ export default function ReelPlayer({ src, title = '', className = '', compact = 
       />
       <button
         type="button"
-        className="reel-toggle"
+        className={`reel-toggle ${compact ? 'reel-toggle--compact' : ''}`}
         onClick={toggle}
         aria-label={playing ? 'Pause reel' : 'Play reel'}
         title={playing ? 'Pause' : 'Play'}
@@ -67,7 +67,7 @@ export default function ReelPlayer({ src, title = '', className = '', compact = 
             <path d="M8 5v14l11-7L8 5z" />
           </svg>
         )}
-        <span className="reel-toggle-label">Reel</span>
+        {!compact && <span className="reel-toggle-label">Reel</span>}
       </button>
     </div>
   )

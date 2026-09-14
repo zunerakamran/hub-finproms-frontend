@@ -2733,8 +2733,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 Browse available website templates — hover to preview the full page, then request a deployment.
               </p>
             </div>
-            <div className="relative w-full sm:w-72">
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <div className="wc-icon-field w-full sm:w-72">
+              <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
               <input
                 type="search"
                 placeholder="Search templates…"
@@ -2767,10 +2767,9 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                   return (
                     <article
                       key={tpl.id}
-                      className="group border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[#0B1B3D]/20 hover:shadow-lg transition-all duration-300"
+                      className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[#0B1B3D]/20 hover:shadow-lg transition-all duration-300"
                     >
-                      <div className="relative overflow-hidden">
-                        <TemplateScrollPreview
+                      <TemplateScrollPreview
                           template={tpl}
                           className="h-40 w-full"
                           overlay={
@@ -2789,7 +2788,6 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                             </>
                           }
                         />
-                      </div>
 
                       <div className="p-4 flex-1 flex flex-col">
                         <h3 className="font-extrabold text-[#0B1B3D] text-base leading-tight">

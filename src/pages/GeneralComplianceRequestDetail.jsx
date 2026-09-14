@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import GcStatusBadge, { GcAttachmentList, GcVersionCard } from '../components/GeneralComplianceUI'
 import { useAuth } from '../context/AuthContext'
@@ -8,7 +8,7 @@ import { GC_ACCEPT, GC_STATUSES, formatGcDate } from '../utils/generalCompliance
 
 export default function GeneralComplianceRequestDetail() {
   const { id } = useParams()
-  const navigate = useNavigate()
+  const location = useLocation()
   const { user, isPowerAdmin } = useAuth()
   const { can, loading: hubLoading } = useHub()
 
@@ -29,6 +29,18 @@ export default function GeneralComplianceRequestDetail() {
   const canReview = can('gc_review_requests')
   const canViewAll = can('gc_view_all_requests') || can('gc_assign_requests')
   const asPowerAdmin = isPowerAdmin
+
+  const backFrom = location.state?.from
+  const backTo =
+    backFrom === 'queue'
+      ? '/my-dashboard/general-compliance/queue'
+      : backFrom === 'mine' || backFrom === 'submit'
+        ? '/my-dashboard/general-compliance'
+        : canViewAll || canReview
+          ? '/my-dashboard/general-compliance/queue'
+          : '/my-dashboard/general-compliance'
+  const backLabel =
+    backTo.endsWith('/queue') ? '← Back to queue' : '← Back to my requests'
 
   const load = async () => {
     setLoading(true)
@@ -162,8 +174,8 @@ export default function GeneralComplianceRequestDetail() {
   if (error && !row) {
     return (
       <section>
-        <Link to="/my-dashboard/general-compliance" className="back">
-          ← Back
+        <Link to={backTo} className="back">
+          {backLabel}
         </Link>
         <div className="alert">{error}</div>
       </section>
@@ -175,9 +187,9 @@ export default function GeneralComplianceRequestDetail() {
 
   return (
     <section>
-      <button type="button" className="back" onClick={() => navigate(-1)}>
-        ← Back
-      </button>
+      <Link to={backTo} className="back">
+        {backLabel}
+      </Link>
 
       <div className="page-head">
         <div>

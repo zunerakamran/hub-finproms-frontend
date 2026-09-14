@@ -136,7 +136,7 @@ export default function PowerAdminCapabilities() {
     <section className="capabilities-matrix-page">
       <div className="page-head">
         <div>
-          <p className="eyebrow">Power Admin</p>
+          <p className="eyebrow">Platform</p>
           <h1>User capabilities</h1>
           <p className="muted">
             Editing roles for <strong>{selectedHubName}</strong>

@@ -104,6 +104,7 @@ export default function SocialMediaComplianceMyRequests() {
             <Link
               key={row.id}
               to={`/my-dashboard/social-media-compliance/${row.id}`}
+              state={{ from: 'mine' }}
               className="smc-list-item"
             >
               <div>

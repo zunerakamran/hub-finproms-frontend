@@ -11,6 +11,10 @@ export default function AdminSettings() {
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreview, setLogoPreview] = useState('')
   const [removeLogo, setRemoveLogo] = useState(false)
+  const [faviconUrl, setFaviconUrl] = useState('')
+  const [faviconFile, setFaviconFile] = useState(null)
+  const [faviconPreview, setFaviconPreview] = useState('')
+  const [removeFavicon, setRemoveFavicon] = useState(false)
   const [primaryColor, setPrimaryColor] = useState('')
   const [secondaryColor, setSecondaryColor] = useState('')
   const [loading, setLoading] = useState(true)
@@ -26,6 +30,10 @@ export default function AdminSettings() {
     setLogoFile(null)
     setLogoPreview('')
     setRemoveLogo(false)
+    setFaviconUrl(settings?.favicon_url ?? '')
+    setFaviconFile(null)
+    setFaviconPreview('')
+    setRemoveFavicon(false)
     setPrimaryColor(settings?.color_scheme?.primary ?? '')
     setSecondaryColor(settings?.color_scheme?.secondary ?? '')
   }
@@ -57,6 +65,16 @@ export default function AdminSettings() {
     return () => URL.revokeObjectURL(url)
   }, [logoFile])
 
+  useEffect(() => {
+    if (!faviconFile) {
+      setFaviconPreview('')
+      return undefined
+    }
+    const url = URL.createObjectURL(faviconFile)
+    setFaviconPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [faviconFile])
+
   const onLogoChange = (e) => {
     const file = e.target.files?.[0] || null
     setLogoFile(file)
@@ -69,7 +87,20 @@ export default function AdminSettings() {
     setRemoveLogo(true)
   }
 
+  const onFaviconChange = (e) => {
+    const file = e.target.files?.[0] || null
+    setFaviconFile(file)
+    setRemoveFavicon(false)
+  }
+
+  const onRemoveFavicon = () => {
+    setFaviconFile(null)
+    setFaviconPreview('')
+    setRemoveFavicon(true)
+  }
+
   const displayedLogo = logoPreview || (!removeLogo ? logoUrl : '')
+  const displayedFavicon = faviconPreview || (!removeFavicon ? faviconUrl : '')
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -89,6 +120,12 @@ export default function AdminSettings() {
       if (removeLogo && !logoFile) {
         fd.append('remove_logo', '1')
       }
+      if (faviconFile) {
+        fd.append('favicon', faviconFile)
+      }
+      if (removeFavicon && !faviconFile) {
+        fd.append('remove_favicon', '1')
+      }
 
       const data = await api.updateSettings(fd)
       applySettings(data.settings)
@@ -100,6 +137,7 @@ export default function AdminSettings() {
         errors.application_name?.[0] ||
           errors.from_email?.[0] ||
           errors.logo?.[0] ||
+          errors.favicon?.[0] ||
           errors['color_scheme.primary']?.[0] ||
           errors['color_scheme.secondary']?.[0] ||
           errors.new_banner_days?.[0] ||
@@ -114,10 +152,11 @@ export default function AdminSettings() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Client Admin</p>
+          <p className="eyebrow">Hub</p>
           <h1>Settings</h1>
           <p className="muted">
-            Hub branding and options stored in the database (not hard-coded).
+            Branding for this hub — logo, favicon, name, and primary / secondary colours apply across
+            the whole product UI.
           </p>
         </div>
       </div>
@@ -125,110 +164,162 @@ export default function AdminSettings() {
       {loading ? (
         <div className="state">Loading...</div>
       ) : (
-        <form className="admin-form" onSubmit={onSubmit}>
+        <form className="admin-form settings-form" onSubmit={onSubmit}>
           {error && <div className="alert">{error}</div>}
           {message && <div className="alert success">{message}</div>}
 
-          <h2>Branding</h2>
-          <label>
-            Application name
-            <input
-              required
-              value={applicationName}
-              onChange={(e) => setApplicationName(e.target.value)}
-              placeholder="Hub display name"
-            />
-          </label>
-          <p className="muted">Shown in the header and dashboard as this hub’s product name.</p>
-
-          <label>
-            From email
-            <input
-              type="email"
-              value={fromEmail}
-              onChange={(e) => setFromEmail(e.target.value)}
-              placeholder="orders@yoursite.com"
-            />
-          </label>
-          <p className="muted">
-            Sender and support address used on transactional emails (order confirmations, etc.).
-          </p>
-
-          <label>
-            Logo attachment
-            <input
-              type="file"
-              accept="image/*"
-              onChange={onLogoChange}
-            />
-          </label>
-          <p className="muted">Upload a PNG, JPG, GIF, or WebP (max 5MB). Replaces the current logo.</p>
-
-          {displayedLogo ? (
-            <div className="settings-logo-preview">
-              <img src={displayedLogo} alt="Logo preview" />
-              <button type="button" className="btn ghost" onClick={onRemoveLogo}>
-                Remove logo
-              </button>
-            </div>
-          ) : (
-            <p className="muted">No logo set.</p>
-          )}
-
-          <div className="form-row two">
+          <div className="settings-block">
+            <h2>Identity</h2>
             <label>
-              Primary colour
-              <div className="color-field">
-                <input
-                  type="color"
-                  aria-label="Primary colour picker"
-                  value={/^#[0-9A-Fa-f]{6}$/.test(primaryColor) ? primaryColor : '#0f5c45'}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                />
-                <input
-                  value={primaryColor}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  placeholder="#0f5c45"
-                />
-              </div>
+              Application name
+              <input
+                required
+                value={applicationName}
+                onChange={(e) => setApplicationName(e.target.value)}
+                placeholder="Hub display name"
+              />
             </label>
+            <p className="muted form-hint">Shown in the header and dashboard as this hub’s product name.</p>
+
             <label>
-              Secondary colour
-              <div className="color-field">
-                <input
-                  type="color"
-                  aria-label="Secondary colour picker"
-                  value={/^#[0-9A-Fa-f]{6}$/.test(secondaryColor) ? secondaryColor : '#0a3f30'}
-                  onChange={(e) => setSecondaryColor(e.target.value)}
-                />
-                <input
-                  value={secondaryColor}
-                  onChange={(e) => setSecondaryColor(e.target.value)}
-                  placeholder="#0a3f30"
-                />
-              </div>
+              From email
+              <input
+                type="email"
+                value={fromEmail}
+                onChange={(e) => setFromEmail(e.target.value)}
+                placeholder="orders@yoursite.com"
+              />
             </label>
+            <p className="muted form-hint">
+              Sender and support address used on transactional emails (order confirmations, etc.).
+            </p>
           </div>
-          <p className="muted">Colour scheme is applied across the hub UI (buttons, links, accents).</p>
 
-          <h2>Content</h2>
-          <label>
-            NEW banner duration (days)
-            <input
-              type="number"
-              min="0"
-              max="365"
-              required
-              value={newBannerDays}
-              onChange={(e) => setNewBannerDays(e.target.value)}
-            />
-          </label>
-          <p className="muted">
-            Posts and reels newer than this many days show a NEW banner on the listing. Set to 0 to
-            disable.
-          </p>
+          <div className="settings-block">
+            <h2>Logo</h2>
+            <label>
+              Logo attachment
+              <input
+                type="file"
+                accept="image/*"
+                onChange={onLogoChange}
+              />
+            </label>
+            <p className="muted form-hint">Upload a PNG, JPG, GIF, or WebP (max 5MB). Replaces the current logo.</p>
 
-          <div className="actions">
+            {displayedLogo ? (
+              <div className="settings-logo-preview">
+                <img src={displayedLogo} alt="Logo preview" />
+                <button type="button" className="btn ghost" onClick={onRemoveLogo}>
+                  Remove logo
+                </button>
+              </div>
+            ) : (
+              <p className="muted">No logo set.</p>
+            )}
+          </div>
+
+          <div className="settings-block">
+            <h2>Favicon</h2>
+            <label>
+              Favicon attachment
+              <input
+                type="file"
+                accept=".ico,image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+                onChange={onFaviconChange}
+              />
+            </label>
+            <p className="muted form-hint">
+              Browser tab icon. Upload an ICO, PNG, JPG, GIF, WebP, or SVG (max 1MB).
+            </p>
+
+            {displayedFavicon ? (
+              <div className="settings-logo-preview settings-favicon-preview">
+                <img src={displayedFavicon} alt="Favicon preview" />
+                <button type="button" className="btn ghost" onClick={onRemoveFavicon}>
+                  Remove favicon
+                </button>
+              </div>
+            ) : (
+              <p className="muted">No favicon set.</p>
+            )}
+          </div>
+
+          <div className="settings-block">
+            <h2>Colour scheme</h2>
+            <p className="muted form-hint">
+              Primary drives buttons, links, and accents. Secondary deepens sidebars and hover
+              states. Changes apply immediately after save.
+            </p>
+            <div className="form-row two">
+              <label>
+                Primary colour
+                <div className="color-field">
+                  <input
+                    type="color"
+                    aria-label="Primary colour picker"
+                    value={/^#[0-9A-Fa-f]{6}$/.test(primaryColor) ? primaryColor : '#0f5c45'}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                  />
+                  <input
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    placeholder="#0f5c45"
+                  />
+                </div>
+              </label>
+              <label>
+                Secondary colour
+                <div className="color-field">
+                  <input
+                    type="color"
+                    aria-label="Secondary colour picker"
+                    value={/^#[0-9A-Fa-f]{6}$/.test(secondaryColor) ? secondaryColor : '#0a3f30'}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                  />
+                  <input
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    placeholder="#0a3f30"
+                  />
+                </div>
+              </label>
+            </div>
+            <div
+              className="brand-swatch-preview"
+              style={{
+                '--preview-primary': /^#[0-9A-Fa-f]{6}$/.test(primaryColor) ? primaryColor : '#0f5c45',
+                '--preview-secondary': /^#[0-9A-Fa-f]{6}$/.test(secondaryColor)
+                  ? secondaryColor
+                  : '#0a3f30',
+              }}
+            >
+              <span className="brand-swatch brand-swatch--primary">Primary</span>
+              <span className="brand-swatch brand-swatch--secondary">Secondary</span>
+              <span className="brand-swatch brand-swatch--btn">Button</span>
+            </div>
+          </div>
+
+          <div className="settings-block">
+            <h2>Content</h2>
+            <label>
+              NEW banner duration (days)
+              <input
+                type="number"
+                min="0"
+                max="365"
+                required
+                value={newBannerDays}
+                onChange={(e) => setNewBannerDays(e.target.value)}
+              />
+            </label>
+            <p className="muted form-hint">
+              Posts and reels newer than this many days show a NEW banner on the listing. Set to 0 to
+              disable.
+            </p>
+          </div>
+
+          <div className="actions sticky-actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Saving...' : 'Save settings'}
             </button>

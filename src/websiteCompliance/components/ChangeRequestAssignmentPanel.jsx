@@ -788,8 +788,8 @@ export default function ChangeRequestAssignmentPanel({
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <div className="relative flex-1 sm:max-w-md">
-          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+        <div className="wc-icon-field flex-1 sm:max-w-md">
+          <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
           <input
             type="search"
             placeholder="Search by section, editor, approver, or ID…"

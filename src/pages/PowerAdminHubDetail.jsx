@@ -17,9 +17,6 @@ export default function PowerAdminHubDetail() {
   const [meta, setMeta] = useState({
     name: '',
     slug: '',
-    primary_color: '',
-    secondary_color: '',
-    logo_url: '',
     frontend_url: '',
     api_url: '',
     deploy_notes: '',
@@ -44,9 +41,6 @@ export default function PowerAdminHubDetail() {
       setMeta({
         name: next.name || '',
         slug: next.slug || '',
-        primary_color: next.branding?.primary_color || '',
-        secondary_color: next.branding?.secondary_color || '',
-        logo_url: next.branding?.logo_url || '',
         frontend_url: next.deploy?.frontend_url || '',
         api_url: next.deploy?.api_url || '',
         deploy_notes: next.deploy?.deploy_notes || '',
@@ -82,9 +76,6 @@ export default function PowerAdminHubDetail() {
     try {
       const payload = {
         name: meta.name.trim(),
-        primary_color: meta.primary_color.trim() || null,
-        secondary_color: meta.secondary_color.trim() || null,
-        logo_url: meta.logo_url.trim() || null,
         frontend_url: meta.frontend_url.trim() || null,
         api_url: meta.api_url.trim() || null,
         deploy_notes: meta.deploy_notes.trim() || null,
@@ -164,11 +155,12 @@ export default function PowerAdminHubDetail() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Power Admin</p>
+          <p className="eyebrow">Platform</p>
           <h1>{hub.name}</h1>
           <p className="muted">
-            Update branding, deploy wiring, and Functionalities for this{' '}
-            {hub.type === 'shared' ? 'shared' : 'white-labelled'} hub.
+            Update deploy wiring and Functionalities for this{' '}
+            {hub.type === 'shared' ? 'shared' : 'white-labelled'} hub. Logo and colours are managed
+            in that hub&apos;s Dashboard → Settings.
           </p>
           {hub.deploy?.status_label && (
             <p style={{ marginTop: '0.5rem' }}>
@@ -187,7 +179,7 @@ export default function PowerAdminHubDetail() {
       {message && <div className="alert success">{message}</div>}
 
       <form className="admin-form hub-meta-form" onSubmit={onSaveMeta}>
-        <h2>Hub details & branding</h2>
+        <h2>Hub details</h2>
         <label>
           Name
           <input
@@ -205,31 +197,13 @@ export default function PowerAdminHubDetail() {
             onChange={(e) => setMeta({ ...meta, slug: e.target.value })}
           />
         </label>
-        <div className="form-row two">
-          <label>
-            Primary colour
-            <input
-              value={meta.primary_color}
-              onChange={(e) => setMeta({ ...meta, primary_color: e.target.value })}
-              placeholder="#1a5f4a"
-            />
-          </label>
-          <label>
-            Secondary colour
-            <input
-              value={meta.secondary_color}
-              onChange={(e) => setMeta({ ...meta, secondary_color: e.target.value })}
-              placeholder="#0f172a"
-            />
-          </label>
+        <div className="info-callout">
+          <strong>Branding</strong>
+          <p className="muted">
+            Logo, application name, and primary / secondary colours are configured in{' '}
+            <em>My Dashboard → Settings</em> on this hub — they are not edited here.
+          </p>
         </div>
-        <label>
-          Logo URL
-          <input
-            value={meta.logo_url}
-            onChange={(e) => setMeta({ ...meta, logo_url: e.target.value })}
-          />
-        </label>
         {hub.type !== 'shared' && (
           <label className="toggle-row">
             <input

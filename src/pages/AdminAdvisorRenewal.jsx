@@ -15,7 +15,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
 
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('dashboard_manage_advisor_renewal')
-  const eyebrow = asPowerAdmin ? 'Power Admin' : 'FinProms / Client Admin'
+  const eyebrow = 'Advisors & billing'
   const apiOpts = { asPowerAdmin }
 
   const load = async () => {

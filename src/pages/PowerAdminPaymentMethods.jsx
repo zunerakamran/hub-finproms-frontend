@@ -157,7 +157,7 @@ export default function PowerAdminPaymentMethods() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Power Admin</p>
+          <p className="eyebrow">Platform</p>
           <h1>Payment methods</h1>
           <p className="muted">
             Configure Stripe credentials and checkout options for the shared hub and each

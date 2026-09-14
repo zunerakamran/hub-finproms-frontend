@@ -38,7 +38,9 @@ export default function GeneralComplianceSubmit() {
       form.append('description', description)
       files.forEach((file) => form.append('attachments[]', file))
       const data = await api.generalComplianceSubmit(form)
-      navigate(`/my-dashboard/general-compliance/${data.data.id}`)
+      navigate(`/my-dashboard/general-compliance/${data.data.id}`, {
+        state: { from: 'submit' },
+      })
     } catch (err) {
       setError(err.message || 'Submit failed.')
     } finally {

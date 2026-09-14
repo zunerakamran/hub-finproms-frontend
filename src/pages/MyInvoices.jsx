@@ -36,7 +36,7 @@ export default function MyInvoices() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Billing</p>
+          <p className="eyebrow">Account</p>
           <h1>My invoices</h1>
           <p className="muted">Receipts for subscriptions and post purchases.</p>
         </div>

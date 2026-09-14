@@ -45,7 +45,7 @@ export default function AdminBankTransfers() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Client Admin</p>
+          <p className="eyebrow">Hub</p>
           <h1>Bank transfers</h1>
           <p className="muted">Confirm pending bank payments to grant credits. Temporary until Stripe is configured.</p>
         </div>

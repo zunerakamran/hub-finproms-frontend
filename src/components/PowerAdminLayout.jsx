@@ -78,8 +78,9 @@ const links = [
 
 export default function PowerAdminLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can } = useHub()
+  const { can, branding, hub } = useHub()
   const navigate = useNavigate()
+  const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
   const onLogout = async () => {
     await logout()
@@ -97,42 +98,69 @@ export default function PowerAdminLayout() {
   })
 
   return (
-    <div className="admin-app-shell power-admin-shell">
-      <aside className="admin-sidebar">
-        <div className="admin-sidebar-brand">
-          <span className="admin-shell-kicker">Hub Finproms</span>
-          <strong>Power Admin</strong>
+    <div className="dash-shell dash-shell--power">
+      <aside className="dash-sidebar">
+        <div className="dash-sidebar__brand">
+          {branding?.logo_url ? (
+            <img src={branding.logo_url} alt="" className="dash-sidebar__logo" />
+          ) : (
+            <span className="dash-sidebar__mark" aria-hidden="true">
+              {String(brandName).charAt(0)}
+            </span>
+          )}
+          <div>
+            <p className="dash-sidebar__kicker">{brandName}</p>
+            <strong>Power Admin</strong>
+          </div>
         </div>
-        <nav className="admin-subnav" aria-label="Power admin sections">
+
+        <nav className="dash-nav" aria-label="Power admin sections">
           {visible.map((link) => (
-            <NavLink key={link.to} to={link.to} end={link.end}>
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.end}
+              className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+            >
               {link.label}
             </NavLink>
           ))}
         </nav>
-        <div className="admin-sidebar-footer">
-          <NavLink to="/" className="admin-site-link">
-            View main website →
+
+        <div className="dash-sidebar__footer">
+          <NavLink to="/" className="dash-site-link">
+            ← Back to website
           </NavLink>
-          <span className="user-name">{user?.name}</span>
-          <button type="button" className="btn ghost" onClick={onLogout}>
-            Logout
+          <div className="dash-user-row">
+            <span className="dash-user-avatar" aria-hidden="true">
+              {String(user?.name || 'U').charAt(0).toUpperCase()}
+            </span>
+            <div>
+              <strong>{user?.name}</strong>
+              <span className="muted">Power Admin</span>
+            </div>
+          </div>
+          <button type="button" className="btn ghost full" onClick={onLogout}>
+            Log out
           </button>
         </div>
       </aside>
-      <div className="admin-app-main">
-        <header className="admin-topbar">
-          <p className="muted">Platform control plane for white-labelled hubs</p>
-          <div className="admin-topbar-links">
-            <NavLink to="/" className="admin-home-link">
-              Main website
+
+      <div className="dash-main">
+        <header className="dash-topbar">
+          <div className="dash-topbar__lead">
+            <h1 className="dash-topbar__title">Platform control</h1>
+          </div>
+          <div className="dash-topbar__links">
+            <NavLink to="/" className="dash-top-link">
+              Website
             </NavLink>
-            <NavLink to="/power-admin" className="admin-home-link" end>
-              Dashboard home
+            <NavLink to="/power-admin" className="dash-top-link" end>
+              Home
             </NavLink>
           </div>
         </header>
-        <main className="admin-page">
+        <main className="dash-content">
           <Outlet />
         </main>
       </div>

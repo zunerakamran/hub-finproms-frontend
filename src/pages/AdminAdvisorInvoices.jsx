@@ -24,7 +24,7 @@ export default function AdminAdvisorInvoices({ shell = 'client-admin' }) {
 
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('dashboard_view_advisor_invoices')
-  const eyebrow = asPowerAdmin ? 'Power Admin' : 'Client Admin'
+  const eyebrow = 'Advisors & billing'
 
   useEffect(() => {
     if (hubLoading || !enabled) {

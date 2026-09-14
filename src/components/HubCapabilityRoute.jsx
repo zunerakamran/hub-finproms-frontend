@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom'
+import PageLoader from './PageLoader'
 import { useHub } from '../context/HubContext'
 
 /**
@@ -13,9 +14,8 @@ export default function HubCapabilityRoute({
 }) {
   const { can, loading, hub } = useHub()
 
-  // Only block on the initial hub load — never blank / remount the page afterward.
   if (loading && !hub) {
-    return <div className="state">Loading...</div>
+    return <PageLoader />
   }
 
   const flags = Array.isArray(anyOf) && anyOf.length > 0

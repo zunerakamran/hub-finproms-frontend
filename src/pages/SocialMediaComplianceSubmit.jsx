@@ -65,7 +65,9 @@ export default function SocialMediaComplianceSubmit() {
       form.append('description', description)
       if (image) form.append('image', image)
       const data = await api.socialMediaComplianceSubmit(form)
-      navigate(`/my-dashboard/social-media-compliance/${data.data.id}`)
+      navigate(`/my-dashboard/social-media-compliance/${data.data.id}`, {
+        state: { from: 'submit' },
+      })
     } catch (err) {
       setError(err.message || 'Submit failed.')
     } finally {

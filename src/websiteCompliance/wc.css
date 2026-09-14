@@ -102,3 +102,61 @@
   position: relative;
   z-index: 80;
 }
+
+/* React-icons / SVGs — hub shell + inline SVG baselines mis-align icons in flex rows. */
+.wc-app svg {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+/* Search / icon-prefixed inputs */
+.wc-app .wc-icon-field {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.wc-app .wc-icon-field__icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #9ca3af;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.wc-app .wc-icon-field > input {
+  display: block;
+  width: 100%;
+  /* Keep left padding for icon even if utility padding is reset by hub CSS. */
+  padding-left: 2.35rem !important;
+}
+
+/* Inline icon + label rows (badges, tabs, buttons) */
+.wc-app .inline-flex > svg,
+.wc-app button > svg,
+.wc-app a > svg,
+.wc-app span > svg {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Template hover-scroll preview shell */
+.wc-app .wc-template-preview {
+  isolation: isolate;
+  touch-action: manipulation;
+}
+
+.wc-app .wc-template-preview:focus-visible {
+  outline: 2px solid #c8102e;
+  outline-offset: 2px;
+}
+
+.wc-app .wc-template-preview__scroller {
+  max-width: none;
+}

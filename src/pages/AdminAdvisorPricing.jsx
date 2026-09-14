@@ -36,7 +36,7 @@ export default function AdminAdvisorPricing({ shell = 'client-admin' }) {
 
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('dashboard_manage_advisor_pricing')
-  const eyebrow = asPowerAdmin ? 'Power Admin' : 'Client Admin'
+  const eyebrow = 'Advisors & billing'
   const apiOpts = { asPowerAdmin }
 
   const load = async () => {

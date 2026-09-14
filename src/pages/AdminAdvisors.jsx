@@ -37,7 +37,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const enabled = canImport || canDiscontinue
   const billingEnabled = advisorBillingEnabled
   const canViewInvoices = can('dashboard_view_advisor_invoices')
-  const eyebrow = 'Dashboard'
+  const eyebrow = 'Advisors & billing'
   const apiOpts = { asPowerAdmin }
   const invoicesPath = '/my-dashboard/advisor-invoices'
 

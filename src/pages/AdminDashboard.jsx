@@ -108,7 +108,7 @@ export default function AdminDashboard() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Client Admin</p>
+          <p className="eyebrow">Hub</p>
           <h1>Dashboard</h1>
           <p className="muted">
             Tools enabled for this hub by Power Admin. Restricted options stay hidden.

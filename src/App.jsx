@@ -6,6 +6,7 @@ import PowerCapabilityRoute from './components/PowerCapabilityRoute'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 import { HubProvider } from './context/HubContext'
+import AppBootGate from './components/AppBootGate'
 import AdminBankTransfers from './pages/AdminBankTransfers'
 import AdminAdvisors from './pages/AdminAdvisors'
 import AdminActivityLogs from './pages/AdminActivityLogs'
@@ -64,6 +65,7 @@ import SubscriptionDetail from './pages/SubscriptionDetail'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import Subscriptions from './pages/Subscriptions'
 import './App.css'
+import './shell.css'
 
 function LegacyInvoiceRedirect() {
   const { id } = useParams()
@@ -86,8 +88,9 @@ export default function App() {
   return (
     <AuthProvider>
       <HubProvider>
-        <BrowserRouter>
-          <Routes>
+        <AppBootGate>
+          <BrowserRouter>
+            <Routes>
             {/* Member catalog — login required */}
             <Route
               element={
@@ -531,6 +534,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+        </AppBootGate>
       </HubProvider>
     </AuthProvider>
   )

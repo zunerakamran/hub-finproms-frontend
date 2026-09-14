@@ -54,10 +54,10 @@ function StatusBadge({ status }) {
   )
   const Icon = config.icon
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${config.className}`}>
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dot}`} />
-      <Icon className="w-3 h-3 shrink-0" />
-      {config.label}
+    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full border ${config.className}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dot}`} aria-hidden="true" />
+      <Icon className="w-3 h-3 shrink-0" aria-hidden="true" />
+      <span>{config.label}</span>
     </span>
   )
 }
@@ -711,8 +711,8 @@ export default function DeploymentRequestPanel() {
 
       {/* Search */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <div className="relative flex-1 sm:max-w-md">
-          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+        <div className="wc-icon-field flex-1 sm:max-w-md">
+          <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
           <input
             type="search"
             placeholder="Search by domain, template, advisor, status…"

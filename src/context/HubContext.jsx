@@ -87,7 +87,7 @@ export function HubProvider({ children }) {
     refreshHub({ silent: Boolean(hubRef.current) })
   }, [refreshHub, authLoading, user?.id, user?.role])
 
-  // Apply hub branding (colour scheme) to CSS variables for the whole app.
+  // Apply hub branding (colour scheme from Settings) across the whole app.
   useEffect(() => {
     const root = document.documentElement
     const primary = hub?.branding?.primary_color || hub?.branding?.color_scheme?.primary
@@ -95,16 +95,46 @@ export function HubProvider({ children }) {
 
     if (primary) {
       root.style.setProperty('--brand', primary)
+      root.style.setProperty('--brand-soft', `color-mix(in srgb, ${primary} 14%, white)`)
+      root.style.setProperty('--brand-softer', `color-mix(in srgb, ${primary} 7%, white)`)
+      root.style.setProperty('--brand-tint', `color-mix(in srgb, ${primary} 18%, transparent)`)
+      root.style.setProperty('--brand-glow', `color-mix(in srgb, ${primary} 22%, transparent)`)
     } else {
       root.style.removeProperty('--brand')
+      root.style.removeProperty('--brand-soft')
+      root.style.removeProperty('--brand-softer')
+      root.style.removeProperty('--brand-tint')
+      root.style.removeProperty('--brand-glow')
     }
 
     if (secondary) {
       root.style.setProperty('--brand-dark', secondary)
+      root.style.setProperty('--sidebar-bg', `color-mix(in srgb, ${secondary} 82%, #0b1220)`)
+      root.style.setProperty('--sidebar-bg-alt', `color-mix(in srgb, ${secondary} 70%, #111827)`)
+    } else if (primary) {
+      root.style.setProperty('--brand-dark', `color-mix(in srgb, ${primary} 72%, #0a0f0d)`)
+      root.style.setProperty('--sidebar-bg', `color-mix(in srgb, ${primary} 55%, #0b1220)`)
+      root.style.setProperty('--sidebar-bg-alt', `color-mix(in srgb, ${primary} 45%, #111827)`)
     } else {
       root.style.removeProperty('--brand-dark')
+      root.style.removeProperty('--sidebar-bg')
+      root.style.removeProperty('--sidebar-bg-alt')
     }
-  }, [hub?.branding])
+
+    const brandName = hub?.branding?.application_name || hub?.name
+    if (brandName) {
+      document.title = brandName
+    }
+
+    const faviconHref = hub?.branding?.favicon_url || '/vite.svg'
+    let link = document.querySelector("link[rel='icon']")
+    if (!link) {
+      link = document.createElement('link')
+      link.setAttribute('rel', 'icon')
+      document.head.appendChild(link)
+    }
+    link.setAttribute('href', faviconHref)
+  }, [hub?.branding, hub?.name])
 
   const can = useCallback(
     (flag) => {

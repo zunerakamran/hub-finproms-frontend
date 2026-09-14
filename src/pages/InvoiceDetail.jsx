@@ -42,7 +42,7 @@ export default function InvoiceDetail() {
       <div className="invoice-sheet">
         <div className="invoice-sheet-head">
           <div>
-            <p className="eyebrow">Invoice</p>
+            <p className="eyebrow">Account</p>
             <h1>{invoice.invoice_number}</h1>
             <p className="muted">{invoice.description}</p>
           </div>

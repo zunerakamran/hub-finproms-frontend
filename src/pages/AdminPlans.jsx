@@ -77,7 +77,7 @@ export default function AdminPlans({ shell = 'client-admin' }) {
   const { can, loading: hubLoading } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('dashboard_manage_plans')
-  const eyebrow = asPowerAdmin ? 'Power Admin' : 'Client Admin'
+  const eyebrow = 'Hub'
   const apiOpts = { asPowerAdmin }
 
   const draft = useMemo(() => readDraft(shell), [shell])

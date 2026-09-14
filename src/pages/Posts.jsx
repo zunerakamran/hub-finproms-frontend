@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
+import PageLoader from '../components/PageLoader'
 import PostMetrics from '../components/PostMetrics'
 import ReelPlayer from '../components/ReelPlayer'
 import { useAuth } from '../context/AuthContext'
@@ -27,46 +28,73 @@ export default function Posts() {
   const [filters, setFilters] = useState({ search: '', type: '', category: '', tag: '' })
   const [searchDraft, setSearchDraft] = useState('')
   const [loading, setLoading] = useState(true)
+  const [initialReady, setInitialReady] = useState(false)
   const [error, setError] = useState('')
 
-  const catalogAllowed = hubLoading || can('member_browse_catalog')
+  const catalogAllowed = can('member_browse_catalog')
 
-  const loadFilters = async () => {
-    const [typesRes, catsRes, tagsRes] = await Promise.all([
-      api.listTypes(),
-      api.listCategories(),
-      api.listTags(),
-    ])
-    setTypes(typesRes.types || [])
-    setCategories(catsRes.categories || [])
-    setTotalPosts(catsRes.total_posts ?? typesRes.total_posts ?? 0)
-    setTags(tagsRes.tags || [])
-  }
+  useEffect(() => {
+    if (hubLoading) return undefined
 
-  const loadPosts = async (nextFilters = filters) => {
-    setLoading(true)
-    setError('')
-    try {
-      const postsRes = await api.posts(nextFilters)
-      setPosts(postsRes.data || [])
-      setTotalResults(postsRes.total ?? postsRes.data?.length ?? 0)
-    } catch (err) {
-      setError(err.message)
-    } finally {
+    if (!catalogAllowed) {
       setLoading(false)
+      setInitialReady(true)
+      return undefined
     }
-  }
 
-  useEffect(() => {
-    if (!catalogAllowed) return
-    loadFilters().catch((err) => setError(err.message))
-  }, [catalogAllowed])
+    let cancelled = false
 
-  useEffect(() => {
-    if (!catalogAllowed) return
-    loadPosts()
+    const run = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        // First paint: wait for filters + posts together.
+        // Later filter changes: only refresh posts (faster, less flicker).
+        if (!initialReady) {
+          const [typesRes, catsRes, tagsRes, postsRes] = await Promise.all([
+            api.listTypes(),
+            api.listCategories(),
+            api.listTags(),
+            api.posts(filters),
+          ])
+          if (cancelled) return
+          setTypes(typesRes.types || [])
+          setCategories(catsRes.categories || [])
+          setTotalPosts(catsRes.total_posts ?? typesRes.total_posts ?? 0)
+          setTags(tagsRes.tags || [])
+          setPosts(postsRes.data || [])
+          setTotalResults(postsRes.total ?? postsRes.data?.length ?? 0)
+        } else {
+          const postsRes = await api.posts(filters)
+          if (cancelled) return
+          setPosts(postsRes.data || [])
+          setTotalResults(postsRes.total ?? postsRes.data?.length ?? 0)
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message)
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+          setInitialReady(true)
+        }
+      }
+    }
+
+    run()
+    return () => {
+      cancelled = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogAllowed, filters.type, filters.category, filters.tag, filters.search, user?.credits, user?.id])
+  }, [
+    hubLoading,
+    catalogAllowed,
+    filters.type,
+    filters.category,
+    filters.tag,
+    filters.search,
+    user?.credits,
+    user?.id,
+  ])
 
   const onSearch = (e) => {
     e.preventDefault()
@@ -87,6 +115,10 @@ export default function Posts() {
     return `${totalResults} item${totalResults === 1 ? '' : 's'} found`
   }, [loading, totalResults])
 
+  if (hubLoading || !initialReady) {
+    return <PageLoader />
+  }
+
   if (!catalogAllowed) {
     return (
       <section>
@@ -101,32 +133,37 @@ export default function Posts() {
   }
 
   return (
-    <section className="listing-page">
-      <div className="listing-hero">
-        <div>
-          <p className="eyebrow">Hub Finproms catalog</p>
+    <section className={`listing-page ${loading ? 'is-refreshing' : ''}`}>
+      {loading && (
+        <div className="listing-refresh-overlay" aria-live="polite" aria-label="Loading">
+          <div className="page-loader__spinner" />
+        </div>
+      )}
+      <div className="catalog-hero">
+        <div className="catalog-hero__copy">
+          <p className="catalog-hero__eyebrow">Content library</p>
           <h1>Ready-to-post social content</h1>
-          <p className="listing-lead">
-            Browse promo posts and reels, unlock with credits, and download the creative assets you
-            need. No subscription required — 1 credit = £1.
+          <p className="catalog-hero__lead">
+            Browse promo posts and reels, unlock with credits, and download the assets you need.
+            1 credit = £1.
           </p>
         </div>
-        <div className="listing-hero-aside">
+        <div className="catalog-hero__aside">
           {isAuthenticated ? (
-            <div className="listing-stat">
+            <div className="catalog-balance">
               <span>Your balance</span>
               <strong>{user?.credits ?? 0}</strong>
-              <em>credits</em>
+              <em>credits available</em>
               <Link to="/subscriptions" className="btn ghost">
                 Top up
               </Link>
             </div>
           ) : (
-            <div className="listing-cta-panel">
+            <div className="catalog-cta">
               <p>
                 {registrationEnabled
-                  ? 'Create an account to browse full previews and buy posts with credits.'
-                  : 'This hub is invite-only. Sign in with your invited advisor account to continue.'}
+                  ? 'Create an account to preview content and buy with credits.'
+                  : 'This hub is invite-only. Sign in with your invited account to continue.'}
               </p>
               {registrationEnabled ? (
                 <button className="btn primary" onClick={() => navigate('/register')}>
@@ -134,7 +171,7 @@ export default function Posts() {
                 </button>
               ) : (
                 <button className="btn primary" onClick={() => navigate('/login')}>
-                  Login
+                  Sign in
                 </button>
               )}
             </div>
@@ -287,20 +324,7 @@ export default function Posts() {
 
       {error && <div className="alert">{error}</div>}
 
-      {loading ? (
-        <div className="post-grid listing-grid">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="post-tile skeleton-tile" aria-hidden="true">
-              <div className="skeleton-cover" />
-              <div className="post-tile-body">
-                <div className="skeleton-line short" />
-                <div className="skeleton-line" />
-                <div className="skeleton-line medium" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : posts.length === 0 ? (
+      {posts.length === 0 && !loading ? (
         <div className="empty-state">
           <h2>No content found</h2>
           <p className="muted">
@@ -319,6 +343,8 @@ export default function Posts() {
           {posts.map((post, index) => {
             const locked = post.is_locked && !post.is_purchased && !isClientAdmin
             const isReel = Boolean(post.is_reel)
+            const showCoverImage = !locked && Boolean(post.cover_url)
+            const showReelVideo = !locked && isReel && !post.cover_url && Boolean(post.video_url)
 
             return (
               <Link
@@ -327,11 +353,11 @@ export default function Posts() {
                 className={`post-tile listing-tile ${locked ? 'is-locked' : ''} ${isReel ? 'is-reel' : ''}`}
                 style={{ animationDelay: `${index * 40}ms` }}
               >
-                <div className="post-cover">
-                  {!locked && post.video_url ? (
-                    <ReelPlayer src={post.video_url} title={post.title} compact />
-                  ) : !locked && post.cover_url ? (
+                <div className="post-cover listing-cover">
+                  {showCoverImage ? (
                     <img src={post.cover_url} alt={post.title} loading="lazy" />
+                  ) : showReelVideo ? (
+                    <ReelPlayer src={post.video_url} title={post.title} compact />
                   ) : (
                     <div className="post-cover-fallback locked-cover">
                       {locked ? 'Locked' : post.type || post.category}
@@ -340,7 +366,13 @@ export default function Posts() {
 
                   {post.is_new && <span className="new-banner">NEW</span>}
 
-                  {isReel && !locked && !post.video_url && (
+                  {isReel && !locked && (
+                    <span className="media-type-chip" aria-hidden="true">
+                      Reel
+                    </span>
+                  )}
+
+                  {isReel && showCoverImage && (
                     <span className="reel-play-btn" aria-hidden="true">
                       <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
                         <path d="M8 5v14l11-7L8 5z" />
@@ -353,13 +385,13 @@ export default function Posts() {
                       {post.is_purchased ? 'Owned' : locked ? 'Locked' : 'Available'}
                     </span>
                     <span className="credit-chip">
-                      {post.credits_cost} credits · £{post.credits_cost}
+                      {post.credits_cost} credits
                     </span>
                   </div>
                 </div>
                 <div className="post-tile-body">
                   <div className="post-meta">
-                    <span className="category-label">{post.type}</span>
+                    <span className="category-label">{isReel ? 'Reel' : post.type || 'Post'}</span>
                     <span className="muted">{post.category}</span>
                     <span>{formatDate(post.last_updated || post.updated_at)}</span>
                   </div>

@@ -85,7 +85,7 @@ export default function PowerAdminModules() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Power Admin</p>
+            <p className="eyebrow">Hub</p>
             <h1>Modules</h1>
             <p className="muted">
               Enable &quot;Manage hub modules&quot; for your role under Power Admin → Capabilities
@@ -101,7 +101,7 @@ export default function PowerAdminModules() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Hub modules</p>
+          <p className="eyebrow">Hub</p>
           <h1>Modules</h1>
           <p className="muted">
             Enable product modules for <strong>{selectedName}</strong>

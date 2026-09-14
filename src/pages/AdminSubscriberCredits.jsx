@@ -11,7 +11,7 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   // Power Admin page can manage any hub (capability checked per hub on API).
   const enabled = asPowerAdmin || can('dashboard_manage_subscriber_credits')
-  const eyebrow = asPowerAdmin ? 'Power Admin' : 'Hub Admin'
+  const eyebrow = 'Advisors & billing'
   const apiOpts = { asPowerAdmin }
 
   const [hubs, setHubs] = useState([])

@@ -5,9 +5,6 @@ import { api } from '../api/client'
 const emptyForm = {
   name: '',
   slug: '',
-  primary_color: '',
-  secondary_color: '',
-  logo_url: '',
   frontend_url: '',
   api_url: '',
   deploy_notes: '',
@@ -54,9 +51,6 @@ export default function PowerAdminHubs() {
       const payload = {
         name: form.name.trim(),
         slug: form.slug.trim() || undefined,
-        primary_color: form.primary_color.trim() || null,
-        secondary_color: form.secondary_color.trim() || null,
-        logo_url: form.logo_url.trim() || null,
         frontend_url: form.frontend_url.trim() || null,
         api_url: form.api_url.trim() || null,
         deploy_notes: form.deploy_notes.trim() || null,
@@ -83,13 +77,12 @@ export default function PowerAdminHubs() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Power Admin</p>
+          <p className="eyebrow">Platform</p>
           <h1>White-label hubs</h1>
           <p className="muted">
             Shared and white-labelled hubs share one codebase but each has its own database. Create a
-            hub record here with that hub&apos;s frontend URL and DB credentials so shared can push
-            content later. Deploy the white-label copy with its own <code>.env</code> (
-            <code>HUB_SLUG</code> + its own <code>DB_*</code>).
+            hub record with frontend URL and DB credentials. Logo and colours are configured later in
+            that hub&apos;s Dashboard → Settings.
           </p>
         </div>
         <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
@@ -120,32 +113,10 @@ export default function PowerAdminHubs() {
               placeholder="acme-advisors"
             />
           </label>
-          <div className="form-row two">
-            <label>
-              Primary colour
-              <input
-                value={form.primary_color}
-                onChange={(e) => setForm({ ...form, primary_color: e.target.value })}
-                placeholder="#1a5f4a"
-              />
-            </label>
-            <label>
-              Secondary colour
-              <input
-                value={form.secondary_color}
-                onChange={(e) => setForm({ ...form, secondary_color: e.target.value })}
-                placeholder="#0f172a"
-              />
-            </label>
-          </div>
-          <label>
-            Logo URL
-            <input
-              value={form.logo_url}
-              onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
-              placeholder="https://..."
-            />
-          </label>
+          <p className="muted form-hint">
+            Logo and colour scheme are set later in that hub&apos;s{' '}
+            <strong>Dashboard → Settings</strong> — not when creating the hub record.
+          </p>
           <label>
             Frontend URL (white-label site)
             <input

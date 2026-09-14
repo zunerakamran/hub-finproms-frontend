@@ -73,7 +73,7 @@ export default function AdminPaymentCard() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Client Admin</p>
+            <p className="eyebrow">Advisors & billing</p>
             <h1>Payment card</h1>
             <p className="muted">
               Advisor billing is not enabled for this hub, so a payment card is not required.
@@ -88,7 +88,7 @@ export default function AdminPaymentCard() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Client Admin</p>
+          <p className="eyebrow">Advisors & billing</p>
           <h1>Payment card</h1>
           <p className="muted">
             Enter the card used when advisors are imported. If Stripe is selected at import time,

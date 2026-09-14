@@ -228,7 +228,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Client Admin</p>
+          <p className="eyebrow">Content</p>
           <h1>{editingId ? 'Edit bundle' : 'Post bundles'}</h1>
           <p className="muted">
             {isActingOnWhiteLabel

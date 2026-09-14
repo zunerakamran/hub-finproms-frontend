@@ -71,7 +71,7 @@ export default function PowerAdminChecklist() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Power Admin</p>
+          <p className="eyebrow">Platform</p>
           <h1>Hub Functionalities</h1>
           <p className="muted">
             Editing Functionalities for <strong>{selectedName}</strong>

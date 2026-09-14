@@ -3,7 +3,12 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { DASHBOARD_LINKS, isDashboardHomeCard, isDashboardLinkVisible } from '../dashboard/nav'
+import {
+  DASHBOARD_GROUPS,
+  DASHBOARD_LINKS,
+  isDashboardHomeCard,
+  isDashboardLinkVisible,
+} from '../dashboard/nav'
 
 function formatMoney(amount, currency = 'gbp') {
   try {
@@ -16,14 +21,16 @@ function formatMoney(amount, currency = 'gbp') {
   }
 }
 
+const GROUP_ORDER = ['account', 'content', 'hub', 'advisors', 'smc', 'gc', 'wc', 'platform']
+
 export default function MyDashboard() {
-  const { canPower } = useAuth()
-  const { can, advisorBillingEnabled, isActingOnWhiteLabel } = useHub()
+  const { user, canPower } = useAuth()
+  const { can, branding, hub, advisorBillingEnabled, isActingOnWhiteLabel } = useHub()
   const [data, setData] = useState(null)
+  const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
   useEffect(() => {
     let cancelled = false
-    // Enrich general-option cards when the member summary API is allowed.
     api
       .myDashboard()
       .then((payload) => {
@@ -37,15 +44,17 @@ export default function MyDashboard() {
     }
   }, [])
 
-  const cards = useMemo(() => {
+  const groups = useMemo(() => {
     const activePlan = data?.subscription?.active_plan
     const subscriptions = data?.subscription?.subscriptions || []
     const invoices = data?.invoices || []
     const purchases = data?.purchases || []
     const credits = data?.credits
 
-    return DASHBOARD_LINKS.filter(isDashboardHomeCard)
-      .filter((link) => isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled, isActingOnWhiteLabel }))
+    const cards = DASHBOARD_LINKS.filter(isDashboardHomeCard)
+      .filter((link) =>
+        isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled, isActingOnWhiteLabel })
+      )
       .map((link) => {
         let description = link.description || ''
 
@@ -79,39 +88,72 @@ export default function MyDashboard() {
           to: link.to,
           title: link.title || link.label,
           description,
+          group: link.group || 'hub',
         }
       })
-  }, [advisorBillingEnabled, can, canPower, data])
+
+    return GROUP_ORDER.map((key) => ({
+      key,
+      label: DASHBOARD_GROUPS[key] || key,
+      cards: cards.filter((c) => c.group === key),
+    })).filter((g) => g.cards.length > 0)
+  }, [advisorBillingEnabled, can, canPower, data, isActingOnWhiteLabel])
+
+  const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
 
   return (
-    <section>
-      <div className="page-head">
+    <section className="dash-home">
+      <div className="dash-welcome">
         <div>
-          <p className="eyebrow">Dashboard</p>
-          <h1>Your tools</h1>
+          <p className="eyebrow">Welcome back</p>
+          <h1>{user?.name ? `Hi, ${user.name.split(' ')[0]}` : 'Your tools'}</h1>
           <p className="muted">
-            Everything here is enabled for your role in Capabilities. Power Admin controls who
-            sees which tools.
+            {totalTools > 0
+              ? `${totalTools} tool${totalTools === 1 ? '' : 's'} enabled for your role on `
+              : 'No tools enabled yet on '}
+            <strong>{brandName}</strong>.
           </p>
+        </div>
+        <div className="dash-welcome__actions">
+          <Link to="/" className="btn ghost">
+            Browse catalog
+          </Link>
         </div>
       </div>
 
-      {cards.length === 0 ? (
-        <div className="empty-state">
+      {groups.length === 0 ? (
+        <div className="empty-state dash-panel">
           <h2>No dashboard tools enabled</h2>
           <p className="muted">
-            Power Admin has not enabled any General options or dashboard tools for your role on
-            this hub yet.
+            Power Admin has not enabled any tools for your role on this hub yet.
           </p>
         </div>
       ) : (
-        <div className="admin-dashboard-grid">
-          {cards.map((card) => (
-            <Link key={card.to} to={card.to} className="admin-dashboard-card">
-              <h2>{card.title}</h2>
-              <p>{card.description}</p>
-              <span className="admin-dashboard-link">Open →</span>
-            </Link>
+        <div className="dash-home-groups">
+          {groups.map((group) => (
+            <section key={group.key} className="dash-home-group" data-group={group.key}>
+              <header className="dash-home-group__head">
+                <h2>{group.label}</h2>
+                <span className="dash-home-group__count">
+                  {group.cards.length} {group.cards.length === 1 ? 'tool' : 'tools'}
+                </span>
+              </header>
+              <div className="tool-grid">
+                {group.cards.map((card, index) => (
+                  <Link
+                    key={card.to}
+                    to={card.to}
+                    className="tool-card"
+                    data-group={card.group}
+                    style={{ '--card-i': index }}
+                  >
+                    <h3>{card.title}</h3>
+                    <p>{card.description}</p>
+                    <span className="tool-card__cta">Open →</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}

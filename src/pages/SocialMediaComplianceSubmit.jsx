@@ -45,17 +45,6 @@ export default function SocialMediaComplianceSubmit() {
     }
   }, [hubLoading, canSubmit])
 
-  useEffect(() => {
-    if (!postId) return
-    const purchase = purchases.find(
-      (p) => String(p.post_id || p.post?.id) === String(postId)
-    )
-    const post = purchase?.post
-    if (post?.description && !description) {
-      setDescription(post.description)
-    }
-  }, [postId, purchases, description])
-
   const onImage = (file) => {
     setImage(file || null)
     if (preview) URL.revokeObjectURL(preview)
@@ -73,7 +62,7 @@ export default function SocialMediaComplianceSubmit() {
     try {
       const form = new FormData()
       form.append('post_id', postId)
-      if (description) form.append('description', description)
+      form.append('description', description)
       if (image) form.append('image', image)
       const data = await api.socialMediaComplianceSubmit(form)
       navigate(`/my-dashboard/social-media-compliance/${data.data.id}`)

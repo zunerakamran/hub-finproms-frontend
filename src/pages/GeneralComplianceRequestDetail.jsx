@@ -23,6 +23,7 @@ export default function GeneralComplianceRequestDetail() {
   const [resubDescription, setResubDescription] = useState('')
   const [resubFiles, setResubFiles] = useState([])
   const [confirmFiles, setConfirmFiles] = useState([])
+  const [assigningSelf, setAssigningSelf] = useState(false)
 
   const moduleOn = can('module_general_compliance')
   const canReview = can('gc_review_requests')
@@ -69,6 +70,23 @@ export default function GeneralComplianceRequestDetail() {
   const isAssignee = row && user && Number(row.assigned_to) === Number(user.id)
   const canReviewThis = canReview && (canViewAll || isAssignee)
   const canShowReviewForm = canReviewThis && row?.status === 'Pending'
+  const canAssignToMyself = canReview && row && !row.assigned_to && user?.id
+
+  const assignToMyself = async () => {
+    if (!user?.id) return
+    setAssigningSelf(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.generalComplianceAssign(id, user.id, { asPowerAdmin })
+      setRow(data.data)
+      setMessage('Assigned to you. You can review this request now.')
+    } catch (err) {
+      setError(err.message || 'Could not assign this request to you.')
+    } finally {
+      setAssigningSelf(false)
+    }
+  }
 
   const saveReview = async (event) => {
     event.preventDefault()
@@ -182,7 +200,14 @@ export default function GeneralComplianceRequestDetail() {
           {row.assigned_date ? ` on ${formatGcDate(row.assigned_date)}` : ''}
         </p>
       ) : (
-        <p className="gc-banner gc-banner--warn">Not assigned to a reviewer yet.</p>
+        <div className="gc-banner gc-banner--warn" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span>Not assigned to a reviewer yet.</span>
+          {canAssignToMyself && (
+            <button type="button" className="btn primary" disabled={assigningSelf} onClick={assignToMyself}>
+              {assigningSelf ? 'Assigning…' : 'Assign to myself'}
+            </button>
+          )}
+        </div>
       )}
 
       <div className="gc-panel" style={{ marginBottom: '1rem' }}>

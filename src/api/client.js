@@ -618,4 +618,178 @@ export const api = {
       `${adminBase(options)}/general-compliance/charts/advisor-comparison${query ? `?${query}` : ''}`
     )
   },
+
+  // —— Website Compliance ——
+  websiteComplianceTemplates: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/website-compliance/templates${query ? `?${query}` : ''}`)
+  },
+  websiteComplianceTemplate: (id) => request(`/website-compliance/templates/${id}`),
+  websiteComplianceCreateTemplate: (payload) =>
+    request('/website-compliance/templates', { method: 'POST', body: JSON.stringify(payload) }),
+  websiteComplianceUpdateTemplate: (id, payload) =>
+    request(`/website-compliance/templates/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  websiteComplianceDeleteTemplate: (id) =>
+    request(`/website-compliance/templates/${id}`, { method: 'DELETE' }),
+  websiteComplianceTemplatePages: (id) => request(`/website-compliance/templates/${id}/pages`),
+  websiteCompliancePages: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/website-compliance/pages${query ? `?${query}` : ''}`)
+  },
+  websiteCompliancePage: (id) => request(`/website-compliance/pages/${id}`),
+  websiteComplianceCreatePage: (payload) =>
+    request('/website-compliance/pages', { method: 'POST', body: JSON.stringify(payload) }),
+  websiteComplianceUpdatePage: (id, payload) =>
+    request(`/website-compliance/pages/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  websiteComplianceDeletePage: (id) =>
+    request(`/website-compliance/pages/${id}`, { method: 'DELETE' }),
+  websiteCompliancePageSections: (pageId, params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/website-compliance/pages/${pageId}/sections${query ? `?${query}` : ''}`)
+  },
+  websiteComplianceSection: (id) => request(`/website-compliance/sections/${id}`),
+  websiteComplianceCreateSection: (payload) =>
+    request('/website-compliance/sections', { method: 'POST', body: JSON.stringify(payload) }),
+  websiteComplianceUpdateSection: (id, payload) =>
+    request(`/website-compliance/sections/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  websiteComplianceLockSection: (id) =>
+    request(`/website-compliance/sections/${id}/lock`, { method: 'POST' }),
+  websiteComplianceUnlockSection: (id) =>
+    request(`/website-compliance/sections/${id}/unlock`, { method: 'POST' }),
+  websiteComplianceChangeRequests: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/website-compliance/change-requests${query ? `?${query}` : ''}`)
+  },
+  websiteComplianceCreateChangeRequest: (body) =>
+    request('/website-compliance/change-requests', { method: 'POST', body: JSON.stringify(body) }),
+  websiteComplianceChangeRequestPreview: (id) =>
+    request(`/website-compliance/change-requests/${id}/preview`),
+  websiteComplianceAssignChangeRequest: (id) =>
+    request(`/website-compliance/change-requests/${id}/assign`, { method: 'POST' }),
+  websiteComplianceAssignToApprover: (id, payload) =>
+    request(`/website-compliance/change-requests/${id}/assign-to-approver`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  websiteComplianceApproveChangeRequest: (id, payload) =>
+    request(`/website-compliance/change-requests/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  websiteComplianceRejectChangeRequest: (id, payload) =>
+    request(`/website-compliance/change-requests/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  websiteComplianceShowChangeRequest: (id) =>
+    request(`/website-compliance/change-requests/${id}`),
+  websiteComplianceResubmitChangeRequest: (id, body) =>
+    request(`/website-compliance/change-requests/${id}/resubmit`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  websiteComplianceConfirmChangeRequestFeedback: (id, body) =>
+    request(`/website-compliance/change-requests/${id}/confirm-feedback`, {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    }),
+  websiteComplianceApproveChangeRequestWithFeedback: (id, payload) =>
+    request(`/website-compliance/change-requests/${id}/approve-with-feedback`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  websiteComplianceTemplateRequests: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/website-compliance/template-requests${query ? `?${query}` : ''}`)
+  },
+  websiteComplianceCreateTemplateRequest: (body) =>
+    request('/website-compliance/template-requests', { method: 'POST', body: JSON.stringify(body) }),
+  websiteComplianceDeployTemplateRequest: (id, body) =>
+    request(`/website-compliance/template-requests/${id}/deploy`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  websiteComplianceRejectTemplateRequest: (id, body = {}) =>
+    request(`/website-compliance/template-requests/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  websiteComplianceAssignAdvisor: (id, body) =>
+    request(`/website-compliance/template-requests/${id}/assign-advisor`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  websiteComplianceTemplateRequestSections: (id) =>
+    request(`/website-compliance/template-requests/${id}/sections`),
+  websiteComplianceUpdateTemplateRequestSections: (id, body) =>
+    request(`/website-compliance/template-requests/${id}/sections`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  websiteCompliancePublishContent: (id, body) =>
+    request(`/website-compliance/template-requests/${id}/publish-content`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  websiteComplianceUploadImage: (formData) =>
+    request('/website-compliance/upload-image', { method: 'POST', body: formData }),
+  websiteComplianceReportSummary: () => request('/website-compliance/reports/summary'),
+  websiteComplianceRefreshReportSummary: () =>
+    request('/website-compliance/reports/summary/refresh', { method: 'POST' }),
+  websiteComplianceReports: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/website-compliance/reports${query ? `?${query}` : ''}`)
+  },
+  websiteComplianceAdvisors: () => request('/website-compliance/advisors'),
+  websiteComplianceReviewers: () => request('/website-compliance/reviewers'),
+  websiteCompliancePublicPages: () => request('/website-compliance/public/pages'),
+}
+
+/** Absolute API base for Website Compliance asset URLs (no trailing slash). */
+export const WEBSITE_COMPLIANCE_API_BASE = `${API_URL}/website-compliance`
+
+/** Live template preview host (cPanel showcase sites). */
+export const WC_TEMPLATE_PREVIEW_BASE =
+  import.meta.env.VITE_WC_TEMPLATE_PREVIEW_URL || 'https://epatronus.space'
+
+/**
+ * Resolve a WC upload path or absolute URL for <img src> / iframes.
+ */
+export function websiteComplianceAssetUrl(pathOrUrl) {
+  if (!pathOrUrl) return ''
+  if (/^(data:|blob:)/i.test(pathOrUrl)) return pathOrUrl
+  const base = WEBSITE_COMPLIANCE_API_BASE.replace(/\/$/, '')
+  const isUploaded =
+    typeof pathOrUrl === 'string' &&
+    (pathOrUrl.startsWith('/uploaded-images') ||
+      pathOrUrl.includes('/uploaded-images/') ||
+      pathOrUrl.startsWith('/uploads') ||
+      pathOrUrl.includes('/uploads/'))
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(pathOrUrl) && isUploaded) {
+    const name = pathOrUrl.split('/').pop()
+    return `${base}/uploaded-images/${name}`
+  }
+  if (/^(https?:)/i.test(pathOrUrl)) return pathOrUrl
+  if (pathOrUrl.startsWith('/uploaded-images') || pathOrUrl.includes('/uploaded-images/')) {
+    const name = pathOrUrl.split('/').pop()
+    return `${base}/uploaded-images/${name}`
+  }
+  if (pathOrUrl.startsWith('/uploads') || pathOrUrl.includes('/uploads/')) {
+    const name = pathOrUrl.split('/').pop()
+    return `${base}/uploaded-images/${name}`
+  }
+  if (pathOrUrl.startsWith('/')) return `${base}${pathOrUrl}`
+  return pathOrUrl
 }

@@ -43,6 +43,22 @@ const GC_NAV_ANY = [
   'gc_view_reports',
 ]
 
+const WC_NAV_ANY = [
+  'wc_edit_sections',
+  'wc_submit_change_requests',
+  'wc_assign_change_requests',
+  'wc_view_all_change_requests',
+  'wc_review_change_requests',
+  'wc_request_deployments',
+  'wc_view_all_deployments',
+  'wc_deploy_websites',
+  'wc_manage_templates',
+  'wc_manage_deployment_sections',
+  'wc_publish_live_content',
+  'wc_view_activity_logs',
+  'wc_view_platform_report',
+]
+
 /** @type {DashboardLink[]} */
 export const DASHBOARD_LINKS = [
   {
@@ -256,6 +272,57 @@ export const DASHBOARD_LINKS = [
     description: 'General compliance reports, CSV export, and charts.',
     capability: 'gc_view_reports',
   },
+  // —— Website Compliance (wc_*) ——
+  {
+    kind: 'section',
+    label: 'Website Compliance',
+    anyOf: WC_NAV_ANY,
+  },
+  {
+    to: '/my-dashboard/website-compliance',
+    label: 'My websites',
+    title: 'My websites',
+    description: 'Choose a template, manage deployments, and edit website sections.',
+    anyOf: [
+      'wc_edit_sections',
+      'wc_submit_change_requests',
+      'wc_request_deployments',
+      'wc_view_all_deployments',
+      'wc_publish_live_content',
+    ],
+    end: true,
+  },
+  {
+    to: '/my-dashboard/website-compliance/deployments',
+    label: 'Deployments',
+    title: 'Deployments',
+    description: 'Request sites, assign advisors, and deploy to cPanel.',
+    anyOf: [
+      'wc_request_deployments',
+      'wc_view_all_deployments',
+      'wc_deploy_websites',
+      'wc_manage_templates',
+      'wc_manage_deployment_sections',
+    ],
+  },
+  {
+    to: '/my-dashboard/website-compliance/queue',
+    label: 'Change requests',
+    title: 'Change requests',
+    description: 'Assign and approve or reject website content changes.',
+    anyOf: [
+      'wc_view_all_change_requests',
+      'wc_assign_change_requests',
+      'wc_review_change_requests',
+    ],
+  },
+  {
+    to: '/my-dashboard/website-compliance/reports',
+    label: 'Reports',
+    title: 'Website compliance reports',
+    description: 'Platform summary for templates, deployments, and change requests.',
+    capability: 'wc_view_platform_report',
+  },
   // —— Power Admin platform tools (pa_* checklist) ——
   {
     to: '/my-dashboard/payment-methods',
@@ -292,7 +359,7 @@ export const DASHBOARD_LINKS = [
     label: 'Modules',
     title: 'Modules',
     description:
-      'Enable Social Media Compliance and General Compliance (Website Compliance coming later) for the current hub.',
+      'Enable Social Media, General, and Website Compliance modules for the current hub.',
     capability: 'dashboard_manage_modules',
   },
   {

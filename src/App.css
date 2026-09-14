@@ -1768,6 +1768,18 @@ label {
   max-width: none;
 }
 
+/* Keep Website Compliance Tailwind surfaces from inheriting hub form chrome. */
+.admin-page .wc-app {
+  min-width: 0;
+}
+
+.admin-page .wc-app input:not([type='checkbox']):not([type='radio']):not([type='color']),
+.admin-page .wc-app select,
+.admin-page .wc-app textarea {
+  /* Prefer Tailwind utilities; don't force hub full-width padding when no width util. */
+  max-width: 100%;
+}
+
 .power-admin-shell .admin-sidebar {
   background: #1a2030;
 }

@@ -34,6 +34,8 @@ export function inactiveReasonLabel(reason) {
       return 'Module off'
     case 'module_general_compliance_off':
       return 'Module off'
+    case 'module_website_compliance_off':
+      return 'Module off'
     default:
       return 'Inactive'
   }
@@ -49,6 +51,8 @@ export function inactiveReasonHint(reason) {
       return 'Inactive while Social Media Compliance module is off. Enable it under Functionalities → Modules.'
     case 'module_general_compliance_off':
       return 'Inactive while General Compliance module is off. Enable it under Functionalities → Modules.'
+    case 'module_website_compliance_off':
+      return 'Inactive while Website Compliance module is off. Enable it under Functionalities → Modules.'
     default:
       return 'This capability is currently inactive for this hub.'
   }
@@ -64,6 +68,8 @@ export function inactiveReasonTitle(reason) {
       return 'Requires Social Media Compliance module — enable it on the hub checklist'
     case 'module_general_compliance_off':
       return 'Requires General Compliance module — enable it on the hub checklist'
+    case 'module_website_compliance_off':
+      return 'Requires Website Compliance module — enable it on the hub checklist'
     default:
       return 'Inactive for this hub'
   }

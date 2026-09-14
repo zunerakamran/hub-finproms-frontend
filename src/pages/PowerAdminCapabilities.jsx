@@ -16,6 +16,7 @@ const GROUP_ORDER = [
   'admin_emails',
   'social_media_compliance',
   'general_compliance',
+  'website_compliance',
 ]
 
 export default function PowerAdminCapabilities() {

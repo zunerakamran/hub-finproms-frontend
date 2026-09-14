@@ -36,6 +36,11 @@ import GeneralComplianceQueue from './pages/GeneralComplianceQueue'
 import GeneralComplianceReports from './pages/GeneralComplianceReports'
 import GeneralComplianceRequestDetail from './pages/GeneralComplianceRequestDetail'
 import GeneralComplianceSubmit from './pages/GeneralComplianceSubmit'
+import WebsiteComplianceDeployments from './pages/WebsiteComplianceDeployments'
+import WebsiteComplianceHome from './pages/WebsiteComplianceHome'
+import WebsiteCompliancePublish from './pages/WebsiteCompliancePublish'
+import WebsiteComplianceQueue from './pages/WebsiteComplianceQueue'
+import WebsiteComplianceReports from './pages/WebsiteComplianceReports'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Login from './pages/Login'
 import MyCredits from './pages/MyCredits'
@@ -323,6 +328,70 @@ export default function App() {
                       ]}
                     >
                       <GeneralComplianceRequestDetail />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="website-compliance"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'wc_edit_sections',
+                        'wc_submit_change_requests',
+                        'wc_request_deployments',
+                        'wc_view_all_deployments',
+                        'wc_publish_live_content',
+                      ]}
+                    >
+                      <WebsiteComplianceHome />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="website-compliance/deployments"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'wc_request_deployments',
+                        'wc_view_all_deployments',
+                        'wc_deploy_websites',
+                        'wc_manage_templates',
+                        'wc_manage_deployment_sections',
+                      ]}
+                    >
+                      <WebsiteComplianceDeployments />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="website-compliance/queue"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'wc_view_all_change_requests',
+                        'wc_assign_change_requests',
+                        'wc_review_change_requests',
+                      ]}
+                    >
+                      <WebsiteComplianceQueue />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="website-compliance/reports"
+                  element={
+                    <HubCapabilityRoute capability="wc_view_platform_report">
+                      <WebsiteComplianceReports />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="website-compliance/publish/:deploymentId"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={['wc_publish_live_content', 'wc_manage_deployment_sections']}
+                    >
+                      <WebsiteCompliancePublish />
                     </HubCapabilityRoute>
                   }
                 />

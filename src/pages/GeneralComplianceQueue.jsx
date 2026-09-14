@@ -7,7 +7,7 @@ import { useHub } from '../context/HubContext'
 import { formatGcDate } from '../utils/generalCompliance'
 
 export default function GeneralComplianceQueue() {
-  const { isPowerAdmin } = useAuth()
+  const { user, isPowerAdmin } = useAuth()
   const { can, loading: hubLoading } = useHub()
   const [items, setItems] = useState([])
   const [meta, setMeta] = useState(null)
@@ -26,6 +26,7 @@ export default function GeneralComplianceQueue() {
   const canAssign = can('gc_assign_requests')
   const canViewAll = can('gc_view_all_requests')
   const canReview = can('gc_review_requests')
+  const canSelfAssign = canReview
   const useFullList = canViewAll || canAssign
   const enabled = moduleOn && (canViewAll || canAssign || canReview)
 
@@ -91,6 +92,12 @@ export default function GeneralComplianceQueue() {
     }
   }
 
+  const assignToMe = async (requestId) => {
+    if (!user?.id) return
+    await assign(requestId, user.id)
+    setMessage('Assigned to you. You can open and review this request.')
+  }
+
   if (!hubLoading && !enabled) {
     return (
       <section>
@@ -116,7 +123,9 @@ export default function GeneralComplianceQueue() {
           <p className="eyebrow">General Compliance</p>
           <h1>All requests</h1>
           <p className="muted">
-            {useFullList ? 'All hub requests.' : 'Requests assigned to you.'}
+            {useFullList
+              ? 'All hub requests.'
+              : 'Your assigned requests and unassigned requests you can pick up.'}
           </p>
         </div>
       </div>
@@ -166,7 +175,7 @@ export default function GeneralComplianceQueue() {
                 <th>Files</th>
                 <th>Status</th>
                 <th>Assigned</th>
-                {canAssign && <th>Assign</th>}
+                {(canAssign || canSelfAssign) && <th>Assign</th>}
                 <th>Submitted</th>
                 <th />
               </tr>
@@ -191,20 +200,35 @@ export default function GeneralComplianceQueue() {
                     <GcStatusBadge status={row.status} />
                   </td>
                   <td>{row.assignee?.name || <span className="muted">Unassigned</span>}</td>
-                  {canAssign && (
+                  {(canAssign || canSelfAssign) && (
                     <td>
-                      <select
-                        defaultValue={row.assigned_to || ''}
-                        disabled={assigning === row.id}
-                        onChange={(e) => assign(row.id, e.target.value)}
-                      >
-                        <option value="">— Unassigned —</option>
-                        {reviewers.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.name}
-                          </option>
-                        ))}
-                      </select>
+                      {canAssign ? (
+                        <select
+                          defaultValue={row.assigned_to || ''}
+                          disabled={assigning === row.id}
+                          onChange={(e) => assign(row.id, e.target.value)}
+                        >
+                          <option value="">— Unassigned —</option>
+                          {reviewers.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : !row.assigned_to ? (
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          disabled={assigning === row.id}
+                          onClick={() => assignToMe(row.id)}
+                        >
+                          {assigning === row.id ? 'Assigning…' : 'Assign to me'}
+                        </button>
+                      ) : Number(row.assigned_to) === Number(user?.id) ? (
+                        <span className="muted">You</span>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
                     </td>
                   )}
                   <td>{formatGcDate(row.submission_date)}</td>

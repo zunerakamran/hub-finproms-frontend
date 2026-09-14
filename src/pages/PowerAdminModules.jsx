@@ -132,8 +132,9 @@ export default function PowerAdminModules() {
           <div className="checklist-section" id="modules">
             <h2>Modules</h2>
             <p className="muted checklist-section-hint">
-              Social Media Compliance and General Compliance are available now. Website Compliance
-              is coming later.
+              Social Media Compliance, General Compliance, and Website Compliance
+              are available. Enable a module here, then grant related capabilities
+              on the Capabilities matrix.
             </p>
             <div className="checklist-grid">
               {modules.map((item) => (

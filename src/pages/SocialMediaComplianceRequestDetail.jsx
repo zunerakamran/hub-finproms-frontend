@@ -23,6 +23,7 @@ export default function SocialMediaComplianceRequestDetail() {
   const [resubDescription, setResubDescription] = useState('')
   const [resubImage, setResubImage] = useState(null)
   const [confirmImage, setConfirmImage] = useState(null)
+  const [assigningSelf, setAssigningSelf] = useState(false)
 
   const moduleOn = can('module_social_media_compliance')
   const canReview = can('smc_review_requests')
@@ -69,6 +70,23 @@ export default function SocialMediaComplianceRequestDetail() {
   const isAssignee = row && user && Number(row.assigned_to) === Number(user.id)
   const canReviewThis = canReview && (canViewAll || isAssignee)
   const canShowReviewForm = canReviewThis && row?.status === 'Pending'
+  const canAssignToMyself = canReview && row && !row.assigned_to && user?.id
+
+  const assignToMyself = async () => {
+    if (!user?.id) return
+    setAssigningSelf(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.socialMediaComplianceAssign(id, user.id, { asPowerAdmin })
+      setRow(data.data)
+      setMessage('Assigned to you. You can review this request now.')
+    } catch (err) {
+      setError(err.message || 'Could not assign this request to you.')
+    } finally {
+      setAssigningSelf(false)
+    }
+  }
 
   const saveReview = async (event) => {
     event.preventDefault()
@@ -180,7 +198,14 @@ export default function SocialMediaComplianceRequestDetail() {
           {row.assigned_date ? ` on ${formatSmcDate(row.assigned_date)}` : ''}
         </p>
       ) : (
-        <p className="smc-banner smc-banner--warn">Not assigned to a reviewer yet.</p>
+        <div className="smc-banner smc-banner--warn" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span>Not assigned to a reviewer yet.</span>
+          {canAssignToMyself && (
+            <button type="button" className="btn primary" disabled={assigningSelf} onClick={assignToMyself}>
+              {assigningSelf ? 'Assigning…' : 'Assign to myself'}
+            </button>
+          )}
+        </div>
       )}
 
       <div className="smc-versions">

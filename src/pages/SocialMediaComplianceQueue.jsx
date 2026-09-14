@@ -7,7 +7,7 @@ import { useHub } from '../context/HubContext'
 import { formatSmcDate } from '../utils/socialMediaCompliance'
 
 export default function SocialMediaComplianceQueue() {
-  const { isPowerAdmin } = useAuth()
+  const { user, isPowerAdmin } = useAuth()
   const { can, loading: hubLoading } = useHub()
   const [items, setItems] = useState([])
   const [meta, setMeta] = useState(null)
@@ -26,7 +26,8 @@ export default function SocialMediaComplianceQueue() {
   const canAssign = can('smc_assign_requests')
   const canViewAll = can('smc_view_all_requests')
   const canReview = can('smc_review_requests')
-  // Full hub list when view-all or assign; reviewers without those only see assigned queue.
+  const canSelfAssign = canReview
+  // Full hub list when view-all or assign; reviewers without those see assigned + unassigned (pickup).
   const useFullList = canViewAll || canAssign
   const enabled = moduleOn && (canViewAll || canAssign || canReview)
 
@@ -92,6 +93,12 @@ export default function SocialMediaComplianceQueue() {
     }
   }
 
+  const assignToMe = async (requestId) => {
+    if (!user?.id) return
+    await assign(requestId, user.id)
+    setMessage('Assigned to you. You can open and review this request.')
+  }
+
   if (!hubLoading && !enabled) {
     return (
       <section>
@@ -117,7 +124,9 @@ export default function SocialMediaComplianceQueue() {
           <p className="eyebrow">Social Media Compliance</p>
           <h1>All requests</h1>
           <p className="muted">
-            {useFullList ? 'All hub requests.' : 'Requests assigned to you.'}
+            {useFullList
+              ? 'All hub requests.'
+              : 'Your assigned requests and unassigned requests you can pick up.'}
           </p>
         </div>
       </div>
@@ -167,7 +176,7 @@ export default function SocialMediaComplianceQueue() {
                 <th>Image</th>
                 <th>Status</th>
                 <th>Assigned</th>
-                {canAssign && <th>Assign</th>}
+                {(canAssign || canSelfAssign) && <th>Assign</th>}
                 <th>Submitted</th>
                 <th />
               </tr>
@@ -194,20 +203,35 @@ export default function SocialMediaComplianceQueue() {
                     <SmcStatusBadge status={row.status} />
                   </td>
                   <td>{row.assignee?.name || <span className="muted">Unassigned</span>}</td>
-                  {canAssign && (
+                  {(canAssign || canSelfAssign) && (
                     <td>
-                      <select
-                        defaultValue={row.assigned_to || ''}
-                        disabled={assigning === row.id}
-                        onChange={(e) => assign(row.id, e.target.value)}
-                      >
-                        <option value="">— Unassigned —</option>
-                        {reviewers.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.name}
-                          </option>
-                        ))}
-                      </select>
+                      {canAssign ? (
+                        <select
+                          defaultValue={row.assigned_to || ''}
+                          disabled={assigning === row.id}
+                          onChange={(e) => assign(row.id, e.target.value)}
+                        >
+                          <option value="">— Unassigned —</option>
+                          {reviewers.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : !row.assigned_to ? (
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          disabled={assigning === row.id}
+                          onClick={() => assignToMe(row.id)}
+                        >
+                          {assigning === row.id ? 'Assigning…' : 'Assign to me'}
+                        </button>
+                      ) : Number(row.assigned_to) === Number(user?.id) ? (
+                        <span className="muted">You</span>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
                     </td>
                   )}
                   <td>{formatSmcDate(row.submission_date)}</td>

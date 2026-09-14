@@ -1,0 +1,771 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
+import {
+  FaCheckCircle,
+  FaClock,
+  FaCog,
+  FaEdit,
+  FaEyeSlash,
+  FaGlobe,
+  FaLayerGroup,
+  FaPen,
+  FaPlus,
+  FaRocket,
+  FaSearch,
+  FaSync,
+  FaThLarge,
+  FaTimes,
+  FaTimesCircle,
+  FaTrash,
+} from 'react-icons/fa'
+import { useHub } from '../../context/HubContext'
+import { defaultTemplatePreviewUrl } from '../utils/assetUrl'
+import { sectionDisplayName } from '../utils/sectionDisplay'
+import TemplateScrollPreview from './TemplateScrollPreview'
+import api from '../wcApi'
+
+function normalizeSiteUrl(value) {
+  const trimmed = String(value ?? '').trim()
+  if (!trimmed) return ''
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed.replace(/^\/+/, '')}`
+}
+
+function requestRequesterName(req, fallback = 'Unknown') {
+  return req.requested_by?.name || req.requestedBy?.name || req.advisor?.name || fallback
+}
+
+function resolveAdvisorSiteUrl(req) {
+  return normalizeSiteUrl(req.cpanel_domain || req.domain_name || req.domain || '')
+}
+
+const STATUS_CONFIG = {
+  pending: {
+    label: 'Pending',
+    icon: FaClock,
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+  },
+  deployed: {
+    label: 'Deployed',
+    icon: FaCheckCircle,
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  rejected: {
+    label: 'Rejected',
+    icon: FaTimesCircle,
+    className: 'bg-rose-50 text-rose-700 border-rose-200',
+  },
+}
+
+function StatusBadge({ status }) {
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending
+  const Icon = config.icon
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${config.className}`}
+    >
+      <Icon className="w-3 h-3" />
+      {config.label}
+    </span>
+  )
+}
+
+function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' }) {
+  return createPortal(
+    <div className="wc-app wc-portal-root">
+      <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40">
+        <div className={`bg-white rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}>
+          <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-extrabold text-[#0B1B3D]">{title}</h3>
+              {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+            </div>
+            <button type="button" onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100">
+              <FaTimes className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="p-5">{children}</div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+/**
+ * Template catalog + Power Admin deploy / section management (from content-flow PowerAdminDashboard).
+ */
+export default function WebsiteComplianceTemplatesPanel() {
+  const { can } = useHub()
+  const canManageTemplates = can('wc_manage_templates')
+  const canDeployWebsites = can('wc_deploy_websites')
+  const canPublishLive = can('wc_publish_live_content')
+  const canManageSections = can('wc_manage_deployment_sections')
+  const canViewDeployments = canDeployWebsites || can('wc_view_all_deployments')
+
+  const [activeTab, setActiveTab] = useState(
+    canManageTemplates ? 'templates' : canViewDeployments ? 'deployments' : 'templates'
+  )
+  const [templates, setTemplates] = useState([])
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [templateSearch, setTemplateSearch] = useState('')
+  const [requestSearch, setRequestSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState(null)
+  const [templateName, setTemplateName] = useState('')
+  const [templateSlug, setTemplateSlug] = useState('')
+  const [templateDesc, setTemplateDesc] = useState('')
+  const [templatePreviewUrl, setTemplatePreviewUrl] = useState('')
+  const [templateIsActive, setTemplateIsActive] = useState(true)
+  const [regeneratePreview, setRegeneratePreview] = useState(false)
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false)
+
+  const [selectedRequest, setSelectedRequest] = useState(null)
+  const [cpanelDomain, setCpanelDomain] = useState('')
+  const [cpanelDbHost, setCpanelDbHost] = useState('localhost')
+  const [cpanelDbName, setCpanelDbName] = useState('')
+  const [cpanelDbUser, setCpanelDbUser] = useState('')
+  const [cpanelDbPass, setCpanelDbPass] = useState('')
+  const [cpanelApiKey, setCpanelApiKey] = useState('')
+  const [isDeploying, setIsDeploying] = useState(false)
+
+  const [sectionManageRequest, setSectionManageRequest] = useState(null)
+  const [deploymentSections, setDeploymentSections] = useState([])
+  const [sectionDrafts, setSectionDrafts] = useState({})
+  const [isLoadingSections, setIsLoadingSections] = useState(false)
+  const [isSavingSections, setIsSavingSections] = useState(false)
+
+  const fetchData = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true)
+      try {
+        const [reqRes, tplRes] = await Promise.all([
+          canViewDeployments ? api.get('/template-requests') : Promise.resolve({ data: [] }),
+          canManageTemplates ? api.get('/templates?all=1') : Promise.resolve({ data: [] }),
+        ])
+        setRequests(Array.isArray(reqRes.data) ? reqRes.data : [])
+        setTemplates(Array.isArray(tplRes.data) ? tplRes.data : [])
+      } catch {
+        setError('Failed to load templates / deployments.')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [canViewDeployments, canManageTemplates]
+  )
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const filteredTemplates = useMemo(() => {
+    const q = templateSearch.trim().toLowerCase()
+    if (!q) return templates
+    return templates.filter(
+      (tpl) =>
+        tpl.name?.toLowerCase().includes(q) ||
+        tpl.slug?.toLowerCase().includes(q) ||
+        tpl.description?.toLowerCase().includes(q)
+    )
+  }, [templates, templateSearch])
+
+  const filteredRequests = useMemo(() => {
+    const q = requestSearch.trim().toLowerCase()
+    return requests.filter((req) => {
+      const matchesStatus = statusFilter === 'all' || req.status === statusFilter
+      const matchesSearch =
+        !q ||
+        [requestRequesterName(req, ''), req.template_name, req.domain_name, req.domain]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q))
+      return matchesStatus && matchesSearch
+    })
+  }, [requests, requestSearch, statusFilter])
+
+  const openCreateTemplateModal = () => {
+    setEditingTemplate(null)
+    setTemplateName('')
+    setTemplateSlug('')
+    setTemplateDesc('')
+    setTemplatePreviewUrl('')
+    setRegeneratePreview(false)
+    setTemplateIsActive(true)
+    setShowTemplateModal(true)
+  }
+
+  const openEditTemplateModal = (tpl) => {
+    setEditingTemplate(tpl)
+    setTemplateName(tpl.name || '')
+    setTemplateSlug(tpl.slug || '')
+    setTemplateDesc(tpl.description || '')
+    setTemplatePreviewUrl(tpl.preview_url || defaultTemplatePreviewUrl(tpl.slug))
+    setRegeneratePreview(false)
+    setTemplateIsActive(Boolean(tpl.is_active))
+    setShowTemplateModal(true)
+  }
+
+  const handleSaveTemplate = async (e) => {
+    e.preventDefault()
+    if (!templateName) return
+    setIsSavingTemplate(true)
+    setMessage('')
+    setError('')
+    try {
+      const payload = {
+        name: templateName,
+        slug: templateSlug,
+        description: templateDesc,
+        preview_url: templatePreviewUrl || defaultTemplatePreviewUrl(templateSlug),
+        is_active: templateIsActive,
+      }
+      if (editingTemplate) {
+        if (regeneratePreview) payload.regenerate_preview = true
+        await api.put(`/templates/${editingTemplate.id}`, payload)
+        setMessage(`Showcase template "${templateName}" updated.`)
+      } else {
+        await api.post('/templates', payload)
+        setMessage(`Showcase template "${templateName}" created.`)
+      }
+      setShowTemplateModal(false)
+      fetchData(true)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to save template.')
+    } finally {
+      setIsSavingTemplate(false)
+    }
+  }
+
+  const handleDeleteTemplate = async (tpl) => {
+    if (!window.confirm(`Delete template "${tpl.name}"?`)) return
+    try {
+      await api.delete(`/templates/${tpl.id}`)
+      setMessage(`Deleted template "${tpl.name}".`)
+      fetchData(true)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete template.')
+    }
+  }
+
+  const openDeployModal = (req) => {
+    setSelectedRequest(req)
+    setCpanelDomain(resolveAdvisorSiteUrl(req))
+    setCpanelDbHost(req.cpanel_db_host || 'localhost')
+    setCpanelDbName(req.cpanel_db_name || '')
+    setCpanelDbUser(req.cpanel_db_user || '')
+    setCpanelDbPass(req.cpanel_db_pass || '')
+    setCpanelApiKey(req.cpanel_api_key || '')
+  }
+
+  const handleDeploySubmit = async (e) => {
+    e.preventDefault()
+    if (!selectedRequest) return
+    setIsDeploying(true)
+    setMessage('')
+    setError('')
+    try {
+      await api.post(`/template-requests/${selectedRequest.id}/deploy`, {
+        cpanel_domain: cpanelDomain,
+        cpanel_db_host: cpanelDbHost,
+        cpanel_db_name: cpanelDbName,
+        cpanel_db_user: cpanelDbUser,
+        cpanel_db_pass: cpanelDbPass,
+        cpanel_api_key: cpanelApiKey,
+      })
+      setMessage(
+        selectedRequest.status === 'deployed'
+          ? `Deployment settings updated for ${cpanelDomain}.`
+          : `Template deployed to ${cpanelDomain}.`
+      )
+      setSelectedRequest(null)
+      fetchData(true)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to deploy template.')
+    } finally {
+      setIsDeploying(false)
+    }
+  }
+
+  const openSectionManageModal = async (req) => {
+    setSectionManageRequest(req)
+    setDeploymentSections([])
+    setSectionDrafts({})
+    setIsLoadingSections(true)
+    setError('')
+    try {
+      const res = await api.get(`/template-requests/${req.id}/sections`)
+      const list = Array.isArray(res.data?.sections) ? res.data.sections : []
+      setDeploymentSections(list)
+      const drafts = {}
+      list.forEach((section) => {
+        drafts[section.id] = {
+          display_name: section.display_name || section.name || '',
+          is_visible: section.is_visible !== false,
+        }
+      })
+      setSectionDrafts(drafts)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load deployment sections.')
+      setSectionManageRequest(null)
+    } finally {
+      setIsLoadingSections(false)
+    }
+  }
+
+  const handleSaveDeploymentSections = async (e) => {
+    e.preventDefault()
+    if (!sectionManageRequest) return
+    setIsSavingSections(true)
+    setError('')
+    try {
+      const payload = deploymentSections.map((section) => {
+        const draft = sectionDrafts[section.id] || {}
+        return {
+          id: section.id,
+          display_name: draft.display_name?.trim() || section.name,
+          is_visible: draft.is_visible !== false,
+        }
+      })
+      await api.put(`/template-requests/${sectionManageRequest.id}/sections`, { sections: payload })
+      setMessage(`Section settings saved for ${sectionManageRequest.domain_name || sectionManageRequest.domain}.`)
+      setSectionManageRequest(null)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to save section settings.')
+    } finally {
+      setIsSavingSections(false)
+    }
+  }
+
+  if (!canManageTemplates && !canViewDeployments) {
+    return (
+      <p className="muted text-sm">
+        You do not have template or deployment management capabilities for Website Compliance.
+      </p>
+    )
+  }
+
+  const tabs = [
+    canManageTemplates && { id: 'templates', label: 'Templates' },
+    canViewDeployments && { id: 'deployments', label: 'Deploy hub' },
+  ].filter(Boolean)
+
+  return (
+    <div className="space-y-4">
+      {message && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm px-4 py-3">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm px-4 py-3">{error}</div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                activeTab === tab.id ? 'bg-[#0B1B3D] text-white' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => fetchData(true)}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50"
+        >
+          <FaSync className="w-3 h-3" />
+          Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-gray-500">Loading…</p>
+      ) : activeTab === 'templates' && canManageTemplates ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-[#0B1B3D]">Showcase templates</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Register and edit templates available for deployments.</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative w-full sm:w-64">
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="search"
+                  placeholder="Search templates…"
+                  value={templateSearch}
+                  onChange={(e) => setTemplateSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#C8102E]/30"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={openCreateTemplateModal}
+                className="inline-flex items-center gap-1.5 bg-[#0B1B3D] text-white text-xs font-bold px-3 py-2 rounded-lg"
+              >
+                <FaPlus className="w-3 h-3" />
+                Register
+              </button>
+            </div>
+          </div>
+          <div className="p-5">
+            {filteredTemplates.length === 0 ? (
+              <div className="py-12 text-center text-sm text-gray-500">No templates yet.</div>
+            ) : (
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {filteredTemplates.map((tpl) => (
+                  <article key={tpl.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                    <TemplateScrollPreview
+                      template={tpl}
+                      className="h-36 w-full"
+                      overlay={
+                        <>
+                          <div className="absolute top-3 left-3 bg-[#0B1B3D]/90 text-white font-mono text-[10px] font-bold px-2 py-1 rounded-md z-10">
+                            {tpl.slug}
+                          </div>
+                          <div className="absolute top-3 right-3 z-10">
+                            {tpl.is_active ? (
+                              <span className="inline-flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">
+                                <FaCheckCircle className="w-2.5 h-2.5" /> Active
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 bg-gray-500 text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">
+                                <FaEyeSlash className="w-2.5 h-2.5" /> Disabled
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      }
+                    />
+                    <div className="p-4">
+                      <h3 className="font-extrabold text-[#0B1B3D]">{tpl.name}</h3>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{tpl.description || 'No description.'}</p>
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => openEditTemplateModal(tpl)}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#0B1B3D] bg-slate-50 px-3 py-2 rounded-lg"
+                        >
+                          <FaEdit className="w-3 h-3" /> Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTemplate(tpl)}
+                          className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 px-3 py-2 rounded-lg"
+                        >
+                          <FaTrash className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {activeTab === 'deployments' && canViewDeployments ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 space-y-3">
+            <div>
+              <h2 className="text-lg font-bold text-[#0B1B3D]">Deployment hub</h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {canDeployWebsites
+                  ? 'Deploy templates to cPanel and manage live section visibility.'
+                  : 'View deployment requests across the hub.'}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="search"
+                  placeholder="Search domain, template, requester…"
+                  value={requestSearch}
+                  onChange={(e) => setRequestSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl"
+                />
+              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white"
+              >
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="deployed">Deployed</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+          {filteredRequests.length === 0 ? (
+            <div className="py-12 text-center text-sm text-gray-500">
+              <FaThLarge className="w-6 h-6 text-slate-300 mx-auto mb-2" />
+              No deployment requests.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-gray-500 text-[10px] font-extrabold uppercase tracking-wider">
+                  <tr>
+                    <th className="px-5 py-3">Requested by</th>
+                    <th className="px-5 py-3">Template</th>
+                    <th className="px-5 py-3">Domain</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredRequests.map((req) => (
+                    <tr key={req.id} className="hover:bg-slate-50/80">
+                      <td className="px-5 py-3 font-bold text-[#0B1B3D]">{requestRequesterName(req, 'Advisor')}</td>
+                      <td className="px-5 py-3">
+                        <span className="font-bold text-xs bg-blue-50 text-[#0B1B3D] px-2 py-1 rounded-lg">
+                          {req.template_name || '—'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 font-mono text-xs">
+                        <span className="inline-flex items-center gap-1.5">
+                          <FaGlobe className="w-3 h-3 text-gray-400" />
+                          {req.domain_name || req.domain || '—'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <StatusBadge status={req.status} />
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                          {req.status === 'deployed' && canPublishLive && (
+                            <Link
+                              to={`/my-dashboard/website-compliance/publish/${req.id}`}
+                              className="inline-flex items-center gap-1.5 bg-[#C8102E] text-white text-xs font-bold px-3 py-2 rounded-lg"
+                            >
+                              <FaPen className="w-3 h-3" /> Edit
+                            </Link>
+                          )}
+                          {req.status === 'deployed' && canManageSections && (
+                            <button
+                              type="button"
+                              onClick={() => openSectionManageModal(req)}
+                              className="inline-flex items-center gap-1.5 bg-white border border-[#0B1B3D] text-[#0B1B3D] text-xs font-bold px-3 py-2 rounded-lg"
+                            >
+                              <FaLayerGroup className="w-3 h-3" /> Sections
+                            </button>
+                          )}
+                          {canDeployWebsites && (
+                            <button
+                              type="button"
+                              onClick={() => openDeployModal(req)}
+                              className="inline-flex items-center gap-1.5 bg-[#0B1B3D] text-white text-xs font-bold px-3 py-2 rounded-lg"
+                            >
+                              {req.status === 'deployed' ? (
+                                <>
+                                  <FaCog className="w-3 h-3" /> Update
+                                </>
+                              ) : (
+                                <>
+                                  <FaRocket className="w-3 h-3" /> Deploy
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {showTemplateModal && (
+        <ModalShell
+          title={editingTemplate ? 'Edit template' : 'Register template'}
+          onClose={() => setShowTemplateModal(false)}
+        >
+          <form onSubmit={handleSaveTemplate} className="space-y-3">
+            <label className="block text-xs font-bold text-gray-600 uppercase">
+              Name
+              <input
+                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                required
+              />
+            </label>
+            <label className="block text-xs font-bold text-gray-600 uppercase">
+              Slug
+              <input
+                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono"
+                value={templateSlug}
+                onChange={(e) => setTemplateSlug(e.target.value)}
+              />
+            </label>
+            <label className="block text-xs font-bold text-gray-600 uppercase">
+              Description
+              <textarea
+                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                rows={3}
+                value={templateDesc}
+                onChange={(e) => setTemplateDesc(e.target.value)}
+              />
+            </label>
+            <label className="block text-xs font-bold text-gray-600 uppercase">
+              Preview URL
+              <input
+                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                value={templatePreviewUrl}
+                onChange={(e) => setTemplatePreviewUrl(e.target.value)}
+                placeholder={defaultTemplatePreviewUrl(templateSlug || 'template4')}
+              />
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={templateIsActive} onChange={(e) => setTemplateIsActive(e.target.checked)} />
+              Active
+            </label>
+            {editingTemplate && (
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={regeneratePreview}
+                  onChange={(e) => setRegeneratePreview(e.target.checked)}
+                />
+                Regenerate preview thumbnail
+              </label>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setShowTemplateModal(false)} className="text-xs font-bold px-3 py-2 rounded-lg border">
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingTemplate}
+                className="text-xs font-bold px-3 py-2 rounded-lg bg-[#0B1B3D] text-white disabled:opacity-60"
+              >
+                {isSavingTemplate ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </form>
+        </ModalShell>
+      )}
+
+      {selectedRequest && (
+        <ModalShell title="Deploy to cPanel" subtitle={requestRequesterName(selectedRequest)} onClose={() => setSelectedRequest(null)} maxWidth="max-w-xl">
+          <form onSubmit={handleDeploySubmit} className="space-y-3">
+            <label className="block text-xs font-bold text-gray-600 uppercase">
+              Site URL / domain
+              <input
+                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                value={cpanelDomain}
+                onChange={(e) => setCpanelDomain(e.target.value)}
+                required
+              />
+            </label>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <label className="block text-xs font-bold text-gray-600 uppercase">
+                DB host
+                <input className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={cpanelDbHost} onChange={(e) => setCpanelDbHost(e.target.value)} />
+              </label>
+              <label className="block text-xs font-bold text-gray-600 uppercase">
+                DB name
+                <input className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={cpanelDbName} onChange={(e) => setCpanelDbName(e.target.value)} />
+              </label>
+              <label className="block text-xs font-bold text-gray-600 uppercase">
+                DB user
+                <input className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={cpanelDbUser} onChange={(e) => setCpanelDbUser(e.target.value)} />
+              </label>
+              <label className="block text-xs font-bold text-gray-600 uppercase">
+                DB pass
+                <input type="password" className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={cpanelDbPass} onChange={(e) => setCpanelDbPass(e.target.value)} />
+              </label>
+            </div>
+            <label className="block text-xs font-bold text-gray-600 uppercase">
+              cPanel API key
+              <input className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={cpanelApiKey} onChange={(e) => setCpanelApiKey(e.target.value)} />
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setSelectedRequest(null)} className="text-xs font-bold px-3 py-2 rounded-lg border">
+                Cancel
+              </button>
+              <button type="submit" disabled={isDeploying} className="text-xs font-bold px-3 py-2 rounded-lg bg-[#0B1B3D] text-white disabled:opacity-60">
+                {isDeploying ? 'Deploying…' : 'Deploy'}
+              </button>
+            </div>
+          </form>
+        </ModalShell>
+      )}
+
+      {sectionManageRequest && (
+        <ModalShell
+          title="Manage sections"
+          subtitle={sectionManageRequest.domain_name || sectionManageRequest.domain}
+          onClose={() => setSectionManageRequest(null)}
+          maxWidth="max-w-2xl"
+        >
+          {isLoadingSections ? (
+            <p className="text-sm text-gray-500">Loading sections…</p>
+          ) : (
+            <form onSubmit={handleSaveDeploymentSections} className="space-y-3">
+              {deploymentSections.map((section) => {
+                const draft = sectionDrafts[section.id] || {}
+                return (
+                  <div key={section.id} className="flex flex-col sm:flex-row sm:items-center gap-2 border border-gray-100 rounded-xl p-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-400 font-mono">{section.name}</p>
+                      <input
+                        className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm"
+                        value={draft.display_name ?? sectionDisplayName(section)}
+                        onChange={(e) =>
+                          setSectionDrafts((prev) => ({
+                            ...prev,
+                            [section.id]: { ...prev[section.id], display_name: e.target.value },
+                          }))
+                        }
+                      />
+                    </div>
+                    <label className="inline-flex items-center gap-2 text-sm shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={draft.is_visible !== false}
+                        onChange={(e) =>
+                          setSectionDrafts((prev) => ({
+                            ...prev,
+                            [section.id]: { ...prev[section.id], is_visible: e.target.checked },
+                          }))
+                        }
+                      />
+                      Visible
+                    </label>
+                  </div>
+                )
+              })}
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setSectionManageRequest(null)} className="text-xs font-bold px-3 py-2 rounded-lg border">
+                  Cancel
+                </button>
+                <button type="submit" disabled={isSavingSections} className="text-xs font-bold px-3 py-2 rounded-lg bg-[#0B1B3D] text-white disabled:opacity-60">
+                  {isSavingSections ? 'Saving…' : 'Save sections'}
+                </button>
+              </div>
+            </form>
+          )}
+        </ModalShell>
+      )}
+    </div>
+  )
+}

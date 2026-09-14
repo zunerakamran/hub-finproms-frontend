@@ -90,7 +90,7 @@ export default function PowerAdminDashboard() {
       to: '/power-admin/modules',
       title: 'Modules',
       description:
-        'Enable Social Media Compliance and General Compliance (Website Compliance coming later) for the current hub.',
+        'Enable Social Media Compliance, General Compliance, and Website Compliance for the current hub.',
       hubCapability: 'dashboard_manage_modules',
     },
     {

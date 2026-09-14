@@ -8,7 +8,15 @@ import {
   inactiveReasonTitle,
 } from '../utils/socialMediaCompliance'
 
-const GROUP_ORDER = ['power_admin', 'member', 'general', 'dashboard', 'admin_emails', 'social_media_compliance']
+const GROUP_ORDER = [
+  'power_admin',
+  'member',
+  'general',
+  'dashboard',
+  'admin_emails',
+  'social_media_compliance',
+  'general_compliance',
+]
 
 export default function PowerAdminCapabilities() {
   const { canPower, setPowerCapabilities, refreshUser } = useAuth()

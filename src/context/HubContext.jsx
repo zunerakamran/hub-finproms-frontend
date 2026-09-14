@@ -10,6 +10,7 @@ function isDashboardCapabilityKey(key) {
   return (
     String(key).startsWith('dashboard_') ||
     String(key).startsWith('smc_') ||
+    String(key).startsWith('gc_') ||
     key === 'advisor_excel_import' ||
     key === 'advisor_discontinue'
   )
@@ -118,6 +119,7 @@ export function HubProvider({ children }) {
           String(flag).startsWith('member_') ||
           String(flag).startsWith('general_') ||
           String(flag).startsWith('smc_') ||
+          String(flag).startsWith('gc_') ||
           String(flag).startsWith('module_') ||
           flag === 'advisor_excel_import' ||
           flag === 'advisor_discontinue'

@@ -34,6 +34,15 @@ const SMC_NAV_ANY = [
   'smc_view_reports',
 ]
 
+const GC_NAV_ANY = [
+  'gc_view_own_requests',
+  'gc_submit_request',
+  'gc_view_all_requests',
+  'gc_assign_requests',
+  'gc_review_requests',
+  'gc_view_reports',
+]
+
 /** @type {DashboardLink[]} */
 export const DASHBOARD_LINKS = [
   {
@@ -212,6 +221,41 @@ export const DASHBOARD_LINKS = [
     description: 'Social media compliance reports, CSV export, and charts.',
     capability: 'smc_view_reports',
   },
+  // —— General Compliance (gc_*; UI never says “GC”) ——
+  {
+    kind: 'section',
+    label: 'General Compliance',
+    anyOf: GC_NAV_ANY,
+  },
+  {
+    to: '/my-dashboard/general-compliance',
+    label: 'My requests',
+    title: 'My requests',
+    description: 'View and track general compliance requests you submitted.',
+    anyOf: ['gc_view_own_requests', 'gc_submit_request'],
+    end: true,
+  },
+  {
+    to: '/my-dashboard/general-compliance/new',
+    label: 'Add new request',
+    title: 'Add new request',
+    description: 'Submit a description and file attachments for general compliance review.',
+    capability: 'gc_submit_request',
+  },
+  {
+    to: '/my-dashboard/general-compliance/queue',
+    label: 'All requests',
+    title: 'All requests',
+    description: 'Assign and review general compliance requests for this hub.',
+    anyOf: ['gc_view_all_requests', 'gc_assign_requests', 'gc_review_requests'],
+  },
+  {
+    to: '/my-dashboard/general-compliance/reports',
+    label: 'Reports',
+    title: 'Reports',
+    description: 'General compliance reports, CSV export, and charts.',
+    capability: 'gc_view_reports',
+  },
   // —— Power Admin platform tools (pa_* checklist) ——
   {
     to: '/my-dashboard/payment-methods',
@@ -248,7 +292,7 @@ export const DASHBOARD_LINKS = [
     label: 'Modules',
     title: 'Modules',
     description:
-      'Enable Social Media Compliance (and future Website / General Compliance) for the current hub.',
+      'Enable Social Media Compliance and General Compliance (Website Compliance coming later) for the current hub.',
     capability: 'dashboard_manage_modules',
   },
   {

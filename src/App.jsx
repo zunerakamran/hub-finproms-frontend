@@ -31,6 +31,11 @@ import SocialMediaComplianceQueue from './pages/SocialMediaComplianceQueue'
 import SocialMediaComplianceReports from './pages/SocialMediaComplianceReports'
 import SocialMediaComplianceRequestDetail from './pages/SocialMediaComplianceRequestDetail'
 import SocialMediaComplianceSubmit from './pages/SocialMediaComplianceSubmit'
+import GeneralComplianceMyRequests from './pages/GeneralComplianceMyRequests'
+import GeneralComplianceQueue from './pages/GeneralComplianceQueue'
+import GeneralComplianceReports from './pages/GeneralComplianceReports'
+import GeneralComplianceRequestDetail from './pages/GeneralComplianceRequestDetail'
+import GeneralComplianceSubmit from './pages/GeneralComplianceSubmit'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Login from './pages/Login'
 import MyCredits from './pages/MyCredits'
@@ -268,6 +273,56 @@ export default function App() {
                       ]}
                     >
                       <SocialMediaComplianceRequestDetail />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="general-compliance"
+                  element={
+                    <HubCapabilityRoute anyOf={['gc_view_own_requests', 'gc_submit_request']}>
+                      <GeneralComplianceMyRequests />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="general-compliance/new"
+                  element={
+                    <HubCapabilityRoute capability="gc_submit_request">
+                      <GeneralComplianceSubmit />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="general-compliance/queue"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={['gc_view_all_requests', 'gc_assign_requests', 'gc_review_requests']}
+                    >
+                      <GeneralComplianceQueue />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="general-compliance/reports"
+                  element={
+                    <HubCapabilityRoute capability="gc_view_reports">
+                      <GeneralComplianceReports />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="general-compliance/:id"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'gc_view_own_requests',
+                        'gc_submit_request',
+                        'gc_view_all_requests',
+                        'gc_assign_requests',
+                        'gc_review_requests',
+                      ]}
+                    >
+                      <GeneralComplianceRequestDetail />
                     </HubCapabilityRoute>
                   }
                 />

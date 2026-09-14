@@ -132,8 +132,8 @@ export default function PowerAdminModules() {
           <div className="checklist-section" id="modules">
             <h2>Modules</h2>
             <p className="muted checklist-section-hint">
-              Social Media Compliance is available now. Website and General Compliance are coming
-              soon.
+              Social Media Compliance and General Compliance are available now. Website Compliance
+              is coming later.
             </p>
             <div className="checklist-grid">
               {modules.map((item) => (

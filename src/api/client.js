@@ -536,4 +536,86 @@ export const api = {
       `${adminBase(options)}/social-media-compliance/charts/advisor-comparison${query ? `?${query}` : ''}`
     )
   },
+
+  // —— General Compliance ——
+  generalComplianceMine: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/general-compliance/requests/mine${query ? `?${query}` : ''}`)
+  },
+  generalComplianceShow: (id) => request(`/general-compliance/requests/${id}`),
+  generalComplianceSubmit: (formData) =>
+    request('/general-compliance/requests', { method: 'POST', body: formData }),
+  generalComplianceResubmit: (id, formData) =>
+    request(`/general-compliance/requests/${id}/resubmit`, { method: 'POST', body: formData }),
+  generalComplianceConfirmFeedback: (id, formData = null) =>
+    request(`/general-compliance/requests/${id}/confirm-feedback`, {
+      method: 'POST',
+      body: formData || new FormData(),
+    }),
+  generalComplianceAdminRequests: (params = {}, options = {}) => {
+    const base = adminBase(options)
+    const path = options.queueOnly
+      ? `${base}/general-compliance/queue`
+      : `${base}/general-compliance/requests`
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${path}${query ? `?${query}` : ''}`)
+  },
+  generalComplianceAdminShow: (id, options = {}) =>
+    request(`${adminBase(options)}/general-compliance/requests/${id}`),
+  generalComplianceReviewers: (options = {}) =>
+    request(`${adminBase(options)}/general-compliance/reviewers`),
+  generalComplianceAssign: (id, assignedTo, options = {}) =>
+    request(`${adminBase(options)}/general-compliance/requests/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ assigned_to: assignedTo }),
+    }),
+  generalComplianceReview: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/general-compliance/requests/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  generalComplianceReport: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/general-compliance/reports${query ? `?${query}` : ''}`)
+  },
+  generalComplianceReportExport: async (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    const headers = new Headers({ Accept: 'text/csv' })
+    const token = getToken()
+    if (token) headers.set('Authorization', `Bearer ${token}`)
+    const response = await fetch(
+      `${API_URL}${adminBase(options)}/general-compliance/reports/export${query ? `?${query}` : ''}`,
+      { headers }
+    )
+    if (!response.ok) {
+      const error = new Error('Export failed')
+      error.status = response.status
+      throw error
+    }
+    return response.blob()
+  },
+  generalComplianceApproverWorkload: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(
+      `${adminBase(options)}/general-compliance/charts/approver-workload${query ? `?${query}` : ''}`
+    )
+  },
+  generalComplianceAdvisorComparison: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(
+      `${adminBase(options)}/general-compliance/charts/advisor-comparison${query ? `?${query}` : ''}`
+    )
+  },
 }

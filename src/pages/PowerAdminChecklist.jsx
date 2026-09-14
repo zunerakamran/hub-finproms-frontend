@@ -1,67 +1,53 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import ChecklistGroupedForm from '../components/ChecklistGroupedForm'
+import { useHub } from '../context/HubContext'
 import { checklistToMap } from '../utils/checklist'
 
 export default function PowerAdminChecklist() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const selectedId = searchParams.get('hub') || ''
+  const { actingHubId, actingHub, hub, isActingOnWhiteLabel } = useHub()
+  const selectedId = actingHubId || hub?.id || ''
+  const selectedName = actingHub?.name || hub?.name || 'this hub'
 
-  const [hubs, setHubs] = useState([])
-  const [hub, setHub] = useState(null)
+  const [hubDetail, setHubDetail] = useState(null)
   const [flags, setFlags] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  const loadHubs = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const data = await api.powerAdminHubs()
-      const list = data.hubs || []
-      setHubs(list)
-      if (!selectedId && list[0]) {
-        setSearchParams({ hub: String(list[0].id) }, { replace: true })
-      }
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadHubs()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   useEffect(() => {
     if (!selectedId) {
-      setHub(null)
+      setHubDetail(null)
       setFlags({})
+      setLoading(false)
       return
     }
+
     let cancelled = false
     ;(async () => {
+      setLoading(true)
       setError('')
+      setMessage('')
       try {
         const data = await api.powerAdminHub(selectedId)
         if (cancelled) return
-        setHub(data.hub)
+        setHubDetail(data.hub)
         setFlags(checklistToMap(data.hub.checklist))
       } catch (err) {
         if (!cancelled) setError(err.message)
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     })()
+
     return () => {
       cancelled = true
     }
   }, [selectedId])
 
-  const items = hub?.checklist || []
+  const items = hubDetail?.checklist || []
 
   const onSave = async (e) => {
     e.preventDefault()
@@ -71,10 +57,9 @@ export default function PowerAdminChecklist() {
     setMessage('')
     try {
       const data = await api.updatePowerAdminHubChecklist(selectedId, flags)
-      setHub(data.hub)
+      setHubDetail(data.hub)
       setFlags(checklistToMap(data.hub.checklist))
       setMessage(data.message || 'Checklist updated.')
-      await loadHubs()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -89,23 +74,33 @@ export default function PowerAdminChecklist() {
           <p className="eyebrow">Power Admin</p>
           <h1>Hub Functionalities</h1>
           <p className="muted">
-            Per-hub Functionalities (access, credits, distribution). User capabilities by role are
+            Editing Functionalities for <strong>{selectedName}</strong>
+            {isActingOnWhiteLabel ? ' (white-label)' : ' (shared)'}. Use{' '}
+            <strong>Control hub</strong> in the top bar to switch hubs. Enable product modules
+            under <Link to="/my-dashboard/modules">Modules</Link>. User capabilities by role are
             managed under Capabilities.
           </p>
         </div>
-        <Link to="/my-dashboard/hubs" className="btn ghost">
-          Manage hubs
-        </Link>
+        <div className="actions">
+          <Link to="/my-dashboard/modules" className="btn ghost">
+            Modules
+          </Link>
+          <Link to="/my-dashboard/hubs" className="btn ghost">
+            Manage hubs
+          </Link>
+        </div>
       </div>
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
-      {loading ? (
-        <div className="state">Loading hubs...</div>
-      ) : hubs.length === 0 ? (
+      {!selectedId ? (
+        <div className="state">Waiting for hub context…</div>
+      ) : loading ? (
+        <div className="state">Loading functionalities...</div>
+      ) : !hubDetail ? (
         <div className="empty-state">
-          <h2>No hubs found</h2>
+          <h2>Hub not found</h2>
           <p className="muted">Create a hub first, then configure its checklist.</p>
           <Link to="/my-dashboard/hubs" className="btn primary">
             Go to hubs
@@ -113,42 +108,24 @@ export default function PowerAdminChecklist() {
         </div>
       ) : (
         <>
-          <label className="hub-select-label">
-            Hub
-            <select
-              value={selectedId}
-              onChange={(e) => setSearchParams({ hub: e.target.value })}
-            >
-              {hubs.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.name} ({h.type === 'shared' ? 'shared' : 'white-label'})
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {hub && (
-            <>
-              <div className="checklist-hub-summary">
-                <div>
-                  <h2>{hub.name}</h2>
-                  <p className="muted">
-                    Slug <code>{hub.slug}</code>
-                  </p>
-                </div>
-                <Link className="btn ghost" to={`/my-dashboard/hubs/${hub.id}`}>
-                  Open full hub settings
-                </Link>
-              </div>
-              <ChecklistGroupedForm
-                items={items}
-                flags={flags}
-                setFlags={setFlags}
-                onSubmit={onSave}
-                saving={saving}
-              />
-            </>
-          )}
+          <div className="checklist-hub-summary">
+            <div>
+              <h2>{hubDetail.name}</h2>
+              <p className="muted">
+                Slug <code>{hubDetail.slug}</code>
+              </p>
+            </div>
+            <Link className="btn ghost" to={`/my-dashboard/hubs/${hubDetail.id}`}>
+              Open full hub settings
+            </Link>
+          </div>
+          <ChecklistGroupedForm
+            items={items}
+            flags={flags}
+            setFlags={setFlags}
+            onSubmit={onSave}
+            saving={saving}
+          />
         </>
       )}
     </section>

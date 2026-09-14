@@ -1,18 +1,14 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import TargetHubSelect from '../components/TargetHubSelect'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
 export default function AdminTags({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, hub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
-  const canTargetHubs = Boolean(can('dashboard_push_content') && hub?.type === 'shared')
 
-  const [targetHubId, setTargetHubId] = useState('')
-  const [targetHubs, setTargetHubs] = useState([])
   const [tags, setTags] = useState([])
   const [name, setName] = useState('')
   const [editingId, setEditingId] = useState(null)
@@ -21,32 +17,12 @@ export default function AdminTags({ shell = 'client-admin' }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  const selectedTarget = targetHubs.find((h) => String(h.id) === String(targetHubId))
-  const isRemote = Boolean(canTargetHubs && selectedTarget?.type === 'white_label')
-
-  useEffect(() => {
-    if (!canTargetHubs) return
-    ;(async () => {
-      try {
-        const data = await api.hubContentTargets(apiOpts)
-        setTargetHubs(data.hubs || [])
-      } catch {
-        setTargetHubs([])
-      }
-    })()
-  }, [canTargetHubs])
-
   const load = async () => {
     setLoading(true)
     setError('')
     try {
-      if (isRemote && targetHubId) {
-        const data = await api.hubContentTags(targetHubId, apiOpts)
-        setTags(data.tags || [])
-      } else {
-        const data = await api.listTags()
-        setTags(data.tags || [])
-      }
+      const data = await api.listTags()
+      setTags(data.tags || [])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -55,12 +31,11 @@ export default function AdminTags({ shell = 'client-admin' }) {
   }
 
   useEffect(() => {
-    if (canTargetHubs && !targetHubId) return
     load()
     setEditingId(null)
     setName('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetHubId, isRemote])
+  }, [actingHubId])
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -69,15 +44,8 @@ export default function AdminTags({ shell = 'client-admin' }) {
     setMessage('')
     try {
       if (editingId) {
-        if (isRemote) {
-          setError('Edit on white-label hubs is not available here yet.')
-          return
-        }
         await api.updateTag(editingId, { name: name.trim() }, apiOpts)
         setMessage('Tag updated.')
-      } else if (isRemote) {
-        const data = await api.hubContentCreateTag(targetHubId, { name: name.trim() }, apiOpts)
-        setMessage(data.message || 'Tag created on white-label hub.')
       } else {
         const data = await api.createTag({ name: name.trim() }, apiOpts)
         setMessage(data.message || 'Tag created.')
@@ -99,12 +67,12 @@ export default function AdminTags({ shell = 'client-admin' }) {
           <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit tag' : 'Post tags'}</h1>
           <p className="muted">
-            Select the hub. White-label tags are stored only on that hub&apos;s database.
+            {isActingOnWhiteLabel
+              ? `Managing tags on ${actingHub?.name}. Switch hubs from the top bar.`
+              : 'Managing shared hub tags. Use Control hub in the top bar for a white-label hub.'}
           </p>
         </div>
       </div>
-
-      <TargetHubSelect value={targetHubId} onChange={setTargetHubId} asPowerAdmin={asPowerAdmin} />
 
       <form className="admin-form" onSubmit={onSubmit}>
         {error && <div className="alert">{error}</div>}
@@ -119,13 +87,13 @@ export default function AdminTags({ shell = 'client-admin' }) {
           />
         </label>
         <div className="actions">
-          <button className="btn primary" disabled={saving || (canTargetHubs && !targetHubId)}>
+          <button className="btn primary" disabled={saving}>
             {saving
               ? 'Saving...'
               : editingId
                 ? 'Update tag'
-                : isRemote
-                  ? `Add tag on ${selectedTarget?.name || 'hub'}`
+                : isActingOnWhiteLabel
+                  ? `Add tag on ${actingHub?.name || 'hub'}`
                   : 'Add tag'}
           </button>
           {editingId && (
@@ -143,7 +111,9 @@ export default function AdminTags({ shell = 'client-admin' }) {
         </div>
       </form>
 
-      <h2 className="section-title">{isRemote ? `Tags on ${selectedTarget?.name}` : 'Existing tags'}</h2>
+      <h2 className="section-title">
+        {isActingOnWhiteLabel ? `Tags on ${actingHub?.name}` : 'Existing tags'}
+      </h2>
       {loading ? (
         <div className="state">Loading...</div>
       ) : (
@@ -153,29 +123,31 @@ export default function AdminTags({ shell = 'client-admin' }) {
               <div>
                 <strong>{tag.name}</strong>
               </div>
-              {!isRemote && (
-                <div className="actions">
-                  <button
-                    className="btn ghost"
-                    onClick={() => {
-                      setEditingId(tag.id)
-                      setName(tag.name)
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn danger"
-                    onClick={async () => {
-                      if (!window.confirm('Delete this tag?')) return
+              <div className="actions">
+                <button
+                  className="btn ghost"
+                  onClick={() => {
+                    setEditingId(tag.id)
+                    setName(tag.name)
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  className="btn danger"
+                  onClick={async () => {
+                    if (!window.confirm('Delete this tag?')) return
+                    try {
                       await api.deleteTag(tag.id, apiOpts)
                       await load()
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
+                    } catch (err) {
+                      setError(err.message)
+                    }
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

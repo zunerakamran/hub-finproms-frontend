@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import TargetHubSelect from '../components/TargetHubSelect'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -18,13 +17,10 @@ const emptyForm = {
 
 export default function AdminPosts({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, hub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
-  const canTargetHubs = Boolean(can('dashboard_push_content') && hub?.type === 'shared')
 
-  const [targetHubId, setTargetHubId] = useState('')
-  const [targetHubs, setTargetHubs] = useState([])
   const [posts, setPosts] = useState([])
   const [types, setTypes] = useState([])
   const [categories, setCategories] = useState([])
@@ -36,48 +32,20 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  const selectedTarget = targetHubs.find((h) => String(h.id) === String(targetHubId))
-  const isRemote = Boolean(canTargetHubs && selectedTarget?.type === 'white_label')
-
-  useEffect(() => {
-    if (!canTargetHubs) return
-    ;(async () => {
-      try {
-        const data = await api.hubContentTargets(apiOpts)
-        setTargetHubs(data.hubs || [])
-      } catch {
-        setTargetHubs([])
-      }
-    })()
-  }, [canTargetHubs])
-
   const load = async () => {
     setLoading(true)
     setError('')
     try {
-      if (isRemote && targetHubId) {
-        const [postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
-          api.hubContentPosts(targetHubId, { per_page: 50 }, apiOpts),
-          api.hubContentTypes(targetHubId, apiOpts),
-          api.hubContentCategories(targetHubId, apiOpts),
-          api.hubContentTags(targetHubId, apiOpts),
-        ])
-        setPosts(postsRes.data || [])
-        setTypes(typesRes.types || [])
-        setCategories(catsRes.categories || [])
-        setTags(tagsRes.tags || [])
-      } else {
-        const [postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
-          api.posts({ per_page: 50 }),
-          api.listTypes(),
-          api.listCategories(),
-          api.listTags(),
-        ])
-        setPosts(postsRes.data || [])
-        setTypes(typesRes.types || [])
-        setCategories(catsRes.categories || [])
-        setTags(tagsRes.tags || [])
-      }
+      const [postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
+        api.posts({ per_page: 50 }),
+        api.listTypes(),
+        api.listCategories(),
+        api.listTags(),
+      ])
+      setPosts(postsRes.data || [])
+      setTypes(typesRes.types || [])
+      setCategories(catsRes.categories || [])
+      setTags(tagsRes.tags || [])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -86,12 +54,11 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   }
 
   useEffect(() => {
-    if (canTargetHubs && !targetHubId) return
     load()
     setEditingId(null)
     setForm(emptyForm)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetHubId, isRemote])
+  }, [actingHubId])
 
   const toFormData = () => {
     const fd = new FormData()
@@ -122,15 +89,8 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     setMessage('')
     try {
       if (editingId) {
-        if (isRemote) {
-          setError('Edit on white-label hubs is not available here yet. Create new content for that hub.')
-          return
-        }
         await api.updatePost(editingId, toFormData(), apiOpts)
-        setMessage('Post updated.')
-      } else if (isRemote) {
-        const data = await api.hubContentCreatePost(targetHubId, toFormData(), apiOpts)
-        setMessage(data.message || 'Post created on white-label hub.')
+        setMessage(isActingOnWhiteLabel ? `Post updated on ${actingHub?.name}.` : 'Post updated.')
       } else {
         const data = await api.createPost(toFormData(), apiOpts)
         setMessage(data.message || 'Post created.')
@@ -151,7 +111,6 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   }
 
   const edit = (post) => {
-    if (isRemote) return
     setEditingId(post.id)
     setForm({
       title: post.title || '',
@@ -167,7 +126,6 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   }
 
   const remove = async (id) => {
-    if (isRemote) return
     if (!window.confirm('Delete this post?')) return
     try {
       await api.deletePost(id, apiOpts)
@@ -208,17 +166,12 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit post' : 'Add social media post'}</h1>
           <p className="muted">
-            Choose the hub first (when enabled). White-label posts live only on that hub&apos;s
-            database — not on shared.
+            {isActingOnWhiteLabel
+              ? `Creating on ${actingHub?.name}'s database (use Control hub in the top bar to switch).`
+              : 'Managing the shared hub catalog. Use Control hub in the top bar to work on a white-label hub.'}
           </p>
         </div>
       </div>
-
-      <TargetHubSelect
-        value={targetHubId}
-        onChange={setTargetHubId}
-        asPowerAdmin={asPowerAdmin}
-      />
 
       <form className="admin-form" onSubmit={onSubmit}>
         {error && <div className="alert">{error}</div>}
@@ -322,13 +275,13 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           Active
         </label>
         <div className="actions">
-          <button className="btn primary" disabled={saving || (canTargetHubs && !targetHubId)}>
+          <button className="btn primary" disabled={saving}>
             {saving
               ? 'Saving...'
               : editingId
                 ? 'Update post'
-                : isRemote
-                  ? `Create on ${selectedTarget?.name || 'white-label'}`
+                : isActingOnWhiteLabel
+                  ? `Create on ${actingHub?.name || 'white-label'}`
                   : 'Create post'}
           </button>
           {editingId && (
@@ -347,7 +300,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
       </form>
 
       <h2 className="section-title">
-        {isRemote ? `Posts on ${selectedTarget?.name}` : 'Existing posts'}
+        {isActingOnWhiteLabel ? `Posts on ${actingHub?.name}` : 'Existing posts'}
       </h2>
       {loading ? (
         <div className="state">Loading...</div>
@@ -355,8 +308,8 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         <div className="admin-list">
           {posts.map((post) => (
             <div key={post.id} className="admin-row">
-              {post.cover_url ? (
-                <img className="admin-thumb" src={post.cover_url} alt="" />
+              {post.cover_url || post.attachment_url ? (
+                <img className="admin-thumb" src={post.cover_url || post.attachment_url} alt="" />
               ) : (
                 <div className="admin-thumb fallback" />
               )}
@@ -366,16 +319,14 @@ export default function AdminPosts({ shell = 'client-admin' }) {
                   {post.type} · {post.category} · {post.credits_cost} credits
                 </p>
               </div>
-              {!isRemote && (
-                <div className="actions">
-                  <button className="btn ghost" onClick={() => edit(post)}>
-                    Edit
-                  </button>
-                  <button className="btn danger" onClick={() => remove(post.id)}>
-                    Delete
-                  </button>
-                </div>
-              )}
+              <div className="actions">
+                <button className="btn ghost" onClick={() => edit(post)}>
+                  Edit
+                </button>
+                <button className="btn danger" onClick={() => remove(post.id)}>
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

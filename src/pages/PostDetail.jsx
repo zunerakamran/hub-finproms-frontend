@@ -212,6 +212,16 @@ export default function PostDetail() {
             ) : (
               <p className="muted">Downloads are disabled for this hub by Power Admin.</p>
             )}
+            {post.is_purchased &&
+              can('module_social_media_compliance') &&
+              can('smc_submit_request') && (
+                <Link
+                  className="btn ghost"
+                  to={`/my-dashboard/social-media-compliance/new?post_id=${post.id}`}
+                >
+                  Send for social media compliance
+                </Link>
+              )}
             {invoice && can('member_view_invoices') && (
               <p className="muted">
                 Invoice {invoice.invoice_number} created ·{' '}

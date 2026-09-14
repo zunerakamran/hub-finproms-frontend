@@ -19,7 +19,6 @@ import AdminPaymentCard from './pages/AdminPaymentCard'
 import AdminPaymentCardSuccess from './pages/AdminPaymentCardSuccess'
 import AdminPlans from './pages/AdminPlans'
 import AdminPosts from './pages/AdminPosts'
-import AdminPushContent from './pages/AdminPushContent'
 import AdminSettings from './pages/AdminSettings'
 import AdminTags from './pages/AdminTags'
 import AdminTypes from './pages/AdminTypes'
@@ -27,6 +26,11 @@ import AdvisorBillingSuccess from './pages/AdvisorBillingSuccess'
 import BankTransferPending from './pages/BankTransferPending'
 import BundleDetail from './pages/BundleDetail'
 import Bundles from './pages/Bundles'
+import SocialMediaComplianceMyRequests from './pages/SocialMediaComplianceMyRequests'
+import SocialMediaComplianceQueue from './pages/SocialMediaComplianceQueue'
+import SocialMediaComplianceReports from './pages/SocialMediaComplianceReports'
+import SocialMediaComplianceRequestDetail from './pages/SocialMediaComplianceRequestDetail'
+import SocialMediaComplianceSubmit from './pages/SocialMediaComplianceSubmit'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Login from './pages/Login'
 import MyCredits from './pages/MyCredits'
@@ -38,6 +42,7 @@ import PostDetail from './pages/PostDetail'
 import Posts from './pages/Posts'
 import PowerAdminCapabilities from './pages/PowerAdminCapabilities'
 import PowerAdminChecklist from './pages/PowerAdminChecklist'
+import PowerAdminModules from './pages/PowerAdminModules'
 import PowerAdminHubDetail from './pages/PowerAdminHubDetail'
 import PowerAdminHubs from './pages/PowerAdminHubs'
 import PowerAdminPaymentMethods from './pages/PowerAdminPaymentMethods'
@@ -151,14 +156,6 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="push-content"
-                  element={
-                    <HubCapabilityRoute capability="dashboard_push_content">
-                      <AdminPushContent />
-                    </HubCapabilityRoute>
-                  }
-                />
-                <Route
                   path="bundles"
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_bundles">
@@ -221,6 +218,56 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_view_activity_logs">
                       <AdminActivityLogs />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="social-media-compliance"
+                  element={
+                    <HubCapabilityRoute anyOf={['smc_view_own_requests', 'smc_submit_request']}>
+                      <SocialMediaComplianceMyRequests />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="social-media-compliance/new"
+                  element={
+                    <HubCapabilityRoute capability="smc_submit_request">
+                      <SocialMediaComplianceSubmit />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="social-media-compliance/queue"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={['smc_view_all_requests', 'smc_assign_requests', 'smc_review_requests']}
+                    >
+                      <SocialMediaComplianceQueue />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="social-media-compliance/reports"
+                  element={
+                    <HubCapabilityRoute capability="smc_view_reports">
+                      <SocialMediaComplianceReports />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="social-media-compliance/:id"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'smc_view_own_requests',
+                        'smc_submit_request',
+                        'smc_view_all_requests',
+                        'smc_assign_requests',
+                        'smc_review_requests',
+                      ]}
+                    >
+                      <SocialMediaComplianceRequestDetail />
                     </HubCapabilityRoute>
                   }
                 />
@@ -311,6 +358,14 @@ export default function App() {
                     <PowerCapabilityRoute capability="pa_manage_hub_checklists">
                       <PowerAdminChecklist />
                     </PowerCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="modules"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_modules">
+                      <PowerAdminModules />
+                    </HubCapabilityRoute>
                   }
                 />
                 <Route

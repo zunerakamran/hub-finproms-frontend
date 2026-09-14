@@ -4,6 +4,7 @@ const GROUP_ORDER = ['behaviour']
 
 /**
  * Render hub Functionalities checklist for Power Admin.
+ * Modules are managed separately under Modules (dashboard_manage_modules).
  */
 export default function ChecklistGroupedForm({ items, flags, setFlags, onSubmit, saving, submitLabel }) {
   const groups = GROUP_ORDER.map((group) => ({
@@ -12,8 +13,8 @@ export default function ChecklistGroupedForm({ items, flags, setFlags, onSubmit,
     items: items.filter((i) => i.group === group),
   })).filter((g) => g.items.length > 0)
 
-  // Any unknown groups appended (should not appear after Functionalities-only API)
-  const known = new Set(GROUP_ORDER)
+  // Append unknown non-module groups only (modules belong on the Modules page).
+  const known = new Set([...GROUP_ORDER, 'modules'])
   const extraGroups = []
   for (const item of items) {
     if (!known.has(item.group) && !extraGroups.find((g) => g.group === item.group)) {
@@ -34,7 +35,8 @@ export default function ChecklistGroupedForm({ items, flags, setFlags, onSubmit,
           <h2>{section.label}</h2>
           <p className="muted checklist-section-hint">
             How this hub works (access, credits, content distribution). Opposite options
-            auto-uncheck. User capabilities are managed under Capabilities.
+            auto-uncheck. Product modules are managed under Modules. User capabilities are
+            managed under Capabilities.
           </p>
           <div className="checklist-grid">
             {section.items.map((item) => (

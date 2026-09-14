@@ -2,16 +2,22 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import {
+  inactiveReasonHint,
+  inactiveReasonLabel,
+  inactiveReasonTitle,
+} from '../utils/socialMediaCompliance'
 
-const GROUP_ORDER = ['power_admin', 'member', 'general', 'dashboard', 'admin_emails']
+const GROUP_ORDER = ['power_admin', 'member', 'general', 'dashboard', 'admin_emails', 'social_media_compliance']
 
 export default function PowerAdminCapabilities() {
   const { canPower, setPowerCapabilities, refreshUser } = useAuth()
-  const { refreshHub } = useHub()
+  const { refreshHub, actingHubId, actingHub, hub, isActingOnWhiteLabel } = useHub()
   const allowed = canPower('pa_manage_power_capabilities')
 
-  const [hubs, setHubs] = useState([])
-  const [hubId, setHubId] = useState('')
+  const selectedHubId = actingHubId || hub?.id || ''
+  const selectedHubName = actingHub?.name || hub?.name || 'this hub'
+
   const [roles, setRoles] = useState([])
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,16 +28,19 @@ export default function PowerAdminCapabilities() {
   const applyMatrix = (matrix, resolvedPower) => {
     setRoles(matrix.roles || [])
     setRows(matrix.rows || [])
-    if (matrix.hub?.id) setHubId(String(matrix.hub.id))
     if (resolvedPower) setPowerCapabilities(resolvedPower)
   }
 
-  const load = async (selectedHubId = hubId) => {
+  const load = async (hubId = selectedHubId) => {
+    if (!hubId) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError('')
+    setMessage('')
     try {
-      const data = await api.powerAdminCapabilitiesMatrix(selectedHubId || undefined)
-      setHubs(data.hubs || [])
+      const data = await api.powerAdminCapabilitiesMatrix(hubId)
       applyMatrix(data.matrix, data.resolved)
     } catch (err) {
       setError(err.message)
@@ -41,9 +50,9 @@ export default function PowerAdminCapabilities() {
   }
 
   useEffect(() => {
-    load()
+    load(selectedHubId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [selectedHubId])
 
   const groupedRows = useMemo(() => {
     const groups = GROUP_ORDER.map((group) => ({
@@ -79,7 +88,7 @@ export default function PowerAdminCapabilities() {
 
   const onSave = async (e) => {
     e.preventDefault()
-    if (!allowed || !hubId) return
+    if (!allowed || !selectedHubId) return
     setSaving(true)
     setError('')
     setMessage('')
@@ -100,7 +109,7 @@ export default function PowerAdminCapabilities() {
       }
 
       const data = await api.updatePowerAdminCapabilitiesMatrix({
-        hub_id: Number(hubId),
+        hub_id: Number(selectedHubId),
         matrix: matrixPayload,
       })
       applyMatrix(data.matrix, data.resolved)
@@ -114,11 +123,6 @@ export default function PowerAdminCapabilities() {
     }
   }
 
-  const onHubChange = async (id) => {
-    setHubId(id)
-    await load(id)
-  }
-
   return (
     <section className="capabilities-matrix-page">
       <div className="page-head">
@@ -126,12 +130,10 @@ export default function PowerAdminCapabilities() {
           <p className="eyebrow">Power Admin</p>
           <h1>User capabilities</h1>
           <p className="muted">
-            What each role can do on the selected hub (users and hub admins), plus Power Admin
-            platform tools. User rows (browse catalog, purchases, etc.) and hub-admin dashboard
-            rows apply to every role column — remaining roles (approver, advisor, user) get
-            dashboard tools only when you enable them. Admin emails is a single switch for who
-            receives all admin notification emails. Hub Functionalities are configured
-            separately under Hub checklists.
+            Editing roles for <strong>{selectedHubName}</strong>
+            {isActingOnWhiteLabel ? ' (white-label)' : ' (shared)'}. Use{' '}
+            <strong>Control hub</strong> in the top bar to switch hubs. Hub Functionalities are
+            configured separately under Hub checklists.
           </p>
         </div>
       </div>
@@ -145,18 +147,9 @@ export default function PowerAdminCapabilities() {
         </div>
       )}
 
-      <label className="hub-select-label">
-        Hub
-        <select value={hubId} onChange={(e) => onHubChange(e.target.value)} disabled={loading}>
-          {hubs.map((h) => (
-            <option key={h.id} value={h.id}>
-              {h.name} ({h.type === 'shared' ? 'shared' : 'white-label'})
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {loading ? (
+      {!selectedHubId ? (
+        <div className="state">Waiting for hub context…</div>
+      ) : loading ? (
         <div className="state">Loading matrix...</div>
       ) : (
         <form onSubmit={onSave}>
@@ -180,28 +173,20 @@ export default function PowerAdminCapabilities() {
                       <tr
                         key={row.key}
                         className={row.inactive ? 'matrix-row-inactive' : undefined}
-                        title={
-                          row.inactive
-                            ? row.inactive_reason === 'public_only'
-                              ? 'Public hub only — inactive while this hub is private'
-                              : 'Private hub only — inactive while this hub is public'
-                            : undefined
-                        }
+                        title={row.inactive ? inactiveReasonTitle(row.inactive_reason) : undefined}
                       >
                         <td className="matrix-capability-col">
                           <strong>
                             {row.label}
                             {row.inactive && (
                               <span className="matrix-inactive-badge">
-                                {row.inactive_reason === 'public_only' ? 'Public only' : 'Private only'}
+                                {inactiveReasonLabel(row.inactive_reason)}
                               </span>
                             )}
                           </strong>
                           <small className="muted">
                             {row.inactive
-                              ? row.inactive_reason === 'public_only'
-                                ? 'Inactive while the hub is private. Turn on Public subscribe to use this.'
-                                : 'Inactive while the hub is public. Turn on Private invite-only to use this.'
+                              ? inactiveReasonHint(row.inactive_reason)
                               : row.description}
                           </small>
                         </td>

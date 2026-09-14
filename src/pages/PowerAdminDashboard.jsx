@@ -87,6 +87,13 @@ export default function PowerAdminDashboard() {
       capability: 'pa_manage_hub_checklists',
     },
     {
+      to: '/power-admin/modules',
+      title: 'Modules',
+      description:
+        'Enable Social Media Compliance (and future Website / General Compliance) for the current hub.',
+      hubCapability: 'dashboard_manage_modules',
+    },
+    {
       to: '/power-admin/capabilities',
       title: 'User capabilities',
       description:

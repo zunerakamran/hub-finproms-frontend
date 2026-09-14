@@ -1,18 +1,14 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import TargetHubSelect from '../components/TargetHubSelect'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
 export default function AdminCategories({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, hub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
-  const canTargetHubs = Boolean(can('dashboard_push_content') && hub?.type === 'shared')
 
-  const [targetHubId, setTargetHubId] = useState('')
-  const [targetHubs, setTargetHubs] = useState([])
   const [categories, setCategories] = useState([])
   const [name, setName] = useState('')
   const [editingId, setEditingId] = useState(null)
@@ -21,32 +17,12 @@ export default function AdminCategories({ shell = 'client-admin' }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  const selectedTarget = targetHubs.find((h) => String(h.id) === String(targetHubId))
-  const isRemote = Boolean(canTargetHubs && selectedTarget?.type === 'white_label')
-
-  useEffect(() => {
-    if (!canTargetHubs) return
-    ;(async () => {
-      try {
-        const data = await api.hubContentTargets(apiOpts)
-        setTargetHubs(data.hubs || [])
-      } catch {
-        setTargetHubs([])
-      }
-    })()
-  }, [canTargetHubs])
-
   const load = async () => {
     setLoading(true)
     setError('')
     try {
-      if (isRemote && targetHubId) {
-        const data = await api.hubContentCategories(targetHubId, apiOpts)
-        setCategories(data.categories || [])
-      } else {
-        const data = await api.listCategories()
-        setCategories(data.categories || [])
-      }
+      const data = await api.listCategories()
+      setCategories(data.categories || [])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -55,12 +31,11 @@ export default function AdminCategories({ shell = 'client-admin' }) {
   }
 
   useEffect(() => {
-    if (canTargetHubs && !targetHubId) return
     load()
     setEditingId(null)
     setName('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetHubId, isRemote])
+  }, [actingHubId])
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -69,15 +44,8 @@ export default function AdminCategories({ shell = 'client-admin' }) {
     setMessage('')
     try {
       if (editingId) {
-        if (isRemote) {
-          setError('Edit on white-label hubs is not available here yet.')
-          return
-        }
         await api.updateCategory(editingId, { name: name.trim() }, apiOpts)
         setMessage('Category updated.')
-      } else if (isRemote) {
-        const data = await api.hubContentCreateCategory(targetHubId, { name: name.trim() }, apiOpts)
-        setMessage(data.message || 'Category created on white-label hub.')
       } else {
         const data = await api.createCategory({ name: name.trim() }, apiOpts)
         setMessage(data.message || 'Category created.')
@@ -99,12 +67,12 @@ export default function AdminCategories({ shell = 'client-admin' }) {
           <p className="eyebrow">Client Admin</p>
           <h1>{editingId ? 'Edit category' : 'Categories'}</h1>
           <p className="muted">
-            Select the hub. White-label categories are stored only on that hub&apos;s database.
+            {isActingOnWhiteLabel
+              ? `Managing categories on ${actingHub?.name}. Switch hubs from the top bar.`
+              : 'Managing shared hub categories. Use Control hub in the top bar for a white-label hub.'}
           </p>
         </div>
       </div>
-
-      <TargetHubSelect value={targetHubId} onChange={setTargetHubId} asPowerAdmin={asPowerAdmin} />
 
       <form className="admin-form" onSubmit={onSubmit}>
         {error && <div className="alert">{error}</div>}
@@ -119,13 +87,13 @@ export default function AdminCategories({ shell = 'client-admin' }) {
           />
         </label>
         <div className="actions">
-          <button className="btn primary" disabled={saving || (canTargetHubs && !targetHubId)}>
+          <button className="btn primary" disabled={saving}>
             {saving
               ? 'Saving...'
               : editingId
                 ? 'Update category'
-                : isRemote
-                  ? `Add category on ${selectedTarget?.name || 'hub'}`
+                : isActingOnWhiteLabel
+                  ? `Add category on ${actingHub?.name || 'hub'}`
                   : 'Add category'}
           </button>
           {editingId && (
@@ -144,7 +112,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
       </form>
 
       <h2 className="section-title">
-        {isRemote ? `Categories on ${selectedTarget?.name}` : 'Existing categories'}
+        {isActingOnWhiteLabel ? `Categories on ${actingHub?.name}` : 'Existing categories'}
       </h2>
       {loading ? (
         <div className="state">Loading...</div>
@@ -155,29 +123,31 @@ export default function AdminCategories({ shell = 'client-admin' }) {
               <div>
                 <strong>{category.name}</strong>
               </div>
-              {!isRemote && (
-                <div className="actions">
-                  <button
-                    className="btn ghost"
-                    onClick={() => {
-                      setEditingId(category.id)
-                      setName(category.name)
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn danger"
-                    onClick={async () => {
-                      if (!window.confirm('Delete this category?')) return
+              <div className="actions">
+                <button
+                  className="btn ghost"
+                  onClick={() => {
+                    setEditingId(category.id)
+                    setName(category.name)
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  className="btn danger"
+                  onClick={async () => {
+                    if (!window.confirm('Delete this category?')) return
+                    try {
                       await api.deleteCategory(category.id, apiOpts)
                       await load()
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
+                    } catch (err) {
+                      setError(err.message)
+                    }
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

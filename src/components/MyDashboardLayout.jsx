@@ -1,11 +1,12 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import ActingHubSwitcher from './ActingHubSwitcher'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { DASHBOARD_LINKS, isDashboardLinkVisible } from '../dashboard/nav'
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, hub, branding, advisorBillingEnabled } = useHub()
+  const { can, hub, branding, advisorBillingEnabled, isActingOnWhiteLabel, actingHub } = useHub()
   const navigate = useNavigate()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = branding?.logo_url || null
@@ -16,7 +17,7 @@ export default function MyDashboardLayout() {
   }
 
   const visible = DASHBOARD_LINKS.filter((link) =>
-    isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled })
+    isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled, isActingOnWhiteLabel })
   )
 
   return (
@@ -26,13 +27,22 @@ export default function MyDashboardLayout() {
           {logoUrl ? <img src={logoUrl} alt="" className="brand-logo brand-logo--sidebar" /> : null}
           <span className="admin-shell-kicker">{brandName}</span>
           <strong>Dashboard</strong>
+          {isActingOnWhiteLabel ? (
+            <span className="acting-hub-badge">Controlling {actingHub?.name}</span>
+          ) : null}
         </div>
         <nav className="admin-subnav" aria-label="Dashboard sections">
-          {visible.map((link) => (
-            <NavLink key={link.to} to={link.to} end={link.end}>
-              {link.label}
-            </NavLink>
-          ))}
+          {visible.map((link) =>
+            link.kind === 'section' ? (
+              <p key={`section-${link.label}`} className="admin-nav-section" role="presentation">
+                {link.label}
+              </p>
+            ) : (
+              <NavLink key={link.to} to={link.to} end={link.end}>
+                {link.label}
+              </NavLink>
+            )
+          )}
         </nav>
         <div className="admin-sidebar-footer">
           <NavLink to="/" className="admin-site-link">
@@ -46,9 +56,12 @@ export default function MyDashboardLayout() {
       </aside>
       <div className="admin-app-main">
         <header className="admin-topbar">
-          <p className="muted">
-            Tools shown here come from Capabilities set by Power Admin for your role.
-          </p>
+          <div className="admin-topbar-lead">
+            <p className="muted">
+              Tools shown here come from Capabilities set by Power Admin for your role.
+            </p>
+            <ActingHubSwitcher />
+          </div>
           <div className="admin-topbar-links">
             <NavLink to="/" className="admin-home-link">
               Main website

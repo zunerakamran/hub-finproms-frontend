@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { DASHBOARD_LINKS, isDashboardLinkVisible } from '../dashboard/nav'
+import { DASHBOARD_LINKS, isDashboardHomeCard, isDashboardLinkVisible } from '../dashboard/nav'
 
 function formatMoney(amount, currency = 'gbp') {
   try {
@@ -18,7 +18,7 @@ function formatMoney(amount, currency = 'gbp') {
 
 export default function MyDashboard() {
   const { canPower } = useAuth()
-  const { can, advisorBillingEnabled } = useHub()
+  const { can, advisorBillingEnabled, isActingOnWhiteLabel } = useHub()
   const [data, setData] = useState(null)
 
   useEffect(() => {
@@ -44,8 +44,8 @@ export default function MyDashboard() {
     const purchases = data?.purchases || []
     const credits = data?.credits
 
-    return DASHBOARD_LINKS.filter((link) => !link.end)
-      .filter((link) => isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled }))
+    return DASHBOARD_LINKS.filter(isDashboardHomeCard)
+      .filter((link) => isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled, isActingOnWhiteLabel }))
       .map((link) => {
         let description = link.description || ''
 

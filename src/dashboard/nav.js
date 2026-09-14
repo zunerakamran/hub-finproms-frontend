@@ -11,7 +11,8 @@ export const GENERAL_DASHBOARD_ANY = [
 ]
 
 /** @typedef {{
- *   to: string,
+ *   kind?: 'link' | 'section',
+ *   to?: string,
  *   label: string,
  *   title?: string,
  *   description?: string,
@@ -20,8 +21,18 @@ export const GENERAL_DASHBOARD_ANY = [
  *   anyOf?: string[],
  *   paCapability?: string,
  *   billingOnly?: boolean,
+ *   sharedOnly?: boolean,
  *   homeOnly?: boolean,
  * }} DashboardLink */
+
+const SMC_NAV_ANY = [
+  'smc_view_own_requests',
+  'smc_submit_request',
+  'smc_view_all_requests',
+  'smc_assign_requests',
+  'smc_review_requests',
+  'smc_view_reports',
+]
 
 /** @type {DashboardLink[]} */
 export const DASHBOARD_LINKS = [
@@ -67,13 +78,6 @@ export const DASHBOARD_LINKS = [
     title: 'Posts / reels',
     description: 'Create and edit catalog posts and reels for the current hub.',
     capability: 'dashboard_manage_posts',
-  },
-  {
-    to: '/my-dashboard/push-content',
-    label: 'DB test / bulk tools',
-    title: 'White-label DB tools',
-    description: 'Test white-label DB connections. Prefer the Hub dropdown on Posts / Types / etc. to publish content onto a white-label hub.',
-    capability: 'dashboard_push_content',
   },
   {
     to: '/my-dashboard/bundles',
@@ -173,6 +177,41 @@ export const DASHBOARD_LINKS = [
     description: 'Audit trail and activity report for the current hub.',
     capability: 'dashboard_view_activity_logs',
   },
+  // —— Social Media Compliance (capabilities still keyed smc_*; UI never says “SMC”) ——
+  {
+    kind: 'section',
+    label: 'Social Media Compliance',
+    anyOf: SMC_NAV_ANY,
+  },
+  {
+    to: '/my-dashboard/social-media-compliance',
+    label: 'My requests',
+    title: 'My requests',
+    description: 'View and track social media compliance requests you submitted.',
+    anyOf: ['smc_view_own_requests', 'smc_submit_request'],
+    end: true,
+  },
+  {
+    to: '/my-dashboard/social-media-compliance/new',
+    label: 'Add new request',
+    title: 'Add new request',
+    description: 'Submit a purchased post for social media compliance review.',
+    capability: 'smc_submit_request',
+  },
+  {
+    to: '/my-dashboard/social-media-compliance/queue',
+    label: 'All requests',
+    title: 'All requests',
+    description: 'Assign and review social media compliance requests for this hub.',
+    anyOf: ['smc_view_all_requests', 'smc_assign_requests', 'smc_review_requests'],
+  },
+  {
+    to: '/my-dashboard/social-media-compliance/reports',
+    label: 'Reports',
+    title: 'Reports',
+    description: 'Social media compliance reports, CSV export, and charts.',
+    capability: 'smc_view_reports',
+  },
   // —— Power Admin platform tools (pa_* checklist) ——
   {
     to: '/my-dashboard/payment-methods',
@@ -194,6 +233,8 @@ export const DASHBOARD_LINKS = [
     title: 'White-label hubs',
     description: 'Create and configure white-labelled hubs (branding, private access).',
     paCapability: 'pa_manage_hubs',
+    // Shared control-plane only — hide while Control hub is on a white-label.
+    sharedOnly: true,
   },
   {
     to: '/my-dashboard/checklist',
@@ -201,6 +242,14 @@ export const DASHBOARD_LINKS = [
     title: 'Hub Functionalities',
     description: 'Per-hub Functionalities: access, credits, and content distribution.',
     paCapability: 'pa_manage_hub_checklists',
+  },
+  {
+    to: '/my-dashboard/modules',
+    label: 'Modules',
+    title: 'Modules',
+    description:
+      'Enable Social Media Compliance (and future Website / General Compliance) for the current hub.',
+    capability: 'dashboard_manage_modules',
   },
   {
     to: '/my-dashboard/capabilities',
@@ -211,12 +260,20 @@ export const DASHBOARD_LINKS = [
   },
 ]
 
-export function isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled }) {
+export function isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled, isActingOnWhiteLabel }) {
+  if (link.sharedOnly && isActingOnWhiteLabel) return false
   if (link.billingOnly) return Boolean(advisorBillingEnabled)
   if (Array.isArray(link.anyOf) && link.anyOf.length > 0) {
     return link.anyOf.some((flag) => can(flag))
   }
   if (link.paCapability) return Boolean(canPower?.(link.paCapability))
   if (link.capability) return Boolean(can(link.capability))
+  // Section headings need an anyOf / capability to appear.
+  if (link.kind === 'section') return false
   return true
+}
+
+export function isDashboardHomeCard(link) {
+  // Sidebar-only section headings + the Dashboard home link itself are not cards.
+  return link.kind !== 'section' && Boolean(link.to) && link.to !== '/my-dashboard'
 }

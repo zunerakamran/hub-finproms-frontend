@@ -9,6 +9,7 @@ const HUB_ADMIN_ROLES = ['finproms_admin', 'client_admin', 'manager', 'admin']
 function isDashboardCapabilityKey(key) {
   return (
     String(key).startsWith('dashboard_') ||
+    String(key).startsWith('smc_') ||
     key === 'advisor_excel_import' ||
     key === 'advisor_discontinue'
   )
@@ -30,7 +31,9 @@ function sameHub(a, b) {
     JSON.stringify(a.checklist) === JSON.stringify(b.checklist) &&
     JSON.stringify(a.effective_capabilities) === JSON.stringify(b.effective_capabilities) &&
     JSON.stringify(a.branding) === JSON.stringify(b.branding) &&
-    JSON.stringify(a.auth) === JSON.stringify(b.auth)
+    JSON.stringify(a.auth) === JSON.stringify(b.auth) &&
+    JSON.stringify(a.hub_switcher) === JSON.stringify(b.hub_switcher) &&
+    JSON.stringify(a.acting_hub) === JSON.stringify(b.acting_hub)
   )
 }
 
@@ -114,6 +117,8 @@ export function HubProvider({ children }) {
           String(flag).startsWith('dashboard_') ||
           String(flag).startsWith('member_') ||
           String(flag).startsWith('general_') ||
+          String(flag).startsWith('smc_') ||
+          String(flag).startsWith('module_') ||
           flag === 'advisor_excel_import' ||
           flag === 'advisor_discontinue'
         ) {
@@ -171,22 +176,42 @@ export function HubProvider({ children }) {
   }, [user, hasHubDashboardAccess, hasGeneralDashboardAccess])
 
   const value = useMemo(
-    () => ({
-      hub,
-      // Only block the tree on the first hub fetch — not background refreshes.
-      loading: (loading && !hub) || authLoading,
-      error,
-      refreshHub,
-      can,
-      advisorBillingEnabled,
-      registrationEnabled,
-      inviteOnly,
-      hasHubDashboardAccess,
-      hasGeneralDashboardAccess,
-      hasDashboardAccess,
-      checklist: hub?.checklist || {},
-      branding: hub?.branding || {},
-    }),
+    () => {
+      const switcher = hub?.hub_switcher || null
+      const actingHub = hub?.acting_hub || switcher?.acting_hub || null
+      const isActingOnWhiteLabel = Boolean(
+        switcher?.is_acting_on_white_label ?? actingHub?.is_white_label
+      )
+
+      return {
+        hub,
+        // Only block the tree on the first hub fetch — not background refreshes.
+        loading: (loading && !hub) || authLoading,
+        error,
+        refreshHub,
+        can,
+        advisorBillingEnabled,
+        registrationEnabled,
+        inviteOnly,
+        hasHubDashboardAccess,
+        hasGeneralDashboardAccess,
+        hasDashboardAccess,
+        checklist: hub?.checklist || {},
+        branding: hub?.branding || {},
+        hubSwitcher: switcher,
+        actingHub,
+        actingHubId: actingHub?.id ?? null,
+        isActingOnWhiteLabel,
+        canControlWhiteLabelHubs: Boolean(
+          switcher?.enabled || can('dashboard_control_white_label_hubs')
+        ),
+        setActingHub: async (hubId, { asPowerAdmin = false } = {}) => {
+          const data = await api.setActingHub(hubId, { asPowerAdmin })
+          await refreshHub({ silent: true })
+          return data
+        },
+      }
+    },
     [
       hub,
       loading,

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import TargetHubSelect from '../components/TargetHubSelect'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -25,13 +24,10 @@ const emptyNewPost = {
 
 export default function AdminBundles({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, hub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
-  const canTargetHubs = Boolean(can('dashboard_push_content') && hub?.type === 'shared')
 
-  const [targetHubId, setTargetHubId] = useState('')
-  const [targetHubs, setTargetHubs] = useState([])
   const [bundles, setBundles] = useState([])
   const [posts, setPosts] = useState([])
   const [types, setTypes] = useState([])
@@ -47,49 +43,21 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   const [message, setMessage] = useState('')
   const [postSearch, setPostSearch] = useState('')
 
-  const selectedTarget = targetHubs.find((h) => String(h.id) === String(targetHubId))
-  const isRemote = Boolean(canTargetHubs && selectedTarget?.type === 'white_label')
-
-  useEffect(() => {
-    if (!canTargetHubs) return
-    ;(async () => {
-      try {
-        const data = await api.hubContentTargets(apiOpts)
-        setTargetHubs(data.hubs || [])
-      } catch {
-        setTargetHubs([])
-      }
-    })()
-  }, [canTargetHubs])
-
   const load = async () => {
     setLoading(true)
     try {
-      if (isRemote && targetHubId) {
-        const [bundlesRes, postsRes] = await Promise.all([
-          api.hubContentBundles(targetHubId, { per_page: 50 }, apiOpts),
-          api.hubContentPosts(targetHubId, { per_page: 100 }, apiOpts),
-        ])
-        setBundles(bundlesRes.data || [])
-        setPosts(postsRes.data || [])
-        setTypes([])
-        setCategories([])
-        setTags([])
-        setNewPosts([])
-      } else {
-        const [bundlesRes, postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
-          api.adminBundles({ per_page: 50 }, apiOpts),
-          api.posts({ per_page: 100 }),
-          api.listTypes(),
-          api.listCategories(),
-          api.listTags(),
-        ])
-        setBundles(bundlesRes.data || [])
-        setPosts(postsRes.data || [])
-        setTypes(typesRes.types || [])
-        setCategories(catsRes.categories || [])
-        setTags(tagsRes.tags || [])
-      }
+      const [bundlesRes, postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
+        api.adminBundles({ per_page: 50 }, apiOpts),
+        api.posts({ per_page: 100 }),
+        api.listTypes(),
+        api.listCategories(),
+        api.listTags(),
+      ])
+      setBundles(bundlesRes.data || [])
+      setPosts(postsRes.data || [])
+      setTypes(typesRes.types || [])
+      setCategories(catsRes.categories || [])
+      setTags(tagsRes.tags || [])
     } catch (err) {
       setError(err.message)
     } finally {
@@ -98,13 +66,12 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   }
 
   useEffect(() => {
-    if (canTargetHubs && !targetHubId) return
     load()
     setEditingId(null)
     setForm(emptyForm)
     setNewPosts([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetHubId, isRemote])
+  }, [actingHubId])
 
   const toggleExistingPost = (postId) => {
     setForm((prev) => {
@@ -125,6 +92,12 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   }
 
   const addDraftPost = () => {
+    if (isActingOnWhiteLabel) {
+      setError(
+        'While controlling a white-label hub, select existing posts from that hub (inline new posts are shared-hub only).'
+      )
+      return
+    }
     if (!draftPost.title.trim() || !draftPost.type || !draftPost.category) {
       setError('New post needs a title, type, and category before adding to the bundle.')
       return
@@ -146,7 +119,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     fd.append('is_active', form.is_active ? '1' : '0')
     fd.append('post_ids', JSON.stringify(form.post_ids))
 
-    if (!isRemote) {
+    if (!isActingOnWhiteLabel) {
       newPosts.forEach((post, index) => {
         fd.append(`new_posts[${index}][title]`, post.title)
         fd.append(`new_posts[${index}][description]`, post.description || '')
@@ -165,9 +138,9 @@ export default function AdminBundles({ shell = 'client-admin' }) {
 
   const onSubmit = async (e) => {
     e.preventDefault()
-    if (form.post_ids.length === 0 && (!isRemote && newPosts.length === 0)) {
+    if (form.post_ids.length === 0 && (isActingOnWhiteLabel || newPosts.length === 0)) {
       setError(
-        isRemote
+        isActingOnWhiteLabel
           ? 'Select at least one post that already exists on this white-label hub.'
           : 'Add at least one existing post or a new post to the bundle.'
       )
@@ -179,15 +152,8 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     setMessage('')
     try {
       if (editingId) {
-        if (isRemote) {
-          setError('Edit on white-label hubs is not available here yet.')
-          return
-        }
         await api.updateBundle(editingId, toFormData(), apiOpts)
-        setMessage('Bundle updated.')
-      } else if (isRemote) {
-        const data = await api.hubContentCreateBundle(targetHubId, toFormData(), apiOpts)
-        setMessage(data.message || 'Bundle created on white-label hub.')
+        setMessage(isActingOnWhiteLabel ? `Bundle updated on ${actingHub?.name}.` : 'Bundle updated.')
       } else {
         const data = await api.createBundle(toFormData(), apiOpts)
         setMessage(data.message || 'Bundle created.')
@@ -208,6 +174,19 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     setError('')
     setMessage('')
     try {
+      if (isActingOnWhiteLabel) {
+        setEditingId(bundle.id)
+        setForm({
+          title: bundle.title || '',
+          description: bundle.description || '',
+          credits_cost: bundle.credits_cost || 20,
+          is_active: bundle.is_active !== false,
+          post_ids: [],
+        })
+        setNewPosts([])
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
       const data = await api.adminBundle(bundle.id, apiOpts)
       const full = data.bundle || bundle
       setEditingId(full.id)
@@ -219,7 +198,6 @@ export default function AdminBundles({ shell = 'client-admin' }) {
         post_ids: (full.posts || []).map((p) => p.id),
       })
       setNewPosts([])
-      setDraftPost(emptyNewPost)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setError(err.message)
@@ -227,7 +205,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   }
 
   const remove = async (id) => {
-    if (!window.confirm('Delete this bundle? Posts inside it are not deleted.')) return
+    if (!window.confirm('Delete this bundle?')) return
     try {
       await api.deleteBundle(id, apiOpts)
       await load()
@@ -240,32 +218,25 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     if (!postSearch.trim()) return true
     const q = postSearch.toLowerCase()
     return (
-      post.title?.toLowerCase().includes(q) ||
-      post.type?.toLowerCase().includes(q) ||
-      post.category?.toLowerCase().includes(q)
+      String(post.title || '').toLowerCase().includes(q) ||
+      String(post.type || '').toLowerCase().includes(q) ||
+      String(post.category || '').toLowerCase().includes(q)
     )
   })
-
-  const selectedType = types.find((t) => t.name === draftPost.type)
-  const isReelType =
-    selectedType?.slug === 'reel' ||
-    selectedType?.slug === 'reels' ||
-    /^reels?$/i.test(String(draftPost.type || '').trim())
 
   return (
     <section>
       <div className="page-head">
         <div>
           <p className="eyebrow">Client Admin</p>
-          <h1>{editingId ? 'Edit bundle' : 'Create post bundle'}</h1>
+          <h1>{editingId ? 'Edit bundle' : 'Post bundles'}</h1>
           <p className="muted">
-            Choose the hub first. White-label bundles use posts that already exist on that hub&apos;s
-            database only.
+            {isActingOnWhiteLabel
+              ? `Bundles on ${actingHub?.name} use that hub's posts only. Switch hubs from the top bar.`
+              : 'Group posts into a bundle. Use Control hub in the top bar to manage a white-label hub.'}
           </p>
         </div>
       </div>
-
-      <TargetHubSelect value={targetHubId} onChange={setTargetHubId} asPowerAdmin={asPowerAdmin} />
 
       <form className="admin-form" onSubmit={onSubmit}>
         {error && <div className="alert">{error}</div>}
@@ -273,7 +244,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
 
         <div className="form-grid">
           <label>
-            Bundle title
+            Title
             <input
               required
               value={form.title}
@@ -281,10 +252,10 @@ export default function AdminBundles({ shell = 'client-admin' }) {
             />
           </label>
           <label>
-            Total credits
+            Credits cost
             <input
               type="number"
-              min="1"
+              min={1}
               required
               value={form.credits_cost}
               onChange={(e) => setForm({ ...form, credits_cost: e.target.value })}
@@ -298,7 +269,6 @@ export default function AdminBundles({ shell = 'client-admin' }) {
             rows={3}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="What is included in this bundle?"
           />
         </label>
 
@@ -308,108 +278,88 @@ export default function AdminBundles({ shell = 'client-admin' }) {
             checked={form.is_active}
             onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
           />
-          Active (visible in catalog)
+          Active
         </label>
 
         <fieldset className="tag-picker">
-          <legend>Add existing posts / reels</legend>
-          <label>
-            Search posts
-            <input
-              value={postSearch}
-              onChange={(e) => setPostSearch(e.target.value)}
-              placeholder="Filter by title, type, or category"
-            />
-          </label>
-          {filteredPosts.length === 0 ? (
-            <p className="field-hint">
-              No posts yet. <Link to="/my-dashboard/posts">Create posts</Link> first, or add a new
-              post below.
+          <legend>Existing posts</legend>
+          <input
+            type="search"
+            placeholder="Search posts..."
+            value={postSearch}
+            onChange={(e) => setPostSearch(e.target.value)}
+          />
+          <div className="tag-options">
+            {filteredPosts.map((post) => (
+              <label key={post.id} className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={form.post_ids.includes(post.id)}
+                  onChange={() => toggleExistingPost(post.id)}
+                />
+                {post.title}
+              </label>
+            ))}
+          </div>
+          {posts.length === 0 && (
+            <p className="muted field-hint">
+              No posts yet. <Link to="/my-dashboard/posts">Add posts</Link> first.
             </p>
-          ) : (
-            <div className="tag-options bundle-post-picker">
-              {filteredPosts.map((post) => (
-                <label key={post.id} className="checkbox tag-option">
-                  <input
-                    type="checkbox"
-                    checked={form.post_ids.includes(post.id)}
-                    onChange={() => toggleExistingPost(post.id)}
-                  />
-                  <span>
-                    <strong>{post.title}</strong>
-                    <span className="muted">
-                      {' '}
-                      · {post.type} · {post.category} · {post.credits_cost} cr
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
           )}
-          <p className="field-hint">{form.post_ids.length} existing post(s) selected.</p>
         </fieldset>
 
-        {!isRemote && (
-        <fieldset className="tag-picker">
-          <legend>Create new post / reel and add to bundle</legend>
-          <div className="form-grid">
-            <label>
-              Title
-              <input
-                value={draftPost.title}
-                onChange={(e) => setDraftPost({ ...draftPost, title: e.target.value })}
-              />
-            </label>
-            <label>
-              Type
-              <select
-                value={draftPost.type}
-                onChange={(e) => setDraftPost({ ...draftPost, type: e.target.value })}
-              >
-                <option value="">Select a type</option>
-                {types.map((type) => (
-                  <option key={type.id} value={type.name}>
-                    {type.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Category
-              <select
-                value={draftPost.category}
-                onChange={(e) => setDraftPost({ ...draftPost, category: e.target.value })}
-              >
-                <option value="">Select a category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Credits (individual)
-              <input
-                type="number"
-                min="1"
-                value={draftPost.credits_cost}
-                onChange={(e) => setDraftPost({ ...draftPost, credits_cost: e.target.value })}
-              />
-            </label>
-          </div>
-          <label>
-            Description
-            <textarea
-              rows={2}
-              value={draftPost.description}
-              onChange={(e) => setDraftPost({ ...draftPost, description: e.target.value })}
-            />
-          </label>
-          {tags.length > 0 && (
+        {!isActingOnWhiteLabel && (
+          <fieldset className="tag-picker">
+            <legend>Or create new posts in this bundle</legend>
+            <div className="form-grid">
+              <label>
+                Title
+                <input
+                  value={draftPost.title}
+                  onChange={(e) => setDraftPost({ ...draftPost, title: e.target.value })}
+                />
+              </label>
+              <label>
+                Type
+                <select
+                  value={draftPost.type}
+                  onChange={(e) => setDraftPost({ ...draftPost, type: e.target.value })}
+                >
+                  <option value="">Select</option>
+                  {types.map((t) => (
+                    <option key={t.id} value={t.name}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Category
+                <select
+                  value={draftPost.category}
+                  onChange={(e) => setDraftPost({ ...draftPost, category: e.target.value })}
+                >
+                  <option value="">Select</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Credits
+                <input
+                  type="number"
+                  min={1}
+                  value={draftPost.credits_cost}
+                  onChange={(e) => setDraftPost({ ...draftPost, credits_cost: e.target.value })}
+                />
+              </label>
+            </div>
             <div className="tag-options">
               {tags.map((tag) => (
-                <label key={tag.id} className="checkbox tag-option">
+                <label key={tag.id} className="checkbox">
                   <input
                     type="checkbox"
                     checked={draftPost.tags.includes(tag.name)}
@@ -419,54 +369,41 @@ export default function AdminBundles({ shell = 'client-admin' }) {
                 </label>
               ))}
             </div>
-          )}
-          <label>
-            {isReelType ? 'Video' : 'Attachment'}
-            <input
-              type="file"
-              accept={
-                isReelType
-                  ? 'video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm'
-                  : '.jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.mp4,.mov,.webm,.zip'
-              }
-              onChange={(e) =>
-                setDraftPost({ ...draftPost, attachment: e.target.files?.[0] || null })
-              }
-            />
-          </label>
-          <button type="button" className="btn ghost" onClick={addDraftPost}>
-            Add this post to bundle
-          </button>
-
-          {newPosts.length > 0 && (
-            <div className="admin-list" style={{ marginTop: '1rem' }}>
-              {newPosts.map((post, index) => (
-                <div key={`new-${index}`} className="admin-row">
-                  <div>
-                    <strong>{post.title}</strong>
-                    <p className="muted">
-                      New · {post.type} · {post.category}
-                      {post.attachment ? ` · ${post.attachment.name}` : ''}
-                    </p>
-                  </div>
-                  <button type="button" className="btn danger" onClick={() => removeDraftPost(index)}>
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </fieldset>
+            <label>
+              Attachment
+              <input
+                type="file"
+                onChange={(e) =>
+                  setDraftPost({ ...draftPost, attachment: e.target.files?.[0] || null })
+                }
+              />
+            </label>
+            <button type="button" className="btn ghost" onClick={addDraftPost}>
+              Add post to bundle draft
+            </button>
+            {newPosts.length > 0 && (
+              <ul>
+                {newPosts.map((p, i) => (
+                  <li key={`draft-${i}`}>
+                    {p.title}{' '}
+                    <button type="button" className="btn ghost" onClick={() => removeDraftPost(i)}>
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </fieldset>
         )}
 
         <div className="actions">
-          <button className="btn primary" disabled={saving || (canTargetHubs && !targetHubId)}>
+          <button className="btn primary" disabled={saving}>
             {saving
               ? 'Saving...'
               : editingId
                 ? 'Update bundle'
-                : isRemote
-                  ? `Create on ${selectedTarget?.name || 'hub'}`
+                : isActingOnWhiteLabel
+                  ? `Create on ${actingHub?.name || 'hub'}`
                   : 'Create bundle'}
           </button>
           {editingId && (
@@ -477,7 +414,6 @@ export default function AdminBundles({ shell = 'client-admin' }) {
                 setEditingId(null)
                 setForm(emptyForm)
                 setNewPosts([])
-                setDraftPost(emptyNewPost)
               }}
             >
               Cancel edit
@@ -486,13 +422,11 @@ export default function AdminBundles({ shell = 'client-admin' }) {
         </div>
       </form>
 
-      <h2 className="section-title">Existing bundles</h2>
+      <h2 className="section-title">
+        {isActingOnWhiteLabel ? `Bundles on ${actingHub?.name}` : 'Existing bundles'}
+      </h2>
       {loading ? (
         <div className="state">Loading...</div>
-      ) : bundles.length === 0 ? (
-        <div className="empty-state">
-          <p className="muted">No bundles yet.</p>
-        </div>
       ) : (
         <div className="admin-list">
           {bundles.map((bundle) => (
@@ -502,9 +436,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
                 <p className="muted">
                   {bundle.posts_count ?? bundle.posts?.length ?? 0} posts · {bundle.credits_cost}{' '}
                   credits
-                  {bundle.is_active === false ? ' · inactive' : ''}
                 </p>
-                {bundle.description && <p className="muted">{bundle.description}</p>}
               </div>
               <div className="actions">
                 <button className="btn ghost" onClick={() => edit(bundle)}>

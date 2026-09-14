@@ -187,55 +187,88 @@ export const api = {
       method: 'POST',
     }),
 
+  getActingHub: (options = {}) => request(`${adminBase(options)}/acting-hub`),
+  setActingHub: (hubId, options = {}) =>
+    request(`${adminBase(options)}/acting-hub`, {
+      method: 'PUT',
+      body: JSON.stringify({ hub_id: hubId == null || hubId === '' ? null : Number(hubId) }),
+    }),
+
+  /** @deprecated Prefer normal CRUD while acting hub is set; hub_id is no longer required. */
   hubContentTargets: (options = {}) =>
     request(`${adminBase(options)}/hub-content/targets`),
-  hubContentPosts: (hubId, params = {}, options = {}) => {
-    const query = new URLSearchParams({
-      hub_id: String(hubId),
-      ...Object.fromEntries(
-        Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
-      ),
-    }).toString()
-    return request(`${adminBase(options)}/hub-content/posts?${query}`)
+  hubContentPosts: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/hub-content/posts${query ? `?${query}` : ''}`)
   },
-  hubContentCreatePost: (hubId, formData, options = {}) => {
-    formData.append('hub_id', String(hubId))
-    return request(`${adminBase(options)}/hub-content/posts`, { method: 'POST', body: formData })
-  },
-  hubContentTypes: (hubId, options = {}) =>
-    request(`${adminBase(options)}/hub-content/types?hub_id=${hubId}`),
-  hubContentCreateType: (hubId, payload, options = {}) =>
+  hubContentCreatePost: (formData, options = {}) =>
+    request(`${adminBase(options)}/hub-content/posts`, { method: 'POST', body: formData }),
+  hubContentUpdatePost: (postId, formData, options = {}) =>
+    request(`${adminBase(options)}/hub-content/posts/${postId}`, {
+      method: 'POST',
+      body: formData,
+    }),
+  hubContentDeletePost: (postId, options = {}) =>
+    request(`${adminBase(options)}/hub-content/posts/${postId}`, { method: 'DELETE' }),
+  hubContentTypes: (options = {}) =>
+    request(`${adminBase(options)}/hub-content/types`),
+  hubContentCreateType: (payload, options = {}) =>
     request(`${adminBase(options)}/hub-content/types`, {
       method: 'POST',
-      body: JSON.stringify({ ...payload, hub_id: Number(hubId) }),
+      body: JSON.stringify(payload),
     }),
-  hubContentCategories: (hubId, options = {}) =>
-    request(`${adminBase(options)}/hub-content/categories?hub_id=${hubId}`),
-  hubContentCreateCategory: (hubId, payload, options = {}) =>
+  hubContentUpdateType: (typeId, payload, options = {}) =>
+    request(`${adminBase(options)}/hub-content/types/${typeId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  hubContentDeleteType: (typeId, options = {}) =>
+    request(`${adminBase(options)}/hub-content/types/${typeId}`, { method: 'DELETE' }),
+  hubContentCategories: (options = {}) =>
+    request(`${adminBase(options)}/hub-content/categories`),
+  hubContentCreateCategory: (payload, options = {}) =>
     request(`${adminBase(options)}/hub-content/categories`, {
       method: 'POST',
-      body: JSON.stringify({ ...payload, hub_id: Number(hubId) }),
+      body: JSON.stringify(payload),
     }),
-  hubContentTags: (hubId, options = {}) =>
-    request(`${adminBase(options)}/hub-content/tags?hub_id=${hubId}`),
-  hubContentCreateTag: (hubId, payload, options = {}) =>
+  hubContentUpdateCategory: (categoryId, payload, options = {}) =>
+    request(`${adminBase(options)}/hub-content/categories/${categoryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  hubContentDeleteCategory: (categoryId, options = {}) =>
+    request(`${adminBase(options)}/hub-content/categories/${categoryId}`, { method: 'DELETE' }),
+  hubContentTags: (options = {}) =>
+    request(`${adminBase(options)}/hub-content/tags`),
+  hubContentCreateTag: (payload, options = {}) =>
     request(`${adminBase(options)}/hub-content/tags`, {
       method: 'POST',
-      body: JSON.stringify({ ...payload, hub_id: Number(hubId) }),
+      body: JSON.stringify(payload),
     }),
-  hubContentBundles: (hubId, params = {}, options = {}) => {
-    const query = new URLSearchParams({
-      hub_id: String(hubId),
-      ...Object.fromEntries(
-        Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
-      ),
-    }).toString()
-    return request(`${adminBase(options)}/hub-content/bundles?${query}`)
+  hubContentUpdateTag: (tagId, payload, options = {}) =>
+    request(`${adminBase(options)}/hub-content/tags/${tagId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  hubContentDeleteTag: (tagId, options = {}) =>
+    request(`${adminBase(options)}/hub-content/tags/${tagId}`, { method: 'DELETE' }),
+  hubContentBundles: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/hub-content/bundles${query ? `?${query}` : ''}`)
   },
-  hubContentCreateBundle: (hubId, formData, options = {}) => {
-    formData.append('hub_id', String(hubId))
-    return request(`${adminBase(options)}/hub-content/bundles`, { method: 'POST', body: formData })
-  },
+  hubContentCreateBundle: (formData, options = {}) =>
+    request(`${adminBase(options)}/hub-content/bundles`, { method: 'POST', body: formData }),
+  hubContentUpdateBundle: (bundleId, formData, options = {}) =>
+    request(`${adminBase(options)}/hub-content/bundles/${bundleId}`, {
+      method: 'POST',
+      body: formData,
+    }),
+  hubContentDeleteBundle: (bundleId, options = {}) =>
+    request(`${adminBase(options)}/hub-content/bundles/${bundleId}`, { method: 'DELETE' }),
   adminSettings: () => request(`${CLIENT_ADMIN}/settings`),
   updateSettings: (payload) => {
     const body = payload instanceof FormData ? payload : JSON.stringify(payload)
@@ -408,5 +441,99 @@ export const api = {
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
     ).toString()
     return request(`${base}/activity-logs/report${query ? `?${query}` : ''}`)
+  },
+
+  hubModules: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/modules${query ? `?${query}` : ''}`)
+  },
+  updateHubModules: (payload, options = {}) => {
+    const body = { ...payload }
+    return request(`${adminBase(options)}/modules`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    })
+  },
+
+  // —— Social Media Compliance ——
+  socialMediaComplianceMine: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/social-media-compliance/requests/mine${query ? `?${query}` : ''}`)
+  },
+  socialMediaComplianceShow: (id) => request(`/social-media-compliance/requests/${id}`),
+  socialMediaComplianceSubmit: (formData) =>
+    request('/social-media-compliance/requests', { method: 'POST', body: formData }),
+  socialMediaComplianceResubmit: (id, formData) =>
+    request(`/social-media-compliance/requests/${id}/resubmit`, { method: 'POST', body: formData }),
+  socialMediaComplianceConfirmFeedback: (id, formData = null) =>
+    request(`/social-media-compliance/requests/${id}/confirm-feedback`, {
+      method: 'POST',
+      body: formData || new FormData(),
+    }),
+  socialMediaComplianceAdminRequests: (params = {}, options = {}) => {
+    const base = adminBase(options)
+    const path = options.queueOnly ? `${base}/social-media-compliance/queue` : `${base}/social-media-compliance/requests`
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${path}${query ? `?${query}` : ''}`)
+  },
+  socialMediaComplianceAdminShow: (id, options = {}) =>
+    request(`${adminBase(options)}/social-media-compliance/requests/${id}`),
+  socialMediaComplianceReviewers: (options = {}) =>
+    request(`${adminBase(options)}/social-media-compliance/reviewers`),
+  socialMediaComplianceAssign: (id, assignedTo, options = {}) =>
+    request(`${adminBase(options)}/social-media-compliance/requests/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ assigned_to: assignedTo }),
+    }),
+  socialMediaComplianceReview: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/social-media-compliance/requests/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  socialMediaComplianceReport: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/social-media-compliance/reports${query ? `?${query}` : ''}`)
+  },
+  socialMediaComplianceReportExport: async (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    const headers = new Headers({ Accept: 'text/csv' })
+    const token = getToken()
+    if (token) headers.set('Authorization', `Bearer ${token}`)
+    const response = await fetch(
+      `${API_URL}${adminBase(options)}/social-media-compliance/reports/export${query ? `?${query}` : ''}`,
+      { headers }
+    )
+    if (!response.ok) {
+      const error = new Error('Export failed')
+      error.status = response.status
+      throw error
+    }
+    return response.blob()
+  },
+  socialMediaComplianceApproverWorkload: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(
+      `${adminBase(options)}/social-media-compliance/charts/approver-workload${query ? `?${query}` : ''}`
+    )
+  },
+  socialMediaComplianceAdvisorComparison: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(
+      `${adminBase(options)}/social-media-compliance/charts/advisor-comparison${query ? `?${query}` : ''}`
+    )
   },
 }

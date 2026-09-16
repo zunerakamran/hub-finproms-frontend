@@ -27,52 +27,89 @@ jobs:
           cat dist-shared/index.html
           echo "---- dist-myhub/index.html ----"
           cat dist-myhub/index.html
+          test -f dist-shared/index.html
+          grep -q "BUILD_OK_V3" dist-shared/index.html
+          grep -q "BUILD_OK_V3" dist-myhub/index.html
 
-      # FTP users for these cPanel accounts already land IN public_html.
-      # Using /public_html/ was uploading to public_html/public_html/ (not served by the domain).
-      - name: Deploy shared hub via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER_1 }}
-          username: ${{ secrets.FTP_USER_1 }}
-          password: ${{ secrets.FTP_PASS_1 }}
-          local-dir: ./dist-shared/
-          server-dir: ./
-          log-level: verbose
-          exclude: |
-            **/api/**
-            **/.env
-            **/.env.*
-            **/storage/**
-            **/vendor/**
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Deploy white-label hub via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER_2 }}
-          username: ${{ secrets.FTP_USER_2 }}
-          password: ${{ secrets.FTP_PASS_2 }}
-          local-dir: ./dist-myhub/
-          server-dir: ./
-          log-level: verbose
-          exclude: |
-            **/api/**
-            **/.env
-            **/.env.*
-            **/storage/**
-            **/vendor/**
+      # Uses lftp so we can see the real remote folder (pwd/ls) and force-overwrite index.html.
+      # If pwd is wrong, fix FTP secrets (account / home directory) in GitHub → Settings → Secrets.
+      - name: Deploy shared hub via lftp
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER_1 }}
+          FTP_USER: ${{ secrets.FTP_USER_1 }}
+          FTP_PASS: ${{ secrets.FTP_PASS_1 }}
+        run: |
+          set -e
+          test -n "$FTP_SERVER"
+          test -n "$FTP_USER"
+          test -n "$FTP_PASS"
+          lftp -c "
+            set cmd:fail-exit yes;
+            set ssl:verify-certificate no;
+            set ftp:passive-mode true;
+            open -u ${FTP_USER},${FTP_PASS} ${FTP_SERVER};
+            echo '=== SHARED FTP PWD ===';
+            pwd;
+            echo '=== SHARED FTP LS (top) ===';
+            cls -1;
+            mirror -R --verbose \
+              --exclude-glob api/** \
+              --exclude-glob .env \
+              --exclude-glob .env.* \
+              --exclude-glob storage/** \
+              --exclude-glob vendor/** \
+              ./dist-shared/ .;
+            put ./dist-shared/index.html -o index.html;
+            echo '=== REMOTE index.html (first lines) ===';
+            cat index.html;
+          "
+
+      - name: Deploy white-label hub via lftp
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER_2 }}
+          FTP_USER: ${{ secrets.FTP_USER_2 }}
+          FTP_PASS: ${{ secrets.FTP_PASS_2 }}
+        run: |
+          set -e
+          test -n "$FTP_SERVER"
+          test -n "$FTP_USER"
+          test -n "$FTP_PASS"
+          lftp -c "
+            set cmd:fail-exit yes;
+            set ssl:verify-certificate no;
+            set ftp:passive-mode true;
+            open -u ${FTP_USER},${FTP_PASS} ${FTP_SERVER};
+            echo '=== MYHUB FTP PWD ===';
+            pwd;
+            echo '=== MYHUB FTP LS (top) ===';
+            cls -1;
+            mirror -R --verbose \
+              --exclude-glob api/** \
+              --exclude-glob .env \
+              --exclude-glob .env.* \
+              --exclude-glob storage/** \
+              --exclude-glob vendor/** \
+              ./dist-myhub/ .;
+            put ./dist-myhub/index.html -o index.html;
+            echo '=== REMOTE index.html (first lines) ===';
+            cat index.html;
+          "
 
       - name: Verify live sites received this build
         run: |
           set -e
+          sleep 3
           echo "Checking sharedhub..."
-          SHARED=$(curl -fsSL "https://sharedhub.fin-proms.com/index.html?v=$GITHUB_SHA")
-          echo "$SHARED" | head -n 20
+          SHARED=$(curl -fsSL -H 'Cache-Control: no-cache' "https://sharedhub.fin-proms.com/index.html?v=$GITHUB_SHA")
+          echo "$SHARED"
           echo "$SHARED" | grep -q "BUILD_OK_V3"
 
           echo "Checking myhub..."
-          MYHUB=$(curl -fsSL "https://myhub.fin-proms.com/index.html?v=$GITHUB_SHA")
-          echo "$MYHUB" | head -n 20
+          MYHUB=$(curl -fsSL -H 'Cache-Control: no-cache' "https://myhub.fin-proms.com/index.html?v=$GITHUB_SHA")
+          echo "$MYHUB"
           echo "$MYHUB" | grep -q "BUILD_OK_V3"
 
           echo "Live sites show BUILD_OK_V3 — deploy OK"

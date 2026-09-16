@@ -127,14 +127,24 @@ export function HubProvider({ children }) {
       document.title = brandName
     }
 
+    // Replace the default Vite icon so login/signup (and the rest of the app)
+    // show the hub favicon in the browser tab. Recreate the <link> so browsers
+    // pick up type changes (ico/png vs the static svg in index.html).
     const faviconHref = hub?.branding?.favicon_url || '/vite.svg'
-    let link = document.querySelector("link[rel='icon']")
-    if (!link) {
-      link = document.createElement('link')
-      link.setAttribute('rel', 'icon')
-      document.head.appendChild(link)
-    }
+    const lower = String(faviconHref).split('?')[0].toLowerCase()
+    let faviconType = 'image/png'
+    if (lower.endsWith('.svg')) faviconType = 'image/svg+xml'
+    else if (lower.endsWith('.ico')) faviconType = 'image/x-icon'
+    else if (lower.endsWith('.gif')) faviconType = 'image/gif'
+    else if (lower.endsWith('.webp')) faviconType = 'image/webp'
+    else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) faviconType = 'image/jpeg'
+
+    document.querySelectorAll("link[rel='icon'], link[rel='shortcut icon']").forEach((el) => el.remove())
+    const link = document.createElement('link')
+    link.setAttribute('rel', 'icon')
+    link.setAttribute('type', faviconType)
     link.setAttribute('href', faviconHref)
+    document.head.appendChild(link)
   }, [hub?.branding, hub?.name])
 
   const can = useCallback(

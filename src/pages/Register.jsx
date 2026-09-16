@@ -16,6 +16,7 @@ export default function Register() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
+  const brandImage = branding?.logo_url || branding?.favicon_url || null
 
   if (isAuthenticated) return <Navigate to="/my-dashboard" replace />
 
@@ -23,6 +24,7 @@ export default function Register() {
     return (
       <div className="auth-wrap admin-auth-wrap power-auth">
         <div className="auth-panel">
+          {brandImage ? <img src={brandImage} alt="" className="auth-logo" /> : null}
           <p className="eyebrow">{brandName}</p>
           <h1>Invite only</h1>
           <p className="muted">
@@ -59,6 +61,7 @@ export default function Register() {
   return (
     <div className="auth-wrap admin-auth-wrap power-auth">
       <form className="auth-panel" onSubmit={onSubmit}>
+        {brandImage ? <img src={brandImage} alt="" className="auth-logo" /> : null}
         <p className="eyebrow">{brandName}</p>
         <h1>Create your account</h1>
         <p className="muted">Buy credits and unlock social media posts.</p>

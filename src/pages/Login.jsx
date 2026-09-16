@@ -16,6 +16,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
+  const brandImage = branding?.logo_url || branding?.favicon_url || null
 
   if (isAuthenticated) {
     const fallback = roleHome()
@@ -49,8 +50,8 @@ export default function Login() {
     <div className="auth-screen">
       <div className="auth-screen__panel">
         <div className="auth-screen__brand">
-          {branding?.logo_url ? (
-            <img src={branding.logo_url} alt="" className="auth-logo" />
+          {brandImage ? (
+            <img src={brandImage} alt="" className="auth-logo" />
           ) : (
             <span className="site-brand__mark" aria-hidden="true">
               {String(brandName).charAt(0)}

@@ -11,7 +11,16 @@ export default function AdminPostThumb({ post }) {
     return (
       <div className={`admin-thumb-wrap ${isReel ? 'is-reel' : ''}`.trim()}>
         <img className="admin-thumb" src={post.cover_url} alt="" />
-        {isReel ? <span className="admin-thumb__badge">Reel</span> : null}
+        {isReel ? (
+          <>
+            <span className="admin-thumb__play" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                <path d="M8 5v14l11-7L8 5z" />
+              </svg>
+            </span>
+            <span className="admin-thumb__badge">Reel</span>
+          </>
+        ) : null}
       </div>
     )
   }
@@ -23,10 +32,17 @@ export default function AdminPostThumb({ post }) {
           className="admin-thumb admin-thumb--video"
           src={videoUrl}
           muted
+          loop
           playsInline
+          autoPlay
           preload="metadata"
           aria-label={post?.title || 'Reel preview'}
         />
+        <span className="admin-thumb__play" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M8 5v14l11-7L8 5z" />
+          </svg>
+        </span>
         <span className="admin-thumb__badge">Reel</span>
       </div>
     )
@@ -40,5 +56,11 @@ export default function AdminPostThumb({ post }) {
     )
   }
 
-  return <div className="admin-thumb fallback" aria-hidden="true" />
+  return (
+    <div className="admin-thumb-wrap is-empty">
+      <div className="admin-thumb fallback" aria-hidden="true">
+        <span>No media</span>
+      </div>
+    </div>
+  )
 }

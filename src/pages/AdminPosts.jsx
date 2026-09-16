@@ -300,40 +300,88 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         </div>
       </form>
 
-      <h2 className="section-title">
-        {isActingOnWhiteLabel ? `Posts on ${actingHub?.name}` : 'Existing posts'}
-      </h2>
+      <div className="admin-posts-head">
+        <div>
+          <h2 className="section-title">
+            {isActingOnWhiteLabel ? `Posts on ${actingHub?.name}` : 'Existing posts'}
+          </h2>
+          <p className="muted admin-posts-head__sub">
+            {loading
+              ? 'Loading catalog…'
+              : posts.length === 0
+                ? 'Nothing published yet.'
+                : `${posts.length} item${posts.length === 1 ? '' : 's'} in this hub`}
+          </p>
+        </div>
+      </div>
       {loading ? (
-        <div className="state">Loading...</div>
+        <div className="state">Loading posts…</div>
       ) : posts.length === 0 ? (
-        <div className="state">No posts yet. Create one above.</div>
+        <div className="state admin-posts-empty">
+          <strong>No posts yet</strong>
+          <p className="muted">Create a post or reel above and it will show up here.</p>
+        </div>
       ) : (
         <div className="admin-list admin-posts-list">
-          {posts.map((post) => (
-            <div key={post.id} className={`admin-row admin-post-row ${post.is_reel ? 'is-reel' : ''}`.trim()}>
-              <AdminPostThumb post={post} />
-              <div className="admin-post-row__meta">
-                <strong>{post.title}</strong>
-                <p className="muted">
-                  <span className={`admin-type-chip ${post.is_reel ? 'is-reel' : ''}`.trim()}>
-                    {post.type || 'Post'}
-                  </span>
-                  {post.category ? ` · ${post.category}` : ''}
-                  {' · '}
-                  {post.credits_cost} credits
-                  {!post.is_active ? ' · inactive' : ''}
-                </p>
-              </div>
-              <div className="actions">
-                <button className="btn ghost" onClick={() => edit(post)}>
-                  Edit
-                </button>
-                <button className="btn danger" onClick={() => remove(post.id)}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+          {posts.map((post) => {
+            const isReel = Boolean(post.is_reel)
+            const isEditing = editingId === post.id
+            const tags = Array.isArray(post.tags) ? post.tags.slice(0, 4) : []
+
+            return (
+              <article
+                key={post.id}
+                className={[
+                  'admin-row',
+                  'admin-post-row',
+                  isReel ? 'is-reel' : '',
+                  isEditing ? 'is-editing' : '',
+                  post.is_active === false ? 'is-inactive' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                <AdminPostThumb post={post} />
+                <div className="admin-post-row__meta">
+                  <div className="admin-post-row__title-line">
+                    <h3 className="admin-post-row__title">{post.title}</h3>
+                    <span className={`admin-status-pill ${post.is_active === false ? 'is-off' : 'is-on'}`}>
+                      {post.is_active === false ? 'Inactive' : 'Active'}
+                    </span>
+                  </div>
+                  <div className="admin-post-row__chips">
+                    <span className={`admin-type-chip ${isReel ? 'is-reel' : ''}`.trim()}>
+                      {isReel ? 'Reel' : post.type || 'Post'}
+                    </span>
+                    {post.category ? (
+                      <span className="admin-meta-chip">{post.category}</span>
+                    ) : null}
+                    <span className="admin-meta-chip">{post.credits_cost ?? 0} credits</span>
+                  </div>
+                  {tags.length > 0 ? (
+                    <div className="admin-post-row__tags">
+                      {tags.map((tag) => (
+                        <span key={tag}>{tag}</span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="admin-post-row__stats muted">
+                    <span>{Number(post.reach_count ?? 0)} reach</span>
+                    <span>{Number(post.views_count ?? 0)} views</span>
+                    <span>{Number(post.buy_count ?? 0)} buys</span>
+                  </div>
+                </div>
+                <div className="admin-post-row__actions actions">
+                  <button className="btn ghost" type="button" onClick={() => edit(post)}>
+                    {isEditing ? 'Editing…' : 'Edit'}
+                  </button>
+                  <button className="btn danger" type="button" onClick={() => remove(post.id)}>
+                    Delete
+                  </button>
+                </div>
+              </article>
+            )
+          })}
         </div>
       )}
     </section>

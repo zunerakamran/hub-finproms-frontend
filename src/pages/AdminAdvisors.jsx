@@ -124,7 +124,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     setBankResult(null)
     try {
       const data = await api.importAdvisors(file, apiOpts)
-      setMessage(data.message || 'Import finished.')
+      setMessage(data.message || 'Import ready.')
       setResult(data)
       setQuote(data.quote || null)
       if (data.quote?.error) {
@@ -136,7 +136,10 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         methods.find((m) => m.available)
       if (preferred) setPaymentMethod(preferred.id)
       setFile(null)
-      await load()
+      // Only refresh list when users were actually created (billing off / no payment due).
+      if (!data.awaiting_payment) {
+        await load()
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -155,19 +158,29 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     setBankResult(null)
     try {
       const data = await api.advisorBillingCheckout(billingId, paymentMethod, apiOpts)
+      if (data.import) {
+        setResult({
+          ...(result || {}),
+          ...data.import,
+          awaiting_payment: false,
+        })
+      }
       if (data.checkout_url) {
         window.location.href = data.checkout_url
         return
       }
       setBankResult(data)
       if (data.charged_saved_card || data.auto_confirmed) {
-        setMessage(data.message || 'Payment successful. Invoice created.')
+        setMessage(data.message || 'Payment successful. Advisors created and invoice issued.')
         setQuote({
           ...quote,
           billing: data.billing,
           payment_required: false,
         })
+      } else if (data.import) {
+        setMessage(data.message || 'Advisors created. Complete payment to finish billing.')
       }
+      await load()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -205,10 +218,12 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           <h1>Advisors</h1>
           <p className="muted">
             {canImport
-              ? 'Upload a CSV or Excel sheet of advisors. Imported advisors are marked subscribed with unlimited credits.'
+              ? billingEnabled
+                ? 'Upload a CSV or Excel sheet. New advisors are created only after you click Pay now.'
+                : 'Upload a CSV or Excel sheet of advisors. Imported advisors are marked subscribed with unlimited credits.'
               : 'Manage imported advisors for this private hub.'}
             {canImport && billingEnabled
-              ? ' The client admin pays rate × advisors after each import (card is saved for auto-renew).'
+              ? ' The client admin pays rate × advisors per import batch (card is saved for auto-renew).'
               : ''}
           </p>
         </div>
@@ -239,8 +254,11 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         <h2>Upload advisors</h2>
         <p className="muted">
           Columns: <code>name</code>, <code>email</code>, optional <code>password</code>. If
-          password is blank, a temporary password is generated (shown once after import). You can
+          password is blank, a temporary password is generated (shown once after you pay). You can
           upload <strong>.csv</strong> or <strong>.xlsx</strong>.
+          {billingEnabled
+            ? ' Choosing a payment method and clicking Pay now creates the advisor accounts.'
+            : ''}
         </p>
         <label>
           Excel / CSV file
@@ -252,7 +270,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         </label>
         <div className="actions">
           <button className="btn primary" disabled={uploading || !file}>
-            {uploading ? 'Importing...' : 'Import advisors'}
+            {uploading ? 'Checking file...' : billingEnabled ? 'Review & continue' : 'Import advisors'}
           </button>
         </div>
       </form>
@@ -262,8 +280,8 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         <div className="import-result">
           <h2>Payment required</h2>
           <p className="muted">
-            Advisors from this import are already created. Choose a payment method below to
-            create the invoice and complete billing for this batch.
+            No advisor accounts have been created yet. Choose a payment method and click Pay now
+            to create them and issue the invoice for this batch.
           </p>
           {quote?.payer && (
             <p className="muted">
@@ -375,13 +393,27 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
 
       {canImport && result && (
         <div className="import-result">
-          <h2>Import result</h2>
+          <h2>{result.awaiting_payment ? 'Import preview' : 'Import result'}</h2>
           <p className="muted">
-            Created {result.summary?.created ?? 0}, updated {result.summary?.updated ?? 0}, skipped{' '}
-            {result.summary?.skipped ?? 0}
+            {result.awaiting_payment
+              ? `Will create ${result.summary?.created ?? result.preview?.created?.length ?? 0}, update ${result.summary?.updated ?? result.preview?.updated?.length ?? 0}, skip ${result.summary?.skipped ?? 0} — after payment.`
+              : `Created ${result.summary?.created ?? 0}, updated ${result.summary?.updated ?? 0}, skipped ${result.summary?.skipped ?? 0}`}
           </p>
 
-          {(result.created || []).length > 0 && (
+          {result.awaiting_payment && (result.preview?.created || []).length > 0 && (
+            <div className="import-block">
+              <h3>Advisors to create (after Pay now)</h3>
+              <ul className="muted">
+                {result.preview.created.map((row) => (
+                  <li key={row.email}>
+                    {row.name} ({row.email})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {!result.awaiting_payment && (result.created || []).length > 0 && (
             <div className="import-block">
               <h3>New advisors (save temporary passwords now)</h3>
               <div className="table-wrap">

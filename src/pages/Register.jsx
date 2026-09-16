@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
+import AuthFavicon from '../components/AuthFavicon'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -16,7 +17,7 @@ export default function Register() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
-  const brandImage = branding?.logo_url || branding?.favicon_url || null
+  const logoUrl = branding?.logo_url || null
 
   if (isAuthenticated) return <Navigate to="/my-dashboard" replace />
 
@@ -24,9 +25,14 @@ export default function Register() {
     return (
       <div className="auth-wrap admin-auth-wrap power-auth">
         <div className="auth-panel">
-          {brandImage ? <img src={brandImage} alt="" className="auth-logo" /> : null}
-          <p className="eyebrow">{brandName}</p>
-          <h1>Invite only</h1>
+          <div className="auth-screen__brand">
+            <AuthFavicon />
+            <div>
+              {logoUrl ? <img src={logoUrl} alt="" className="auth-logo" /> : null}
+              <p className="eyebrow">{brandName}</p>
+              <h1>Invite only</h1>
+            </div>
+          </div>
           <p className="muted">
             Public registration is disabled for this hub. Access is for invited advisors only —
             please sign in with the account from your invite list.
@@ -61,9 +67,14 @@ export default function Register() {
   return (
     <div className="auth-wrap admin-auth-wrap power-auth">
       <form className="auth-panel" onSubmit={onSubmit}>
-        {brandImage ? <img src={brandImage} alt="" className="auth-logo" /> : null}
-        <p className="eyebrow">{brandName}</p>
-        <h1>Create your account</h1>
+        <div className="auth-screen__brand">
+          <AuthFavicon />
+          <div>
+            {logoUrl ? <img src={logoUrl} alt="" className="auth-logo" /> : null}
+            <p className="eyebrow">{brandName}</p>
+            <h1>Create your account</h1>
+          </div>
+        </div>
         <p className="muted">Buy credits and unlock social media posts.</p>
         {error && <div className="alert">{error}</div>}
         <label>

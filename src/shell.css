@@ -1204,6 +1204,18 @@ h2,
   object-fit: contain;
 }
 
+.auth-favicon {
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 10px;
+  background: var(--brand-softer, #f3f6f4);
+  padding: 6px;
+  box-sizing: border-box;
+}
+
 /* Unified page chrome inside dashboard */
 .dash-content .page-head {
   display: flex;

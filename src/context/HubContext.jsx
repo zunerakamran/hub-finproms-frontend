@@ -127,9 +127,8 @@ export function HubProvider({ children }) {
       document.title = brandName
     }
 
-    // Replace the default Vite icon so login/signup (and the rest of the app)
-    // show the hub favicon in the browser tab. Recreate the <link> so browsers
-    // pick up type changes (ico/png vs the static svg in index.html).
+    // Always apply a favicon (hub custom or default) so login/register tabs
+    // never stay on a blank/missing icon.
     const faviconHref = hub?.branding?.favicon_url || '/vite.svg'
     const lower = String(faviconHref).split('?')[0].toLowerCase()
     let faviconType = 'image/png'

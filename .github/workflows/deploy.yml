@@ -28,10 +28,8 @@ jobs:
           echo "---- dist-myhub/index.html ----"
           cat dist-myhub/index.html
 
-      # IMPORTANT:
-      # If your FTP user already lands inside public_html, server-dir must be ./
-      # If FTP lands in the home directory, server-dir must be /public_html/
-      # Wrong value uploads "successfully" to a folder the domain does NOT serve.
+      # FTP users for these cPanel accounts already land IN public_html.
+      # Using /public_html/ was uploading to public_html/public_html/ (not served by the domain).
       - name: Deploy shared hub via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -39,8 +37,7 @@ jobs:
           username: ${{ secrets.FTP_USER_1 }}
           password: ${{ secrets.FTP_PASS_1 }}
           local-dir: ./dist-shared/
-          # If FTP login already opens inside public_html, change this to ./
-          server-dir: /public_html/
+          server-dir: ./
           log-level: verbose
           exclude: |
             **/api/**
@@ -56,8 +53,7 @@ jobs:
           username: ${{ secrets.FTP_USER_2 }}
           password: ${{ secrets.FTP_PASS_2 }}
           local-dir: ./dist-myhub/
-          # If FTP login already opens inside public_html, change this to ./
-          server-dir: /public_html/
+          server-dir: ./
           log-level: verbose
           exclude: |
             **/api/**

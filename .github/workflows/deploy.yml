@@ -23,8 +23,15 @@ jobs:
           npm ci
           npm run build:shared
           npm run build:myhub
+          echo "---- dist-shared/index.html ----"
+          cat dist-shared/index.html
+          echo "---- dist-myhub/index.html ----"
+          cat dist-myhub/index.html
 
-      # Server 1 = sharedhub.fin-proms.com (dist-shared)
+      # IMPORTANT:
+      # If your FTP user already lands inside public_html, server-dir must be ./
+      # If FTP lands in the home directory, server-dir must be /public_html/
+      # Wrong value uploads "successfully" to a folder the domain does NOT serve.
       - name: Deploy shared hub via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -32,8 +39,9 @@ jobs:
           username: ${{ secrets.FTP_USER_1 }}
           password: ${{ secrets.FTP_PASS_1 }}
           local-dir: ./dist-shared/
+          # If FTP login already opens inside public_html, change this to ./
           server-dir: /public_html/
-          # Keep Laravel backend next to the frontend (Option B)
+          log-level: verbose
           exclude: |
             **/api/**
             **/.env
@@ -41,7 +49,6 @@ jobs:
             **/storage/**
             **/vendor/**
 
-      # Server 2 = myhub.fin-proms.com (dist-myhub)
       - name: Deploy white-label hub via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -49,10 +56,27 @@ jobs:
           username: ${{ secrets.FTP_USER_2 }}
           password: ${{ secrets.FTP_PASS_2 }}
           local-dir: ./dist-myhub/
+          # If FTP login already opens inside public_html, change this to ./
           server-dir: /public_html/
+          log-level: verbose
           exclude: |
             **/api/**
             **/.env
             **/.env.*
             **/storage/**
             **/vendor/**
+
+      - name: Verify live sites received this build
+        run: |
+          set -e
+          echo "Checking sharedhub..."
+          SHARED=$(curl -fsSL "https://sharedhub.fin-proms.com/index.html?v=$GITHUB_SHA")
+          echo "$SHARED" | head -n 20
+          echo "$SHARED" | grep -q "BUILD_OK_V3"
+
+          echo "Checking myhub..."
+          MYHUB=$(curl -fsSL "https://myhub.fin-proms.com/index.html?v=$GITHUB_SHA")
+          echo "$MYHUB" | head -n 20
+          echo "$MYHUB" | grep -q "BUILD_OK_V3"
+
+          echo "Live sites show BUILD_OK_V3 — deploy OK"

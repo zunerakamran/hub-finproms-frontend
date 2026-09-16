@@ -34,69 +34,59 @@ jobs:
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      # Uses lftp so we can see the real remote folder (pwd/ls) and force-overwrite index.html.
-      # If pwd is wrong, fix FTP secrets (account / home directory) in GitHub → Settings → Secrets.
+      # Password must NOT be embedded in the lftp script — special chars / $ break it.
+      # lftp reads LFTP_PASSWORD from the environment when open -u USER has no password.
       - name: Deploy shared hub via lftp
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER_1 }}
           FTP_USER: ${{ secrets.FTP_USER_1 }}
-          FTP_PASS: ${{ secrets.FTP_PASS_1 }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASS_1 }}
         run: |
-          set -e
+          set -euo pipefail
           test -n "$FTP_SERVER"
           test -n "$FTP_USER"
-          test -n "$FTP_PASS"
-          lftp -c "
-            set cmd:fail-exit yes;
-            set ssl:verify-certificate no;
-            set ftp:passive-mode true;
-            open -u ${FTP_USER},${FTP_PASS} ${FTP_SERVER};
-            echo '=== SHARED FTP PWD ===';
-            pwd;
-            echo '=== SHARED FTP LS (top) ===';
-            cls -1;
-            mirror -R --verbose \
-              --exclude-glob api/** \
-              --exclude-glob .env \
-              --exclude-glob .env.* \
-              --exclude-glob storage/** \
-              --exclude-glob vendor/** \
-              ./dist-shared/ .;
-            put ./dist-shared/index.html -o index.html;
-            echo '=== REMOTE index.html (first lines) ===';
-            cat index.html;
-          "
+          test -n "$LFTP_PASSWORD"
+          lftp <<EOF
+          set cmd:fail-exit yes
+          set ssl:verify-certificate no
+          set ftp:passive-mode true
+          open -u ${FTP_USER} ${FTP_SERVER}
+          echo === SHARED FTP PWD ===
+          pwd
+          echo === SHARED FTP LS ===
+          cls -1
+          mirror -R --verbose --exclude-glob api/** --exclude-glob .env --exclude-glob .env.* --exclude-glob storage/** --exclude-glob vendor/** ./dist-shared/ .
+          put ./dist-shared/index.html -o index.html
+          echo === REMOTE index.html ===
+          cat index.html
+          bye
+          EOF
 
       - name: Deploy white-label hub via lftp
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER_2 }}
           FTP_USER: ${{ secrets.FTP_USER_2 }}
-          FTP_PASS: ${{ secrets.FTP_PASS_2 }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASS_2 }}
         run: |
-          set -e
+          set -euo pipefail
           test -n "$FTP_SERVER"
           test -n "$FTP_USER"
-          test -n "$FTP_PASS"
-          lftp -c "
-            set cmd:fail-exit yes;
-            set ssl:verify-certificate no;
-            set ftp:passive-mode true;
-            open -u ${FTP_USER},${FTP_PASS} ${FTP_SERVER};
-            echo '=== MYHUB FTP PWD ===';
-            pwd;
-            echo '=== MYHUB FTP LS (top) ===';
-            cls -1;
-            mirror -R --verbose \
-              --exclude-glob api/** \
-              --exclude-glob .env \
-              --exclude-glob .env.* \
-              --exclude-glob storage/** \
-              --exclude-glob vendor/** \
-              ./dist-myhub/ .;
-            put ./dist-myhub/index.html -o index.html;
-            echo '=== REMOTE index.html (first lines) ===';
-            cat index.html;
-          "
+          test -n "$LFTP_PASSWORD"
+          lftp <<EOF
+          set cmd:fail-exit yes
+          set ssl:verify-certificate no
+          set ftp:passive-mode true
+          open -u ${FTP_USER} ${FTP_SERVER}
+          echo === MYHUB FTP PWD ===
+          pwd
+          echo === MYHUB FTP LS ===
+          cls -1
+          mirror -R --verbose --exclude-glob api/** --exclude-glob .env --exclude-glob .env.* --exclude-glob storage/** --exclude-glob vendor/** ./dist-myhub/ .
+          put ./dist-myhub/index.html -o index.html
+          echo === REMOTE index.html ===
+          cat index.html
+          bye
+          EOF
 
       - name: Verify live sites received this build
         run: |

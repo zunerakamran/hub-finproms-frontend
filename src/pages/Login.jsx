@@ -17,7 +17,6 @@ export default function Login() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
-  const logoUrl = branding?.logo_url || null
 
   if (isAuthenticated) {
     const fallback = roleHome()
@@ -53,9 +52,6 @@ export default function Login() {
         <div className="auth-screen__brand">
           <AuthFavicon />
           <div>
-            {logoUrl ? (
-              <img src={logoUrl} alt="" className="auth-logo" />
-            ) : null}
             <p className="eyebrow">{brandName}</p>
             <h1>Sign in</h1>
           </div>

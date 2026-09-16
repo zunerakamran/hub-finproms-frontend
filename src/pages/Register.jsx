@@ -17,7 +17,6 @@ export default function Register() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
-  const logoUrl = branding?.logo_url || null
 
   if (isAuthenticated) return <Navigate to="/my-dashboard" replace />
 
@@ -28,7 +27,6 @@ export default function Register() {
           <div className="auth-screen__brand">
             <AuthFavicon />
             <div>
-              {logoUrl ? <img src={logoUrl} alt="" className="auth-logo" /> : null}
               <p className="eyebrow">{brandName}</p>
               <h1>Invite only</h1>
             </div>
@@ -70,7 +68,6 @@ export default function Register() {
         <div className="auth-screen__brand">
           <AuthFavicon />
           <div>
-            {logoUrl ? <img src={logoUrl} alt="" className="auth-logo" /> : null}
             <p className="eyebrow">{brandName}</p>
             <h1>Create your account</h1>
           </div>

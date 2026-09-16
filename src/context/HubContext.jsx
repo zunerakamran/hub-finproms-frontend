@@ -31,6 +31,7 @@ function sameHub(a, b) {
     a.id === b.id &&
     a.viewer_role === b.viewer_role &&
     JSON.stringify(a.checklist) === JSON.stringify(b.checklist) &&
+    JSON.stringify(a.acting_checklist) === JSON.stringify(b.acting_checklist) &&
     JSON.stringify(a.effective_capabilities) === JSON.stringify(b.effective_capabilities) &&
     JSON.stringify(a.branding) === JSON.stringify(b.branding) &&
     JSON.stringify(a.auth) === JSON.stringify(b.auth) &&
@@ -164,25 +165,56 @@ export function HubProvider({ children }) {
     [hub]
   )
 
-  /** Advisor billing card settings — not a capabilities-matrix flag. */
-  const advisorBillingEnabled = useMemo(() => {
-    return Boolean(hub?.checklist?.advisor_subscriber_billing || hub?.checklist?.private_invite_only)
+  // Prefer explicit auth payload from API; fall back to checklist exclusivity.
+  // While acting on a white-label hub, use that hub's checklist for mode flags.
+  const actingChecklist = useMemo(() => {
+    if (
+      hub?.acting_checklist &&
+      (hub?.hub_switcher?.is_acting_on_white_label || hub?.acting_hub?.is_white_label)
+    ) {
+      return hub.acting_checklist
+    }
+    return hub?.checklist || {}
   }, [hub])
 
-  // Prefer explicit auth payload from API; fall back to checklist exclusivity.
   const registrationEnabled = useMemo(() => {
-    if (hub?.auth && typeof hub.auth.registration_enabled === 'boolean') {
+    if (
+      !(hub?.hub_switcher?.is_acting_on_white_label || hub?.acting_hub?.is_white_label) &&
+      hub?.auth &&
+      typeof hub.auth.registration_enabled === 'boolean'
+    ) {
       return hub.auth.registration_enabled
     }
-    return Boolean(hub?.checklist?.public_subscribe) && !Boolean(hub?.checklist?.private_invite_only)
-  }, [hub])
+    return Boolean(actingChecklist.public_subscribe) && !Boolean(actingChecklist.private_invite_only)
+  }, [hub, actingChecklist])
 
   const inviteOnly = useMemo(() => {
-    if (hub?.auth && typeof hub.auth.invite_only === 'boolean') {
+    if (
+      !(hub?.hub_switcher?.is_acting_on_white_label || hub?.acting_hub?.is_white_label) &&
+      hub?.auth &&
+      typeof hub.auth.invite_only === 'boolean'
+    ) {
       return hub.auth.invite_only
     }
-    return Boolean(hub?.checklist?.private_invite_only)
-  }, [hub])
+    return Boolean(actingChecklist.private_invite_only)
+  }, [hub, actingChecklist])
+
+  /** Advisor billing is on for this hub — not a capabilities-matrix flag. */
+  const advisorBillingEnabled = useMemo(() => {
+    return Boolean(
+      actingChecklist.advisor_subscriber_billing || actingChecklist.private_invite_only
+    )
+  }, [actingChecklist])
+
+  /**
+   * Payment-card is the client-admin payer tool only (matches backend
+   * AdvisorPaymentCardController). Hub billing flags alone must not expose it
+   * to advisor / approver / user roles.
+   */
+  const canManagePaymentCard = useMemo(() => {
+    if (!user || !advisorBillingEnabled) return false
+    return HUB_ADMIN_ROLES.includes(user.role) || user.role === 'power_admin'
+  }, [user, advisorBillingEnabled])
 
   /** Staff always; remaining roles only when a dashboard capability is on. */
   const hasHubDashboardAccess = useMemo(() => {
@@ -225,6 +257,7 @@ export function HubProvider({ children }) {
         refreshHub,
         can,
         advisorBillingEnabled,
+        canManagePaymentCard,
         registrationEnabled,
         inviteOnly,
         hasHubDashboardAccess,
@@ -254,6 +287,7 @@ export function HubProvider({ children }) {
       refreshHub,
       can,
       advisorBillingEnabled,
+      canManagePaymentCard,
       registrationEnabled,
       inviteOnly,
       hasHubDashboardAccess,

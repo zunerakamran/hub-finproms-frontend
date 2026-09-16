@@ -95,9 +95,9 @@ const sections = [
 ]
 
 export default function AdminDashboard() {
-  const { can, advisorBillingEnabled } = useHub()
+  const { can, canManagePaymentCard } = useHub()
   const visible = sections.filter((section) => {
-    if (section.billingOnly) return advisorBillingEnabled
+    if (section.billingOnly) return canManagePaymentCard
     if (Array.isArray(section.anyOf) && section.anyOf.length > 0) {
       return section.anyOf.some((flag) => can(flag))
     }

@@ -45,9 +45,9 @@ const links = [
 ]
 
 export default function AdminSubnav() {
-  const { can, advisorBillingEnabled } = useHub()
+  const { can, canManagePaymentCard } = useHub()
   const visible = links.filter((link) => {
-    if (link.billingOnly) return advisorBillingEnabled
+    if (link.billingOnly) return canManagePaymentCard
     if (Array.isArray(link.anyOf) && link.anyOf.length > 0) {
       return link.anyOf.some((flag) => can(flag))
     }

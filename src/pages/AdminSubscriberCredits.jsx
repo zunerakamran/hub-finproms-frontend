@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
 export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading, hub: currentHub, refreshHub } = useHub()
-  const [searchParams] = useSearchParams()
+  const {
+    can,
+    loading: hubLoading,
+    actingHub,
+    isActingOnWhiteLabel,
+    inviteOnly,
+    refreshHub,
+  } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
-  // Power Admin page can manage any hub (capability checked per hub on API).
   const enabled = asPowerAdmin || can('dashboard_manage_subscriber_credits')
   const eyebrow = 'Advisors & billing'
   const apiOpts = { asPowerAdmin }
+  const privateTarget = isActingOnWhiteLabel ? true : inviteOnly
+  const targetName = isActingOnWhiteLabel
+    ? actingHub?.name || 'selected white-label hub'
+    : 'this hub'
 
-  const [hubs, setHubs] = useState([])
-  const [hubId, setHubId] = useState('')
   const [unlimited, setUnlimited] = useState(true)
   const [credits, setCredits] = useState('')
   const [hubMeta, setHubMeta] = useState(null)
@@ -31,28 +37,17 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
     setCredits(sc.unlimited ? '' : String(sc.credits ?? 0))
     setHubMeta(data.hub || null)
     setNote(data.note || '')
-    if (data.hub?.id) setHubId(String(data.hub.id))
   }
 
-  const loadHubs = async () => {
-    if (!asPowerAdmin) return
-    try {
-      const data = await api.powerAdminHubs()
-      setHubs(data.hubs || [])
-    } catch {
-      // ignore — still load current hub credits
-    }
-  }
-
-  const load = async (selectedHubId = hubId) => {
+  const load = async () => {
     setLoading(true)
     setError('')
     try {
-      const params = asPowerAdmin && selectedHubId ? { hub_id: Number(selectedHubId) } : {}
-      const data = await api.subscriberCredits(params, apiOpts)
+      const data = await api.subscriberCredits({}, apiOpts)
       applyConfig(data)
     } catch (err) {
       setError(err.message)
+      setHubMeta(null)
     } finally {
       setLoading(false)
     }
@@ -64,24 +59,9 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
       setLoading(false)
       return
     }
-    ;(async () => {
-      await loadHubs()
-      const fromQuery = searchParams.get('hub')
-      const initialId =
-        (asPowerAdmin && fromQuery) ||
-        (asPowerAdmin && currentHub?.id ? String(currentHub.id) : '') ||
-        ''
-      setHubId(initialId)
-      await load(initialId)
-    })()
+    load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hubLoading, enabled, asPowerAdmin, currentHub?.id])
-
-  const onHubChange = async (id) => {
-    setHubId(id)
-    setMessage('')
-    await load(id)
-  }
+  }, [hubLoading, enabled, asPowerAdmin, actingHub?.id, isActingOnWhiteLabel])
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -97,9 +77,6 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
         setError('Enter a valid number of credits per subscriber.')
         setSaving(false)
         return
-      }
-      if (asPowerAdmin && hubId) {
-        payload.hub_id = Number(hubId)
       }
       const data = await api.updateSubscriberCredits(payload, apiOpts)
       applyConfig(data)
@@ -136,9 +113,10 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
           <p className="eyebrow">{eyebrow}</p>
           <h1>Subscriber credits</h1>
           <p className="muted">
-            Set unlimited or a fixed credit allotment for private-hub Excel subscribers. New imports
-            get the allotment immediately; existing subscribers get it on the next monthly
-            autorenew.
+            Set unlimited or a fixed credit allotment for private-hub Excel subscribers on{' '}
+            <strong>{targetName}</strong>. Use <strong>Control hub</strong> to switch white-label
+            hubs. New imports get the allotment immediately; existing subscribers get it on the next
+            monthly autorenew.
           </p>
         </div>
       </div>
@@ -146,29 +124,24 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
-      {asPowerAdmin && hubs.length > 0 && (
-        <label className="hub-select-label">
-          Hub
-          <select value={hubId} onChange={(e) => onHubChange(e.target.value)} disabled={loading}>
-            {hubs.map((h) => (
-              <option key={h.id} value={h.id}>
-                {h.name} ({h.type === 'shared' ? 'shared' : 'white-label'})
-              </option>
-            ))}
-          </select>
-        </label>
+      {!privateTarget && !loading && (
+        <div className="empty-state">
+          <h2>Private hubs only</h2>
+          <p className="muted">
+            Subscriber credits are not set on the shared / public hub. Select a private white-label
+            hub in the Control hub switcher.
+          </p>
+        </div>
       )}
 
       {loading ? (
         <div className="state">Loading...</div>
-      ) : (
+      ) : privateTarget ? (
         <form className="admin-form" onSubmit={onSubmit}>
           {hubMeta && (
             <p className="muted">
               Editing <strong>{hubMeta.name}</strong>
-              {hubMeta.private_invite_only
-                ? ' (private invite-only)'
-                : ' (public mode — allotment applies when private)'}
+              {hubMeta.private_invite_only ? ' (private invite-only)' : ''}
             </p>
           )}
           {note && <p className="muted">{note}</p>}
@@ -203,7 +176,7 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
             </button>
           </div>
         </form>
-      )}
+      ) : null}
     </section>
   )
 }

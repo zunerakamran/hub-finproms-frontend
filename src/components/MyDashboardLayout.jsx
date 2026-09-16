@@ -11,7 +11,7 @@ import {
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, hub, branding, advisorBillingEnabled, isActingOnWhiteLabel, actingHub } = useHub()
+  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, actingHub } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
@@ -25,9 +25,10 @@ export default function MyDashboardLayout() {
         can,
         canPower,
         advisorBillingEnabled,
+        canManagePaymentCard,
         isActingOnWhiteLabel,
       }),
-    [advisorBillingEnabled, can, canPower, isActingOnWhiteLabel]
+    [advisorBillingEnabled, canManagePaymentCard, can, canPower, isActingOnWhiteLabel]
   )
 
   const activeLink = useMemo(

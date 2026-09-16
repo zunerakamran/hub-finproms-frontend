@@ -1,18 +1,26 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { copyFileSync, existsSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-// Vite skips dotfiles in /public; copy .htaccess into dist for cPanel/Apache deploys.
+// Vite skips dotfiles in /public; copy .htaccess into the build outDir for cPanel/Apache deploys.
 function copyHtaccess() {
+  let outDir = 'dist'
+
   return {
     name: 'copy-htaccess',
+    configResolved(config) {
+      outDir = config.build.outDir
+    },
     closeBundle() {
       const src = resolve(__dirname, 'public/.htaccess')
-      const dest = resolve(__dirname, 'dist/.htaccess')
-      if (existsSync(src)) {
-        copyFileSync(src, dest)
+      if (!existsSync(src)) return
+
+      const destDir = resolve(__dirname, outDir)
+      if (!existsSync(destDir)) {
+        mkdirSync(destDir, { recursive: true })
       }
+      copyFileSync(src, resolve(destDir, '.htaccess'))
     },
   }
 }

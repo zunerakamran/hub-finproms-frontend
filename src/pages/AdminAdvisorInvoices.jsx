@@ -17,7 +17,7 @@ function formatMoney(amount, currency = 'gbp') {
 
 export default function AdminAdvisorInvoices({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, actingHub } = useHub()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -32,12 +32,13 @@ export default function AdminAdvisorInvoices({ shell = 'client-admin' }) {
       return
     }
     setLoading(true)
+    setError('')
     api
       .advisorInvoices({}, { asPowerAdmin })
       .then((data) => setItems(data.data || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [hubLoading, enabled, asPowerAdmin])
+  }, [hubLoading, enabled, asPowerAdmin, actingHub?.id])
 
   if (!hubLoading && !enabled) {
     return (

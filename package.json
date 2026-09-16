@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:shared": "vite build --mode production --outDir dist-shared",
+    "build:myhub": "vite build --mode myhub --outDir dist-myhub",
     "lint": "eslint .",
     "preview": "vite preview"
   },

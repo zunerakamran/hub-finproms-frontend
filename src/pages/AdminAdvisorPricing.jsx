@@ -24,7 +24,7 @@ const emptyForm = {
 
 export default function AdminAdvisorPricing({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, actingHub } = useHub()
   const [tiers, setTiers] = useState([])
   const [quote, setQuote] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -61,7 +61,7 @@ export default function AdminAdvisorPricing({ shell = 'client-admin' }) {
     }
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hubLoading, enabled, asPowerAdmin])
+  }, [hubLoading, enabled, asPowerAdmin, actingHub?.id])
 
   const startEdit = (tier) => {
     setEditingId(tier.id)

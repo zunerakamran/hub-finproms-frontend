@@ -25,7 +25,7 @@ const GROUP_ORDER = ['account', 'content', 'hub', 'advisors', 'smc', 'gc', 'wc',
 
 export default function MyDashboard() {
   const { user, canPower } = useAuth()
-  const { can, branding, hub, advisorBillingEnabled, isActingOnWhiteLabel } = useHub()
+  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel } = useHub()
   const [data, setData] = useState(null)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
@@ -53,7 +53,13 @@ export default function MyDashboard() {
 
     const cards = DASHBOARD_LINKS.filter(isDashboardHomeCard)
       .filter((link) =>
-        isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled, isActingOnWhiteLabel })
+        isDashboardLinkVisible(link, {
+          can,
+          canPower,
+          advisorBillingEnabled,
+          canManagePaymentCard,
+          isActingOnWhiteLabel,
+        })
       )
       .map((link) => {
         let description = link.description || ''
@@ -97,7 +103,7 @@ export default function MyDashboard() {
       label: DASHBOARD_GROUPS[key] || key,
       cards: cards.filter((c) => c.group === key),
     })).filter((g) => g.cards.length > 0)
-  }, [advisorBillingEnabled, can, canPower, data, isActingOnWhiteLabel])
+  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
 

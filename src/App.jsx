@@ -216,8 +216,22 @@ export default function App() {
                     </HubCapabilityRoute>
                   }
                 />
-                <Route path="payment-card" element={<AdminPaymentCard />} />
-                <Route path="payment-card/success" element={<AdminPaymentCardSuccess />} />
+                <Route
+                  path="payment-card"
+                  element={
+                    <HubCapabilityRoute billingPayer>
+                      <AdminPaymentCard />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="payment-card/success"
+                  element={
+                    <HubCapabilityRoute billingPayer>
+                      <AdminPaymentCardSuccess />
+                    </HubCapabilityRoute>
+                  }
+                />
                 <Route
                   path="advisor-invoices"
                   element={

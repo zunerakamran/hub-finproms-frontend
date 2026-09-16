@@ -15,7 +15,7 @@ function formatCard(card) {
 }
 
 export default function AdminPaymentCard() {
-  const { advisorBillingEnabled, loading: hubLoading } = useHub()
+  const { canManagePaymentCard, loading: hubLoading } = useHub()
   const [params] = useSearchParams()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,7 +39,7 @@ export default function AdminPaymentCard() {
 
   useEffect(() => {
     if (hubLoading) return
-    if (!advisorBillingEnabled) {
+    if (!canManagePaymentCard) {
       setLoading(false)
       return
     }
@@ -48,7 +48,7 @@ export default function AdminPaymentCard() {
       setMessage('Card setup canceled. No changes were saved.')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hubLoading, advisorBillingEnabled])
+  }, [hubLoading, canManagePaymentCard])
 
   const onSetup = async () => {
     setSaving(true)
@@ -68,7 +68,7 @@ export default function AdminPaymentCard() {
     }
   }
 
-  if (!hubLoading && !advisorBillingEnabled) {
+  if (!hubLoading && !canManagePaymentCard) {
     return (
       <section>
         <div className="page-head">
@@ -76,7 +76,7 @@ export default function AdminPaymentCard() {
             <p className="eyebrow">Advisors & billing</p>
             <h1>Payment card</h1>
             <p className="muted">
-              Advisor billing is not enabled for this hub, so a payment card is not required.
+              Only the client admin can manage the payment card for advisor billing.
             </p>
           </div>
         </div>

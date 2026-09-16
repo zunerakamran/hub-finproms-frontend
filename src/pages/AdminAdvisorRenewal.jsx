@@ -5,7 +5,7 @@ import { useHub } from '../context/HubContext'
 
 export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, actingHub } = useHub()
   const [renewDay, setRenewDay] = useState(1)
   const [nextRenewal, setNextRenewal] = useState('')
   const [loading, setLoading] = useState(true)
@@ -40,7 +40,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
     }
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hubLoading, enabled, asPowerAdmin])
+  }, [hubLoading, enabled, asPowerAdmin, actingHub?.id])
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -76,6 +76,10 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
     )
   }
 
+  const billingDisabled =
+    error &&
+    /private invite-only|advisor billing|auto-renew settings apply/i.test(error)
+
   return (
     <section>
       <div className="page-head">
@@ -89,12 +93,18 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
         </div>
       </div>
 
-      {error && <div className="alert">{error}</div>}
+      {error && !billingDisabled && <div className="alert">{error}</div>}
+      {billingDisabled && (
+        <p className="muted">
+          Select a private white-label hub with advisor billing enabled in Control hub to set the
+          renew day.
+        </p>
+      )}
       {message && <div className="alert success">{message}</div>}
 
       {loading ? (
         <div className="state">Loading...</div>
-      ) : (
+      ) : billingDisabled ? null : (
         <form className="admin-form" onSubmit={onSubmit}>
           <label>
             Auto-renew day (1–28)

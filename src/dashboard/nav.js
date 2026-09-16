@@ -495,9 +495,13 @@ export const DASHBOARD_LINKS = [
   },
 ]
 
-export function isDashboardLinkVisible(link, { can, canPower, advisorBillingEnabled, isActingOnWhiteLabel }) {
+export function isDashboardLinkVisible(
+  link,
+  { can, canPower, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel }
+) {
   if (link.sharedOnly && isActingOnWhiteLabel) return false
-  if (link.billingOnly) return Boolean(advisorBillingEnabled)
+  // Card-on-file is hub-admin / power-admin only — not every role when billing is on.
+  if (link.billingOnly) return Boolean(canManagePaymentCard ?? advisorBillingEnabled)
   if (Array.isArray(link.anyOf) && link.anyOf.length > 0) {
     return link.anyOf.some((flag) => can(flag))
   }
@@ -518,7 +522,7 @@ export function isDashboardLinkVisible(link, { can, canPower, advisorBillingEnab
 export function getVisibleDashboardNav(ctx) {
   const filtered = DASHBOARD_LINKS.filter((link) => {
     if (link.kind === 'section' && link.label === 'Advisors & billing') {
-      return isDashboardLinkVisible(link, ctx) || Boolean(ctx.advisorBillingEnabled)
+      return isDashboardLinkVisible(link, ctx) || Boolean(ctx.canManagePaymentCard)
     }
     return isDashboardLinkVisible(link, ctx)
   })

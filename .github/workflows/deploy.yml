@@ -1,0 +1,58 @@
+# .github/workflows/deploy.yml
+name: Build & Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install & Build (shared + myhub)
+        run: |
+          npm ci
+          npm run build:shared
+          npm run build:myhub
+
+      # Server 1 = sharedhub.fin-proms.com (dist-shared)
+      - name: Deploy shared hub via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER_1 }}
+          username: ${{ secrets.FTP_USER_1 }}
+          password: ${{ secrets.FTP_PASS_1 }}
+          local-dir: ./dist-shared/
+          server-dir: /public_html/
+          # Keep Laravel backend next to the frontend (Option B)
+          exclude: |
+            **/api/**
+            **/.env
+            **/.env.*
+            **/storage/**
+            **/vendor/**
+
+      # Server 2 = myhub.fin-proms.com (dist-myhub)
+      - name: Deploy white-label hub via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER_2 }}
+          username: ${{ secrets.FTP_USER_2 }}
+          password: ${{ secrets.FTP_PASS_2 }}
+          local-dir: ./dist-myhub/
+          server-dir: /public_html/
+          exclude: |
+            **/api/**
+            **/.env
+            **/.env.*
+            **/storage/**
+            **/vendor/**

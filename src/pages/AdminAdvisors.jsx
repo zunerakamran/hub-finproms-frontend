@@ -17,7 +17,7 @@ function formatMoney(amount, currency = 'gbp') {
 
 export default function AdminAdvisors({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading, advisorBillingEnabled } = useHub()
+  const { can, loading: hubLoading, advisorBillingEnabled, canManagePaymentCard, actingHub } = useHub()
   const [advisors, setAdvisors] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -62,7 +62,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     if (hubLoading) return
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hubLoading, enabled, asPowerAdmin])
+  }, [hubLoading, enabled, asPowerAdmin, actingHub?.id])
 
   const onDiscontinue = async (advisor) => {
     const ok = window.confirm(
@@ -213,7 +213,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           </p>
         </div>
         <div className="actions">
-          {billingEnabled && !asPowerAdmin && canImport && (
+          {canManagePaymentCard && !asPowerAdmin && canImport && (
             <Link className="btn ghost" to="/my-dashboard/payment-card">
               Payment card
             </Link>

@@ -28,6 +28,7 @@ export default function BankTransferPending() {
     amount,
     message,
     auto_confirmed: autoConfirmed,
+    item_title: itemTitle,
   } = state
 
   return (
@@ -37,7 +38,7 @@ export default function BankTransferPending() {
       <p className={autoConfirmed ? 'muted' : 'muted'}>
         {message ||
           (autoConfirmed
-            ? 'Test bank transfer completed. Credits have been added.'
+            ? 'Test bank transfer completed.'
             : 'Use the dummy details below for testing.')}
       </p>
 
@@ -45,6 +46,12 @@ export default function BankTransferPending() {
         <p>
           Plan: <strong>{subscription.plan?.name}</strong> · Credits added:{' '}
           <strong>{subscription.credits_granted}</strong>
+        </p>
+      )}
+
+      {itemTitle && (
+        <p>
+          Item: <strong>{itemTitle}</strong>
         </p>
       )}
 
@@ -58,7 +65,7 @@ export default function BankTransferPending() {
       <div className="bank-details">
         <div className="bank-row">
           <span>Amount</span>
-          <strong>${Number(amount ?? subscription?.amount_paid).toFixed(2)}</strong>
+          <strong>£{Number(amount ?? subscription?.amount_paid).toFixed(2)}</strong>
         </div>
         <div className="bank-row highlight">
           <span>Payment reference</span>
@@ -70,6 +77,12 @@ export default function BankTransferPending() {
             <strong>
               {subscription.plan.name} ({subscription.credits_granted} credits)
             </strong>
+          </div>
+        )}
+        {itemTitle && (
+          <div className="bank-row">
+            <span>Purchase</span>
+            <strong>{itemTitle}</strong>
           </div>
         )}
         {bank?.account_name && (
@@ -115,6 +128,9 @@ export default function BankTransferPending() {
       <div className="actions">
         <Link to="/" className="btn primary">
           Browse posts
+        </Link>
+        <Link to="/bundles" className="btn ghost">
+          Browse bundles
         </Link>
         {invoice ? (
           <Link to={`/my-dashboard/invoices/${invoice.id}`} className="btn ghost">

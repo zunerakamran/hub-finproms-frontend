@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
 export default function BundleDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { user, setUser, refreshUser } = useAuth()
   const { can } = useHub()
   const [bundle, setBundle] = useState(null)
+  const [paymentMethods, setPaymentMethods] = useState([])
+  const [oneOffPurchase, setOneOffPurchase] = useState(false)
   const [loading, setLoading] = useState(true)
   const [buying, setBuying] = useState(false)
+  const [checkoutKey, setCheckoutKey] = useState(null)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -20,6 +24,8 @@ export default function BundleDetail() {
     try {
       const data = await api.bundle(id)
       setBundle(data.bundle)
+      setPaymentMethods(data.payment_methods || [])
+      setOneOffPurchase(Boolean(data.one_off_purchase))
     } catch (err) {
       setError(err.message)
       setBundle(null)
@@ -33,7 +39,7 @@ export default function BundleDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user?.id, user?.credits])
 
-  const purchase = async () => {
+  const purchaseWithCredits = async () => {
     if (!user) return
     setBuying(true)
     setError('')
@@ -51,6 +57,54 @@ export default function BundleDetail() {
     }
   }
 
+  const purchaseWithPayment = async (paymentMethod) => {
+    if (!user) {
+      navigate('/login', { state: { from: { pathname: `/bundles/${id}` } } })
+      return
+    }
+    setCheckoutKey(paymentMethod)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.purchaseBundle(id, paymentMethod)
+      if (data.payment_method === 'stripe' && data.checkout_url) {
+        window.location.href = data.checkout_url
+        return
+      }
+      if (data.payment_method === 'bank_transfer') {
+        if (data.auto_confirmed) {
+          if (data.bundle) setBundle(data.bundle)
+          if (data.user) setUser(data.user)
+          setMessage(data.message || 'Bundle purchased.')
+          await refreshUser()
+          return
+        }
+        navigate('/subscriptions/bank-transfer', {
+          state: {
+            payment_reference: data.payment_reference,
+            amount: data.amount,
+            bank_details: data.bank_details,
+            message: data.message,
+            auto_confirmed: false,
+            item_title: data.item_title || bundle?.title,
+            invoice: data.invoice,
+            user: data.user,
+          },
+        })
+        return
+      }
+      if (data.bundle) setBundle(data.bundle)
+      if (data.user) setUser(data.user)
+      setMessage(data.message || 'Bundle purchased.')
+      await refreshUser()
+    } catch (err) {
+      setError(err.message)
+      setCheckoutKey(null)
+    } finally {
+      setCheckoutKey(null)
+    }
+  }
+
   if (loading) return <div className="state">Loading...</div>
   if (!bundle) {
     return (
@@ -65,6 +119,19 @@ export default function BundleDetail() {
 
   const canBuy =
     can('member_purchase_content') && user && !bundle.is_purchased && bundle.is_active !== false
+  const unlimited =
+    user?.has_unlimited_credits || (can('unlimited_credits') && user?.is_advisor)
+  const hasCredits = unlimited || (user?.credits ?? 0) >= (bundle.credits_cost ?? 0)
+  const stripeMethod = paymentMethods.find((m) => m.id === 'stripe') || {
+    id: 'stripe',
+    available: false,
+  }
+  const bankMethod = paymentMethods.find((m) => m.id === 'bank_transfer') || {
+    id: 'bank_transfer',
+    available: false,
+  }
+  const showPaymentOptions =
+    canBuy && oneOffPurchase && (stripeMethod.available || bankMethod.available)
 
   return (
     <section>
@@ -74,6 +141,7 @@ export default function BundleDetail() {
           <h1>{bundle.title}</h1>
           <p className="muted">
             {bundle.posts_count ?? bundle.posts?.length ?? 0} posts · {bundle.credits_cost} credits
+            (£{bundle.credits_cost})
           </p>
         </div>
         <Link to="/bundles" className="btn ghost">
@@ -86,19 +154,65 @@ export default function BundleDetail() {
 
       {bundle.description && <p className="muted">{bundle.description}</p>}
 
-      <div className="actions" style={{ marginBottom: '1.5rem' }}>
+      <div className="actions" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {bundle.is_purchased ? (
           <span className="badge">Purchased — all posts unlocked</span>
         ) : canBuy ? (
-          <button className="btn primary" disabled={buying} onClick={purchase}>
-            {buying ? 'Purchasing...' : `Buy bundle (${bundle.credits_cost} credits)`}
-          </button>
+          <>
+            {hasCredits && (
+              <button className="btn primary" disabled={buying || checkoutKey} onClick={purchaseWithCredits}>
+                {buying ? 'Purchasing...' : `Buy with credits (${bundle.credits_cost})`}
+              </button>
+            )}
+            {showPaymentOptions && (
+              <>
+                {stripeMethod.available && (
+                  <button
+                    className="btn primary"
+                    disabled={Boolean(checkoutKey)}
+                    onClick={() => purchaseWithPayment('stripe')}
+                    title={stripeMethod.unavailable_reason || undefined}
+                  >
+                    {checkoutKey === 'stripe' ? 'Redirecting to Stripe...' : 'Pay with Stripe'}
+                  </button>
+                )}
+                {bankMethod.available && (
+                  <button
+                    className="btn ghost"
+                    disabled={Boolean(checkoutKey)}
+                    onClick={() => purchaseWithPayment('bank_transfer')}
+                  >
+                    {checkoutKey === 'bank_transfer'
+                      ? 'Completing test payment...'
+                      : 'Pay by bank transfer'}
+                  </button>
+                )}
+              </>
+            )}
+            {!hasCredits && !showPaymentOptions && (
+              <p className="muted">
+                Insufficient credits.
+                {can('member_view_plans') && (
+                  <>
+                    {' '}
+                    <Link to="/subscriptions">Get a plan</Link>
+                  </>
+                )}
+              </p>
+            )}
+          </>
         ) : !user ? (
           <Link to="/login" className="btn primary">
             Sign in to purchase
           </Link>
         ) : null}
       </div>
+
+      {canBuy && oneOffPurchase && (
+        <p className="muted" style={{ marginTop: '-0.75rem', marginBottom: '1.5rem' }}>
+          No subscription required — pay with credits or an enabled payment method (1 credit = £1).
+        </p>
+      )}
 
       <h2 className="section-title">Included posts</h2>
       <div className="admin-list">

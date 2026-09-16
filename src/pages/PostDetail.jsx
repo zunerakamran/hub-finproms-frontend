@@ -16,7 +16,10 @@ export default function PostDetail() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [buying, setBuying] = useState(false)
+  const [checkoutKey, setCheckoutKey] = useState(null)
   const [invoice, setInvoice] = useState(null)
+  const [paymentMethods, setPaymentMethods] = useState([])
+  const [oneOffPurchase, setOneOffPurchase] = useState(false)
 
   const canPurchase = can('member_purchase_content')
   const canDownload = can('member_download_content')
@@ -29,6 +32,8 @@ export default function PostDetail() {
     try {
       const data = await api.post(id)
       setPost(data.post)
+      setPaymentMethods(data.payment_methods || [])
+      setOneOffPurchase(Boolean(data.one_off_purchase))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -62,6 +67,49 @@ export default function PostDetail() {
       setError(err.message)
     } finally {
       setBuying(false)
+    }
+  }
+
+  const buyWithPayment = async (paymentMethod) => {
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
+    }
+    setCheckoutKey(paymentMethod)
+    setError('')
+    setMessage('')
+    setInvoice(null)
+    try {
+      const data = await api.purchasePost(id, paymentMethod)
+      if (data.payment_method === 'stripe' && data.checkout_url) {
+        window.location.href = data.checkout_url
+        return
+      }
+      if (data.payment_method === 'bank_transfer' && !data.auto_confirmed) {
+        navigate('/subscriptions/bank-transfer', {
+          state: {
+            payment_reference: data.payment_reference,
+            amount: data.amount,
+            bank_details: data.bank_details,
+            message: data.message,
+            auto_confirmed: false,
+            item_title: data.item_title || post?.title,
+            invoice: data.invoice,
+            user: data.user,
+          },
+        })
+        return
+      }
+      if (data.post) setPost(data.post)
+      if (data.user) setUser(data.user)
+      setMessage(data.message || 'Post purchased.')
+      setInvoice(data.invoice || null)
+      await refreshUser()
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCheckoutKey(null)
     }
   }
 
@@ -232,8 +280,8 @@ export default function PostDetail() {
         ) : canPurchase ? (
           <div className="unlock-box">
             <p>
-              Buy this post for {post.credits_cost} credits (£{post.credits_cost}). No subscription
-              required.
+              Buy this post for {post.credits_cost} credits (£{post.credits_cost}).
+              {oneOffPurchase ? ' No subscription required.' : ''}
             </p>
             <p className="muted">
               Your balance:{' '}
@@ -244,11 +292,33 @@ export default function PostDetail() {
                 className="btn primary"
                 onClick={buy}
                 disabled={
-                  buying || (!unlimited && (user?.credits ?? 0) < post.credits_cost)
+                  buying ||
+                  Boolean(checkoutKey) ||
+                  (!unlimited && (user?.credits ?? 0) < post.credits_cost)
                 }
               >
                 {buying ? 'Purchasing...' : 'Buy with credits'}
               </button>
+              {oneOffPurchase &&
+                (paymentMethods.find((m) => m.id === 'stripe')?.available) && (
+                  <button
+                    className="btn primary"
+                    onClick={() => buyWithPayment('stripe')}
+                    disabled={Boolean(checkoutKey)}
+                  >
+                    {checkoutKey === 'stripe' ? 'Redirecting...' : 'Pay with Stripe'}
+                  </button>
+                )}
+              {oneOffPurchase &&
+                (paymentMethods.find((m) => m.id === 'bank_transfer')?.available) && (
+                  <button
+                    className="btn ghost"
+                    onClick={() => buyWithPayment('bank_transfer')}
+                    disabled={Boolean(checkoutKey)}
+                  >
+                    {checkoutKey === 'bank_transfer' ? 'Processing...' : 'Pay by bank transfer'}
+                  </button>
+                )}
               {can('member_view_plans') && (
                 <Link to="/subscriptions" className="btn ghost">
                   Get more credits

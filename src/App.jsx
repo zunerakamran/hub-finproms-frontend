@@ -27,6 +27,7 @@ import AdvisorBillingSuccess from './pages/AdvisorBillingSuccess'
 import BankTransferPending from './pages/BankTransferPending'
 import BundleDetail from './pages/BundleDetail'
 import Bundles from './pages/Bundles'
+import ContentPurchaseSuccess from './pages/ContentPurchaseSuccess'
 import SocialMediaComplianceMyRequests from './pages/SocialMediaComplianceMyRequests'
 import SocialMediaComplianceQueue from './pages/SocialMediaComplianceQueue'
 import SocialMediaComplianceReports from './pages/SocialMediaComplianceReports'
@@ -106,6 +107,14 @@ export default function App() {
               <Route path="subscriptions" element={<Subscriptions />} />
               <Route path="subscriptions/success" element={<SubscriptionSuccess />} />
               <Route path="subscriptions/bank-transfer" element={<BankTransferPending />} />
+              <Route
+                path="purchases/success"
+                element={
+                  <ProtectedRoute>
+                    <ContentPurchaseSuccess />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="subscriptions/:id" element={<SubscriptionDetail />} />
             </Route>
 

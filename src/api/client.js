@@ -135,7 +135,11 @@ export const api = {
     request(`${adminBase(options)}/tags/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteTag: (id, options = {}) =>
     request(`${adminBase(options)}/tags/${id}`, { method: 'DELETE' }),
-  purchasePost: (id) => request(`/posts/${id}/purchase`, { method: 'POST' }),
+  purchasePost: (id, paymentMethod = null) =>
+    request(`/posts/${id}/purchase`, {
+      method: 'POST',
+      body: JSON.stringify(paymentMethod ? { payment_method: paymentMethod } : {}),
+    }),
   bundles: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
@@ -143,7 +147,18 @@ export const api = {
     return request(`/bundles${query ? `?${query}` : ''}`)
   },
   bundle: (id) => request(`/bundles/${id}`),
-  purchaseBundle: (id) => request(`/bundles/${id}/purchase`, { method: 'POST' }),
+  purchaseBundle: (id, paymentMethod = null) =>
+    request(`/bundles/${id}/purchase`, {
+      method: 'POST',
+      body: JSON.stringify(paymentMethod ? { payment_method: paymentMethod } : {}),
+    }),
+  confirmContentPurchase: (sessionId) =>
+    request('/content-purchases/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId }),
+    }),
+  confirmContentBankTransfer: (id) =>
+    request(`${CLIENT_ADMIN}/content-bank-transfers/${id}/confirm`, { method: 'POST' }),
   adminBundles: (params = {}, options = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')

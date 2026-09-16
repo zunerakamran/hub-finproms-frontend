@@ -25,81 +25,64 @@ jobs:
           npm run build:myhub
           echo "---- dist-shared/index.html ----"
           cat dist-shared/index.html
-          echo "---- dist-myhub/index.html ----"
-          cat dist-myhub/index.html
-          test -f dist-shared/index.html
           grep -q "BUILD_OK_V3" dist-shared/index.html
           grep -q "BUILD_OK_V3" dist-myhub/index.html
 
-      - name: Install lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
+      # CRITICAL (cPanel):
+      # The FTP account Directory must be the domain document root:
+      #   /home/<USER>/public_html
+      # NOT:
+      #   /home/<USER>/sharedhub.fin-proms.com/ftpaccount
+      #   /home/<USER>/myhub.fin-proms.com/ftpaccount
+      # Fix in cPanel → FTP Accounts → Change Directory, then re-run this workflow.
+      #
+      # server-dir is ./ because the FTP user should already land IN public_html.
+      - name: Deploy shared hub via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER_1 }}
+          username: ${{ secrets.FTP_USER_1 }}
+          password: ${{ secrets.FTP_PASS_1 }}
+          local-dir: ./dist-shared/
+          server-dir: ./
+          exclude: |
+            **/api/**
+            **/.env
+            **/.env.*
+            **/storage/**
+            **/vendor/**
 
-      # Password must NOT be embedded in the lftp script — special chars / $ break it.
-      # lftp reads LFTP_PASSWORD from the environment when open -u USER has no password.
-      - name: Deploy shared hub via lftp
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER_1 }}
-          FTP_USER: ${{ secrets.FTP_USER_1 }}
-          LFTP_PASSWORD: ${{ secrets.FTP_PASS_1 }}
-        run: |
-          set -euo pipefail
-          test -n "$FTP_SERVER"
-          test -n "$FTP_USER"
-          test -n "$LFTP_PASSWORD"
-          lftp <<EOF
-          set cmd:fail-exit yes
-          set ssl:verify-certificate no
-          set ftp:passive-mode true
-          open -u ${FTP_USER} ${FTP_SERVER}
-          echo === SHARED FTP PWD ===
-          pwd
-          echo === SHARED FTP LS ===
-          cls -1
-          mirror -R --verbose --exclude-glob api/** --exclude-glob .env --exclude-glob .env.* --exclude-glob storage/** --exclude-glob vendor/** ./dist-shared/ .
-          put ./dist-shared/index.html -o index.html
-          echo === REMOTE index.html ===
-          cat index.html
-          bye
-          EOF
-
-      - name: Deploy white-label hub via lftp
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER_2 }}
-          FTP_USER: ${{ secrets.FTP_USER_2 }}
-          LFTP_PASSWORD: ${{ secrets.FTP_PASS_2 }}
-        run: |
-          set -euo pipefail
-          test -n "$FTP_SERVER"
-          test -n "$FTP_USER"
-          test -n "$LFTP_PASSWORD"
-          lftp <<EOF
-          set cmd:fail-exit yes
-          set ssl:verify-certificate no
-          set ftp:passive-mode true
-          open -u ${FTP_USER} ${FTP_SERVER}
-          echo === MYHUB FTP PWD ===
-          pwd
-          echo === MYHUB FTP LS ===
-          cls -1
-          mirror -R --verbose --exclude-glob api/** --exclude-glob .env --exclude-glob .env.* --exclude-glob storage/** --exclude-glob vendor/** ./dist-myhub/ .
-          put ./dist-myhub/index.html -o index.html
-          echo === REMOTE index.html ===
-          cat index.html
-          bye
-          EOF
+      - name: Deploy white-label hub via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER_2 }}
+          username: ${{ secrets.FTP_USER_2 }}
+          password: ${{ secrets.FTP_PASS_2 }}
+          local-dir: ./dist-myhub/
+          server-dir: ./
+          exclude: |
+            **/api/**
+            **/.env
+            **/.env.*
+            **/storage/**
+            **/vendor/**
 
       - name: Verify live sites received this build
         run: |
           set -e
-          sleep 3
-          echo "Checking sharedhub..."
+          sleep 2
           SHARED=$(curl -fsSL -H 'Cache-Control: no-cache' "https://sharedhub.fin-proms.com/index.html?v=$GITHUB_SHA")
-          echo "$SHARED"
-          echo "$SHARED" | grep -q "BUILD_OK_V3"
+          echo "$SHARED" | head -n 15
+          if ! echo "$SHARED" | grep -q "BUILD_OK_V3"; then
+            echo "::error::sharedhub still missing BUILD_OK_V3. FTP account Directory is wrong — set it to /home/USER/public_html in cPanel (not .../sharedhub.fin-proms.com/ftpaccount)."
+            exit 1
+          fi
 
-          echo "Checking myhub..."
           MYHUB=$(curl -fsSL -H 'Cache-Control: no-cache' "https://myhub.fin-proms.com/index.html?v=$GITHUB_SHA")
-          echo "$MYHUB"
-          echo "$MYHUB" | grep -q "BUILD_OK_V3"
+          echo "$MYHUB" | head -n 15
+          if ! echo "$MYHUB" | grep -q "BUILD_OK_V3"; then
+            echo "::error::myhub still missing BUILD_OK_V3. FTP account Directory is wrong — set it to /home/USER/public_html in cPanel (not .../myhub.fin-proms.com/ftpaccount)."
+            exit 1
+          fi
 
           echo "Live sites show BUILD_OK_V3 — deploy OK"

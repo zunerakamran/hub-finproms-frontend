@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import AdminPostThumb from '../components/AdminPostThumb'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -304,19 +305,23 @@ export default function AdminPosts({ shell = 'client-admin' }) {
       </h2>
       {loading ? (
         <div className="state">Loading...</div>
+      ) : posts.length === 0 ? (
+        <div className="state">No posts yet. Create one above.</div>
       ) : (
-        <div className="admin-list">
+        <div className="admin-list admin-posts-list">
           {posts.map((post) => (
-            <div key={post.id} className="admin-row">
-              {post.cover_url || post.attachment_url ? (
-                <img className="admin-thumb" src={post.cover_url || post.attachment_url} alt="" />
-              ) : (
-                <div className="admin-thumb fallback" />
-              )}
-              <div>
+            <div key={post.id} className={`admin-row admin-post-row ${post.is_reel ? 'is-reel' : ''}`.trim()}>
+              <AdminPostThumb post={post} />
+              <div className="admin-post-row__meta">
                 <strong>{post.title}</strong>
                 <p className="muted">
-                  {post.type} · {post.category} · {post.credits_cost} credits
+                  <span className={`admin-type-chip ${post.is_reel ? 'is-reel' : ''}`.trim()}>
+                    {post.type || 'Post'}
+                  </span>
+                  {post.category ? ` · ${post.category}` : ''}
+                  {' · '}
+                  {post.credits_cost} credits
+                  {!post.is_active ? ' · inactive' : ''}
                 </p>
               </div>
               <div className="actions">

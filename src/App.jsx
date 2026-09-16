@@ -163,7 +163,9 @@ export default function App() {
                 <Route
                   path="invoices/:id"
                   element={
-                    <HubCapabilityRoute capability="general_show_invoices">
+                    <HubCapabilityRoute
+                      anyOf={['general_show_invoices', 'dashboard_view_advisor_invoices']}
+                    >
                       <InvoiceDetail />
                     </HubCapabilityRoute>
                   }

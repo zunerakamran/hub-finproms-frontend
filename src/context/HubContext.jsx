@@ -216,13 +216,14 @@ export function HubProvider({ children }) {
   }, [actingChecklist])
 
   /**
-   * Payment-card is the client-admin payer tool only (matches backend
-   * AdvisorPaymentCardController). Hub billing flags alone must not expose it
-   * to advisor / approver / user roles.
+   * Payment-card is the client-admin payer tool only on private hubs
+   * (matches backend AdvisorPaymentCardController). Power / FinProms staff
+   * complete import checkout against the client admin card — they do not
+   * manage Payment card settings.
    */
   const canManagePaymentCard = useMemo(() => {
     if (!user || !advisorBillingEnabled) return false
-    return HUB_ADMIN_ROLES.includes(user.role) || user.role === 'power_admin'
+    return user.role === 'client_admin' || user.role === 'admin'
   }, [user, advisorBillingEnabled])
 
   /** Staff always; remaining roles only when a dashboard capability is on. */

@@ -500,8 +500,8 @@ export function isDashboardLinkVisible(
   { can, canPower, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel }
 ) {
   if (link.sharedOnly && isActingOnWhiteLabel) return false
-  // Card-on-file is hub-admin / power-admin only — not every role when billing is on.
-  if (link.billingOnly) return Boolean(canManagePaymentCard ?? advisorBillingEnabled)
+  // Payment card is client_admin only when advisor billing is on.
+  if (link.billingOnly) return Boolean(canManagePaymentCard)
   if (Array.isArray(link.anyOf) && link.anyOf.length > 0) {
     return link.anyOf.some((flag) => can(flag))
   }

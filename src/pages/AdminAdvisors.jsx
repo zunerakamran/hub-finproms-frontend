@@ -261,6 +261,10 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       {canImport && showPaymentPanel && (
         <div className="import-result">
           <h2>Payment required</h2>
+          <p className="muted">
+            Advisors from this import are already created. Choose a payment method below to
+            create the invoice and complete billing for this batch.
+          </p>
           {quote?.payer && (
             <p className="muted">
               Payer (client admin): <strong>{quote.payer.name}</strong> ({quote.payer.email})

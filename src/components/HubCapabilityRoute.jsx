@@ -5,7 +5,7 @@ import { useHub } from '../context/HubContext'
 /**
  * Gate a client-admin / power-admin page by hub dashboard capability.
  * Pass `capability` for a single flag, or `anyOf` for OR logic.
- * Pass `billingPayer` to require payment-card access (hub admin / power admin
+ * Pass `billingPayer` to require payment-card access (client_admin only
  * when advisor billing is on).
  */
 export default function HubCapabilityRoute({

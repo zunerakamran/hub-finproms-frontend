@@ -13,6 +13,21 @@ function formatMoney(amount, currency = 'gbp') {
   }
 }
 
+function typeLabel(type) {
+  switch (type) {
+    case 'subscription':
+      return 'Subscription'
+    case 'post_purchase':
+      return 'Post purchase'
+    case 'bundle_purchase':
+      return 'Bundle purchase'
+    case 'advisor_billing':
+      return 'Advisor billing'
+    default:
+      return type || 'Invoice'
+  }
+}
+
 export default function InvoiceDetail() {
   const { id } = useParams()
   const [invoice, setInvoice] = useState(null)
@@ -32,11 +47,14 @@ export default function InvoiceDetail() {
   if (!invoice) return null
 
   const lines = invoice.line_items || []
+  const isAdvisorBilling = invoice.type === 'advisor_billing'
+  const backTo = isAdvisorBilling ? '/my-dashboard/advisor-invoices' : '/my-dashboard/invoices'
+  const backLabel = isAdvisorBilling ? '← Back to advisor invoices' : '← Back to invoices'
 
   return (
     <section className="invoice-detail">
-      <Link to="/my-dashboard/invoices" className="back">
-        ← Back to invoices
+      <Link to={backTo} className="back">
+        {backLabel}
       </Link>
 
       <div className="invoice-sheet">
@@ -61,12 +79,9 @@ export default function InvoiceDetail() {
           <div>
             <h2>Summary</h2>
             <p>
-              Type:{' '}
-              <strong>
-                {invoice.type === 'subscription' ? 'Subscription' : 'Post purchase'}
-              </strong>
+              Type: <strong>{typeLabel(invoice.type)}</strong>
             </p>
-            {invoice.credits != null && (
+            {invoice.credits != null && invoice.type !== 'advisor_billing' && (
               <p>
                 Credits: <strong>{invoice.credits}</strong>
               </p>

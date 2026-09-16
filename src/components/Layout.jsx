@@ -83,6 +83,9 @@ export default function Layout() {
         <div className="site-footer__inner">
           <span>{brandName}</span>
           <span className="muted">Compliant content, ready to publish</span>
+          <span className="muted" style={{ fontWeight: 600 }}>
+            Build check · 2026-09-16 · v-pay-ui-1
+          </span>
         </div>
       </footer>
     </div>

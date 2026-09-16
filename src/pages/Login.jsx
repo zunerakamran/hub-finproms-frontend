@@ -59,20 +59,6 @@ export default function Login() {
           <div>
             <p className="eyebrow">{brandName}</p>
             <h1>Sign in</h1>
-            <p
-              style={{
-                margin: '0.5rem 0 0',
-                padding: '0.35rem 0.6rem',
-                background: '#042326',
-                color: '#fff',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                borderRadius: '6px',
-                display: 'inline-block',
-              }}
-            >
-              BUILD_OK_V3
-            </p>
           </div>
         </div>
         <p className="muted">

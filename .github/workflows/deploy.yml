@@ -23,10 +23,6 @@ jobs:
           npm ci
           npm run build:shared
           npm run build:myhub
-          echo "---- dist-shared/index.html ----"
-          cat dist-shared/index.html
-          grep -q "BUILD_OK_V3" dist-shared/index.html
-          grep -q "BUILD_OK_V3" dist-myhub/index.html
 
       # CRITICAL (cPanel):
       # The FTP account Directory must be the domain document root:
@@ -66,23 +62,3 @@ jobs:
             **/.env.*
             **/storage/**
             **/vendor/**
-
-      - name: Verify live sites received this build
-        run: |
-          set -e
-          sleep 2
-          SHARED=$(curl -fsSL -H 'Cache-Control: no-cache' "https://sharedhub.fin-proms.com/index.html?v=$GITHUB_SHA")
-          echo "$SHARED" | head -n 15
-          if ! echo "$SHARED" | grep -q "BUILD_OK_V3"; then
-            echo "::error::sharedhub still missing BUILD_OK_V3. FTP account Directory is wrong — set it to /home/USER/public_html in cPanel (not .../sharedhub.fin-proms.com/ftpaccount)."
-            exit 1
-          fi
-
-          MYHUB=$(curl -fsSL -H 'Cache-Control: no-cache' "https://myhub.fin-proms.com/index.html?v=$GITHUB_SHA")
-          echo "$MYHUB" | head -n 15
-          if ! echo "$MYHUB" | grep -q "BUILD_OK_V3"; then
-            echo "::error::myhub still missing BUILD_OK_V3. FTP account Directory is wrong — set it to /home/USER/public_html in cPanel (not .../myhub.fin-proms.com/ftpaccount)."
-            exit 1
-          fi
-
-          echo "Live sites show BUILD_OK_V3 — deploy OK"

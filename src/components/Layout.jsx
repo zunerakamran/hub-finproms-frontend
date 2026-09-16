@@ -26,19 +26,6 @@ export default function Layout() {
               </span>
             )}
             <span className="site-brand__text">{brandName}</span>
-            <span
-              style={{
-                marginLeft: '0.5rem',
-                padding: '0.15rem 0.45rem',
-                background: '#042326',
-                color: '#fff',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                borderRadius: '4px',
-              }}
-            >
-              BUILD_OK_V3
-            </span>
           </NavLink>
 
           <nav className="site-nav" aria-label="Main">
@@ -96,9 +83,6 @@ export default function Layout() {
         <div className="site-footer__inner">
           <span>{brandName}</span>
           <span className="muted">Compliant content, ready to publish</span>
-          <span className="muted" style={{ fontWeight: 600 }}>
-            Build check · 2026-09-16 · v-pay-ui-1
-          </span>
         </div>
       </footer>
     </div>

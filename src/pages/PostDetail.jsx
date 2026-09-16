@@ -25,6 +25,19 @@ export default function PostDetail() {
   const canDownload = can('member_download_content')
   const unlimited =
     user?.has_unlimited_credits || (can('unlimited_credits') && user?.is_advisor)
+  const oneOffEnabled = oneOffPurchase || can('one_off_purchase')
+  const stripeMethod = paymentMethods.find((m) => m.id === 'stripe') || {
+    id: 'stripe',
+    label: 'Card (Stripe)',
+    available: false,
+    unavailable_reason: 'Stripe is not configured yet.',
+  }
+  const bankMethod = paymentMethods.find((m) => m.id === 'bank_transfer') || {
+    id: 'bank_transfer',
+    label: 'Bank transfer',
+    available: false,
+    unavailable_reason: 'Bank transfer is disabled by Power Admin.',
+  }
 
   const load = async () => {
     setLoading(true)
@@ -33,7 +46,11 @@ export default function PostDetail() {
       const data = await api.post(id)
       setPost(data.post)
       setPaymentMethods(data.payment_methods || [])
-      setOneOffPurchase(Boolean(data.one_off_purchase))
+      setOneOffPurchase(
+        data.one_off_purchase !== undefined
+          ? Boolean(data.one_off_purchase)
+          : can('one_off_purchase')
+      )
     } catch (err) {
       setError(err.message)
     } finally {
@@ -281,7 +298,7 @@ export default function PostDetail() {
           <div className="unlock-box">
             <p>
               Buy this post for {post.credits_cost} credits (£{post.credits_cost}).
-              {oneOffPurchase ? ' No subscription required.' : ''}
+              {oneOffEnabled ? ' No subscription required.' : ''}
             </p>
             <p className="muted">
               Your balance:{' '}
@@ -299,32 +316,47 @@ export default function PostDetail() {
               >
                 {buying ? 'Purchasing...' : 'Buy with credits'}
               </button>
-              {oneOffPurchase &&
-                (paymentMethods.find((m) => m.id === 'stripe')?.available) && (
-                  <button
-                    className="btn primary"
-                    onClick={() => buyWithPayment('stripe')}
-                    disabled={Boolean(checkoutKey)}
-                  >
-                    {checkoutKey === 'stripe' ? 'Redirecting...' : 'Pay with Stripe'}
-                  </button>
-                )}
-              {oneOffPurchase &&
-                (paymentMethods.find((m) => m.id === 'bank_transfer')?.available) && (
-                  <button
-                    className="btn ghost"
-                    onClick={() => buyWithPayment('bank_transfer')}
-                    disabled={Boolean(checkoutKey)}
-                  >
-                    {checkoutKey === 'bank_transfer' ? 'Processing...' : 'Pay by bank transfer'}
-                  </button>
-                )}
               {can('member_view_plans') && (
                 <Link to="/subscriptions" className="btn ghost">
                   Get more credits
                 </Link>
               )}
             </div>
+            {oneOffEnabled && (
+              <div className="plan-actions" style={{ marginTop: '0.75rem' }}>
+                <p className="muted">Or pay directly with an enabled payment method:</p>
+                <button
+                  className="btn primary full"
+                  onClick={() => buyWithPayment('stripe')}
+                  disabled={!stripeMethod.available || Boolean(checkoutKey)}
+                  title={stripeMethod.unavailable_reason || undefined}
+                >
+                  {checkoutKey === 'stripe'
+                    ? 'Redirecting to Stripe...'
+                    : stripeMethod.available
+                      ? 'Pay with Stripe'
+                      : 'Stripe unavailable'}
+                </button>
+                <button
+                  className="btn ghost full"
+                  onClick={() => buyWithPayment('bank_transfer')}
+                  disabled={!bankMethod.available || Boolean(checkoutKey)}
+                  title={bankMethod.unavailable_reason || undefined}
+                >
+                  {checkoutKey === 'bank_transfer'
+                    ? 'Processing...'
+                    : bankMethod.available
+                      ? 'Pay by bank transfer'
+                      : 'Bank transfer unavailable'}
+                </button>
+                {!stripeMethod.available && stripeMethod.unavailable_reason && (
+                  <p className="field-hint">{stripeMethod.unavailable_reason}</p>
+                )}
+                {!bankMethod.available && bankMethod.unavailable_reason && (
+                  <p className="field-hint">{bankMethod.unavailable_reason}</p>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="unlock-box">

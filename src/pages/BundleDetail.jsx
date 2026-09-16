@@ -25,7 +25,11 @@ export default function BundleDetail() {
       const data = await api.bundle(id)
       setBundle(data.bundle)
       setPaymentMethods(data.payment_methods || [])
-      setOneOffPurchase(Boolean(data.one_off_purchase))
+      setOneOffPurchase(
+        data.one_off_purchase !== undefined
+          ? Boolean(data.one_off_purchase)
+          : can('one_off_purchase')
+      )
     } catch (err) {
       setError(err.message)
       setBundle(null)
@@ -122,16 +126,17 @@ export default function BundleDetail() {
   const unlimited =
     user?.has_unlimited_credits || (can('unlimited_credits') && user?.is_advisor)
   const hasCredits = unlimited || (user?.credits ?? 0) >= (bundle.credits_cost ?? 0)
+  const oneOffEnabled = oneOffPurchase || can('one_off_purchase')
   const stripeMethod = paymentMethods.find((m) => m.id === 'stripe') || {
     id: 'stripe',
     available: false,
+    unavailable_reason: 'Stripe is not configured yet.',
   }
   const bankMethod = paymentMethods.find((m) => m.id === 'bank_transfer') || {
     id: 'bank_transfer',
     available: false,
+    unavailable_reason: 'Bank transfer is disabled by Power Admin.',
   }
-  const showPaymentOptions =
-    canBuy && oneOffPurchase && (stripeMethod.available || bankMethod.available)
 
   return (
     <section>
@@ -164,32 +169,35 @@ export default function BundleDetail() {
                 {buying ? 'Purchasing...' : `Buy with credits (${bundle.credits_cost})`}
               </button>
             )}
-            {showPaymentOptions && (
+            {oneOffEnabled && (
               <>
-                {stripeMethod.available && (
-                  <button
-                    className="btn primary"
-                    disabled={Boolean(checkoutKey)}
-                    onClick={() => purchaseWithPayment('stripe')}
-                    title={stripeMethod.unavailable_reason || undefined}
-                  >
-                    {checkoutKey === 'stripe' ? 'Redirecting to Stripe...' : 'Pay with Stripe'}
-                  </button>
-                )}
-                {bankMethod.available && (
-                  <button
-                    className="btn ghost"
-                    disabled={Boolean(checkoutKey)}
-                    onClick={() => purchaseWithPayment('bank_transfer')}
-                  >
-                    {checkoutKey === 'bank_transfer'
-                      ? 'Completing test payment...'
-                      : 'Pay by bank transfer'}
-                  </button>
-                )}
+                <button
+                  className="btn primary"
+                  disabled={!stripeMethod.available || Boolean(checkoutKey)}
+                  onClick={() => purchaseWithPayment('stripe')}
+                  title={stripeMethod.unavailable_reason || undefined}
+                >
+                  {checkoutKey === 'stripe'
+                    ? 'Redirecting to Stripe...'
+                    : stripeMethod.available
+                      ? 'Pay with Stripe'
+                      : 'Stripe unavailable'}
+                </button>
+                <button
+                  className="btn ghost"
+                  disabled={!bankMethod.available || Boolean(checkoutKey)}
+                  onClick={() => purchaseWithPayment('bank_transfer')}
+                  title={bankMethod.unavailable_reason || undefined}
+                >
+                  {checkoutKey === 'bank_transfer'
+                    ? 'Completing test payment...'
+                    : bankMethod.available
+                      ? 'Pay by bank transfer'
+                      : 'Bank transfer unavailable'}
+                </button>
               </>
             )}
-            {!hasCredits && !showPaymentOptions && (
+            {!hasCredits && !oneOffEnabled && (
               <p className="muted">
                 Insufficient credits.
                 {can('member_view_plans') && (
@@ -208,10 +216,18 @@ export default function BundleDetail() {
         ) : null}
       </div>
 
-      {canBuy && oneOffPurchase && (
-        <p className="muted" style={{ marginTop: '-0.75rem', marginBottom: '1.5rem' }}>
-          No subscription required — pay with credits or an enabled payment method (1 credit = £1).
-        </p>
+      {canBuy && oneOffEnabled && (
+        <div style={{ marginTop: '-0.75rem', marginBottom: '1.5rem' }}>
+          <p className="muted">
+            No subscription required — pay with credits or an enabled payment method (1 credit = £1).
+          </p>
+          {!stripeMethod.available && stripeMethod.unavailable_reason && (
+            <p className="field-hint">{stripeMethod.unavailable_reason}</p>
+          )}
+          {!bankMethod.available && bankMethod.unavailable_reason && (
+            <p className="field-hint">{bankMethod.unavailable_reason}</p>
+          )}
+        </div>
       )}
 
       <h2 className="section-title">Included posts</h2>

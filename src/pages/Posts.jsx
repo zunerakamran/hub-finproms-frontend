@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import PageLoader from '../components/PageLoader'
@@ -6,6 +6,7 @@ import PostMetrics from '../components/PostMetrics'
 import ReelPlayer from '../components/ReelPlayer'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import usePostReachTracking from '../hooks/usePostReachTracking'
 
 function formatDate(value) {
   return new Date(value).toLocaleDateString(undefined, {
@@ -114,6 +115,18 @@ export default function Posts() {
     if (totalResults === 0) return 'No content match'
     return `${totalResults} item${totalResults === 1 ? '' : 's'} found`
   }, [loading, totalResults])
+
+  const onReached = useCallback((ids) => {
+    const bumped = new Set(ids.map(Number))
+    setPosts((prev) =>
+      prev.map((post) => {
+        if (!bumped.has(Number(post.id)) || post.reach_count == null) return post
+        return { ...post, reach_count: Number(post.reach_count) + 1 }
+      })
+    )
+  }, [])
+
+  usePostReachTracking(loading ? [] : posts, onReached)
 
   if (hubLoading || !initialReady) {
     return <PageLoader />
@@ -350,6 +363,8 @@ export default function Posts() {
               <Link
                 to={`/posts/${post.id}`}
                 key={post.id}
+                data-post-id={post.id}
+                data-track-reach="1"
                 className={`post-tile listing-tile ${locked ? 'is-locked' : ''} ${isReel ? 'is-reel' : ''}`}
                 style={{ animationDelay: `${index * 40}ms` }}
               >

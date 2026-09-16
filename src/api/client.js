@@ -113,6 +113,12 @@ export const api = {
     return request(`/posts${query ? `?${query}` : ''}`)
   },
   post: (id) => request(`/posts/${id}`),
+  /** Listing scroll impressions (unique reach per viewer). */
+  recordPostReach: (postIds) =>
+    request('/posts/reach', {
+      method: 'POST',
+      body: JSON.stringify({ post_ids: postIds }),
+    }),
   categories: () => request('/posts/categories'),
   listCategories: () => request('/categories'),
   createCategory: (payload, options = {}) =>

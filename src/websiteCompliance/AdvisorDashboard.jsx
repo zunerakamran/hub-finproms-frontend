@@ -4889,11 +4889,15 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                               <SectionIframePreview
                                 sectionName={sectionTemplateKey(section)}
                                 templateSlug={activeDeployment?.template_name || 'template4'}
+                                siteUrl={activeDeployment?.cpanel_domain || activeDeployment?.domain_name || null}
+                                cpanelDomain={activeDeployment?.cpanel_domain || null}
                                 branding={{
                                   primary_color: activeDeployment?.primary_color || null,
                                   secondary_color: activeDeployment?.secondary_color || null,
                                   logo_url: activeDeployment?.logo_url || null,
                                   favicon_url: activeDeployment?.favicon_url || null,
+                                  site_url: activeDeployment?.cpanel_domain || null,
+                                  template_name: activeDeployment?.template_name || null,
                                 }}
                                 data={{
                                   ...(isAboutSection(sectionTemplateKey(section))

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useHub } from '../../context/HubContext'
-import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
+import { resolveAdvisorPreviewUrl } from '../utils/assetUrl'
 
 function normalizeName(name) {
   return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -22,40 +22,36 @@ function normalizeBranding(branding) {
 }
 
 /**
- * Renders the real template4 section inside an iframe and keeps it
- * in sync with the dashboard form via a two-step handshake:
- *
- *  1. Iframe React app mounts → sends SECTION_PREVIEW_READY to us
- *  2. We respond immediately with the current section content + advisor branding
- *  3. Every subsequent change to `data` / `branding` is pushed live via postMessage
- *
- * Props
- *  sectionName  – e.g. "About Section", "Hero Slider"
- *  data         – plain object with the section content fields (from form)
- *  branding     – advisor TemplateRequest colours/logo (not hub/showcase defaults)
- *  templateSlug – template folder slug (default "template4")
- *  height       – iframe height in px  (default 520)
- *  label        – optional label shown above the iframe
- *  borderColor  – Tailwind border colour class  (default 'border-gray-300')
+ * Renders a live template section inside an iframe.
+ * Prefer the advisor's deployed cPanel site so colours/logo match their website;
+ * fall back to the hub shared template catalog when undeployed.
  */
 export default function SectionIframePreview({
   sectionName,
   data,
   branding = null,
   templateSlug = 'template4',
+  siteUrl = null,
+  cpanelDomain = null,
   height = 520,
   label,
   borderColor = 'border-gray-300',
 }) {
   const { hub, actingHub } = useHub()
-  const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const templateBase = useMemo(
-    () => defaultTemplatePreviewUrl(templateSlug || 'template4', previewBase),
-    [previewBase, templateSlug]
+    () =>
+      resolveAdvisorPreviewUrl({
+        siteUrl: siteUrl || branding?.site_url,
+        cpanelDomain: cpanelDomain || branding?.cpanel_domain || branding?.site_url,
+        templateSlug: templateSlug || branding?.template_name || 'template4',
+        hub,
+        actingHub,
+      }),
+    [siteUrl, cpanelDomain, templateSlug, branding, hub, actingHub]
   )
-  const iframeRef  = useRef(null)
-  const readyRef   = useRef(false)   // true once SECTION_PREVIEW_READY received
-  const latestData = useRef(data)    // always holds the most-recent data prop
+  const iframeRef = useRef(null)
+  const readyRef = useRef(false)
+  const latestData = useRef(data)
   const latestBranding = useRef(normalizeBranding(branding))
   const [isLoading, setIsLoading] = useState(true)
 
@@ -63,11 +59,9 @@ export default function SectionIframePreview({
   const src = `${templateBase}?section=${encodeURIComponent(key)}`
   const normalizedBranding = useMemo(() => normalizeBranding(branding), [branding])
 
-  // Keep refs in sync so the message handler closure sees fresh values
   latestData.current = data
   latestBranding.current = normalizedBranding
 
-  // ── Send data into the iframe ──────────────────────────────────────────────
   const send = (payload, brandingPayload = latestBranding.current) => {
     if (!payload || !iframeRef.current?.contentWindow) return
     let content = payload
@@ -87,35 +81,31 @@ export default function SectionIframePreview({
     )
   }
 
-  // ── Step 1: listen for SECTION_PREVIEW_READY from the iframe ──────────────
-  // When template4's Home.jsx finishes mounting its message listener it fires
-  // SECTION_PREVIEW_READY.  We reply immediately with the current form data.
-  // This replaces the unreliable fixed-delay setTimeout approach.
+  useEffect(() => {
+    readyRef.current = false
+    setIsLoading(true)
+  }, [src])
+
   useEffect(() => {
     const onMessage = (event) => {
       if (event.data?.type !== 'SECTION_PREVIEW_READY') return
-      if (event.data?.sectionKey !== key) return  // ignore other sections' iframes
+      if (event.data?.sectionKey !== key) return
 
-      // Mark ready so subsequent data changes are sent directly
       readyRef.current = true
       setIsLoading(false)
-
-      // Push whatever data the advisor has entered so far + their site branding
       send(latestData.current, latestBranding.current)
     }
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key, src]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Step 2: push every subsequent form-field / branding change ─────────────
   useEffect(() => {
     if (readyRef.current) {
       send(data, normalizedBranding)
     }
   }, [data, normalizedBranding]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Fallback: hide loading spinner when iframe DOM load fires ─────────────
   const handleIframeLoad = () => {
     setTimeout(() => setIsLoading(false), 1200)
   }
@@ -136,7 +126,7 @@ export default function SectionIframePreview({
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 z-10 gap-3">
             <div className="w-9 h-9 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
             <p className="text-xs font-semibold text-gray-500">
-              Loading live template preview…
+              Loading advisor site preview…
             </p>
             <p className="text-[10px] text-gray-400">
               Your edits will appear automatically
@@ -146,6 +136,7 @@ export default function SectionIframePreview({
 
         <iframe
           ref={iframeRef}
+          key={src}
           src={src}
           onLoad={handleIframeLoad}
           title={`Live preview — ${sectionName}`}

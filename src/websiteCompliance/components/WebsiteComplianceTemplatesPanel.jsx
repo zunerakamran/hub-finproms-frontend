@@ -354,7 +354,14 @@ export default function WebsiteComplianceTemplatesPanel() {
       setMessage(`Section settings saved for ${sectionManageRequest.domain_name || sectionManageRequest.domain}.`)
       setSectionManageRequest(null)
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save section settings.')
+      const apiMessage = err.response?.data?.message
+      const synced = err.response?.data?.cpanel_synced
+      if (err.response?.status === 502 && apiMessage) {
+        setError(apiMessage)
+        // Hub saved; keep modal open so the admin can retry after fixing cPanel.
+      } else {
+        setError(apiMessage || 'Failed to save section settings.')
+      }
     } finally {
       setIsSavingSections(false)
     }

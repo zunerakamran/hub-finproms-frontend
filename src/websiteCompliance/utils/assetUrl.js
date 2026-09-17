@@ -52,6 +52,58 @@ export function defaultTemplatePreviewUrl(slug, baseUrl) {
   return `${host}/${path}/`
 }
 
+/**
+ * Folder name used on advisor cPanel / hub static hosting.
+ * Catalog slug stays "template4"; the shipped package is template4-showcase.
+ */
+export function resolveTemplateFolderSlug(slug) {
+  const safe = String(slug || 'template4').replace(/^\/+|\/+$/g, '') || 'template4'
+  if (safe === 'template4' || safe === 'template4showcase') {
+    return 'template4-showcase'
+  }
+  return safe
+}
+
+/**
+ * Prefer the advisor's deployed site for WC section preview.
+ * Falls back to the hub shared template catalog URL when no cPanel domain is set.
+ */
+export function resolveAdvisorPreviewUrl({
+  siteUrl,
+  cpanelDomain,
+  templateSlug = 'template4',
+  hub,
+  actingHub,
+} = {}) {
+  const live = String(siteUrl || cpanelDomain || '').trim().replace(/\/$/, '')
+  const folderSlug = resolveTemplateFolderSlug(templateSlug)
+  // Hub catalog preview is still served under /template4/ on some deploys.
+  const hubFolderSlug = String(templateSlug || 'template4').replace(/^\/+|\/+$/g, '') || 'template4'
+
+  if (live) {
+    try {
+      const withProtocol = /^https?:\/\//i.test(live) ? live : `https://${live}`
+      const url = new URL(withProtocol)
+      const path = url.pathname.replace(/\/+$/, '')
+      // Already points at a template folder or /public build.
+      if (/\/(template[\w-]*|public)$/i.test(path)) {
+        return `${url.origin}${path}/`
+      }
+      return `${url.origin}${path === '' || path === '/' ? '' : path}/${folderSlug}/`
+    } catch {
+      if (/\/(template[\w-]*|public)\/?$/i.test(live)) {
+        return `${live}/`
+      }
+      return `${live}/${folderSlug}/`
+    }
+  }
+
+  return defaultTemplatePreviewUrl(
+    hubFolderSlug,
+    resolveHubPreviewBase({ hub, actingHub })
+  )
+}
+
 /** Example advisor domain derived from the hub frontend host. */
 export function hubDomainPlaceholder(baseUrl, subdomain = 'advisor') {
   const raw = String(baseUrl || resolveHubPreviewBase() || '').trim()

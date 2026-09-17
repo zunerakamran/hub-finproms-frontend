@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useHub } from '../../context/HubContext'
-import { resolveAdvisorPreviewUrl } from '../utils/assetUrl'
+import {
+  resolveAdvisorLiveSiteUrl,
+  resolveAdvisorPreviewUrl,
+} from '../utils/assetUrl'
 
 function normalizeName(name) {
   return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -24,6 +27,7 @@ function normalizeBranding(branding) {
 /**
  * Renders the advisor's live website section inside an iframe.
  * Uses the hub embed proxy so X-Frame-Options on the advisor host cannot block it.
+ * Colours always come from the live advisor api.php (not hub/showcase TemplateRequest).
  */
 export default function SectionIframePreview({
   sectionName,
@@ -63,19 +67,66 @@ export default function SectionIframePreview({
       actingHub,
     ]
   )
+
+  const liveSiteRoot = useMemo(
+    () =>
+      resolveAdvisorLiveSiteUrl({
+        siteUrl: resolvedSiteUrl,
+        cpanelDomain: cpanelDomain || branding?.cpanel_domain || resolvedSiteUrl,
+      }),
+    [resolvedSiteUrl, cpanelDomain, branding]
+  )
+
+  const [liveBranding, setLiveBranding] = useState(null)
   const iframeRef = useRef(null)
   const readyRef = useRef(false)
   const latestData = useRef(data)
-  const latestBranding = useRef(normalizeBranding(branding))
+  const latestBranding = useRef(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Always pull colours from the live advisor site when we have a URL.
+  // Hub TemplateRequest / showcase defaults are often wrong (e.g. red #C8102E).
+  useEffect(() => {
+    if (!liveSiteRoot) {
+      setLiveBranding(null)
+      return undefined
+    }
+
+    let cancelled = false
+    const apiUrl = `${liveSiteRoot}api.php`
+
+    fetch(apiUrl, { cache: 'no-store', credentials: 'omit' })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+      .then((payload) => {
+        if (cancelled || !payload || typeof payload !== 'object') return
+        const primary = payload.primary_color || null
+        const secondary = payload.secondary_color || null
+        if (!primary && !secondary) {
+          setLiveBranding(null)
+          return
+        }
+        // Colours only — skip huge data-URI logos over postMessage.
+        setLiveBranding({
+          primary_color: primary,
+          secondary_color: secondary,
+          logo_url: null,
+          favicon_url: null,
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setLiveBranding(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [liveSiteRoot])
 
   const key = normalizeName(sectionName)
   const src = `${templateBase}?section=${encodeURIComponent(key)}`
-  const normalizedBranding = useMemo(() => normalizeBranding(branding), [branding])
-  // Live embed already loads colours/logo from the advisor api.php.
-  // Pushing hub TemplateRequest branding overwrites them with stale/showcase colours.
-  const isLiveEmbed = /\/embed-site\//i.test(templateBase)
-  const brandingForPreview = isLiveEmbed ? null : normalizedBranding
+  const hubBranding = useMemo(() => normalizeBranding(branding), [branding])
+  // Prefer live site colours; only fall back to hub branding when undeployed.
+  const brandingForPreview = liveBranding || (liveSiteRoot ? null : hubBranding)
 
   latestData.current = data
   latestBranding.current = brandingForPreview

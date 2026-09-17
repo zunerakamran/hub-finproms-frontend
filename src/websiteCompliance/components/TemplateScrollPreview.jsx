@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { absoluteAssetUrl, defaultTemplatePreviewUrl } from '../utils/assetUrl'
+import { useHub } from '../../context/HubContext'
+import { absoluteAssetUrl, defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
 
 const IFRAME_WIDTH = 1280
 const IFRAME_HEIGHT = 5000
@@ -19,9 +20,11 @@ export default function TemplateScrollPreview({
   className = 'h-36',
   overlay,
 }) {
+  const { hub, actingHub } = useHub()
+  const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const name = template?.name || 'Template'
   const slug = template?.slug || ''
-  const previewUrl = template?.preview_url || defaultTemplatePreviewUrl(slug)
+  const previewUrl = template?.preview_url || defaultTemplatePreviewUrl(slug, previewBase)
   const thumbnailUrl = absoluteAssetUrl(template?.thumbnail_url)
   const [iframeFallback, setIframeFallback] = useState(!thumbnailUrl)
   const containerRef = useRef(null)

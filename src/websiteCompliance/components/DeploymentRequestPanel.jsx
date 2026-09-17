@@ -24,6 +24,7 @@ import {
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
 import { websiteComplianceAssetUrl } from '../../api/client'
+import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
 
 // ─── Status badge ────────────────────────────────────────────────────────────
 
@@ -191,7 +192,9 @@ function BrandingUploadField({
 }
 
 function CreateDeploymentModal({ advisors, onClose, onCreated }) {
-  const { branding } = useHub()
+  const { branding, hub, actingHub } = useHub()
+  const previewBase = resolveHubPreviewBase({ hub, actingHub })
+  const domainPlaceholder = hubDomainPlaceholder(previewBase)
   const hubPrimary = branding?.primary_color || branding?.color_scheme?.primary || '#0f5c45'
   const hubSecondary = branding?.secondary_color || branding?.color_scheme?.secondary || '#0a3f30'
   const [templateName, setTemplateName] = useState('template4')
@@ -303,7 +306,7 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
             type="text"
             value={domainName}
             onChange={e => setDomainName(e.target.value)}
-            placeholder="advisor-name.example.com"
+            placeholder={domainPlaceholder}
             required
             className={inputClass}
           />

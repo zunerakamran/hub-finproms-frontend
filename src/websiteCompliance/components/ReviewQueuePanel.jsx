@@ -22,6 +22,8 @@ import {
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useAuth } from '../../context/AuthContext'
+import { useHub } from '../../context/HubContext'
+import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
 import { parseJson } from '../utils/parseJson'
 import {
   buildPreviewFromRequest,
@@ -240,6 +242,11 @@ const RequestCard = memo(function RequestCard({
   const [decision, setDecision] = useState('approve') // 'approve' | 'reject' | 'awf'
   const [busy, setBusy] = useState(null)
   const [versions, setVersions] = useState(null)
+  const { hub, actingHub } = useHub()
+  const deployedSiteUrl = useMemo(
+    () => defaultTemplatePreviewUrl('template4', resolveHubPreviewBase({ hub, actingHub })),
+    [hub, actingHub]
+  )
 
   const isAssignedToMe = req.approver_id === user?.id
 
@@ -780,7 +787,7 @@ const RequestCard = memo(function RequestCard({
                 </p>
               )}
               <a
-                href="https://epatronus.space/template4/"
+                href={deployedSiteUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="text-xs text-[var(--brand)] font-bold underline mt-1 inline-block hover:opacity-80"

@@ -20,7 +20,7 @@ import {
   FaTrash,
 } from 'react-icons/fa'
 import { useHub } from '../../context/HubContext'
-import { defaultTemplatePreviewUrl } from '../utils/assetUrl'
+import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
 import { sectionDisplayName } from '../utils/sectionDisplay'
 import TemplateScrollPreview from './TemplateScrollPreview'
 import api from '../wcApi'
@@ -71,21 +71,34 @@ function StatusBadge({ status }) {
   )
 }
 
+const fieldLabelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
+const fieldInputClass =
+  'w-full text-sm p-2.5 border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition'
+
 function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' }) {
   return createPortal(
     <div className="wc-app wc-portal-root">
-      <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40">
-        <div className={`bg-white rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}>
-          <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-base font-extrabold text-[var(--brand-dark)]">{title}</h3>
-              {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+      <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-[color-mix(in_srgb,var(--brand-dark)_60%,transparent)] backdrop-blur-sm">
+        <div
+          className={`bg-white rounded-2xl shadow-2xl border border-gray-200 w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="sticky top-0 z-10 bg-white px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold text-[var(--brand-dark)]">{title}</h3>
+              {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
             </div>
-            <button type="button" onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition shrink-0"
+              aria-label="Close"
+            >
               <FaTimes className="w-4 h-4" />
             </button>
           </div>
-          <div className="p-5">{children}</div>
+          <div className="p-6">{children}</div>
         </div>
       </div>
     </div>,
@@ -97,7 +110,8 @@ function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' 
  * Template catalog + Power Admin deploy / section management (from content-flow PowerAdminDashboard).
  */
 export default function WebsiteComplianceTemplatesPanel() {
-  const { can } = useHub()
+  const { can, hub, actingHub } = useHub()
+  const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const canManageTemplates = can('wc_manage_templates')
   const canDeployWebsites = can('wc_deploy_websites')
   const canPublishLive = can('wc_publish_live_content')
@@ -125,6 +139,11 @@ export default function WebsiteComplianceTemplatesPanel() {
   const [templateIsActive, setTemplateIsActive] = useState(true)
   const [regeneratePreview, setRegeneratePreview] = useState(false)
   const [isSavingTemplate, setIsSavingTemplate] = useState(false)
+
+  const hubPreviewPlaceholder = useMemo(
+    () => defaultTemplatePreviewUrl(templateSlug || 'template4', previewBase),
+    [templateSlug, previewBase]
+  )
 
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [cpanelDomain, setCpanelDomain] = useState('')
@@ -204,7 +223,7 @@ export default function WebsiteComplianceTemplatesPanel() {
     setTemplateName(tpl.name || '')
     setTemplateSlug(tpl.slug || '')
     setTemplateDesc(tpl.description || '')
-    setTemplatePreviewUrl(tpl.preview_url || defaultTemplatePreviewUrl(tpl.slug))
+    setTemplatePreviewUrl(tpl.preview_url || defaultTemplatePreviewUrl(tpl.slug, previewBase))
     setRegeneratePreview(false)
     setTemplateIsActive(Boolean(tpl.is_active))
     setShowTemplateModal(true)
@@ -221,7 +240,7 @@ export default function WebsiteComplianceTemplatesPanel() {
         name: templateName,
         slug: templateSlug,
         description: templateDesc,
-        preview_url: templatePreviewUrl || defaultTemplatePreviewUrl(templateSlug),
+        preview_url: templatePreviewUrl || defaultTemplatePreviewUrl(templateSlug, previewBase),
         is_active: templateIsActive,
       }
       if (editingTemplate) {
@@ -597,46 +616,82 @@ export default function WebsiteComplianceTemplatesPanel() {
       {showTemplateModal && (
         <ModalShell
           title={editingTemplate ? 'Edit template' : 'Register template'}
+          subtitle={
+            editingTemplate
+              ? 'Update catalog details for this showcase template.'
+              : 'Add a showcase template to this hub’s Website Compliance catalog.'
+          }
           onClose={() => setShowTemplateModal(false)}
+          maxWidth="max-w-xl"
         >
-          <form onSubmit={handleSaveTemplate} className="space-y-3">
-            <label className="block text-xs font-bold text-gray-600 uppercase">
-              Name
+          <form onSubmit={handleSaveTemplate} className="space-y-5">
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-tpl-name">
+                Name
+              </label>
               <input
-                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                id="wc-tpl-name"
+                className={fieldInputClass}
                 value={templateName}
                 onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="Template 4 (Complete Financial Centre)"
                 required
               />
-            </label>
-            <label className="block text-xs font-bold text-gray-600 uppercase">
-              Slug
+            </div>
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-tpl-slug">
+                Slug
+              </label>
               <input
-                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono"
+                id="wc-tpl-slug"
+                className={`${fieldInputClass} font-mono`}
                 value={templateSlug}
                 onChange={(e) => setTemplateSlug(e.target.value)}
+                placeholder="template4"
               />
-            </label>
-            <label className="block text-xs font-bold text-gray-600 uppercase">
-              Description
+            </div>
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-tpl-desc">
+                Description
+              </label>
               <textarea
-                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                id="wc-tpl-desc"
+                className={fieldInputClass}
                 rows={3}
                 value={templateDesc}
                 onChange={(e) => setTemplateDesc(e.target.value)}
+                placeholder="Short summary shown in the template catalog"
               />
-            </label>
-            <label className="block text-xs font-bold text-gray-600 uppercase">
-              Preview URL
+            </div>
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-tpl-preview">
+                Preview URL
+              </label>
               <input
-                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                id="wc-tpl-preview"
+                className={fieldInputClass}
                 value={templatePreviewUrl}
                 onChange={(e) => setTemplatePreviewUrl(e.target.value)}
-                placeholder={defaultTemplatePreviewUrl(templateSlug || 'template4')}
+                placeholder={hubPreviewPlaceholder}
               />
-            </label>
+              <p className="text-[11px] text-gray-500 mt-1.5">
+                Defaults to this hub’s site URL
+                {previewBase ? (
+                  <>
+                    {' '}
+                    (<span className="font-mono text-gray-600">{previewBase}</span>)
+                  </>
+                ) : null}
+                .
+              </p>
+            </div>
             <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={templateIsActive} onChange={(e) => setTemplateIsActive(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={templateIsActive}
+                onChange={(e) => setTemplateIsActive(e.target.checked)}
+                className="rounded border-gray-300"
+              />
               Active
             </label>
             {editingTemplate && (
@@ -645,18 +700,23 @@ export default function WebsiteComplianceTemplatesPanel() {
                   type="checkbox"
                   checked={regeneratePreview}
                   onChange={(e) => setRegeneratePreview(e.target.checked)}
+                  className="rounded border-gray-300"
                 />
                 Regenerate preview thumbnail
               </label>
             )}
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setShowTemplateModal(false)} className="text-xs font-bold px-3 py-2 rounded-lg border">
+            <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowTemplateModal(false)}
+                className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+              >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSavingTemplate}
-                className="text-xs font-bold px-3 py-2 rounded-lg bg-[var(--brand-dark)] text-white disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
               >
                 {isSavingTemplate ? 'Saving…' : 'Save'}
               </button>
@@ -667,43 +727,91 @@ export default function WebsiteComplianceTemplatesPanel() {
 
       {selectedRequest && (
         <ModalShell title="Deploy to cPanel" subtitle={requestRequesterName(selectedRequest)} onClose={() => setSelectedRequest(null)} maxWidth="max-w-xl">
-          <form onSubmit={handleDeploySubmit} className="space-y-3">
-            <label className="block text-xs font-bold text-gray-600 uppercase">
-              Site URL / domain
+          <form onSubmit={handleDeploySubmit} className="space-y-5">
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-deploy-domain">
+                Site URL / domain
+              </label>
               <input
-                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                id="wc-deploy-domain"
+                className={fieldInputClass}
                 value={cpanelDomain}
                 onChange={(e) => setCpanelDomain(e.target.value)}
+                placeholder={hubPreviewPlaceholder}
                 required
               />
-            </label>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <label className="block text-xs font-bold text-gray-600 uppercase">
-                DB host
-                <input className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={cpanelDbHost} onChange={(e) => setCpanelDbHost(e.target.value)} />
-              </label>
-              <label className="block text-xs font-bold text-gray-600 uppercase">
-                DB name
-                <input className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={cpanelDbName} onChange={(e) => setCpanelDbName(e.target.value)} />
-              </label>
-              <label className="block text-xs font-bold text-gray-600 uppercase">
-                DB user
-                <input className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={cpanelDbUser} onChange={(e) => setCpanelDbUser(e.target.value)} />
-              </label>
-              <label className="block text-xs font-bold text-gray-600 uppercase">
-                DB pass
-                <input type="password" className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={cpanelDbPass} onChange={(e) => setCpanelDbPass(e.target.value)} />
-              </label>
             </div>
-            <label className="block text-xs font-bold text-gray-600 uppercase">
-              cPanel API key
-              <input className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={cpanelApiKey} onChange={(e) => setCpanelApiKey(e.target.value)} />
-            </label>
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setSelectedRequest(null)} className="text-xs font-bold px-3 py-2 rounded-lg border">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className={fieldLabelClass} htmlFor="wc-deploy-db-host">
+                  DB host
+                </label>
+                <input
+                  id="wc-deploy-db-host"
+                  className={fieldInputClass}
+                  value={cpanelDbHost}
+                  onChange={(e) => setCpanelDbHost(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={fieldLabelClass} htmlFor="wc-deploy-db-name">
+                  DB name
+                </label>
+                <input
+                  id="wc-deploy-db-name"
+                  className={fieldInputClass}
+                  value={cpanelDbName}
+                  onChange={(e) => setCpanelDbName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={fieldLabelClass} htmlFor="wc-deploy-db-user">
+                  DB user
+                </label>
+                <input
+                  id="wc-deploy-db-user"
+                  className={fieldInputClass}
+                  value={cpanelDbUser}
+                  onChange={(e) => setCpanelDbUser(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={fieldLabelClass} htmlFor="wc-deploy-db-pass">
+                  DB pass
+                </label>
+                <input
+                  id="wc-deploy-db-pass"
+                  type="password"
+                  className={fieldInputClass}
+                  value={cpanelDbPass}
+                  onChange={(e) => setCpanelDbPass(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-deploy-api-key">
+                cPanel API key
+              </label>
+              <input
+                id="wc-deploy-api-key"
+                className={fieldInputClass}
+                value={cpanelApiKey}
+                onChange={(e) => setCpanelApiKey(e.target.value)}
+              />
+            </div>
+            <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setSelectedRequest(null)}
+                className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+              >
                 Cancel
               </button>
-              <button type="submit" disabled={isDeploying} className="text-xs font-bold px-3 py-2 rounded-lg bg-[var(--brand-dark)] text-white disabled:opacity-60">
+              <button
+                type="submit"
+                disabled={isDeploying}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
+              >
                 {isDeploying ? 'Deploying…' : 'Deploy'}
               </button>
             </div>

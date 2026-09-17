@@ -12,6 +12,7 @@ import {
   absoluteAssetUrl,
   isUploadedAsset,
 } from './utils/imageAssets'
+import { hubDomainPlaceholder, resolveHubPreviewBase } from './utils/assetUrl'
 import {
   FaBriefcase,
   FaBuilding,
@@ -1160,7 +1161,9 @@ function aboutPreviewPayload(values) {
 export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExitPowerAdmin = null, embedded = false } = {}) {
   const { user } = useAuth()
   const getRoleLabel = (k) => ({ power_admin: 'Power Admin', advisor: 'Advisor', approver: 'Approver', manager: 'Manager', client_admin: 'Client Admin' }[k] || k); const getConsoleTitle = (r) => (r === 'advisor' ? 'Advisor console' : 'Console')
-  const { can, branding } = useHub()
+  const { can, branding, hub, actingHub } = useHub()
+  const previewBase = resolveHubPreviewBase({ hub, actingHub })
+  const domainPlaceholder = hubDomainPlaceholder(previewBase)
   const canRequestDeployments = can('wc_request_deployments')
   const powerAdminLabel = getRoleLabel('power_admin')
   const advisorLabel = getRoleLabel('advisor')
@@ -4960,6 +4963,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
           title="Request New Deployment"
           subtitle="Submit another showcase site — each request can use a different domain and template"
           onClose={() => setShowTemplateModal(false)}
+          maxWidth="max-w-xl"
         >
             <form onSubmit={handleTemplateSubmit} className="space-y-4">
               <div>
@@ -4985,7 +4989,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 <input
                   type="text"
                   required
-                  placeholder="e.g. advisor.myfirm.com"
+                  placeholder={`e.g. ${domainPlaceholder}`}
                   value={domainName}
                   onChange={e => setDomainName(e.target.value)}
                   className={inputClass}

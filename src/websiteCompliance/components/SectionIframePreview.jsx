@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useHub } from '../../context/HubContext'
+import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
 
 function normalizeName(name) {
   return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 }
-
-const TEMPLATE_BASE = 'https://epatronus.space/template4/'
 
 /**
  * Renders the real template4 section inside an iframe and keeps it
@@ -28,13 +28,19 @@ export default function SectionIframePreview({
   label,
   borderColor = 'border-gray-300',
 }) {
+  const { hub, actingHub } = useHub()
+  const previewBase = resolveHubPreviewBase({ hub, actingHub })
+  const templateBase = useMemo(
+    () => defaultTemplatePreviewUrl('template4', previewBase),
+    [previewBase]
+  )
   const iframeRef  = useRef(null)
   const readyRef   = useRef(false)   // true once SECTION_PREVIEW_READY received
   const latestData = useRef(data)    // always holds the most-recent data prop
   const [isLoading, setIsLoading] = useState(true)
 
   const key = normalizeName(sectionName)
-  const src = `${TEMPLATE_BASE}?section=${encodeURIComponent(key)}`
+  const src = `${templateBase}?section=${encodeURIComponent(key)}`
 
   // Keep latestData in sync so the message handler closure sees fresh data
   latestData.current = data

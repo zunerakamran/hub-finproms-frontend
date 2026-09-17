@@ -781,9 +781,8 @@ export const api = {
 /** Absolute API base for Website Compliance asset URLs (no trailing slash). */
 export const WEBSITE_COMPLIANCE_API_BASE = `${API_URL}/website-compliance`
 
-/** Live template preview host (cPanel showcase sites). */
-export const WC_TEMPLATE_PREVIEW_BASE =
-  import.meta.env.VITE_WC_TEMPLATE_PREVIEW_URL || 'https://epatronus.space'
+/** Live template preview host (cPanel showcase sites). Prefer hub.frontend_url at runtime. */
+export const WC_TEMPLATE_PREVIEW_BASE = (import.meta.env.VITE_WC_TEMPLATE_PREVIEW_URL || '').replace(/\/$/, '')
 
 /**
  * Resolve a WC upload path or absolute URL for <img src> / iframes.

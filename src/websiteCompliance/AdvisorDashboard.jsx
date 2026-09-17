@@ -1161,15 +1161,16 @@ function aboutPreviewPayload(values) {
 export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExitPowerAdmin = null, embedded = false } = {}) {
   const { user } = useAuth()
   const getRoleLabel = (k) => ({ power_admin: 'Power Admin', advisor: 'Advisor', approver: 'Approver', manager: 'Manager', client_admin: 'Client Admin' }[k] || k); const getConsoleTitle = (r) => (r === 'advisor' ? 'Advisor console' : 'Console')
-  const { can, branding, hub, actingHub } = useHub()
+  const { can, hub, actingHub } = useHub()
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const domainPlaceholder = hubDomainPlaceholder(previewBase)
   const canRequestDeployments = can('wc_request_deployments')
   const powerAdminLabel = getRoleLabel('power_admin')
   const advisorLabel = getRoleLabel('advisor')
   const isPowerAdminPublishMode = Boolean(powerAdminDeploymentId)
-  const hubPrimary = branding?.primary_color || branding?.color_scheme?.primary || '#0f5c45'
-  const hubSecondary = branding?.secondary_color || branding?.color_scheme?.secondary || '#0a3f30'
+  // Advisor website branding defaults (not hub dashboard greens / showcase chrome)
+  const sitePrimaryDefault = '#0B1B3D'
+  const siteSecondaryDefault = '#C8102E'
   const [pages, setPages] = useState([])
   const [selectedPageId, setSelectedPageId] = useState('')
   const [sections, setSections] = useState([])
@@ -1194,8 +1195,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
   const [faviconPreview, setFaviconPreview] = useState('')
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingFavicon, setUploadingFavicon] = useState(false)
-  const [primaryColor, setPrimaryColor] = useState(hubPrimary)
-  const [secondaryColor, setSecondaryColor] = useState(hubSecondary)
+  const [primaryColor, setPrimaryColor] = useState(sitePrimaryDefault)
+  const [secondaryColor, setSecondaryColor] = useState(siteSecondaryDefault)
   const [isSubmittingTemplate, setIsSubmittingTemplate] = useState(false)
   const [selectedDeploymentId, setSelectedDeploymentId] = useState(null)
   const [uploadingState, setUploadingState] = useState({})
@@ -4887,6 +4888,13 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                               {/* Real template4 component rendered inside an iframe via postMessage */}
                               <SectionIframePreview
                                 sectionName={sectionTemplateKey(section)}
+                                templateSlug={activeDeployment?.template_name || 'template4'}
+                                branding={{
+                                  primary_color: activeDeployment?.primary_color || null,
+                                  secondary_color: activeDeployment?.secondary_color || null,
+                                  logo_url: activeDeployment?.logo_url || null,
+                                  favicon_url: activeDeployment?.favicon_url || null,
+                                }}
                                 data={{
                                   ...(isAboutSection(sectionTemplateKey(section))
                                     ? aboutPreviewPayload(values)

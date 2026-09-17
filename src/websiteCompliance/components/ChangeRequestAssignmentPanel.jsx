@@ -539,6 +539,8 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
                             <SectionIframePreview
                               sectionName={item.section_name}
                               data={curParsed}
+                              branding={previewData}
+                              templateSlug={previewData?.template_name || 'template4'}
                               height={480}
                               label={isHistorical ? 'Live Published (at submission)' : 'Current Live Published'}
                               borderColor="border-gray-300"
@@ -546,6 +548,8 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
                             <SectionIframePreview
                               sectionName={item.section_name}
                               data={propParsed}
+                              branding={previewData}
+                              templateSlug={previewData?.template_name || 'template4'}
                               height={480}
                               label={isHistorical ? 'Proposed Draft (at submission)' : 'Proposed Draft'}
                               borderColor="border-emerald-500"
@@ -574,6 +578,8 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
               <SectionIframePreview
                 sectionName={req.section?.name}
                 data={parseJson(previewData.current_content)}
+                branding={previewData}
+                templateSlug={previewData?.template_name || 'template4'}
                 height={480}
                 label={isHistorical ? 'Live Published (at submission)' : 'Current Live Published'}
                 borderColor="border-gray-300"
@@ -581,6 +587,8 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
               <SectionIframePreview
                 sectionName={req.section?.name}
                 data={parseJson(previewData.proposed_content)}
+                branding={previewData}
+                templateSlug={previewData?.template_name || 'template4'}
                 height={480}
                 label={isHistorical ? 'Proposed Draft (at submission)' : 'Proposed Draft'}
                 borderColor="border-emerald-500"

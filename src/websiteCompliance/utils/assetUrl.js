@@ -66,51 +66,54 @@ export function resolveTemplateFolderSlug(slug) {
 
 /**
  * Absolute URL for the advisor's live site (open-in-new-tab, sync checks).
- * Not used for iframes — advisor hosts usually send X-Frame-Options / CSP that
- * blocks embedding ("refused to connect").
+ * Site roots like …/advisor2 are used as-is (do not append template4-showcase).
  */
 export function resolveAdvisorLiveSiteUrl({
   siteUrl,
   cpanelDomain,
-  templateSlug = 'template4',
 } = {}) {
   const live = String(siteUrl || cpanelDomain || '').trim().replace(/\/$/, '')
   if (!live) return ''
-
-  const folderSlug = resolveTemplateFolderSlug(templateSlug)
 
   try {
     const withProtocol = /^https?:\/\//i.test(live) ? live : `https://${live}`
     const url = new URL(withProtocol)
     const path = url.pathname.replace(/\/+$/, '')
-    // Site root already is the app (e.g. …/advisor2) — do not append template folder.
     if (path && path !== '/') {
       return `${url.origin}${path}/`
     }
     return `${url.origin}/`
   } catch {
-    if (/\/(template[\w-]*|public)\/?$/i.test(live)) {
-      return `${live}/`
-    }
-    // Path-like domain already includes folder (advisor2) — use as-is.
-    if (/\/[^/]+\/?$/.test(live) && !/^https?:\/\/[^/]+\/?$/i.test(live)) {
-      return `${live}/`
-    }
-    return `${live}/${folderSlug}/`
+    return `${live}/`
   }
 }
 
 /**
- * Iframe preview URL: always the hub shared template catalog.
- * Advisor branding (colours/logo) is applied via postMessage — loading
- * advisers.fin-proms.com (etc.) in an iframe is blocked by the browser.
+ * Hub reverse-proxy URL that loads the advisor's live site without X-Frame-Options.
+ * Falls back to hub catalog template when undeployed.
  */
 export function resolveAdvisorPreviewUrl({
+  siteUrl,
+  cpanelDomain,
+  templateRequestId = null,
   templateSlug = 'template4',
   hub,
   actingHub,
 } = {}) {
-  // Hub catalog is usually served under /template4/ (not template4-showcase).
+  const live = String(siteUrl || cpanelDomain || '').trim()
+  const id = Number(templateRequestId) > 0 ? Number(templateRequestId) : 0
+
+  // Prefer embed proxy whenever we have a deployment id + live site URL.
+  // Direct iframe of advisers.fin-proms.com is blocked (X-Frame-Options: SAMEORIGIN).
+  if (id > 0 && live && API_BASE) {
+    return `${API_BASE}/embed-site/${id}/`
+  }
+
+  // Legacy: try live URL only if no deployment id (will still fail if XFO is set).
+  if (live) {
+    return resolveAdvisorLiveSiteUrl({ siteUrl, cpanelDomain })
+  }
+
   const hubFolderSlug =
     String(templateSlug || 'template4').replace(/^\/+|\/+$/g, '') || 'template4'
 

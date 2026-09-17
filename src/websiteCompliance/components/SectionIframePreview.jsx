@@ -22,31 +22,46 @@ function normalizeBranding(branding) {
 }
 
 /**
- * Renders a template section inside an iframe on the hub catalog host.
- * Advisor live domains cannot be framed (X-Frame-Options / CSP → "refused to
- * connect"); colours/logo come from branding via postMessage instead.
+ * Renders the advisor's live website section inside an iframe.
+ * Uses the hub embed proxy so X-Frame-Options on the advisor host cannot block it.
  */
 export default function SectionIframePreview({
   sectionName,
   data,
   branding = null,
   templateSlug = 'template4',
-  siteUrl = null, // kept for callers; live URL is not used as iframe src
+  siteUrl = null,
   cpanelDomain = null,
+  templateRequestId = null,
   height = 520,
   label,
   borderColor = 'border-gray-300',
 }) {
   const { hub, actingHub } = useHub()
+  const resolvedSiteUrl =
+    siteUrl || branding?.site_url || cpanelDomain || branding?.cpanel_domain || null
+  const resolvedRequestId =
+    templateRequestId || branding?.template_request_id || null
+
   const templateBase = useMemo(
     () =>
       resolveAdvisorPreviewUrl({
+        siteUrl: resolvedSiteUrl,
+        cpanelDomain: cpanelDomain || branding?.cpanel_domain || resolvedSiteUrl,
+        templateRequestId: resolvedRequestId,
         templateSlug: templateSlug || branding?.template_name || 'template4',
         hub,
         actingHub,
       }),
-    // siteUrl / cpanelDomain intentionally ignored for iframe src
-    [templateSlug, branding, hub, actingHub]
+    [
+      resolvedSiteUrl,
+      cpanelDomain,
+      resolvedRequestId,
+      templateSlug,
+      branding,
+      hub,
+      actingHub,
+    ]
   )
   const iframeRef = useRef(null)
   const readyRef = useRef(false)
@@ -125,7 +140,7 @@ export default function SectionIframePreview({
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 z-10 gap-3">
             <div className="w-9 h-9 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
             <p className="text-xs font-semibold text-gray-500">
-              Loading preview…
+              Loading advisor site preview…
             </p>
             <p className="text-[10px] text-gray-400">
               Your edits will appear automatically

@@ -72,9 +72,13 @@ export default function SectionIframePreview({
   const key = normalizeName(sectionName)
   const src = `${templateBase}?section=${encodeURIComponent(key)}`
   const normalizedBranding = useMemo(() => normalizeBranding(branding), [branding])
+  // Live embed already loads colours/logo from the advisor api.php.
+  // Pushing hub TemplateRequest branding overwrites them with stale/showcase colours.
+  const isLiveEmbed = /\/embed-site\//i.test(templateBase)
+  const brandingForPreview = isLiveEmbed ? null : normalizedBranding
 
   latestData.current = data
-  latestBranding.current = normalizedBranding
+  latestBranding.current = brandingForPreview
 
   const send = (payload, brandingPayload = latestBranding.current) => {
     if (!payload || !iframeRef.current?.contentWindow) return
@@ -89,7 +93,7 @@ export default function SectionIframePreview({
         type: 'SECTION_PREVIEW',
         sectionKey: key,
         content,
-        branding: brandingPayload || undefined,
+        ...(brandingPayload ? { branding: brandingPayload } : {}),
       },
       '*'
     )
@@ -116,9 +120,9 @@ export default function SectionIframePreview({
 
   useEffect(() => {
     if (readyRef.current) {
-      send(data, normalizedBranding)
+      send(data, brandingForPreview)
     }
-  }, [data, normalizedBranding]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data, brandingForPreview]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleIframeLoad = () => {
     setTimeout(() => setIsLoading(false), 1200)

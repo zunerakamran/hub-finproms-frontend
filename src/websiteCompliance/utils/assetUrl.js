@@ -65,38 +65,54 @@ export function resolveTemplateFolderSlug(slug) {
 }
 
 /**
- * Prefer the advisor's deployed site for WC section preview.
- * Falls back to the hub shared template catalog URL when no cPanel domain is set.
+ * Absolute URL for the advisor's live site (open-in-new-tab, sync checks).
+ * Not used for iframes — advisor hosts usually send X-Frame-Options / CSP that
+ * blocks embedding ("refused to connect").
  */
-export function resolveAdvisorPreviewUrl({
+export function resolveAdvisorLiveSiteUrl({
   siteUrl,
   cpanelDomain,
+  templateSlug = 'template4',
+} = {}) {
+  const live = String(siteUrl || cpanelDomain || '').trim().replace(/\/$/, '')
+  if (!live) return ''
+
+  const folderSlug = resolveTemplateFolderSlug(templateSlug)
+
+  try {
+    const withProtocol = /^https?:\/\//i.test(live) ? live : `https://${live}`
+    const url = new URL(withProtocol)
+    const path = url.pathname.replace(/\/+$/, '')
+    // Site root already is the app (e.g. …/advisor2) — do not append template folder.
+    if (path && path !== '/') {
+      return `${url.origin}${path}/`
+    }
+    return `${url.origin}/`
+  } catch {
+    if (/\/(template[\w-]*|public)\/?$/i.test(live)) {
+      return `${live}/`
+    }
+    // Path-like domain already includes folder (advisor2) — use as-is.
+    if (/\/[^/]+\/?$/.test(live) && !/^https?:\/\/[^/]+\/?$/i.test(live)) {
+      return `${live}/`
+    }
+    return `${live}/${folderSlug}/`
+  }
+}
+
+/**
+ * Iframe preview URL: always the hub shared template catalog.
+ * Advisor branding (colours/logo) is applied via postMessage — loading
+ * advisers.fin-proms.com (etc.) in an iframe is blocked by the browser.
+ */
+export function resolveAdvisorPreviewUrl({
   templateSlug = 'template4',
   hub,
   actingHub,
 } = {}) {
-  const live = String(siteUrl || cpanelDomain || '').trim().replace(/\/$/, '')
-  const folderSlug = resolveTemplateFolderSlug(templateSlug)
-  // Hub catalog preview is still served under /template4/ on some deploys.
-  const hubFolderSlug = String(templateSlug || 'template4').replace(/^\/+|\/+$/g, '') || 'template4'
-
-  if (live) {
-    try {
-      const withProtocol = /^https?:\/\//i.test(live) ? live : `https://${live}`
-      const url = new URL(withProtocol)
-      const path = url.pathname.replace(/\/+$/, '')
-      // Already points at a template folder or /public build.
-      if (/\/(template[\w-]*|public)$/i.test(path)) {
-        return `${url.origin}${path}/`
-      }
-      return `${url.origin}${path === '' || path === '/' ? '' : path}/${folderSlug}/`
-    } catch {
-      if (/\/(template[\w-]*|public)\/?$/i.test(live)) {
-        return `${live}/`
-      }
-      return `${live}/${folderSlug}/`
-    }
-  }
+  // Hub catalog is usually served under /template4/ (not template4-showcase).
+  const hubFolderSlug =
+    String(templateSlug || 'template4').replace(/^\/+|\/+$/g, '') || 'template4'
 
   return defaultTemplatePreviewUrl(
     hubFolderSlug,

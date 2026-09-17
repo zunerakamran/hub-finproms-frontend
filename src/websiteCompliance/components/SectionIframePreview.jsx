@@ -22,16 +22,16 @@ function normalizeBranding(branding) {
 }
 
 /**
- * Renders a live template section inside an iframe.
- * Prefer the advisor's deployed cPanel site so colours/logo match their website;
- * fall back to the hub shared template catalog when undeployed.
+ * Renders a template section inside an iframe on the hub catalog host.
+ * Advisor live domains cannot be framed (X-Frame-Options / CSP → "refused to
+ * connect"); colours/logo come from branding via postMessage instead.
  */
 export default function SectionIframePreview({
   sectionName,
   data,
   branding = null,
   templateSlug = 'template4',
-  siteUrl = null,
+  siteUrl = null, // kept for callers; live URL is not used as iframe src
   cpanelDomain = null,
   height = 520,
   label,
@@ -41,13 +41,12 @@ export default function SectionIframePreview({
   const templateBase = useMemo(
     () =>
       resolveAdvisorPreviewUrl({
-        siteUrl: siteUrl || branding?.site_url,
-        cpanelDomain: cpanelDomain || branding?.cpanel_domain || branding?.site_url,
         templateSlug: templateSlug || branding?.template_name || 'template4',
         hub,
         actingHub,
       }),
-    [siteUrl, cpanelDomain, templateSlug, branding, hub, actingHub]
+    // siteUrl / cpanelDomain intentionally ignored for iframe src
+    [templateSlug, branding, hub, actingHub]
   )
   const iframeRef = useRef(null)
   const readyRef = useRef(false)
@@ -126,7 +125,7 @@ export default function SectionIframePreview({
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 z-10 gap-3">
             <div className="w-9 h-9 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
             <p className="text-xs font-semibold text-gray-500">
-              Loading advisor site preview…
+              Loading preview…
             </p>
             <p className="text-[10px] text-gray-400">
               Your edits will appear automatically

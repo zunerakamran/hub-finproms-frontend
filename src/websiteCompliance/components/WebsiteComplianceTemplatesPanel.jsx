@@ -78,7 +78,7 @@ function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' 
         <div className={`bg-white rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}>
           <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-base font-extrabold text-[#0B1B3D]">{title}</h3>
+              <h3 className="text-base font-extrabold text-[var(--brand-dark)]">{title}</h3>
               {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
             </div>
             <button type="button" onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100">
@@ -373,7 +373,7 @@ export default function WebsiteComplianceTemplatesPanel() {
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-                activeTab === tab.id ? 'bg-[#0B1B3D] text-white' : 'text-gray-600 hover:bg-gray-50'
+                activeTab === tab.id ? 'bg-[var(--brand-dark)] text-white' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
               {tab.label}
@@ -396,7 +396,7 @@ export default function WebsiteComplianceTemplatesPanel() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-[#0B1B3D]">Showcase templates</h2>
+              <h2 className="text-lg font-bold text-[var(--brand-dark)]">Showcase templates</h2>
               <p className="text-xs text-gray-500 mt-0.5">Register and edit templates available for deployments.</p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -407,13 +407,13 @@ export default function WebsiteComplianceTemplatesPanel() {
                   placeholder="Search templates…"
                   value={templateSearch}
                   onChange={(e) => setTemplateSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#C8102E]/30"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)]"
                 />
               </div>
               <button
                 type="button"
                 onClick={openCreateTemplateModal}
-                className="inline-flex items-center gap-1.5 bg-[#0B1B3D] text-white text-xs font-bold px-3 py-2 rounded-lg"
+                className="inline-flex items-center gap-1.5 bg-[var(--brand-dark)] text-white text-xs font-bold px-3 py-2 rounded-lg"
               >
                 <FaPlus className="w-3 h-3" />
                 Register
@@ -426,13 +426,13 @@ export default function WebsiteComplianceTemplatesPanel() {
             ) : (
               <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {filteredTemplates.map((tpl) => (
-                  <article key={tpl.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[#0B1B3D]/25 hover:shadow-md transition-all duration-300">
+                  <article key={tpl.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[color-mix(in_srgb,var(--brand-dark)_25%,transparent)] hover:shadow-md transition-all duration-300">
                     <TemplateScrollPreview
                       template={tpl}
                       className="h-40 w-full"
                       overlay={
                         <>
-                          <div className="absolute top-3 left-3 bg-[#0B1B3D]/90 text-white font-mono text-[10px] font-bold px-2 py-1 rounded-md z-10 pointer-events-none">
+                          <div className="absolute top-3 left-3 bg-[color-mix(in_srgb,var(--brand-dark)_90%,transparent)] text-white font-mono text-[10px] font-bold px-2 py-1 rounded-md z-10 pointer-events-none">
                             {tpl.slug}
                           </div>
                           <div className="absolute top-3 right-3 z-10 pointer-events-none">
@@ -450,13 +450,13 @@ export default function WebsiteComplianceTemplatesPanel() {
                       }
                     />
                     <div className="p-4 flex-1 flex flex-col">
-                      <h3 className="font-extrabold text-[#0B1B3D]">{tpl.name}</h3>
+                      <h3 className="font-extrabold text-[var(--brand-dark)]">{tpl.name}</h3>
                       <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">{tpl.description || 'No description.'}</p>
                       <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                         <button
                           type="button"
                           onClick={() => openEditTemplateModal(tpl)}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#0B1B3D] bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-lg transition"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[var(--brand-dark)] bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-lg transition"
                         >
                           <FaEdit className="w-3 h-3" /> Edit
                         </button>
@@ -482,7 +482,7 @@ export default function WebsiteComplianceTemplatesPanel() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-5 border-b border-gray-100 space-y-3">
             <div>
-              <h2 className="text-lg font-bold text-[#0B1B3D]">Deployment hub</h2>
+              <h2 className="text-lg font-bold text-[var(--brand-dark)]">Deployment hub</h2>
               <p className="text-xs text-gray-500 mt-0.5">
                 {canDeployWebsites
                   ? 'Deploy templates to cPanel and manage live section visibility.'
@@ -532,9 +532,9 @@ export default function WebsiteComplianceTemplatesPanel() {
                 <tbody className="divide-y divide-gray-100">
                   {filteredRequests.map((req) => (
                     <tr key={req.id} className="hover:bg-slate-50/80">
-                      <td className="px-5 py-3 font-bold text-[#0B1B3D]">{requestRequesterName(req, 'Advisor')}</td>
+                      <td className="px-5 py-3 font-bold text-[var(--brand-dark)]">{requestRequesterName(req, 'Advisor')}</td>
                       <td className="px-5 py-3">
-                        <span className="font-bold text-xs bg-blue-50 text-[#0B1B3D] px-2 py-1 rounded-lg">
+                        <span className="font-bold text-xs bg-blue-50 text-[var(--brand-dark)] px-2 py-1 rounded-lg">
                           {req.template_name || '—'}
                         </span>
                       </td>
@@ -552,7 +552,7 @@ export default function WebsiteComplianceTemplatesPanel() {
                           {req.status === 'deployed' && canPublishLive && (
                             <Link
                               to={`/my-dashboard/website-compliance/publish/${req.id}`}
-                              className="inline-flex items-center gap-1.5 bg-[#C8102E] text-white text-xs font-bold px-3 py-2 rounded-lg"
+                              className="inline-flex items-center gap-1.5 bg-[var(--brand)] text-white text-xs font-bold px-3 py-2 rounded-lg"
                             >
                               <FaPen className="w-3 h-3" /> Edit
                             </Link>
@@ -561,7 +561,7 @@ export default function WebsiteComplianceTemplatesPanel() {
                             <button
                               type="button"
                               onClick={() => openSectionManageModal(req)}
-                              className="inline-flex items-center gap-1.5 bg-white border border-[#0B1B3D] text-[#0B1B3D] text-xs font-bold px-3 py-2 rounded-lg"
+                              className="inline-flex items-center gap-1.5 bg-white border border-[var(--brand-dark)] text-[var(--brand-dark)] text-xs font-bold px-3 py-2 rounded-lg"
                             >
                               <FaLayerGroup className="w-3 h-3" /> Sections
                             </button>
@@ -570,7 +570,7 @@ export default function WebsiteComplianceTemplatesPanel() {
                             <button
                               type="button"
                               onClick={() => openDeployModal(req)}
-                              className="inline-flex items-center gap-1.5 bg-[#0B1B3D] text-white text-xs font-bold px-3 py-2 rounded-lg"
+                              className="inline-flex items-center gap-1.5 bg-[var(--brand-dark)] text-white text-xs font-bold px-3 py-2 rounded-lg"
                             >
                               {req.status === 'deployed' ? (
                                 <>
@@ -656,7 +656,7 @@ export default function WebsiteComplianceTemplatesPanel() {
               <button
                 type="submit"
                 disabled={isSavingTemplate}
-                className="text-xs font-bold px-3 py-2 rounded-lg bg-[#0B1B3D] text-white disabled:opacity-60"
+                className="text-xs font-bold px-3 py-2 rounded-lg bg-[var(--brand-dark)] text-white disabled:opacity-60"
               >
                 {isSavingTemplate ? 'Saving…' : 'Save'}
               </button>
@@ -703,7 +703,7 @@ export default function WebsiteComplianceTemplatesPanel() {
               <button type="button" onClick={() => setSelectedRequest(null)} className="text-xs font-bold px-3 py-2 rounded-lg border">
                 Cancel
               </button>
-              <button type="submit" disabled={isDeploying} className="text-xs font-bold px-3 py-2 rounded-lg bg-[#0B1B3D] text-white disabled:opacity-60">
+              <button type="submit" disabled={isDeploying} className="text-xs font-bold px-3 py-2 rounded-lg bg-[var(--brand-dark)] text-white disabled:opacity-60">
                 {isDeploying ? 'Deploying…' : 'Deploy'}
               </button>
             </div>
@@ -759,7 +759,7 @@ export default function WebsiteComplianceTemplatesPanel() {
                 <button type="button" onClick={() => setSectionManageRequest(null)} className="text-xs font-bold px-3 py-2 rounded-lg border">
                   Cancel
                 </button>
-                <button type="submit" disabled={isSavingSections} className="text-xs font-bold px-3 py-2 rounded-lg bg-[#0B1B3D] text-white disabled:opacity-60">
+                <button type="submit" disabled={isSavingSections} className="text-xs font-bold px-3 py-2 rounded-lg bg-[var(--brand-dark)] text-white disabled:opacity-60">
                   {isSavingSections ? 'Saving…' : 'Save sections'}
                 </button>
               </div>

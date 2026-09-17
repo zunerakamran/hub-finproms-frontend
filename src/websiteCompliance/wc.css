@@ -1,12 +1,24 @@
 /* Scoped via tailwind.config.js `important: '.wc-app'`.
    Avoid @tailwind base — it would reset the whole hub shell.
-   Neutralize hub App.css element rules that otherwise leak into WC. */
+   Neutralize hub App.css element rules that otherwise leak into WC,
+   while inheriting hub brand tokens, fonts, and surfaces. */
 @tailwind components;
 @tailwind utilities;
 
 .wc-app {
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #1f2937;
+  --wc-ink: var(--ink, #101828);
+  --wc-muted: var(--muted, #667085);
+  --wc-line: var(--line, #e4e7ec);
+  --wc-surface: var(--surface, #f4f6f8);
+  --wc-panel: var(--surface-2, var(--panel, #ffffff));
+  --wc-radius: var(--radius, 16px);
+  --wc-brand: var(--brand, #0f5c45);
+  --wc-brand-dark: var(--brand-dark, #0a3f30);
+  --wc-brand-soft: var(--brand-soft, color-mix(in srgb, var(--wc-brand) 14%, white));
+  --wc-brand-softer: var(--brand-softer, color-mix(in srgb, var(--wc-brand) 7%, white));
+  --wc-brand-glow: var(--brand-glow, color-mix(in srgb, var(--wc-brand) 22%, transparent));
+  font-family: var(--font-ui, 'Outfit', 'Manrope', 'Segoe UI', sans-serif);
+  color: var(--wc-ink);
   line-height: 1.5;
   min-width: 0;
   width: 100%;
@@ -19,17 +31,24 @@
   box-sizing: border-box;
 }
 
-/* Hub App.css sets Fraunces on h1/h2 — keep WC on sans. */
+/* Match hub display headings (shell.css / App.css). */
 .wc-app h1,
-.wc-app h2,
+.wc-app h2 {
+  font-family: var(--font-display, 'Fraunces', 'Source Serif 4', Georgia, serif);
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--wc-ink);
+}
+
 .wc-app h3,
 .wc-app h4 {
   font-family: inherit;
   letter-spacing: normal;
   margin: 0;
+  color: var(--wc-brand-dark);
 }
 
-/* Hub App.css forces brand-colored links. */
+/* Hub App.css forces brand-colored links — keep WC links intentional. */
 .wc-app a {
   color: inherit;
   text-decoration: none;
@@ -70,24 +89,28 @@
 .wc-app input[type='radio'] {
   width: 1rem;
   height: 1rem;
-  accent-color: #c8102e;
+  accent-color: var(--wc-brand);
 }
 
 .wc-app input[type='color'] {
   padding: 0;
   width: 2.75rem;
   height: 2.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  background: #fff;
+  border: 1px solid var(--wc-line);
+  border-radius: var(--radius-sm, 10px);
+  background: var(--wc-panel);
   cursor: pointer;
 }
 
 /* Hub shell canvas for embedded WC surfaces */
 .wc-app.wc-surface {
-  background: linear-gradient(135deg, #f1f5f9 0%, #f8fafc 45%, #f1f5f9 100%);
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
+  background:
+    radial-gradient(ellipse 70% 45% at 0% -8%, var(--wc-brand-glow), transparent 55%),
+    radial-gradient(ellipse 50% 35% at 100% 0%, color-mix(in srgb, var(--wc-brand-dark) 10%, transparent), transparent 50%),
+    linear-gradient(180deg, var(--wc-surface) 0%, color-mix(in srgb, var(--wc-brand) 2%, #eef1f3) 100%);
+  border: 1px solid var(--wc-line);
+  border-radius: var(--wc-radius);
+  box-shadow: var(--shadow, 0 1px 2px rgba(16, 24, 40, 0.05), 0 10px 28px rgba(16, 24, 40, 0.06));
   padding: 1rem 1.1rem 1.5rem;
 }
 
@@ -125,7 +148,7 @@
   transform: translateY(-50%);
   width: 0.875rem;
   height: 0.875rem;
-  color: #9ca3af;
+  color: var(--wc-muted);
   pointer-events: none;
   z-index: 2;
 }
@@ -153,7 +176,7 @@
 }
 
 .wc-app .wc-template-preview:focus-visible {
-  outline: 2px solid #c8102e;
+  outline: 2px solid var(--wc-brand);
   outline-offset: 2px;
 }
 

@@ -796,6 +796,7 @@ export function websiteComplianceAssetUrl(pathOrUrl) {
     typeof pathOrUrl === 'string' &&
     (pathOrUrl.startsWith('/uploaded-images') ||
       pathOrUrl.includes('/uploaded-images/') ||
+      pathOrUrl.includes('/website-compliance/uploaded-images') ||
       pathOrUrl.startsWith('/uploads') ||
       pathOrUrl.includes('/uploads/'))
   if (/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(pathOrUrl) && isUploaded) {
@@ -803,13 +804,20 @@ export function websiteComplianceAssetUrl(pathOrUrl) {
     return `${base}/uploaded-images/${name}`
   }
   if (/^(https?:)/i.test(pathOrUrl)) return pathOrUrl
-  if (pathOrUrl.startsWith('/uploaded-images') || pathOrUrl.includes('/uploaded-images/')) {
+  if (
+    pathOrUrl.startsWith('/uploaded-images') ||
+    pathOrUrl.includes('/uploaded-images/') ||
+    pathOrUrl.includes('/website-compliance/uploaded-images/')
+  ) {
     const name = pathOrUrl.split('/').pop()
     return `${base}/uploaded-images/${name}`
   }
   if (pathOrUrl.startsWith('/uploads') || pathOrUrl.includes('/uploads/')) {
     const name = pathOrUrl.split('/').pop()
     return `${base}/uploaded-images/${name}`
+  }
+  if (pathOrUrl.startsWith('/website-compliance/')) {
+    return `${API_URL.replace(/\/$/, '')}${pathOrUrl}`
   }
   if (pathOrUrl.startsWith('/')) return `${base}${pathOrUrl}`
   return pathOrUrl

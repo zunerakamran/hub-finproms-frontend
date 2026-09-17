@@ -18,9 +18,12 @@ import {
   FaChevronUp,
   FaExclamationTriangle,
   FaServer,
+  FaUpload,
+  FaImage,
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
+import { websiteComplianceAssetUrl } from '../../api/client'
 
 // ─── Status badge ────────────────────────────────────────────────────────────
 
@@ -87,7 +90,7 @@ function AlertBanner({ type, message, onDismiss }) {
 function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' }) {
   return createPortal(
     <div className="wc-app wc-portal-root">
-      <div className="fixed inset-0 bg-[#0B1B3D]/60 backdrop-blur-sm flex items-center justify-center p-4 z-[80]">
+      <div className="fixed inset-0 bg-[color-mix(in_srgb,var(--brand-dark)_60%,transparent)] backdrop-blur-sm flex items-center justify-center p-4 z-[80]">
         <div
           className={`bg-white rounded-2xl ${maxWidth} w-full shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto`}
           role="dialog"
@@ -95,7 +98,7 @@ function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' 
         >
           <div className="sticky top-0 bg-white z-10 flex items-start justify-between gap-4 p-6 border-b border-gray-100">
             <div>
-              <h3 className="text-lg font-bold text-[#0B1B3D]">{title}</h3>
+              <h3 className="text-lg font-bold text-[var(--brand-dark)]">{title}</h3>
               {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
             </div>
             <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-400 hover:text-gray-700 shrink-0">
@@ -119,12 +122,88 @@ const TEMPLATES = [
   { value: 'template3', label: 'Template 3' },
 ]
 
+function storedUploadPath(data) {
+  const path = data?.relative_url || data?.url || ''
+  if (!path || /^data:/i.test(path)) return ''
+  const name = String(path).split('/').pop().split('?')[0]
+  if (!name) return ''
+  if (path.includes('/website-compliance/uploaded-images') || path.includes('/uploaded-images') || path.includes('/uploads/')) {
+    return `/website-compliance/uploaded-images/${name}`
+  }
+  return path.startsWith('/') ? path : `/website-compliance/uploaded-images/${name}`
+}
+
+function BrandingUploadField({
+  label,
+  accept,
+  hint,
+  value,
+  previewUrl,
+  uploading,
+  onUpload,
+  onClear,
+}) {
+  const displaySrc = previewUrl || (value ? websiteComplianceAssetUrl(value) : '')
+
+  return (
+    <div>
+      <label className="block text-xs font-bold text-gray-700 mb-1.5">
+        {label} <span className="text-gray-400 font-normal">(optional)</span>
+      </label>
+      <div className="flex items-start gap-3">
+        <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+          {displaySrc ? (
+            <img src={displaySrc} alt="" className="w-full h-full object-contain p-1" />
+          ) : (
+            <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition">
+            <FaUpload className="w-3 h-3 text-[var(--brand)]" />
+            {uploading ? 'Uploading…' : 'Upload file'}
+            <input
+              type="file"
+              accept={accept}
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) onUpload(file)
+                e.target.value = ''
+              }}
+            />
+          </label>
+          {value && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="block text-[11px] font-semibold text-rose-600 hover:underline"
+            >
+              Remove
+            </button>
+          )}
+          {hint && <p className="text-[11px] text-gray-500">{hint}</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function CreateDeploymentModal({ advisors, onClose, onCreated }) {
+  const { branding } = useHub()
+  const hubPrimary = branding?.primary_color || branding?.color_scheme?.primary || '#0f5c45'
+  const hubSecondary = branding?.secondary_color || branding?.color_scheme?.secondary || '#0a3f30'
   const [templateName, setTemplateName] = useState('template4')
   const [domainName, setDomainName] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
-  const [primaryColor, setPrimaryColor] = useState('#0B1B3D')
-  const [secondaryColor, setSecondaryColor] = useState('#C8102E')
+  const [faviconUrl, setFaviconUrl] = useState('')
+  const [logoPreview, setLogoPreview] = useState('')
+  const [faviconPreview, setFaviconPreview] = useState('')
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingFavicon, setUploadingFavicon] = useState(false)
+  const [primaryColor, setPrimaryColor] = useState(hubPrimary)
+  const [secondaryColor, setSecondaryColor] = useState(hubSecondary)
   const [assignedAdvisorId, setAssignedAdvisorId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -141,6 +220,29 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
     ? serverTemplates.map(t => ({ value: t.slug || t.name, label: t.name }))
     : TEMPLATES
 
+  const uploadAsset = async (file, kind) => {
+    const setUploading = kind === 'logo' ? setUploadingLogo : setUploadingFavicon
+    const setUrl = kind === 'logo' ? setLogoUrl : setFaviconUrl
+    const setPreview = kind === 'logo' ? setLogoPreview : setFaviconPreview
+    setUploading(true)
+    setError('')
+    setPreview(URL.createObjectURL(file))
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      const res = await api.post('upload-image', formData)
+      const uploadedUrl = storedUploadPath(res.data)
+      if (!uploadedUrl) throw new Error('Upload succeeded but no path was returned.')
+      setUrl(uploadedUrl)
+    } catch (err) {
+      setPreview('')
+      setUrl('')
+      setError(err.response?.data?.message || err.message || `Failed to upload ${kind}.`)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!domainName.trim()) { setError('Domain name is required.'); return }
@@ -151,6 +253,7 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
         template_name: templateName,
         domain_name: domainName.trim(),
         logo_url: logoUrl.trim() || undefined,
+        favicon_url: faviconUrl.trim() || undefined,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         request_type: 'advisor_website',
@@ -166,7 +269,7 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
   }
 
   const labelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
-  const inputClass = 'w-full text-sm p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#C8102E]/30 focus:border-[#C8102E] outline-none transition'
+  const inputClass = 'w-full text-sm p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] outline-none transition'
 
   return (
     <ModalShell
@@ -207,15 +310,26 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
           <p className="text-[11px] text-gray-500 mt-1">The target domain for this advisor's site.</p>
         </div>
 
-        {/* Logo */}
-        <div>
-          <label className={labelClass}>Logo URL <span className="text-gray-400 font-normal">(optional)</span></label>
-          <input
-            type="text"
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <BrandingUploadField
+            label="Site Logo"
+            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+            hint="Shown in the site header and footer after deploy."
             value={logoUrl}
-            onChange={e => setLogoUrl(e.target.value)}
-            placeholder="https://example.com/logo.png"
-            className={inputClass}
+            previewUrl={logoPreview}
+            uploading={uploadingLogo}
+            onUpload={(file) => uploadAsset(file, 'logo')}
+            onClear={() => { setLogoUrl(''); setLogoPreview('') }}
+          />
+          <BrandingUploadField
+            label="Favicon"
+            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
+            hint="Browser tab icon on the live advisor site."
+            value={faviconUrl}
+            previewUrl={faviconPreview}
+            uploading={uploadingFavicon}
+            onUpload={(file) => uploadAsset(file, 'favicon')}
+            onClear={() => { setFaviconUrl(''); setFaviconPreview('') }}
           />
         </div>
 
@@ -234,7 +348,7 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
                 type="text"
                 value={primaryColor}
                 onChange={e => setPrimaryColor(e.target.value)}
-                className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[#C8102E]/30 outline-none"
+                className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
               />
             </div>
           </div>
@@ -251,7 +365,7 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
                 type="text"
                 value={secondaryColor}
                 onChange={e => setSecondaryColor(e.target.value)}
-                className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[#C8102E]/30 outline-none"
+                className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
               />
             </div>
           </div>
@@ -292,8 +406,8 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
           </button>
           <button
             type="submit"
-            disabled={submitting}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[#0B1B3D] text-white rounded-xl hover:bg-[#07122A] transition disabled:opacity-50 shadow-md"
+            disabled={submitting || uploadingLogo || uploadingFavicon}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
           >
             <FaRocket className="w-3.5 h-3.5" />
             {submitting ? 'Submitting…' : 'Submit Request'}
@@ -343,7 +457,7 @@ function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
           <select
             value={advisorId}
             onChange={e => setAdvisorId(e.target.value)}
-            className="w-full text-sm p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#C8102E]/30 focus:border-[#C8102E] outline-none"
+            className="w-full text-sm p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] outline-none"
           >
             <option value="">— Select an advisor —</option>
             {advisors.map(a => (
@@ -374,7 +488,7 @@ function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
           <button
             type="submit"
             disabled={submitting || !advisorId}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[#0B1B3D] text-white rounded-xl hover:bg-[#07122A] transition disabled:opacity-50 shadow-md"
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
           >
             <FaUserCheck className="w-3.5 h-3.5" />
             {submitting ? 'Assigning…' : 'Assign Advisor'}
@@ -412,8 +526,8 @@ function DeploymentCard({ req, advisors, canAssignAdvisor, onAssignAdvisor }) {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <FaGlobe className="w-4 h-4 text-[#0B1B3D] shrink-0" />
-              <h3 className="text-base sm:text-lg font-bold text-[#0B1B3D] truncate">
+              <FaGlobe className="w-4 h-4 text-[var(--brand-dark)] shrink-0" />
+              <h3 className="text-base sm:text-lg font-bold text-[var(--brand-dark)] truncate">
                 {req.domain_name || 'Unnamed Deployment'}
               </h3>
               <StatusBadge status={req.status} />
@@ -432,9 +546,9 @@ function DeploymentCard({ req, advisors, canAssignAdvisor, onAssignAdvisor }) {
               )}
               {contentAdvisor && (
                 <span className="inline-flex items-center gap-1.5">
-                  <FaUserCheck className="w-3 h-3 text-[#C8102E]" />
+                  <FaUserCheck className="w-3 h-3 text-[var(--brand)]" />
                   {advisorOwned && !assignedAdvisor ? 'Advisor' : 'Assigned'}:{' '}
-                  <strong className="text-[#C8102E]">{contentAdvisor.name}</strong>
+                  <strong className="text-[var(--brand)]">{contentAdvisor.name}</strong>
                 </span>
               )}
               {!contentAdvisor && (
@@ -456,7 +570,7 @@ function DeploymentCard({ req, advisors, canAssignAdvisor, onAssignAdvisor }) {
               <button
                 type="button"
                 onClick={() => onAssignAdvisor(req)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-[#0B1B3D] text-[#0B1B3D] hover:bg-[#0B1B3D] hover:text-white transition"
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-[var(--brand-dark)] text-[var(--brand-dark)] hover:bg-[var(--brand-dark)] hover:text-white transition"
               >
                 <FaUserCheck className="w-3 h-3" />
                 {assignedAdvisor ? 'Reassign Advisor' : 'Assign Advisor'}
@@ -517,7 +631,7 @@ function DeploymentCard({ req, advisors, canAssignAdvisor, onAssignAdvisor }) {
                   href={req.cpanel_domain.startsWith('http') ? req.cpanel_domain : `https://${req.cpanel_domain}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-bold text-[#C8102E] hover:underline truncate block"
+                  className="font-bold text-[var(--brand)] hover:underline truncate block"
                 >
                   {req.cpanel_domain}
                 </a>
@@ -691,7 +805,7 @@ export default function DeploymentRequestPanel() {
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 bg-[#C8102E] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[#a00d24] transition shadow-sm"
+              className="inline-flex items-center gap-2 bg-[var(--brand)] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition shadow-sm"
             >
               <FaPlus className="w-3.5 h-3.5" />
               Request Deployment
@@ -718,7 +832,7 @@ export default function DeploymentRequestPanel() {
             placeholder="Search by domain, template, advisor, status…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[#C8102E]/30 focus:border-[#C8102E] transition"
+            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition"
           />
         </div>
       </div>
@@ -726,7 +840,7 @@ export default function DeploymentRequestPanel() {
       {/* List */}
       {loading ? (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center text-gray-500">
-          <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[#C8102E] border-t-transparent animate-spin" />
+          <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
           <p className="text-sm font-semibold">Loading deployment requests…</p>
         </div>
       ) : filteredRequests.length === 0 ? (
@@ -734,7 +848,7 @@ export default function DeploymentRequestPanel() {
           <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
             <FaRocket className="w-6 h-6 text-gray-400" />
           </div>
-          <h3 className="text-lg font-bold text-[#0B1B3D]">
+          <h3 className="text-lg font-bold text-[var(--brand-dark)]">
             {search.trim() ? 'No matching deployments' : 'No deployment requests yet'}
           </h3>
           <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
@@ -749,7 +863,7 @@ export default function DeploymentRequestPanel() {
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="mt-4 text-sm font-bold text-[#C8102E] hover:underline"
+              className="mt-4 text-sm font-bold text-[var(--brand)] hover:underline"
             >
               Clear search
             </button>
@@ -758,7 +872,7 @@ export default function DeploymentRequestPanel() {
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="mt-4 inline-flex items-center gap-2 bg-[#C8102E] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[#a00d24] transition shadow-sm"
+              className="mt-4 inline-flex items-center gap-2 bg-[var(--brand)] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition shadow-sm"
             >
               <FaPlus className="w-3.5 h-3.5" />
               Request Deployment

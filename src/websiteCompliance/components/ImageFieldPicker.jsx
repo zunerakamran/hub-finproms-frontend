@@ -68,7 +68,7 @@ export default function ImageFieldPicker({
     <div className="space-y-3 bg-white p-4 border border-gray-200 rounded-xl shadow-sm">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <label className="block text-xs font-extrabold text-[#0B1B3D]">{label}</label>
+          <label className="block text-xs font-extrabold text-[var(--brand-dark)]">{label}</label>
           {value ? (
             <p className="text-[11px] text-gray-500 mt-0.5 font-mono truncate max-w-xs">{displayName}</p>
           ) : (
@@ -79,7 +79,7 @@ export default function ImageFieldPicker({
           <button
             type="button"
             onClick={clearImage}
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 hover:text-[#C8102E] px-2 py-1 rounded-lg hover:bg-red-50 transition"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 hover:text-[var(--brand)] px-2 py-1 rounded-lg hover:bg-[var(--brand-soft)] transition"
           >
             <FaTimes className="w-2.5 h-2.5" />
             Clear
@@ -94,7 +94,7 @@ export default function ImageFieldPicker({
             onClick={() => setMode('upload')}
             className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition ${
               mode === 'upload'
-                ? 'bg-white text-[#0B1B3D] shadow-sm'
+                ? 'bg-white text-[var(--brand-dark)] shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -106,7 +106,7 @@ export default function ImageFieldPicker({
             onClick={() => setMode('library')}
             className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition ${
               mode === 'library'
-                ? 'bg-white text-[#0B1B3D] shadow-sm'
+                ? 'bg-white text-[var(--brand-dark)] shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -133,8 +133,8 @@ export default function ImageFieldPicker({
               uploading
                 ? 'border-blue-200 bg-blue-50/50 cursor-wait'
                 : dragOver
-                  ? 'border-[#C8102E] bg-red-50/40'
-                  : 'border-gray-200 bg-gray-50/80 hover:border-[#C8102E]/40 hover:bg-white'
+                  ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_8%,white)]'
+                  : 'border-gray-200 bg-gray-50/80 hover:border-[color-mix(in_srgb,var(--brand)_40%,transparent)] hover:bg-white'
             }`}
           >
             <input
@@ -153,7 +153,7 @@ export default function ImageFieldPicker({
               <p className="text-xs font-bold text-blue-600">Uploading to server…</p>
             ) : (
               <>
-                <p className="text-xs font-bold text-[#0B1B3D]">Drop an image here or click to browse</p>
+                <p className="text-xs font-bold text-[var(--brand-dark)]">Drop an image here or click to browse</p>
                 <p className="text-[11px] text-gray-500 mt-1">PNG, JPG, WebP · saved to your server</p>
               </>
             )}
@@ -170,7 +170,7 @@ export default function ImageFieldPicker({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search template images…"
-                className="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-[#C8102E]/30 focus:border-[#C8102E]"
+                className="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)]"
               />
             </div>
             <div className="max-h-44 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50/50 p-2">
@@ -186,13 +186,13 @@ export default function ImageFieldPicker({
                         type="button"
                         onClick={() => selectTemplate(preset.value)}
                         title={preset.label}
-                        className={`text-left rounded-lg border-2 px-2 py-2 transition focus:outline-none focus:ring-2 focus:ring-[#C8102E]/40 ${
+                        className={`text-left rounded-lg border-2 px-2 py-2 transition focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_40%,transparent)] ${
                           selected
-                            ? 'border-[#C8102E] bg-red-50 ring-2 ring-[#C8102E]/30'
-                            : 'border-gray-200 bg-white hover:border-[#C8102E]/50 hover:bg-gray-50'
+                            ? 'border-[var(--brand)] bg-[var(--brand-soft)] ring-2 ring-[color-mix(in_srgb,var(--brand)_30%,transparent)]'
+                            : 'border-gray-200 bg-white hover:border-[color-mix(in_srgb,var(--brand)_50%,transparent)] hover:bg-gray-50'
                         }`}
                       >
-                        <span className="block text-[10px] font-bold text-[#0B1B3D] truncate">{preset.label}</span>
+                        <span className="block text-[10px] font-bold text-[var(--brand-dark)] truncate">{preset.label}</span>
                       </button>
                     )
                   })}
@@ -205,7 +205,7 @@ export default function ImageFieldPicker({
         <button
           type="button"
           onClick={() => setShowAdvanced((v) => !v)}
-          className="text-[11px] font-bold text-gray-500 hover:text-[#0B1B3D] transition"
+          className="text-[11px] font-bold text-gray-500 hover:text-[var(--brand-dark)] transition"
         >
           {showAdvanced ? '▾ Hide path' : '▸ Edit path manually'}
         </button>
@@ -215,7 +215,7 @@ export default function ImageFieldPicker({
             value={displayImagePath(value)}
             onChange={(e) => onChange?.(e.target.value)}
             placeholder={pathPlaceholder}
-            className="w-full text-xs p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C8102E]/30 focus:border-[#C8102E] outline-none font-mono bg-white"
+            className="w-full text-xs p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] outline-none font-mono bg-white"
           />
         )}
       </div>

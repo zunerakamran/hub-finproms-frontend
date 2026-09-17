@@ -112,7 +112,7 @@ function RequestTitle({ req }) {
 
   if (type === 'single') {
     return (
-      <h3 className="text-base sm:text-lg font-bold text-[#0B1B3D]">
+      <h3 className="text-base sm:text-lg font-bold text-[var(--brand-dark)]">
         Section: {names[0]}
       </h3>
     )
@@ -127,7 +127,7 @@ function RequestTitle({ req }) {
     return (
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-base sm:text-lg font-bold text-[#0B1B3D]">Request #{req.id}</h3>
+          <h3 className="text-base sm:text-lg font-bold text-[var(--brand-dark)]">Request #{req.id}</h3>
           <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
             <FaLayerGroup className="w-3 h-3" />
             {count} {count === 1 ? 'section' : 'sections'}
@@ -144,7 +144,7 @@ function RequestTitle({ req }) {
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
-                className="inline-flex items-center gap-1 ml-1.5 text-[#C8102E] font-bold hover:underline shrink-0"
+                className="inline-flex items-center gap-1 ml-1.5 text-[var(--brand)] font-bold hover:underline shrink-0"
               >
                 Show all
                 <FaChevronDown className="w-2.5 h-2.5" />
@@ -166,7 +166,7 @@ function RequestTitle({ req }) {
             <button
               type="button"
               onClick={() => setExpanded(false)}
-              className="inline-flex items-center gap-1 mt-2 text-xs text-[#C8102E] font-bold hover:underline"
+              className="inline-flex items-center gap-1 mt-2 text-xs text-[var(--brand)] font-bold hover:underline"
             >
               Show less
               <FaChevronUp className="w-2.5 h-2.5" />
@@ -178,7 +178,7 @@ function RequestTitle({ req }) {
   }
 
   return (
-    <h3 className="text-base sm:text-lg font-bold text-[#0B1B3D]">
+    <h3 className="text-base sm:text-lg font-bold text-[var(--brand-dark)]">
       Change Request #{req.id}
     </h3>
   )
@@ -335,8 +335,8 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
               </span>
               {req.approver && (
                 <span className="inline-flex items-center gap-1.5">
-                  <FaUserCheck className="w-3 h-3 text-[#C8102E]" />
-                  <span>Assigned to <strong className="text-[#C8102E]">{req.approver.name}</strong></span>
+                  <FaUserCheck className="w-3 h-3 text-[var(--brand)]" />
+                  <span>Assigned to <strong className="text-[var(--brand)]">{req.approver.name}</strong></span>
                 </span>
               )}
             </div>
@@ -348,7 +348,7 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
             disabled={busy === 'preview'}
             className={`inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl transition disabled:opacity-60 shrink-0 ${
               previewData
-                ? 'bg-[#0B1B3D] text-white hover:bg-slate-800'
+                ? 'bg-[var(--brand-dark)] text-white hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)]'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -388,7 +388,7 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
               <select
                 value={selectedApproverId || ''}
                 onChange={e => onSelectApprover(req.id, e.target.value)}
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B1B3D]/20 focus:border-[#0B1B3D] bg-white"
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-dark)_20%,transparent)] focus:border-[var(--brand-dark)] bg-white"
               >
                 <option value="">Choose {approverLabel.toLowerCase()}…</option>
                 {approvers.map(a => (
@@ -401,7 +401,7 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
                 type="button"
                 onClick={handleAssign}
                 disabled={assigning === req.id || !selectedApproverId}
-                className="inline-flex items-center justify-center gap-2 bg-[#0B1B3D] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-slate-800 transition shadow-sm disabled:opacity-50 shrink-0"
+                className="inline-flex items-center justify-center gap-2 bg-[var(--brand-dark)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-sm disabled:opacity-50 shrink-0"
               >
                 {assigning === req.id ? (
                   <>
@@ -467,7 +467,7 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
                   type="button"
                   onClick={() => setPreviewMode('visual')}
                   className={`text-[11px] font-bold px-3 py-1.5 rounded-lg transition ${
-                    previewMode === 'visual' ? 'bg-[#0B1B3D] text-white' : 'text-gray-600 hover:bg-gray-50'
+                    previewMode === 'visual' ? 'bg-[var(--brand-dark)] text-white' : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   Visual Preview
@@ -476,7 +476,7 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
                   type="button"
                   onClick={() => setPreviewMode('json')}
                   className={`text-[11px] font-bold px-3 py-1.5 rounded-lg transition ${
-                    previewMode === 'json' ? 'bg-[#0B1B3D] text-white' : 'text-gray-600 hover:bg-gray-50'
+                    previewMode === 'json' ? 'bg-[var(--brand-dark)] text-white' : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   JSON Diff
@@ -523,7 +523,7 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
                         <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
                           {idx + 1}
                         </span>
-                        <h5 className="font-extrabold text-[#0B1B3D] text-sm truncate">
+                        <h5 className="font-extrabold text-[var(--brand-dark)] text-sm truncate">
                           {item.section_name}
                         </h5>
                       </div>
@@ -724,7 +724,7 @@ export default function ChangeRequestAssignmentPanel({
     if (loading) {
       return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center text-gray-500">
-          <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[#C8102E] border-t-transparent animate-spin" />
+          <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
           <p className="text-sm font-semibold">Loading requests…</p>
         </div>
       )
@@ -737,7 +737,7 @@ export default function ChangeRequestAssignmentPanel({
           <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
             <FaInbox className="w-6 h-6 text-gray-400" />
           </div>
-          <h3 className="text-lg font-bold text-[#0B1B3D]">
+          <h3 className="text-lg font-bold text-[var(--brand-dark)]">
             {isSearching ? 'No matching requests' : emptyTitle}
           </h3>
           <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
@@ -747,7 +747,7 @@ export default function ChangeRequestAssignmentPanel({
             <button
               type="button"
               onClick={() => setRequestSearch('')}
-              className="mt-4 text-sm font-bold text-[#C8102E] hover:underline"
+              className="mt-4 text-sm font-bold text-[var(--brand)] hover:underline"
             >
               Clear search
             </button>
@@ -795,7 +795,7 @@ export default function ChangeRequestAssignmentPanel({
             placeholder="Search by section, editor, approver, or ID…"
             value={requestSearch}
             onChange={e => setRequestSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[#C8102E]/30 focus:border-[#C8102E] transition"
+            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition"
           />
         </div>
 

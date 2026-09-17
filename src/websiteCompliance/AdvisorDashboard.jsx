@@ -58,6 +58,8 @@ import {
   FaStar,
   FaCommentDots,
   FaRedo,
+  FaUpload,
+  FaImage,
 } from 'react-icons/fa'
 
 const SERVICE_ICON_OPTIONS = [
@@ -152,10 +154,14 @@ function storedUploadPath(data) {
   if (!path || /^data:/i.test(path)) return ''
   const name = String(path).split('/').pop().split('?')[0]
   if (!name) return ''
-  if (path.includes('/uploaded-images') || path.includes('/uploads/')) {
-    return `/uploaded-images/${name}`
+  if (
+    path.includes('/website-compliance/uploaded-images') ||
+    path.includes('/uploaded-images') ||
+    path.includes('/uploads/')
+  ) {
+    return `/website-compliance/uploaded-images/${name}`
   }
-  return path.startsWith('/') ? path : `/uploaded-images/${name}`
+  return path.startsWith('/') ? path : `/website-compliance/uploaded-images/${name}`
 }
 
 function stripDataImageUrls(value) {
@@ -368,7 +374,7 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
   return (
     <div
       className={`rounded-xl border p-4 transition-all ${config.cardClass} ${
-        isActive ? 'ring-2 ring-[#C8102E] ring-offset-1 shadow-md' : 'shadow-sm hover:shadow-md'
+        isActive ? 'ring-2 ring-[var(--brand)] ring-offset-1 shadow-md' : 'shadow-sm hover:shadow-md'
       }`}
     >
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -380,10 +386,10 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center flex-wrap gap-2">
-              <h3 className="font-extrabold text-sm text-[#0B1B3D] truncate">{request.domain_name}</h3>
+              <h3 className="font-extrabold text-sm text-[var(--brand-dark)] truncate">{request.domain_name}</h3>
               <RequestStatusBadge status={request.status} />
               {isActive && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#C8102E] text-white uppercase tracking-wide">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand)] text-white uppercase tracking-wide">
                   Editing
                 </span>
               )}
@@ -405,10 +411,13 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
               </p>
             )}
             <div className="flex items-center flex-wrap gap-2 mt-2">
-              <span className="w-4 h-4 rounded-full border border-white shadow-sm ring-1 ring-gray-200" style={{ backgroundColor: request.primary_color || '#0B1B3D' }} title="Primary" />
-              <span className="w-4 h-4 rounded-full border border-white shadow-sm ring-1 ring-gray-200" style={{ backgroundColor: request.secondary_color || '#C8102E' }} title="Secondary" />
+              <span className="w-4 h-4 rounded-full border border-white shadow-sm ring-1 ring-gray-200" style={{ backgroundColor: request.primary_color || '#0f5c45' }} title="Primary" />
+              <span className="w-4 h-4 rounded-full border border-white shadow-sm ring-1 ring-gray-200" style={{ backgroundColor: request.secondary_color || '#0a3f30' }} title="Secondary" />
               {request.logo_url && (
                 <span className="text-[10px] text-gray-500 font-medium">Logo attached</span>
+              )}
+              {request.favicon_url && (
+                <span className="text-[10px] text-gray-500 font-medium">Favicon attached</span>
               )}
             </div>
           </div>
@@ -419,8 +428,8 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
             onClick={onSelect}
             className={`shrink-0 text-xs font-bold px-3 py-2 rounded-lg transition ${
               isActive
-                ? 'bg-[#C8102E] text-white shadow-sm'
-                : 'bg-white text-[#0B1B3D] border border-gray-200 hover:border-[#C8102E]/40 hover:bg-gray-50'
+                ? 'bg-[var(--brand)] text-white shadow-sm'
+                : 'bg-white text-[var(--brand-dark)] border border-gray-200 hover:border-[color-mix(in_srgb,var(--brand)_40%,transparent)] hover:bg-gray-50'
             }`}
           >
             {isActive ? 'Selected' : 'Edit Content'}
@@ -460,7 +469,7 @@ function AlertBanner({ type, message, onDismiss }) {
 function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' }) {
   return createPortal(
     <div className="wc-app wc-portal-root">
-      <div className="fixed inset-0 bg-[#0B1B3D]/60 backdrop-blur-sm flex items-center justify-center p-4 z-[80]">
+      <div className="fixed inset-0 bg-[color-mix(in_srgb,var(--brand-dark)_60%,transparent)] backdrop-blur-sm flex items-center justify-center p-4 z-[80]">
         <div
           className={`bg-white rounded-2xl ${maxWidth} w-full shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto`}
           role="dialog"
@@ -468,7 +477,7 @@ function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' 
         >
           <div className="sticky top-0 bg-white z-10 flex items-start justify-between gap-4 p-6 border-b border-gray-100">
             <div>
-              <h3 className="text-lg font-bold text-[#0B1B3D]">{title}</h3>
+              <h3 className="text-lg font-bold text-[var(--brand-dark)]">{title}</h3>
               {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
             </div>
             <button type="button" onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition" aria-label="Close">
@@ -494,12 +503,12 @@ function StepCard({ step, title, description, badge, children, className = '', d
           onClick={() => setOpen((v) => !v)}
           className="flex items-start gap-4 min-w-0 flex-1 text-left group"
         >
-          <div className="shrink-0 w-10 h-10 rounded-xl bg-[#0B1B3D] text-white flex items-center justify-center text-sm font-extrabold shadow-md shadow-[#0B1B3D]/20">
+          <div className="shrink-0 w-10 h-10 rounded-xl bg-[var(--brand-dark)] text-white flex items-center justify-center text-sm font-extrabold shadow-md shadow-[color-mix(in_srgb,var(--brand-dark)_20%,transparent)]">
             {step}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-extrabold text-[#0B1B3D] group-hover:text-[#C8102E] transition-colors">{title}</h2>
+              <h2 className="text-base font-extrabold text-[var(--brand-dark)] group-hover:text-[var(--brand)] transition-colors">{title}</h2>
               <FaChevronDown
                 className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
               />
@@ -532,13 +541,13 @@ function WorkflowStepper({ isSiteDeployed, hasPage, hasSections, isComplete }) {
                   s.done
                     ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
                     : s.active
-                      ? 'bg-[#C8102E] text-white shadow-md shadow-[#C8102E]/30 ring-4 ring-[#C8102E]/15'
+                      ? 'bg-[var(--brand)] text-white shadow-md shadow-[color-mix(in_srgb,var(--brand)_30%,transparent)] ring-4 ring-[color-mix(in_srgb,var(--brand)_15%,transparent)]'
                       : 'bg-gray-100 text-gray-400 border border-gray-200'
                 }`}
               >
                 {s.done ? <FaCheckCircle className="w-4 h-4" /> : i + 1}
               </div>
-              <span className={`text-[10px] sm:text-xs font-bold text-center leading-tight ${s.done || s.active ? 'text-[#0B1B3D]' : 'text-gray-400'}`}>
+              <span className={`text-[10px] sm:text-xs font-bold text-center leading-tight ${s.done || s.active ? 'text-[var(--brand-dark)]' : 'text-gray-400'}`}>
                 {s.label}
               </span>
             </div>
@@ -553,7 +562,7 @@ function WorkflowStepper({ isSiteDeployed, hasPage, hasSections, isComplete }) {
 }
 
 const inputClass =
-  'w-full text-sm p-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#C8102E]/30 focus:border-[#C8102E] transition bg-white'
+  'w-full text-sm p-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition bg-white'
 const labelClass = 'block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5'
 
 function itemTabKey(secId, group) {
@@ -574,12 +583,12 @@ function ItemTabBar({ hint, count, labelPrefix, activeIndex, onSelect, hasConten
               type="button"
               onClick={() => onSelect(index)}
               className={`relative inline-flex items-center gap-1.5 text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-lg transition whitespace-nowrap ${
-                isActive ? 'bg-white text-[#0B1B3D] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                isActive ? 'bg-white text-[var(--brand-dark)] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {labelPrefix} {index + 1}
               {hasContent && (
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-[#C8102E]' : 'bg-emerald-400'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-[var(--brand)]' : 'bg-emerald-400'}`} />
               )}
             </button>
           )
@@ -592,8 +601,8 @@ function ItemTabBar({ hint, count, labelPrefix, activeIndex, onSelect, hasConten
 function ItemPanel({ index, title, children }) {
   return (
     <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
-      <h5 className="text-sm font-bold text-[#0B1B3D] mb-4 flex items-center gap-2">
-        <span className="w-6 h-6 rounded-full bg-[#C8102E] text-white flex items-center justify-center text-xs">{index + 1}</span>
+      <h5 className="text-sm font-bold text-[var(--brand-dark)] mb-4 flex items-center gap-2">
+        <span className="w-6 h-6 rounded-full bg-[var(--brand)] text-white flex items-center justify-center text-xs">{index + 1}</span>
         {title}
       </h5>
       {children}
@@ -1151,11 +1160,13 @@ function aboutPreviewPayload(values) {
 export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExitPowerAdmin = null, embedded = false } = {}) {
   const { user } = useAuth()
   const getRoleLabel = (k) => ({ power_admin: 'Power Admin', advisor: 'Advisor', approver: 'Approver', manager: 'Manager', client_admin: 'Client Admin' }[k] || k); const getConsoleTitle = (r) => (r === 'advisor' ? 'Advisor console' : 'Console')
-  const { can } = useHub()
+  const { can, branding } = useHub()
   const canRequestDeployments = can('wc_request_deployments')
   const powerAdminLabel = getRoleLabel('power_admin')
   const advisorLabel = getRoleLabel('advisor')
   const isPowerAdminPublishMode = Boolean(powerAdminDeploymentId)
+  const hubPrimary = branding?.primary_color || branding?.color_scheme?.primary || '#0f5c45'
+  const hubSecondary = branding?.secondary_color || branding?.color_scheme?.secondary || '#0a3f30'
   const [pages, setPages] = useState([])
   const [selectedPageId, setSelectedPageId] = useState('')
   const [sections, setSections] = useState([])
@@ -1175,8 +1186,13 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
   const [selectedTemplateName, setSelectedTemplateName] = useState('template4')
   const [domainName, setDomainName] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
-  const [primaryColor, setPrimaryColor] = useState('#0B1B3D')
-  const [secondaryColor, setSecondaryColor] = useState('#C8102E')
+  const [faviconUrl, setFaviconUrl] = useState('')
+  const [logoPreview, setLogoPreview] = useState('')
+  const [faviconPreview, setFaviconPreview] = useState('')
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingFavicon, setUploadingFavicon] = useState(false)
+  const [primaryColor, setPrimaryColor] = useState(hubPrimary)
+  const [secondaryColor, setSecondaryColor] = useState(hubSecondary)
   const [isSubmittingTemplate, setIsSubmittingTemplate] = useState(false)
   const [selectedDeploymentId, setSelectedDeploymentId] = useState(null)
   const [uploadingState, setUploadingState] = useState({})
@@ -1883,6 +1899,35 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
     )
   }, [availableTemplates, templateSearch])
 
+  const uploadBrandingAsset = async (file, kind) => {
+    if (!file) return
+    const setUploading = kind === 'logo' ? setUploadingLogo : setUploadingFavicon
+    const setUrl = kind === 'logo' ? setLogoUrl : setFaviconUrl
+    const setPreview = kind === 'logo' ? setLogoPreview : setFaviconPreview
+    setUploading(true)
+    setError('')
+    setPreview(URL.createObjectURL(file))
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      const res = await api.post('upload-image', formData)
+      const uploadedUrl = storedUploadPath(res.data)
+      if (!uploadedUrl) {
+        setError('Upload succeeded but no image path was returned.')
+        setPreview('')
+        setUrl('')
+        return
+      }
+      setUrl(uploadedUrl)
+    } catch (err) {
+      setPreview('')
+      setUrl('')
+      setError(err.response?.data?.message || `Failed to upload ${kind}.`)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleTemplateSubmit = async (e) => {
     e.preventDefault()
     if (!domainName) return
@@ -1892,7 +1937,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
       await api.post('/template-requests', {
         template_name: selectedTemplateName,
         domain_name: domainName,
-        logo_url: logoUrl,
+        logo_url: logoUrl || undefined,
+        favicon_url: faviconUrl || undefined,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         request_type: 'advisor_website'
@@ -1901,6 +1947,9 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
       setShowTemplateModal(false)
       setDomainName('')
       setLogoUrl('')
+      setFaviconUrl('')
+      setLogoPreview('')
+      setFaviconPreview('')
       setActiveTab('deployments')
       fetchTemplateRequests()
     } catch (err) {
@@ -2549,10 +2598,10 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
           {!embedded && (
             <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
               <div>
-                <p className="text-xs font-extrabold text-[#C8102E] uppercase tracking-widest mb-1">
+                <p className="text-xs font-extrabold text-[var(--brand)] uppercase tracking-widest mb-1">
                   {isPowerAdminPublishMode ? `${powerAdminLabel} — Direct Publish` : getConsoleTitle('advisor')}
                 </p>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B1B3D] tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--brand-dark)] tracking-tight">
                   {isPowerAdminPublishMode ? 'Edit Deployment Content' : 'Content Management'}
                 </h1>
                 <p className="text-gray-500 text-sm mt-2 max-w-xl">
@@ -2562,7 +2611,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 </p>
                 {isPowerAdminPublishMode && activeDeployment && (
                   <p className="text-xs text-gray-500 mt-2">
-                    Editing: <strong className="text-[#0B1B3D]">{activeDeployment.advisor?.name || advisorLabel}</strong>
+                    Editing: <strong className="text-[var(--brand-dark)]">{activeDeployment.advisor?.name || advisorLabel}</strong>
                     {' · '}
                     <span className="font-mono">{activeDeployment.domain_name || activeDeployment.cpanel_domain}</span>
                   </p>
@@ -2581,7 +2630,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 <button
                   type="button"
                   onClick={() => openDeploymentModal(null, true)}
-                  className="inline-flex items-center gap-2 bg-[#0B1B3D] text-white text-sm font-bold px-5 py-3 rounded-xl hover:bg-[#07122A] transition shadow-lg shadow-[#0B1B3D]/20"
+                  className="inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-sm font-bold px-5 py-3 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-lg shadow-[color-mix(in_srgb,var(--brand-dark)_20%,transparent)]"
                 >
                   <FaPlus className="w-4 h-4" />
                   New Deployment
@@ -2594,7 +2643,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
             <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
               {isPowerAdminPublishMode && activeDeployment ? (
                 <p className="text-xs text-gray-500">
-                  Editing: <strong className="text-[#0B1B3D]">{activeDeployment.advisor?.name || advisorLabel}</strong>
+                  Editing: <strong className="text-[var(--brand-dark)]">{activeDeployment.advisor?.name || advisorLabel}</strong>
                   {' · '}
                   <span className="font-mono">{activeDeployment.domain_name || activeDeployment.cpanel_domain}</span>
                 </p>
@@ -2615,7 +2664,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                   <button
                     type="button"
                     onClick={() => openDeploymentModal(null, true)}
-                    className="inline-flex items-center gap-2 bg-[#0B1B3D] text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-[#07122A] transition shadow-md"
+                    className="inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-md"
                   >
                     <FaPlus className="w-3.5 h-3.5" />
                     New Deployment
@@ -2636,7 +2685,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Deployments</p>
-                  <p className="text-sm font-extrabold text-[#0B1B3D]">
+                  <p className="text-sm font-extrabold text-[var(--brand-dark)]">
                     {deployedRequests.length} live
                     {pendingRequests.length > 0 && <span className="text-amber-600 font-bold"> · {pendingRequests.length} pending</span>}
                   </p>
@@ -2650,7 +2699,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Pages</p>
-                  <p className="text-sm font-extrabold text-[#0B1B3D]">{pages.length}</p>
+                  <p className="text-sm font-extrabold text-[var(--brand-dark)]">{pages.length}</p>
                 </div>
               </div>
             </div>
@@ -2661,18 +2710,18 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Sections</p>
-                  <p className="text-sm font-extrabold text-[#0B1B3D]">{visibleSections.length}</p>
+                  <p className="text-sm font-extrabold text-[var(--brand-dark)]">{visibleSections.length}</p>
                 </div>
               </div>
             </div>
             <div className="bg-white rounded-xl border border-gray-200/80 p-4 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${checkedSectionIds.length > 0 ? 'bg-[#C8102E]/10 text-[#C8102E]' : 'bg-gray-100 text-gray-400'}`}>
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${checkedSectionIds.length > 0 ? 'bg-[var(--brand)]/10 text-[var(--brand)]' : 'bg-gray-100 text-gray-400'}`}>
                   <FaEdit className="w-4 h-4" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Editing</p>
-                  <p className="text-sm font-extrabold text-[#0B1B3D]">
+                  <p className="text-sm font-extrabold text-[var(--brand-dark)]">
                     {checkedSectionIds.length} {isPowerAdminPublishMode ? 'selected' : 'locked'}
                   </p>
                 </div>
@@ -2706,7 +2755,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 onClick={() => setActiveTab(tab.id)}
                 className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition ${
                   activeTab === tab.id
-                    ? 'bg-[#0B1B3D] text-white shadow-md'
+                    ? 'bg-[var(--brand-dark)] text-white shadow-md'
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -2728,7 +2777,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-bold text-[#0B1B3D]">Showcase Templates</h2>
+              <h2 className="text-lg font-bold text-[var(--brand-dark)]">Showcase Templates</h2>
               <p className="text-xs text-gray-500 mt-0.5">
                 Browse available website templates — hover to preview the full page, then request a deployment.
               </p>
@@ -2740,7 +2789,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 placeholder="Search templates…"
                 value={templateSearch}
                 onChange={e => setTemplateSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#C8102E]/30 focus:border-[#C8102E]"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)]"
               />
             </div>
           </div>
@@ -2751,7 +2800,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
                   <FaThLarge className="w-6 h-6 text-slate-400" />
                 </div>
-                <h3 className="font-bold text-[#0B1B3D] mb-1">
+                <h3 className="font-bold text-[var(--brand-dark)] mb-1">
                   {templateSearch ? 'No templates match your search' : 'No templates available yet'}
                 </h3>
                 <p className="text-sm text-gray-500">
@@ -2767,14 +2816,14 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                   return (
                     <article
                       key={tpl.id}
-                      className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[#0B1B3D]/20 hover:shadow-lg transition-all duration-300"
+                      className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[var(--brand-dark)]/20 hover:shadow-lg transition-all duration-300"
                     >
                       <TemplateScrollPreview
                           template={tpl}
                           className="h-40 w-full"
                           overlay={
                             <>
-                              <div className="absolute top-3 left-3 bg-[#0B1B3D]/90 backdrop-blur-sm text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded-md z-10">
+                              <div className="absolute top-3 left-3 bg-[color-mix(in_srgb,var(--brand-dark)_90%,transparent)] backdrop-blur-sm text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded-md z-10">
                                 {tpl.slug}
                               </div>
                               {isInUse && (
@@ -2790,7 +2839,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                         />
 
                       <div className="p-4 flex-1 flex flex-col">
-                        <h3 className="font-extrabold text-[#0B1B3D] text-base leading-tight">
+                        <h3 className="font-extrabold text-[var(--brand-dark)] text-base leading-tight">
                           {tpl.name}
                         </h3>
                         <p className="text-xs text-gray-500 mt-2 line-clamp-2 flex-1">
@@ -2800,7 +2849,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                         <button
                           type="button"
                           onClick={() => openDeploymentModal(tpl.slug)}
-                          className="mt-4 w-full inline-flex items-center justify-center gap-2 text-xs font-bold text-white bg-[#0B1B3D] hover:bg-[#07122A] px-3 py-2.5 rounded-xl transition"
+                          className="mt-4 w-full inline-flex items-center justify-center gap-2 text-xs font-bold text-white bg-[var(--brand-dark)] hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] px-3 py-2.5 rounded-xl transition"
                         >
                           <FaRocket className="w-3 h-3" />
                           Request Deployment
@@ -2831,13 +2880,13 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
         >
           <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
             <p className="text-sm text-gray-600">
-              <span className="font-bold text-[#0B1B3D]">{templateRequests.length}</span>
+              <span className="font-bold text-[var(--brand-dark)]">{templateRequests.length}</span>
               {' '}deployment request{templateRequests.length === 1 ? '' : 's'} total
             </p>
             <button
               type="button"
               onClick={() => openDeploymentModal()}
-              className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-[#0B1B3D] text-white hover:bg-[#07122A] transition shadow-sm"
+              className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-[var(--brand-dark)] text-white hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-sm"
             >
               <FaPlus className="w-3 h-3" />
               Request New Deployment
@@ -2849,14 +2898,14 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
               <div className="w-14 h-14 rounded-2xl bg-white border border-gray-200 text-gray-400 flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <FaRocket className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-bold text-[#0B1B3D]">No deployments yet</h3>
+              <h3 className="text-base font-bold text-[var(--brand-dark)]">No deployments yet</h3>
               <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
                 Submit your first deployment request. You can request additional sites anytime after that.
               </p>
               <button
                 type="button"
                 onClick={() => openDeploymentModal()}
-                className="mt-5 inline-flex items-center gap-2 bg-[#C8102E] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[#A00C23] transition shadow-md"
+                className="mt-5 inline-flex items-center gap-2 bg-[var(--brand)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition shadow-md"
               >
                 <FaPlus className="w-4 h-4" />
                 Request First Deployment
@@ -2877,8 +2926,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
 
           {hasDeployedSite && deployedRequests.length > 1 && (
             <p className="text-xs text-gray-500 mt-4 flex items-center gap-1.5">
-              <FaGlobeAmericas className="w-3.5 h-3.5 text-[#C8102E]" />
-              Currently editing: <strong className="text-[#0B1B3D]">{activeDeployment?.domain_name}</strong>
+              <FaGlobeAmericas className="w-3.5 h-3.5 text-[var(--brand)]" />
+              Currently editing: <strong className="text-[var(--brand-dark)]">{activeDeployment?.domain_name}</strong>
             </p>
           )}
         </StepCard>
@@ -2890,7 +2939,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
             <div className="w-16 h-16 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-4">
               <FaLock className="w-7 h-7" />
             </div>
-            <h3 className="text-lg font-bold text-[#0B1B3D]">
+            <h3 className="text-lg font-bold text-[var(--brand-dark)]">
               {isPowerAdminPublishMode ? 'Deployment Not Available' : 'Section Editor Locked'}
             </h3>
             <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto leading-relaxed">
@@ -2902,7 +2951,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
               <button
                 type="button"
                 onClick={() => onExitPowerAdmin?.()}
-                className="mt-5 inline-flex items-center gap-2 bg-[#0B1B3D] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[#07122A] transition shadow-md"
+                className="mt-5 inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-md"
               >
                 <FaArrowLeft className="w-3.5 h-3.5" />
                 Back to Deployments
@@ -2919,7 +2968,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                   setActiveTab('deployments')
                   openDeploymentModal()
                 }}
-                className="mt-5 inline-flex items-center gap-2 bg-[#0B1B3D] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[#07122A] transition shadow-md"
+                className="mt-5 inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-md"
               >
                 <FaPlus className="w-3.5 h-3.5" />
                 Request Deployment
@@ -2932,7 +2981,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
               <div className="mb-5 space-y-3">
                 <div className="flex items-center gap-2">
                   <FaExclamationTriangle className="w-4 h-4 text-amber-500" />
-                  <h3 className="text-sm font-extrabold text-[#0B1B3D]">My change requests needing action</h3>
+                  <h3 className="text-sm font-extrabold text-[var(--brand-dark)]">My change requests needing action</h3>
                 </div>
                 {actionChangeRequests.map((cr) => (
                   <div
@@ -2945,7 +2994,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-[#0B1B3D]">
+                        <p className="text-sm font-bold text-[var(--brand-dark)]">
                           Request #{cr.id}
                           <span className="ml-2 text-xs font-bold text-slate-500">v{cr.current_version || 1}</span>
                           <span className="ml-2 text-xs font-bold text-slate-600">· {crStatusLabel(cr.status)}</span>
@@ -3037,15 +3086,15 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                         onClick={() => handleDeploymentSelect(req.id)}
                         className={`text-left p-4 rounded-xl border transition-all ${
                           isSelected
-                            ? 'border-[#C8102E] bg-[#C8102E]/5 ring-2 ring-[#C8102E]/15 shadow-sm'
-                            : 'border-gray-200 bg-white hover:border-[#C8102E]/30 hover:shadow-md'
+                            ? 'border-[var(--brand)] bg-[var(--brand)]/5 ring-2 ring-[color-mix(in_srgb,var(--brand)_15%,transparent)] shadow-sm'
+                            : 'border-gray-200 bg-white hover:border-[var(--brand)]/30 hover:shadow-md'
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          <FaGlobeAmericas className={`w-4 h-4 ${isSelected ? 'text-[#C8102E]' : 'text-gray-400'}`} />
-                          <span className="font-bold text-sm text-[#0B1B3D] truncate">{req.domain_name}</span>
+                          <FaGlobeAmericas className={`w-4 h-4 ${isSelected ? 'text-[var(--brand)]' : 'text-gray-400'}`} />
+                          <span className="font-bold text-sm text-[var(--brand-dark)] truncate">{req.domain_name}</span>
                           {isSelected && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#C8102E] text-white ml-auto">Active</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand)] text-white ml-auto">Active</span>
                           )}
                         </div>
                         <p className="text-xs text-gray-500">{req.template_name || 'template4'}</p>
@@ -3069,7 +3118,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
               <select
                 value={selectedPageId}
                 onChange={(e) => handlePageSelect(e.target.value)}
-                className="w-full md:w-96 text-sm font-semibold p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#C8102E]/30 focus:border-[#C8102E] outline-none transition"
+                className="w-full md:w-96 text-sm font-semibold p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] outline-none transition"
               >
                 <option value="">-- Choose a Page --</option>
                 {pages.map(page => (
@@ -3093,7 +3142,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                   defaultOpen={checkedSectionIds.length === 0}
                   badge={
                     checkedSectionIds.length > 0 ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs bg-[#C8102E]/10 text-[#C8102E] font-bold px-3 py-1.5 rounded-full border border-[#C8102E]/20">
+                      <span className="inline-flex items-center gap-1.5 text-xs bg-[var(--brand)]/10 text-[var(--brand)] font-bold px-3 py-1.5 rounded-full border border-[var(--brand)]/20">
                         {isPowerAdminPublishMode ? <FaEdit className="w-3 h-3" /> : <FaLock className="w-3 h-3" />}
                         {checkedSectionIds.length} {isPowerAdminPublishMode ? 'selected' : 'locked'}
                       </span>
@@ -3114,8 +3163,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                             isLockedByOther
                               ? 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-60'
                               : isChecked || isLockedByMe
-                                ? 'bg-[#C8102E]/5 border-[#C8102E] ring-2 ring-[#C8102E]/10 cursor-default shadow-sm'
-                                : 'bg-white border-gray-200 hover:border-[#C8102E]/30 hover:shadow-md cursor-pointer'
+                                ? 'bg-[var(--brand)]/5 border-[var(--brand)] ring-2 ring-[var(--brand)]/10 cursor-default shadow-sm'
+                                : 'bg-white border-gray-200 hover:border-[var(--brand)]/30 hover:shadow-md cursor-pointer'
                           }`}
                         >
                           <input
@@ -3123,16 +3172,16 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                             checked={isChecked || isLockedByMe}
                             disabled={isLockedByOther || (!isPowerAdminPublishMode && (isChecked || isLockedByMe))}
                             onChange={(e) => handleSectionCheckboxChange(section, e.target.checked)}
-                            className="w-4 h-4 mt-1 text-[#C8102E] rounded border-gray-300 focus:ring-[#C8102E] shrink-0"
+                            className="w-4 h-4 mt-1 text-[var(--brand)] rounded border-gray-300 focus:ring-[var(--brand)] shrink-0"
                           />
                           <div className="flex items-start gap-3 flex-1 min-w-0">
                             <div className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-                              isChecked || isLockedByMe ? 'bg-[#C8102E] text-white' : 'bg-gray-100 text-gray-500'
+                              isChecked || isLockedByMe ? 'bg-[var(--brand)] text-white' : 'bg-gray-100 text-gray-500'
                             }`}>
                               <SecIcon className="w-4 h-4" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="font-bold text-[#0B1B3D] text-sm flex items-center flex-wrap gap-2">
+                              <div className="font-bold text-[var(--brand-dark)] text-sm flex items-center flex-wrap gap-2">
                                 {sectionDisplayName(section)}
                                 {section.is_visible === false && (
                                   <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-2 py-0.5 rounded-full">Hidden</span>
@@ -3177,14 +3226,14 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                           <button
                             type="button"
                             onClick={() => setAllEditorsExpanded(true)}
-                            className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-[#C8102E]/30 hover:text-[#0B1B3D] transition"
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-[var(--brand)]/30 hover:text-[var(--brand-dark)] transition"
                           >
                             Expand all
                           </button>
                           <button
                             type="button"
                             onClick={() => setAllEditorsExpanded(false)}
-                            className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-[#C8102E]/30 hover:text-[#0B1B3D] transition"
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-[var(--brand)]/30 hover:text-[var(--brand-dark)] transition"
                           >
                             Collapse all
                           </button>
@@ -3209,12 +3258,12 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                 onClick={() => toggleEditorExpanded(secId)}
                                 className="flex items-center gap-3 min-w-0 flex-1 text-left group"
                               >
-                                <FaChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform duration-200 group-hover:text-[#C8102E]" />
-                                <div className="w-9 h-9 rounded-lg bg-[#C8102E] text-white flex items-center justify-center shadow-sm shrink-0">
+                                <FaChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform duration-200 group-hover:text-[var(--brand)]" />
+                                <div className="w-9 h-9 rounded-lg bg-[var(--brand)] text-white flex items-center justify-center shadow-sm shrink-0">
                                   <SecIcon className="w-4 h-4" />
                                 </div>
                                 <div className="min-w-0">
-                                  <h3 className="text-base font-bold text-[#0B1B3D] truncate group-hover:text-[#C8102E] transition-colors">
+                                  <h3 className="text-base font-bold text-[var(--brand-dark)] truncate group-hover:text-[var(--brand)] transition-colors">
                                     {sectionDisplayName(section)}
                                   </h3>
                                   <p className="text-[11px] text-gray-400 mt-0.5">
@@ -3230,11 +3279,11 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                 onClick={() => toggleEditorExpanded(secId)}
                                 className="flex items-center gap-2.5 min-w-0 flex-1 text-left group"
                               >
-                                <FaChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform duration-200 rotate-180 group-hover:text-[#C8102E]" />
-                                <div className="w-8 h-8 rounded-lg bg-[#C8102E] text-white flex items-center justify-center shadow-sm shrink-0">
+                                <FaChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform duration-200 rotate-180 group-hover:text-[var(--brand)]" />
+                                <div className="w-8 h-8 rounded-lg bg-[var(--brand)] text-white flex items-center justify-center shadow-sm shrink-0">
                                   <SecIcon className="w-3.5 h-3.5" />
                                 </div>
-                                <h3 className="text-sm font-bold text-[#0B1B3D] truncate group-hover:text-[#C8102E] transition-colors">
+                                <h3 className="text-sm font-bold text-[var(--brand-dark)] truncate group-hover:text-[var(--brand)] transition-colors">
                                   {sectionDisplayName(section)}
                                 </h3>
                               </button>
@@ -3242,7 +3291,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                 <button
                                   type="button"
                                   onClick={() => setPreviewTab(prev => ({ ...prev, [secId]: false }))}
-                                  className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition ${!isPreview ? 'bg-white text-[#0B1B3D] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                  className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition ${!isPreview ? 'bg-white text-[var(--brand-dark)] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                   <FaEdit className="w-3 h-3" />
                                   Fields
@@ -3250,7 +3299,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                 <button
                                   type="button"
                                   onClick={() => setPreviewTab(prev => ({ ...prev, [secId]: true }))}
-                                  className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition ${isPreview ? 'bg-white text-[#0B1B3D] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                  className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition ${isPreview ? 'bg-white text-[var(--brand-dark)] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                   <FaEye className="w-3 h-3" />
                                   Preview
@@ -3298,13 +3347,13 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                                 onClick={() => setPreviewSlide((prev) => ({ ...prev, [secId]: slideIndex }))}
                                                 className={`relative inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition ${
                                                   isActive
-                                                    ? 'bg-white text-[#0B1B3D] shadow-sm'
+                                                    ? 'bg-white text-[var(--brand-dark)] shadow-sm'
                                                     : 'text-gray-500 hover:text-gray-700'
                                                 }`}
                                               >
                                                 Slide {slideIndex + 1}
                                                 {hasContent && (
-                                                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-[#C8102E]' : 'bg-emerald-400'}`} />
+                                                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-[var(--brand)]' : 'bg-emerald-400'}`} />
                                                 )}
                                               </button>
                                             )
@@ -3313,8 +3362,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                       </div>
 
                                       <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
-                                        <h5 className="text-sm font-bold text-[#0B1B3D] mb-4 flex items-center gap-2">
-                                          <span className="w-6 h-6 rounded-full bg-[#C8102E] text-white flex items-center justify-center text-xs">
+                                        <h5 className="text-sm font-bold text-[var(--brand-dark)] mb-4 flex items-center gap-2">
+                                          <span className="w-6 h-6 rounded-full bg-[var(--brand)] text-white flex items-center justify-center text-xs">
                                             {activeSlideIndex + 1}
                                           </span>
                                           Slide {activeSlideIndex + 1}
@@ -3353,7 +3402,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                               value={slide.heading || ''}
                                               onChange={(e) => updateSlide({ heading: e.target.value })}
                                               placeholder="e.g. Strategic Advisory for Long-Term Growth"
-                                              className={`${inputClass} font-semibold text-[#0B1B3D]`}
+                                              className={`${inputClass} font-semibold text-[var(--brand-dark)]`}
                                             />
                                           </div>
                                           <div className="md:col-span-2">
@@ -3444,7 +3493,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                             value={values.heading || ''}
                                             onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                             placeholder="We are the best agency to improve your deals."
-                                            className={`${inputClass} font-semibold text-[#0B1B3D]`}
+                                            className={`${inputClass} font-semibold text-[var(--brand-dark)]`}
                                           />
                                         </div>
                                         <div className="md:col-span-2">
@@ -3491,7 +3540,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                                 value={box.heading || box.title || ''}
                                                 onChange={(e) => patchBox(secId, activeBoxIndex, { heading: e.target.value })}
                                                 placeholder="Business & Strategy"
-                                                className={`${inputClass} font-semibold text-[#0B1B3D]`}
+                                                className={`${inputClass} font-semibold text-[var(--brand-dark)]`}
                                               />
                                             </div>
                                             <div className="md:col-span-2">
@@ -3521,7 +3570,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.eyebrow || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'eyebrow', e.target.value)}
                                         placeholder="ABOUT US"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -3531,7 +3580,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.heading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                         placeholder="Why will you choose our?"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none font-semibold text-[#0B1B3D]"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none font-semibold text-[var(--brand-dark)]"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -3541,7 +3590,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.subheading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'subheading', e.target.value)}
                                         placeholder="Our agency can only be as strong as our people..."
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -3551,7 +3600,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.text || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'text', e.target.value)}
                                         placeholder="Section introduction..."
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                   </div>
@@ -3612,7 +3661,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                   })()}
 
                                   <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                    <h5 className="text-sm font-bold text-[#0B1B3D] mb-4">Highlight box</h5>
+                                    <h5 className="text-sm font-bold text-[var(--brand-dark)] mb-4">Highlight box</h5>
                                     <div className="grid md:grid-cols-2 gap-4">
                                       <div>
                                         <label className="block text-xs font-bold text-gray-700 mb-1">Highlight number</label>
@@ -3621,7 +3670,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                           value={values.experience_years || ''}
                                           onChange={(e) => handleFieldValueChange(secId, 'experience_years', e.target.value)}
                                           placeholder="10+"
-                                          className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                          className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                         />
                                       </div>
                                       <div>
@@ -3631,7 +3680,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                           value={values.experience_label || ''}
                                           onChange={(e) => handleFieldValueChange(secId, 'experience_label', e.target.value)}
                                           placeholder="Years of Experience"
-                                          className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                          className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                         />
                                       </div>
                                     </div>
@@ -3647,7 +3696,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.subheading || values.eyebrow || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'subheading', e.target.value)}
                                         placeholder="OUR JOURNEY"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -3657,7 +3706,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.heading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                         placeholder="Our Company History"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none font-semibold text-[#0B1B3D]"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none font-semibold text-[var(--brand-dark)]"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -3667,7 +3716,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.text || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'text', e.target.value)}
                                         placeholder="A decade of growth, innovation, and unwavering commitment to client success."
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                   </div>
@@ -3728,7 +3777,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                                 value={yearItem.heading || yearItem.title || ''}
                                                 onChange={(e) => patchYear(secId, yearIndex, { heading: e.target.value })}
                                                 placeholder="Started Business"
-                                                className={`${inputClass} font-semibold text-[#0B1B3D]`}
+                                                className={`${inputClass} font-semibold text-[var(--brand-dark)]`}
                                               />
                                             </div>
                                             <div className="md:col-span-2">
@@ -3767,7 +3816,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.subheading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'subheading', e.target.value)}
                                         placeholder="FEATURED SERVICES"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -3777,7 +3826,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.heading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                         placeholder="We help to get Solutions!"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -3787,7 +3836,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.text || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'text', e.target.value)}
                                         placeholder="Provide users with appropriate view and access permissions..."
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                   </div>
@@ -3825,8 +3874,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                                         onClick={() => patchServiceBox(secId, boxIndex, { icon: opt.value })}
                                                         className={`h-10 rounded-lg border flex items-center justify-center transition ${
                                                           selected
-                                                            ? 'border-[#0B1B3D] bg-[#0B1B3D] text-white'
-                                                            : 'border-gray-200 bg-white text-[#0B1B3D] hover:border-gray-400'
+                                                            ? 'border-[var(--brand-dark)] bg-[var(--brand-dark)] text-white'
+                                                            : 'border-gray-200 bg-white text-[var(--brand-dark)] hover:border-gray-400'
                                                         }`}
                                                       >
                                                         <Icon size={16} />
@@ -3896,7 +3945,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.subheading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'subheading', e.target.value)}
                                         placeholder="ANNUAL PROGRESSION"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -3906,7 +3955,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.heading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                         placeholder="Our Business Growth is Really Incredible!"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -3916,7 +3965,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.text || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'text', e.target.value)}
                                         placeholder="We love what we do and we do it with passion..."
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                   </div>
@@ -4010,8 +4059,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                                         onClick={() => patchProgressHighlight(secId, highlightIndex, { icon: opt.value })}
                                                         className={`h-10 rounded-lg border flex items-center justify-center transition ${
                                                           selected
-                                                            ? 'border-[#0B1B3D] bg-[#0B1B3D] text-white'
-                                                            : 'border-gray-200 bg-white text-[#0B1B3D] hover:border-gray-400'
+                                                            ? 'border-[var(--brand-dark)] bg-[var(--brand-dark)] text-white'
+                                                            : 'border-gray-200 bg-white text-[var(--brand-dark)] hover:border-gray-400'
                                                         }`}
                                                       >
                                                         <Icon size={16} />
@@ -4057,7 +4106,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.subheading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'subheading', e.target.value)}
                                         placeholder="COMPLETED PROJECTS"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -4067,7 +4116,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.heading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                         placeholder="You can check our projects as inspirations."
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                   </div>
@@ -4161,7 +4210,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.subheading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'subheading', e.target.value)}
                                         placeholder="GET IN TOUCH"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -4171,7 +4220,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.heading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                         placeholder="We are Connected All Time to Help Your Business!"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -4181,7 +4230,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.text || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'text', e.target.value)}
                                         placeholder="We understand the importance of approaching each work integrally..."
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div>
@@ -4191,7 +4240,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.form_heading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'form_heading', e.target.value)}
                                         placeholder="Book an appionment"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     {isPowerAdminPublishMode && (
@@ -4202,7 +4251,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                           value={values.button_text || ''}
                                           onChange={(e) => handleFieldValueChange(secId, 'button_text', e.target.value)}
                                           placeholder="SEND YOUR MESSAGE"
-                                          className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                          className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                         />
                                       </div>
                                     )}
@@ -4213,7 +4262,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.branches_label || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'branches_label', e.target.value)}
                                         placeholder="Main Branches:"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div>
@@ -4223,7 +4272,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.stat_value || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'stat_value', e.target.value)}
                                         placeholder="12+"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div>
@@ -4233,7 +4282,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.stat_label || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'stat_label', e.target.value)}
                                         placeholder="Branches"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -4347,8 +4396,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                                       onClick={() => patchCounterStat(secId, statIndex, { icon: opt.value })}
                                                       className={`h-10 rounded-lg border flex items-center justify-center transition ${
                                                         selected
-                                                          ? 'border-[#0B1B3D] bg-[#0B1B3D] text-white'
-                                                          : 'border-gray-200 bg-white text-[#0B1B3D] hover:border-gray-400'
+                                                          ? 'border-[var(--brand-dark)] bg-[var(--brand-dark)] text-white'
+                                                          : 'border-gray-200 bg-white text-[var(--brand-dark)] hover:border-gray-400'
                                                       }`}
                                                     >
                                                       <Icon size={16} />
@@ -4403,7 +4452,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.eyebrow || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'eyebrow', e.target.value)}
                                         placeholder="CLIENT'S TESTIMONIALS"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -4413,7 +4462,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.heading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                         placeholder="We are Very Happy to Get Our Client's Reviews."
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -4423,7 +4472,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.subheading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'subheading', e.target.value)}
                                         placeholder="Clients Reviews:"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -4513,7 +4562,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.eyebrow || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'eyebrow', e.target.value)}
                                         placeholder="OUR LATEST NEWS"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -4523,7 +4572,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.heading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                         placeholder="Learn about our latest news from blog."
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                   </div>
@@ -4701,7 +4750,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.heading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                         placeholder="Looking for the Best Business Consulting?"
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none font-semibold text-[#0B1B3D]"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none font-semibold text-[var(--brand-dark)]"
                                       />
                                     </div>
                                     <div className="md:col-span-2">
@@ -4711,7 +4760,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                         value={values.subheading || ''}
                                         onChange={(e) => handleFieldValueChange(secId, 'subheading', e.target.value)}
                                         placeholder="As a web crawler expert, we will help to organize."
-                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                        className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                       />
                                     </div>
                                     {isPowerAdminPublishMode && (
@@ -4723,7 +4772,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                             value={values.button_text || ''}
                                             onChange={(e) => handleFieldValueChange(secId, 'button_text', e.target.value)}
                                             placeholder="GET A QUOTE"
-                                            className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                            className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                           />
                                         </div>
                                         <div>
@@ -4733,7 +4782,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                             value={values.button_url || values.url || values.link || ''}
                                             onChange={(e) => handleFieldValueChange(secId, 'button_url', e.target.value)}
                                             placeholder="#appointment or https://..."
-                                            className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                            className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                           />
                                         </div>
                                       </>
@@ -4750,7 +4799,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                       value={values.eyebrow || ''}
                                       onChange={(e) => handleFieldValueChange(secId, 'eyebrow', e.target.value)}
                                       placeholder="e.g. ABOUT US"
-                                      className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                      className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                     />
                                   </div>
                                   <div className="md:col-span-2">
@@ -4760,7 +4809,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                       value={values.heading || ''}
                                       onChange={(e) => handleFieldValueChange(secId, 'heading', e.target.value)}
                                       placeholder="e.g. Section Title"
-                                      className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none font-semibold text-[#0B1B3D]"
+                                      className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none font-semibold text-[var(--brand-dark)]"
                                     />
                                   </div>
                                   <div className="md:col-span-2">
@@ -4770,7 +4819,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                       value={values.subheading || ''}
                                       onChange={(e) => handleFieldValueChange(secId, 'subheading', e.target.value)}
                                       placeholder="Summary or tagline..."
-                                      className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                      className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                     />
                                   </div>
                                   <div className="md:col-span-2">
@@ -4780,7 +4829,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                       value={values.text || ''}
                                       onChange={(e) => handleFieldValueChange(secId, 'text', e.target.value)}
                                       placeholder="Full section text..."
-                                      className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                      className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                     />
                                   </div>
                                   {isPowerAdminPublishMode && (
@@ -4792,7 +4841,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                           value={values.button_text || ''}
                                           onChange={(e) => handleFieldValueChange(secId, 'button_text', e.target.value)}
                                           placeholder="Learn more"
-                                          className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                          className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                         />
                                       </div>
                                       <div>
@@ -4802,7 +4851,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                           value={values.button_url || values.url || values.link || ''}
                                           onChange={(e) => handleFieldValueChange(secId, 'button_url', e.target.value)}
                                           placeholder="#section or https://..."
-                                          className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none"
+                                          className="w-full text-sm p-2.5 border rounded-lg focus:ring-2 focus:ring-[var(--brand)] outline-none"
                                         />
                                       </div>
                                     </>
@@ -4823,8 +4872,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                           ) : (
                             <div className="p-4 bg-gradient-to-b from-slate-50 to-slate-100/50 space-y-3">
                               <div className="bg-white px-5 py-3 rounded-xl border border-gray-200/80 shadow-sm flex items-center justify-between">
-                                <span className="text-xs font-extrabold text-[#0B1B3D] flex items-center gap-2">
-                                  <FaEye className="w-3.5 h-3.5 text-[#C8102E]" />
+                                <span className="text-xs font-extrabold text-[var(--brand-dark)] flex items-center gap-2">
+                                  <FaEye className="w-3.5 h-3.5 text-[var(--brand)]" />
                                   Live Preview — reflects your edits
                                 </span>
                                 <span className="text-[11px] text-gray-400 font-mono bg-gray-50 px-2 py-0.5 rounded">
@@ -4862,7 +4911,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                                   preview_slide: previewSlide[secId] ?? 0,
                                 }}
                                 height={isWhatWeDoSection(sectionTemplateKey(section)) || isAboutSection(sectionTemplateKey(section)) || isCompanyHistorySection(sectionTemplateKey(section)) || isFeaturedServicesSection(sectionTemplateKey(section)) || isAnnualProgressionSection(sectionTemplateKey(section)) || isPortfolioSection(sectionTemplateKey(section)) || isBranchesSection(sectionTemplateKey(section)) || isCounterStatsSection(sectionTemplateKey(section)) || isTestimonialsSection(sectionTemplateKey(section)) || isLatestNewsSection(sectionTemplateKey(section)) || isClientLogosSection(sectionTemplateKey(section)) || isCtaBannerSection(sectionTemplateKey(section)) ? 720 : 520}
-                                borderColor="border-[#C8102E]"
+                                borderColor="border-[var(--brand)]"
                               />
                             </div>
                           )
@@ -4876,7 +4925,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                         type="button"
                         onClick={handleBatchSubmit}
                         disabled={isSubmitting}
-                        className="inline-flex items-center gap-2 bg-[#C8102E] text-white text-base font-extrabold px-8 py-3.5 rounded-xl hover:bg-[#A00C23] shadow-lg shadow-[#C8102E]/25 transition disabled:opacity-50"
+                        className="inline-flex items-center gap-2 bg-[var(--brand)] text-white text-base font-extrabold px-8 py-3.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] shadow-lg shadow-[color-mix(in_srgb,var(--brand-dark)_25%,transparent)] transition disabled:opacity-50"
                       >
                         <FaPaperPlane className="w-4 h-4" />
                         {isSubmitting
@@ -4890,7 +4939,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                     <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-400 flex items-center justify-center mx-auto mb-4">
                       <FaUnlock className="w-7 h-7" />
                     </div>
-                    <h3 className="text-lg font-bold text-[#0B1B3D]">No Sections Selected</h3>
+                    <h3 className="text-lg font-bold text-[var(--brand-dark)]">No Sections Selected</h3>
                     <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
                       {isPowerAdminPublishMode
                         ? 'Select one or more sections above to start editing content.'
@@ -4943,15 +4992,94 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 />
               </div>
 
-              <div>
-                <label className={labelClass}>Logo URL (Optional)</label>
-                <input
-                  type="url"
-                  placeholder="https://myfirm.com/logo.png"
-                  value={logoUrl}
-                  onChange={e => setLogoUrl(e.target.value)}
-                  className={inputClass}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>Site Logo <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <div className="flex items-start gap-3">
+                    <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                      {(logoPreview || logoUrl) ? (
+                        <img
+                          src={logoPreview || absoluteAssetUrl(logoUrl)}
+                          alt=""
+                          className="w-full h-full object-contain p-1"
+                        />
+                      ) : (
+                        <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition">
+                        <FaUpload className="w-3 h-3 text-[var(--brand)]" />
+                        {uploadingLogo ? 'Uploading…' : 'Upload logo'}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                          className="hidden"
+                          disabled={uploadingLogo}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) uploadBrandingAsset(file, 'logo')
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                      {logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => { setLogoUrl(''); setLogoPreview('') }}
+                          className="block text-[11px] font-semibold text-rose-600 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      )}
+                      <p className="text-[11px] text-gray-500">Used in the live site header/footer after cPanel deploy.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Favicon <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <div className="flex items-start gap-3">
+                    <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                      {(faviconPreview || faviconUrl) ? (
+                        <img
+                          src={faviconPreview || absoluteAssetUrl(faviconUrl)}
+                          alt=""
+                          className="w-full h-full object-contain p-1"
+                        />
+                      ) : (
+                        <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition">
+                        <FaUpload className="w-3 h-3 text-[var(--brand)]" />
+                        {uploadingFavicon ? 'Uploading…' : 'Upload favicon'}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
+                          className="hidden"
+                          disabled={uploadingFavicon}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) uploadBrandingAsset(file, 'favicon')
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                      {faviconUrl && (
+                        <button
+                          type="button"
+                          onClick={() => { setFaviconUrl(''); setFaviconPreview('') }}
+                          className="block text-[11px] font-semibold text-rose-600 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      )}
+                      <p className="text-[11px] text-gray-500">Browser tab icon on the advisor&apos;s live site.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -4968,7 +5096,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                       type="text"
                       value={primaryColor}
                       onChange={e => setPrimaryColor(e.target.value)}
-                      className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[#C8102E]/30 outline-none"
+                      className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
                     />
                   </div>
                 </div>
@@ -4986,7 +5114,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                       type="text"
                       value={secondaryColor}
                       onChange={e => setSecondaryColor(e.target.value)}
-                      className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[#C8102E]/30 outline-none"
+                      className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
                     />
                   </div>
                 </div>
@@ -5002,8 +5130,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingTemplate}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[#0B1B3D] text-white rounded-xl hover:bg-[#07122A] transition disabled:opacity-50 shadow-md"
+                  disabled={isSubmittingTemplate || uploadingLogo || uploadingFavicon}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
                 >
                   <FaRocket className="w-3.5 h-3.5" />
                   {isSubmittingTemplate ? 'Submitting...' : 'Submit Request'}

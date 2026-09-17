@@ -37,19 +37,19 @@ export default function WebsiteComplianceQueue() {
       <div className="wc-app wc-surface space-y-8">
         {canAssign && (
           <div>
-            <h2 className="text-sm font-bold text-[#0B1B3D] mb-3 uppercase tracking-wide">Assignment</h2>
+            <h2 className="text-sm font-bold text-[var(--brand-dark)] mb-3 uppercase tracking-wide">Assignment</h2>
             <ChangeRequestAssignmentPanel variant="pending" />
           </div>
         )}
         {canReview && (
           <div>
-            <h2 className="text-sm font-bold text-[#0B1B3D] mb-3 uppercase tracking-wide">Review queue</h2>
+            <h2 className="text-sm font-bold text-[var(--brand-dark)] mb-3 uppercase tracking-wide">Review queue</h2>
             <ReviewQueuePanel variant="active" />
           </div>
         )}
         {(canAssign || canReview) && (
           <div>
-            <h2 className="text-sm font-bold text-[#0B1B3D] mb-3 uppercase tracking-wide">History</h2>
+            <h2 className="text-sm font-bold text-[var(--brand-dark)] mb-3 uppercase tracking-wide">History</h2>
             {canAssign ? (
               <ChangeRequestAssignmentPanel variant="history" />
             ) : (

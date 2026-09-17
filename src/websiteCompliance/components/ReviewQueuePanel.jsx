@@ -112,7 +112,7 @@ function RequestTitle({ req }) {
 
   if (type === 'single') {
     return (
-      <h3 className="text-base sm:text-lg font-bold text-[#0B1B3D]">
+      <h3 className="text-base sm:text-lg font-bold text-[var(--brand-dark)]">
         Section: {names[0]}
       </h3>
     )
@@ -127,7 +127,7 @@ function RequestTitle({ req }) {
     return (
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-base sm:text-lg font-bold text-[#0B1B3D]">Request #{req.id}</h3>
+          <h3 className="text-base sm:text-lg font-bold text-[var(--brand-dark)]">Request #{req.id}</h3>
           <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
             <FaLayerGroup className="w-3 h-3" />
             {count} {count === 1 ? 'section' : 'sections'}
@@ -144,7 +144,7 @@ function RequestTitle({ req }) {
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
-                className="inline-flex items-center gap-1 ml-1.5 text-[#C8102E] font-bold hover:underline shrink-0"
+                className="inline-flex items-center gap-1 ml-1.5 text-[var(--brand)] font-bold hover:underline shrink-0"
               >
                 Show all
                 <FaChevronDown className="w-2.5 h-2.5" />
@@ -166,7 +166,7 @@ function RequestTitle({ req }) {
             <button
               type="button"
               onClick={() => setExpanded(false)}
-              className="inline-flex items-center gap-1 mt-2 text-xs text-[#C8102E] font-bold hover:underline"
+              className="inline-flex items-center gap-1 mt-2 text-xs text-[var(--brand)] font-bold hover:underline"
             >
               Show less
               <FaChevronUp className="w-2.5 h-2.5" />
@@ -178,7 +178,7 @@ function RequestTitle({ req }) {
   }
 
   return (
-    <h3 className="text-base sm:text-lg font-bold text-[#0B1B3D]">
+    <h3 className="text-base sm:text-lg font-bold text-[var(--brand-dark)]">
       Change Request #{req.id}
     </h3>
   )
@@ -450,8 +450,8 @@ const RequestCard = memo(function RequestCard({
               </span>
               {req.approver && (
                 <span className="inline-flex items-center gap-1.5">
-                  <FaClipboardCheck className="w-3 h-3 text-[#C8102E]" />
-                  <span>Assigned to <strong className="text-[#C8102E]">{req.approver.name}</strong></span>
+                  <FaClipboardCheck className="w-3 h-3 text-[var(--brand)]" />
+                  <span>Assigned to <strong className="text-[var(--brand)]">{req.approver.name}</strong></span>
                 </span>
               )}
             </div>
@@ -464,7 +464,7 @@ const RequestCard = memo(function RequestCard({
               disabled={busy === 'preview'}
               className={`inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl transition disabled:opacity-60 shrink-0 ${
                 previewData
-                  ? 'bg-[#0B1B3D] text-white hover:bg-slate-800'
+                  ? 'bg-[var(--brand-dark)] text-white hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)]'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -501,7 +501,7 @@ const RequestCard = memo(function RequestCard({
             type="button"
             onClick={handleAssign}
             disabled={!!busy}
-            className="inline-flex items-center gap-2 bg-[#0B1B3D] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-slate-800 transition shadow-sm disabled:opacity-60 shrink-0"
+            className="inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-sm disabled:opacity-60 shrink-0"
           >
             {busy === 'assign' ? (
               <>
@@ -569,7 +569,7 @@ const RequestCard = memo(function RequestCard({
             {decision === 'approve' ? (
               <div className="bg-white rounded-xl border border-emerald-200 p-5 space-y-4">
                 <div>
-                  <p className="text-sm font-bold text-[#0B1B3D]">Approve &amp; publish</p>
+                  <p className="text-sm font-bold text-[var(--brand-dark)]">Approve &amp; publish</p>
                   <p className="text-xs text-gray-500 mt-1">
                     Publish now, or optionally schedule a later publish time.
                   </p>
@@ -622,7 +622,7 @@ const RequestCard = memo(function RequestCard({
             ) : decision === 'awf' ? (
               <div className="bg-white rounded-xl border border-violet-200 p-5 space-y-4">
                 <div>
-                  <p className="text-sm font-bold text-[#0B1B3D]">Approve with feedback</p>
+                  <p className="text-sm font-bold text-[var(--brand-dark)]">Approve with feedback</p>
                   <p className="text-xs text-gray-500 mt-1">
                     Do not publish yet. Unlock sections so the editor can address your notes, then confirm.
                   </p>
@@ -662,7 +662,7 @@ const RequestCard = memo(function RequestCard({
             ) : (
               <div className="bg-white rounded-xl border border-rose-200 p-5 space-y-4">
                 <div>
-                  <p className="text-sm font-bold text-[#0B1B3D]">Reject request</p>
+                  <p className="text-sm font-bold text-[var(--brand-dark)]">Reject request</p>
                   <p className="text-xs text-gray-500 mt-1">
                     Send it back to the editor with clear feedback on what to change.
                   </p>
@@ -729,7 +729,7 @@ const RequestCard = memo(function RequestCard({
           type="button"
           onClick={handleLoadVersions}
           disabled={busy === 'versions'}
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#0B1B3D] transition disabled:opacity-60"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[var(--brand-dark)] transition disabled:opacity-60"
         >
           <FaCodeBranch className="w-3.5 h-3.5" />
           {versions ? 'Hide version history' : 'Show version history'}
@@ -783,7 +783,7 @@ const RequestCard = memo(function RequestCard({
                 href="https://epatronus.space/template4/"
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs text-[#C8102E] font-bold underline mt-1 inline-block hover:opacity-80"
+                className="text-xs text-[var(--brand)] font-bold underline mt-1 inline-block hover:opacity-80"
               >
                 View deployed advisor site ↗
               </a>
@@ -795,7 +795,7 @@ const RequestCard = memo(function RequestCard({
                   type="button"
                   onClick={() => setPreviewMode('visual')}
                   className={`text-[11px] font-bold px-3 py-1.5 rounded-lg transition ${
-                    previewMode === 'visual' ? 'bg-[#0B1B3D] text-white' : 'text-gray-600 hover:bg-gray-50'
+                    previewMode === 'visual' ? 'bg-[var(--brand-dark)] text-white' : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   Visual Preview
@@ -804,7 +804,7 @@ const RequestCard = memo(function RequestCard({
                   type="button"
                   onClick={() => setPreviewMode('json')}
                   className={`text-[11px] font-bold px-3 py-1.5 rounded-lg transition ${
-                    previewMode === 'json' ? 'bg-[#0B1B3D] text-white' : 'text-gray-600 hover:bg-gray-50'
+                    previewMode === 'json' ? 'bg-[var(--brand-dark)] text-white' : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   JSON Diff
@@ -851,7 +851,7 @@ const RequestCard = memo(function RequestCard({
                         <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
                           {idx + 1}
                         </span>
-                        <h5 className="font-extrabold text-[#0B1B3D] text-sm truncate">
+                        <h5 className="font-extrabold text-[var(--brand-dark)] text-sm truncate">
                           {item.section_name}
                         </h5>
                       </div>
@@ -1011,7 +1011,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
             placeholder="Search by section, editor, or ID…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[#C8102E]/30 focus:border-[#C8102E] transition"
+            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition"
           />
         </div>
 
@@ -1028,7 +1028,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
 
       {loading ? (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center text-gray-500">
-          <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[#C8102E] border-t-transparent animate-spin" />
+          <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
           <p className="text-sm font-semibold">Loading change requests…</p>
         </div>
       ) : filteredRequests.length === 0 ? (
@@ -1036,7 +1036,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
           <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
             <FaInbox className="w-6 h-6 text-gray-400" />
           </div>
-          <h3 className="text-lg font-bold text-[#0B1B3D]">
+          <h3 className="text-lg font-bold text-[var(--brand-dark)]">
             {search.trim() ? 'No matching requests' : variant === 'history' ? 'No history yet' : 'No change requests found'}
           </h3>
           <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
@@ -1050,7 +1050,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="mt-4 text-sm font-bold text-[#C8102E] hover:underline"
+              className="mt-4 text-sm font-bold text-[var(--brand)] hover:underline"
             >
               Clear search
             </button>

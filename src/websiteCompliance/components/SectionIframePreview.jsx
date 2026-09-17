@@ -110,7 +110,7 @@ export default function SectionIframePreview({
         {/* Loading overlay — shown until iframe signals SECTION_PREVIEW_READY */}
         {isLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 z-10 gap-3">
-            <div className="w-9 h-9 rounded-full border-4 border-[#C8102E] border-t-transparent animate-spin" />
+            <div className="w-9 h-9 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
             <p className="text-xs font-semibold text-gray-500">
               Loading live template preview…
             </p>

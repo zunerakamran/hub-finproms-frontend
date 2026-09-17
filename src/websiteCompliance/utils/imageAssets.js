@@ -5,6 +5,7 @@ export function isUploadedAsset(url) {
     typeof url === 'string' &&
     (url.startsWith('/uploaded-images') ||
       url.includes('/uploaded-images/') ||
+      url.includes('/website-compliance/uploaded-images') ||
       url.startsWith('/uploads') ||
       url.includes('/uploads/'))
   )

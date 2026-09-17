@@ -23,7 +23,7 @@ function StatCard({ label, value, icon: Icon, accent, sub }) {
         <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
       </div>
       <div className="min-w-0">
-        <p className="text-xl sm:text-2xl font-extrabold text-[#0B1B3D] leading-none">{value ?? 0}</p>
+        <p className="text-xl sm:text-2xl font-extrabold text-[var(--brand-dark)] leading-none">{value ?? 0}</p>
         <p className="text-[11px] sm:text-xs text-gray-500 font-semibold mt-1 truncate">{label}</p>
         {sub != null && sub !== '' && (
           <p className="text-[10px] text-gray-400 font-medium mt-0.5 truncate">{sub}</p>
@@ -42,7 +42,7 @@ function SectionCard({ title, subtitle, icon: Icon, iconAccent, children, action
             <Icon className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-[#0B1B3D] truncate">{title}</h2>
+            <h2 className="text-lg font-bold text-[var(--brand-dark)] truncate">{title}</h2>
             {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
           </div>
         </div>
@@ -180,7 +180,7 @@ export default function PlatformSummaryReport({ onError }) {
   if (loading && !summary) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center text-gray-500">
-        <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[#C8102E] border-t-transparent animate-spin" />
+        <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
         <p className="text-sm font-semibold">Loading platform summary…</p>
       </div>
     )
@@ -193,7 +193,7 @@ export default function PlatformSummaryReport({ onError }) {
         <button
           type="button"
           onClick={() => fetchSummary()}
-          className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#C8102E] hover:underline"
+          className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[var(--brand)] hover:underline"
         >
           <FaSync className="w-3.5 h-3.5" />
           Try again
@@ -210,7 +210,7 @@ export default function PlatformSummaryReport({ onError }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[#0B1B3D]">Platform Summary</h2>
+          <h2 className="text-lg font-bold text-[var(--brand-dark)]">Platform Summary</h2>
           <p className="text-xs text-gray-500 mt-0.5">
             Templates, team roles, and request volume
             {summary.generated_at
@@ -231,7 +231,7 @@ export default function PlatformSummaryReport({ onError }) {
           <button
             type="button"
             onClick={() => exportSummaryToCsv(summary, getRoleLabel)}
-            className="inline-flex items-center gap-2 bg-[#0B1B3D] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-slate-800 transition shadow-sm"
+            className="inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-sm"
           >
             <FaDownload className="w-3.5 h-3.5" />
             Export CSV
@@ -271,7 +271,7 @@ export default function PlatformSummaryReport({ onError }) {
           value={cr.total}
           sub={`${cr.by_status?.pending ?? 0} pending`}
           icon={FaClipboardList}
-          accent="bg-[#C8102E]/10 text-[#C8102E]"
+          accent="bg-[var(--brand)]/10 text-[var(--brand)]"
         />
       </div>
 
@@ -292,7 +292,7 @@ export default function PlatformSummaryReport({ onError }) {
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-lg font-extrabold text-[#0B1B3D] leading-none">{byRole[key] ?? 0}</p>
+                  <p className="text-lg font-extrabold text-[var(--brand-dark)] leading-none">{byRole[key] ?? 0}</p>
                   <p className="text-[11px] text-gray-500 font-semibold mt-1 truncate">
                     {getRoleLabel(key)}s
                   </p>
@@ -307,7 +307,7 @@ export default function PlatformSummaryReport({ onError }) {
                 label={getRoleLabel(key)}
                 value={byRole[key] ?? 0}
                 total={summary.users?.total ?? 0}
-                barClass="bg-[#0B1B3D]"
+                barClass="bg-[var(--brand-dark)]"
               />
             ))}
           </div>
@@ -346,7 +346,7 @@ export default function PlatformSummaryReport({ onError }) {
               label="Hub main websites"
               value={tr.by_type?.hub_main_website ?? 0}
               total={tr.total ?? 0}
-              barClass="bg-[#C8102E]"
+              barClass="bg-[var(--brand)]"
             />
           </div>
 
@@ -372,7 +372,7 @@ export default function PlatformSummaryReport({ onError }) {
           title="Change Requests"
           subtitle="Content review pipeline"
           icon={FaClipboardList}
-          iconAccent="bg-[#C8102E]/10 text-[#C8102E]"
+          iconAccent="bg-[var(--brand)]/10 text-[var(--brand)]"
         >
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
             {Object.entries(cr.by_status || {}).map(([status, count]) => (
@@ -380,7 +380,7 @@ export default function PlatformSummaryReport({ onError }) {
                 key={status}
                 className="rounded-xl border border-gray-100 bg-gray-50/80 p-3 text-center"
               >
-                <p className="text-xl font-extrabold text-[#0B1B3D]">{count}</p>
+                <p className="text-xl font-extrabold text-[var(--brand-dark)]">{count}</p>
                 <p className="text-[11px] font-semibold text-gray-500 mt-1 capitalize">
                   {formatStatusLabel(status)}
                 </p>

@@ -30,7 +30,7 @@ export default function Pagination({ currentPage, totalItems, pageSize, onPageCh
           Showing {start}–{end} of {totalItems}
         </span>
         {endLabel && (
-          <span className="text-xs text-[#C8102E] font-bold">{endLabel}</span>
+          <span className="text-xs text-[var(--brand)] font-bold">{endLabel}</span>
         )}
       </div>
 
@@ -53,7 +53,7 @@ export default function Pagination({ currentPage, totalItems, pageSize, onPageCh
               onClick={() => onPageChange(page)}
               className={`${btnBase} min-w-8 px-2 ${
                 page === currentPage
-                  ? 'bg-[#0B1B3D] text-white'
+                  ? 'bg-[var(--brand-dark)] text-white'
                   : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >

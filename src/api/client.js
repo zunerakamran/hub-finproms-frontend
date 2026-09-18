@@ -298,6 +298,12 @@ export const api = {
       body,
     })
   },
+  roleDisplayNames: () => request(`${CLIENT_ADMIN}/role-display-names`),
+  updateRoleDisplayNames: (roles) =>
+    request(`${CLIENT_ADMIN}/role-display-names`, {
+      method: 'PUT',
+      body: JSON.stringify({ roles }),
+    }),
   powerAdminPaymentMethods: (hubId) => {
     const query = hubId ? `?hub_id=${hubId}` : ''
     return request(`/power-admin/payment-methods${query}`)

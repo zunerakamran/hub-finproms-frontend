@@ -21,6 +21,7 @@ import AdminPaymentCardSuccess from './pages/AdminPaymentCardSuccess'
 import AdminPlans from './pages/AdminPlans'
 import AdminPosts from './pages/AdminPosts'
 import AdminSettings from './pages/AdminSettings'
+import AdminRoleDisplayNames from './pages/AdminRoleDisplayNames'
 import AdminTags from './pages/AdminTags'
 import AdminTypes from './pages/AdminTypes'
 import AdvisorBillingSuccess from './pages/AdvisorBillingSuccess'
@@ -569,6 +570,14 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_settings">
                       <AdminSettings />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="role-display-names"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_role_display_names">
+                      <AdminRoleDisplayNames />
                     </HubCapabilityRoute>
                   }
                 />

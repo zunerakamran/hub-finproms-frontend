@@ -12,7 +12,7 @@ import {
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, actingHub } = useHub()
+  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, actingHub, roleLabel } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
@@ -149,7 +149,7 @@ export default function MyDashboardLayout() {
             </span>
             <div className="dash-user-row__meta">
               <strong>{user?.name}</strong>
-              <span className="muted">{user?.email || user?.role}</span>
+              <span className="muted">{user?.email || roleLabel(user?.role)}</span>
             </div>
           </div>
           <button type="button" className="btn ghost full" onClick={onLogout}>

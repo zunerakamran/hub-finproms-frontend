@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
+import { DEFAULT_ROLE_LABELS } from '../utils/roleLabels'
 
 const emptyForm = {
   name: '',
@@ -13,7 +15,13 @@ const emptyForm = {
 
 export default function PowerAdminUsers() {
   const { canPower, user: me } = useAuth()
+  const { roleLabels } = useHub()
   const allowed = canPower('pa_manage_users_roles')
+
+  const fallbackRoles = Object.entries(roleLabels || DEFAULT_ROLE_LABELS).map(([key, label]) => ({
+    key,
+    label,
+  }))
 
   const [users, setUsers] = useState([])
   const [roles, setRoles] = useState([])
@@ -202,18 +210,7 @@ export default function PowerAdminUsers() {
               onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
               required
             >
-              {(roles.length
-                ? roles
-                : [
-                    { key: 'user', label: 'User' },
-                    { key: 'advisor', label: 'Advisor' },
-                    { key: 'approver', label: 'Approver' },
-                    { key: 'manager', label: 'Manager' },
-                    { key: 'client_admin', label: 'Client Admin' },
-                    { key: 'finproms_admin', label: 'FinProms Admin' },
-                    { key: 'power_admin', label: 'Power Admin' },
-                  ]
-              ).map((role) => (
+              {(roles.length ? roles : fallbackRoles).map((role) => (
                 <option key={role.key} value={role.key}>
                   {role.label}
                 </option>

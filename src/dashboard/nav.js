@@ -80,6 +80,7 @@ const CONTENT_ANY = [
 const HUB_OPS_ANY = [
   'dashboard_manage_plans',
   'dashboard_manage_settings',
+  'dashboard_manage_role_display_names',
   'dashboard_bank_transfers',
   'dashboard_view_activity_logs',
   'dashboard_manage_modules',
@@ -228,6 +229,14 @@ export const DASHBOARD_LINKS = [
     title: 'Settings',
     description: 'Configure branding, NEW banner duration, and other hub options.',
     capability: 'dashboard_manage_settings',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/role-display-names',
+    label: 'Role display names',
+    title: 'Role display names',
+    description: 'Customize how role names appear across this hub’s UI.',
+    capability: 'dashboard_manage_role_display_names',
     group: 'hub',
   },
   {

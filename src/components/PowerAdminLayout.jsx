@@ -79,9 +79,10 @@ const links = [
 
 export default function PowerAdminLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, branding, hub } = useHub()
+  const { can, branding, hub, roleLabel } = useHub()
   const navigate = useNavigate()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
+  const powerAdminTitle = roleLabel('power_admin')
 
   const onLogout = async () => {
     await logout()
@@ -111,7 +112,7 @@ export default function PowerAdminLayout() {
           )}
           <div>
             <p className="dash-sidebar__kicker">{brandName}</p>
-            <strong>Power Admin</strong>
+            <strong>{powerAdminTitle}</strong>
           </div>
         </div>
 
@@ -136,7 +137,7 @@ export default function PowerAdminLayout() {
             </span>
             <div>
               <strong>{user?.name}</strong>
-              <span className="muted">Power Admin</span>
+              <span className="muted">{powerAdminTitle}</span>
             </div>
           </div>
           <button type="button" className="btn ghost full" onClick={onLogout}>

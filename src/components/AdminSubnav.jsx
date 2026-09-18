@@ -41,6 +41,11 @@ const links = [
     capability: 'dashboard_view_activity_logs',
   },
   { to: '/client-admin/settings', label: 'Settings', capability: 'dashboard_manage_settings' },
+  {
+    to: '/client-admin/role-display-names',
+    label: 'Role display names',
+    capability: 'dashboard_manage_role_display_names',
+  },
   { to: '/client-admin/bank-transfers', label: 'Bank transfers', capability: 'dashboard_bank_transfers' },
 ]
 

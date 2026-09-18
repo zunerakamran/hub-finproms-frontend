@@ -368,8 +368,8 @@ function DeploymentSummaryBadge({ deployed, pending, rejected }) {
 }
 
 function DeploymentRequestCard({ request, isActive, onSelect }) {
-  const getRoleLabel = (k) => ({ power_admin: 'Power Admin', advisor: 'Advisor', approver: 'Approver', manager: 'Manager', client_admin: 'Client Admin' }[k] || k)
-  const powerAdminLabel = getRoleLabel('power_admin')
+  const { roleLabel } = useHub()
+  const powerAdminLabel = roleLabel('power_admin')
   const config = REQUEST_STATUS_CONFIG[request.status] || REQUEST_STATUS_CONFIG.pending
   const isDeployed = request.status === 'deployed'
 
@@ -1174,13 +1174,13 @@ export default function AdvisorDashboard({
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const getRoleLabel = (k) => ({ power_admin: 'Power Admin', advisor: 'Advisor', approver: 'Approver', manager: 'Manager', client_admin: 'Client Admin' }[k] || k); const getConsoleTitle = (r) => (r === 'advisor' ? 'Advisor console' : 'Console')
-  const { can, hub, actingHub } = useHub()
+  const { can, hub, actingHub, roleLabel } = useHub()
+  const getConsoleTitle = (r) => (r === 'advisor' ? `${roleLabel('advisor')} console` : 'Console')
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const domainPlaceholder = hubDomainPlaceholder(previewBase)
   const canRequestDeployments = can('wc_request_deployments')
-  const powerAdminLabel = getRoleLabel('power_admin')
-  const advisorLabel = getRoleLabel('advisor')
+  const powerAdminLabel = roleLabel('power_admin')
+  const advisorLabel = roleLabel('advisor')
   const isPowerAdminPublishMode = Boolean(powerAdminDeploymentId)
   const singleTabMode = Boolean(forcedTab) || isPowerAdminPublishMode
   // Advisor website branding defaults (not hub dashboard greens / showcase chrome)

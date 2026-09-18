@@ -87,6 +87,12 @@ const sections = [
     capability: 'dashboard_manage_settings',
   },
   {
+    to: '/client-admin/role-display-names',
+    title: 'Role display names',
+    description: 'Customize how role names appear across this hub’s UI.',
+    capability: 'dashboard_manage_role_display_names',
+  },
+  {
     to: '/client-admin/bank-transfers',
     title: 'Bank transfers',
     description: 'Confirm pending bank payments and grant credits (temporary until Stripe).',

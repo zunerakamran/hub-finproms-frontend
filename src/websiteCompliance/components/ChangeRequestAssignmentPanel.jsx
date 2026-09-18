@@ -241,8 +241,8 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
   getCachedPreview,
   cachePreview,
 }) {
-  const getRoleLabel = (k) => ({ power_admin: 'Power Admin', advisor: 'Advisor', approver: 'Approver', manager: 'Manager', client_admin: 'Client Admin' }[k] || k)
-  const approverLabel = getRoleLabel('approver')
+  const { roleLabel } = useHub()
+  const approverLabel = roleLabel('approver')
   const [previewData, setPreviewData] = useState(null)
   const [previewMode, setPreviewMode] = useState('visual')
   const [expandedPreviewSections, setExpandedPreviewSections] = useState(() => new Set())
@@ -614,8 +614,7 @@ export default function ChangeRequestAssignmentPanel({
   onMessage: externalOnMessage,
   onError: externalOnError,
 }) {
-  const getRoleLabel = (k) => ({ power_admin: 'Power Admin', advisor: 'Advisor', approver: 'Approver', manager: 'Manager', client_admin: 'Client Admin' }[k] || k)
-  const { can } = useHub()
+  const { can, roleLabel } = useHub()
   const canAssign = can('wc_assign_change_requests') && variant === 'pending'
 
   const [localMessage, setLocalMessage] = useState('')
@@ -722,7 +721,7 @@ export default function ChangeRequestAssignmentPanel({
       await api.post(`/change-requests/${requestId}/assign-to-approver`, {
         approver_id: Number(approverId),
       })
-      reportMessage(`Request assigned to ${getRoleLabel('approver').toLowerCase()} successfully.`)
+      reportMessage(`Request assigned to ${roleLabel('approver').toLowerCase()} successfully.`)
       await fetchRequests()
       setSelectedApprover(prev => {
         const next = { ...prev }

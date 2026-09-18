@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from './AuthContext'
+import { roleLabel as resolveRoleLabel, roleLabelsMap } from '../utils/roleLabels'
 
 const HubContext = createContext(null)
 
@@ -36,7 +37,8 @@ function sameHub(a, b) {
     JSON.stringify(a.branding) === JSON.stringify(b.branding) &&
     JSON.stringify(a.auth) === JSON.stringify(b.auth) &&
     JSON.stringify(a.hub_switcher) === JSON.stringify(b.hub_switcher) &&
-    JSON.stringify(a.acting_hub) === JSON.stringify(b.acting_hub)
+    JSON.stringify(a.acting_hub) === JSON.stringify(b.acting_hub) &&
+    JSON.stringify(a.role_labels) === JSON.stringify(b.role_labels)
   )
 }
 
@@ -266,6 +268,8 @@ export function HubProvider({ children }) {
         error,
         refreshHub,
         can,
+        roleLabels: roleLabelsMap(hub),
+        roleLabel: (key) => resolveRoleLabel(hub, key),
         advisorBillingEnabled,
         canManagePaymentCard,
         registrationEnabled,

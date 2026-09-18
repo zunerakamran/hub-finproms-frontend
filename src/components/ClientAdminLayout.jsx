@@ -5,8 +5,8 @@ import AdminSubnav from './AdminSubnav'
 import WebsiteNavLink from './WebsiteNavLink'
 
 export default function ClientAdminLayout() {
-  const { user, logout, isFinpromsAdmin, isManager, isApprover, isAdvisor } = useAuth()
-  const { branding, hub } = useHub()
+  const { user, logout } = useAuth()
+  const { branding, hub, roleLabel } = useHub()
   const navigate = useNavigate()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
@@ -15,17 +15,7 @@ export default function ClientAdminLayout() {
     navigate('/login', { replace: true })
   }
 
-  const shellTitle = isFinpromsAdmin
-    ? 'FinProms Admin'
-    : isManager
-      ? 'Manager'
-      : isApprover
-        ? 'Approver'
-        : isAdvisor
-          ? 'Advisor'
-          : user?.role === 'user'
-            ? 'User'
-            : 'Client Admin'
+  const shellTitle = roleLabel(user?.role)
 
   return (
     <div className="dash-shell">

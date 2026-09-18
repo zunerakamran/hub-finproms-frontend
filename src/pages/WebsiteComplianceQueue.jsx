@@ -1,66 +1,23 @@
+import { Navigate } from 'react-router-dom'
 import { useHub } from '../context/HubContext'
-import ChangeRequestAssignmentPanel from '../websiteCompliance/components/ChangeRequestAssignmentPanel'
-import ReviewQueuePanel from '../websiteCompliance/components/ReviewQueuePanel'
 
+/**
+ * Legacy mega-page route. Sends assigners to Assign requests and everyone else to Review queue.
+ */
 export default function WebsiteComplianceQueue() {
   const { can, loading: hubLoading } = useHub()
-  const moduleOn = can('module_website_compliance')
-  const canAssign = can('wc_assign_change_requests') || can('wc_view_all_change_requests')
-  const canReview = can('wc_review_change_requests') || can('wc_view_all_change_requests')
 
-  if (!hubLoading && !moduleOn) {
+  if (hubLoading) {
     return (
       <section>
-        <div className="page-head">
-          <div>
-            <p className="eyebrow">Website Compliance</p>
-            <h1>Review queue</h1>
-            <p className="muted">
-              Website Compliance is not enabled for this hub. Ask Power Admin to enable Website Compliance
-              under Modules.
-            </p>
-          </div>
-        </div>
+        <div className="state">Loading…</div>
       </section>
     )
   }
 
-  return (
-    <section>
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">Website Compliance</p>
-          <h1>Review queue</h1>
-          <p className="muted">Assign and approve or reject website content changes submitted by editors.</p>
-        </div>
-      </div>
-      <div className="wc-app wc-surface space-y-8">
-        {canAssign && (
-          <div>
-            <h2 className="text-sm font-bold text-[var(--brand-dark)] mb-3 uppercase tracking-wide">Assignment</h2>
-            <ChangeRequestAssignmentPanel variant="pending" />
-          </div>
-        )}
-        {canReview && (
-          <div>
-            <h2 className="text-sm font-bold text-[var(--brand-dark)] mb-3 uppercase tracking-wide">Review queue</h2>
-            <ReviewQueuePanel variant="active" />
-          </div>
-        )}
-        {(canAssign || canReview) && (
-          <div>
-            <h2 className="text-sm font-bold text-[var(--brand-dark)] mb-3 uppercase tracking-wide">History</h2>
-            {canAssign ? (
-              <ChangeRequestAssignmentPanel variant="history" />
-            ) : (
-              <ReviewQueuePanel variant="history" />
-            )}
-          </div>
-        )}
-        {!hubLoading && !canAssign && !canReview && (
-          <p className="muted text-sm">You do not have change-request capabilities for Website Compliance.</p>
-        )}
-      </div>
-    </section>
-  )
+  if (can('wc_assign_change_requests') && !can('wc_review_change_requests')) {
+    return <Navigate to="/my-dashboard/website-compliance/assign" replace />
+  }
+
+  return <Navigate to="/my-dashboard/website-compliance/review" replace />
 }

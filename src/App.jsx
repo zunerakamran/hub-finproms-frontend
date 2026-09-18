@@ -47,6 +47,9 @@ import WebsiteComplianceRequestSite from './pages/WebsiteComplianceRequestSite'
 import WebsiteComplianceMySites from './pages/WebsiteComplianceMySites'
 import WebsiteComplianceContentEditor from './pages/WebsiteComplianceContentEditor'
 import WebsiteComplianceMyRequests from './pages/WebsiteComplianceMyRequests'
+import WebsiteComplianceAssignRequests from './pages/WebsiteComplianceAssignRequests'
+import WebsiteComplianceReviewQueue from './pages/WebsiteComplianceReviewQueue'
+import WebsiteComplianceRequestHistory from './pages/WebsiteComplianceRequestHistory'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Login from './pages/Login'
 import MyCredits from './pages/MyCredits'
@@ -441,6 +444,40 @@ export default function App() {
                       ]}
                     >
                       <WebsiteComplianceDeployments />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="website-compliance/assign"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={['wc_assign_change_requests', 'wc_view_all_change_requests']}
+                    >
+                      <WebsiteComplianceAssignRequests />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="website-compliance/review"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={['wc_review_change_requests', 'wc_view_all_change_requests']}
+                    >
+                      <WebsiteComplianceReviewQueue />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="website-compliance/history"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'wc_assign_change_requests',
+                        'wc_review_change_requests',
+                        'wc_view_all_change_requests',
+                      ]}
+                    >
+                      <WebsiteComplianceRequestHistory />
                     </HubCapabilityRoute>
                   }
                 />

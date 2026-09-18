@@ -1,5 +1,13 @@
 import { Link } from 'react-router-dom'
-import { FaEdit, FaHistory, FaRocket, FaServer } from 'react-icons/fa'
+import {
+  FaClipboardCheck,
+  FaEdit,
+  FaHistory,
+  FaInbox,
+  FaRocket,
+  FaServer,
+  FaUserCheck,
+} from 'react-icons/fa'
 import { useHub } from '../context/HubContext'
 
 function ModuleOff() {
@@ -19,7 +27,7 @@ function ModuleOff() {
   )
 }
 
-const CARDS = [
+const EDITOR_CARDS = [
   {
     to: '/my-dashboard/website-compliance/request-site',
     title: 'Request a site',
@@ -55,25 +63,78 @@ const CARDS = [
   },
 ]
 
+const APPROVER_CARDS = [
+  {
+    to: '/my-dashboard/website-compliance/assign',
+    title: 'Assign requests',
+    description: 'Assign pending content changes to an approver for review.',
+    icon: FaUserCheck,
+    anyOf: ['wc_assign_change_requests'],
+  },
+  {
+    to: '/my-dashboard/website-compliance/review',
+    title: 'Review queue',
+    description: 'Pick up requests and approve, reject, or approve with feedback.',
+    icon: FaClipboardCheck,
+    anyOf: ['wc_review_change_requests', 'wc_view_all_change_requests'],
+  },
+  {
+    to: '/my-dashboard/website-compliance/history',
+    title: 'Request history',
+    description: 'Browse completed and in-progress website content reviews.',
+    icon: FaInbox,
+    anyOf: [
+      'wc_assign_change_requests',
+      'wc_review_change_requests',
+      'wc_view_all_change_requests',
+    ],
+  },
+]
+
+function CardGrid({ cards }) {
+  return (
+    <div className="grid sm:grid-cols-2 gap-4">
+      {cards.map((card) => {
+        const Icon = card.icon
+        return (
+          <Link
+            key={card.to}
+            to={card.to}
+            className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:border-[var(--brand)]/35 hover:shadow-md transition"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center mb-3 group-hover:bg-[var(--brand)] group-hover:text-white transition">
+              <Icon className="w-4 h-4" />
+            </div>
+            <h2 className="text-base font-extrabold text-[var(--brand-dark)]">{card.title}</h2>
+            <p className="text-sm text-gray-500 mt-1.5">{card.description}</p>
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function WebsiteComplianceHome() {
   const { can, loading: hubLoading } = useHub()
   const moduleOn = can('module_website_compliance')
 
-  const visibleCards = CARDS.filter((card) => card.anyOf.some((cap) => can(cap)))
+  const editorCards = EDITOR_CARDS.filter((card) => card.anyOf.some((cap) => can(cap)))
+  const approverCards = APPROVER_CARDS.filter((card) => card.anyOf.some((cap) => can(cap)))
   const canStaffOps =
     can('wc_view_all_deployments') ||
     can('wc_deploy_websites') ||
     can('wc_manage_templates') ||
     can('wc_manage_deployment_sections') ||
     can('wc_assign_change_requests')
-  const canQueue =
-    can('wc_view_all_change_requests') ||
-    can('wc_assign_change_requests') ||
-    can('wc_review_change_requests')
 
   if (!hubLoading && !moduleOn) return <ModuleOff />
 
-  if (!hubLoading && visibleCards.length === 0 && !canStaffOps && !canQueue) {
+  if (
+    !hubLoading &&
+    editorCards.length === 0 &&
+    approverCards.length === 0 &&
+    !canStaffOps
+  ) {
     return (
       <section>
         <div className="page-head">
@@ -97,48 +158,37 @@ export default function WebsiteComplianceHome() {
         </div>
       </div>
 
-      <div className="wc-app wc-surface">
-        {visibleCards.length > 0 && (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {visibleCards.map((card) => {
-              const Icon = card.icon
-              return (
-                <Link
-                  key={card.to}
-                  to={card.to}
-                  className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:border-[var(--brand)]/35 hover:shadow-md transition"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center mb-3 group-hover:bg-[var(--brand)] group-hover:text-white transition">
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <h2 className="text-base font-extrabold text-[var(--brand-dark)]">{card.title}</h2>
-                  <p className="text-sm text-gray-500 mt-1.5">{card.description}</p>
-                </Link>
-              )
-            })}
+      <div className="wc-app wc-surface space-y-8">
+        {editorCards.length > 0 && (
+          <div className="space-y-3">
+            {approverCards.length > 0 && (
+              <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">
+                Editing &amp; sites
+              </p>
+            )}
+            <CardGrid cards={editorCards} />
           </div>
         )}
 
-        {(canStaffOps || canQueue) && (
-          <div className={`${visibleCards.length ? 'mt-6 pt-5 border-t border-gray-200' : ''} space-y-2`}>
+        {approverCards.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">
+              Review &amp; assignment
+            </p>
+            <CardGrid cards={approverCards} />
+          </div>
+        )}
+
+        {canStaffOps && (
+          <div className="space-y-2">
             <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">Staff tools</p>
             <div className="flex flex-wrap gap-2">
-              {canStaffOps && (
-                <Link
-                  to="/my-dashboard/website-compliance/deployments"
-                  className="inline-flex items-center text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-slate-700 hover:border-[var(--brand)]/40"
-                >
-                  Site operations
-                </Link>
-              )}
-              {canQueue && (
-                <Link
-                  to="/my-dashboard/website-compliance/queue"
-                  className="inline-flex items-center text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-slate-700 hover:border-[var(--brand)]/40"
-                >
-                  Review queue
-                </Link>
-              )}
+              <Link
+                to="/my-dashboard/website-compliance/deployments"
+                className="inline-flex items-center text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-slate-700 hover:border-[var(--brand)]/40"
+              >
+                Site operations
+              </Link>
             </div>
           </div>
         )}

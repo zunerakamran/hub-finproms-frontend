@@ -5,7 +5,7 @@ import ReviewQueuePanel from '../websiteCompliance/components/ReviewQueuePanel'
 export default function WebsiteComplianceReviewQueue() {
   const { can, loading: hubLoading } = useHub()
   const moduleOn = can('module_website_compliance')
-  const canReview = can('wc_review_change_requests') || can('wc_view_all_change_requests')
+  const canReview = can('wc_review_change_requests')
 
   if (!hubLoading && !moduleOn) {
     return (

@@ -3327,7 +3327,8 @@ export default function AdvisorDashboard({
                   {myChangeRequests.slice(0, 8).map((cr) => (
                     <Link
                       key={cr.id}
-                      to={`/my-dashboard/website-compliance/my-requests?highlight=${cr.id}`}
+                      to={`/my-dashboard/website-compliance/my-requests/${cr.id}`}
+                      state={{ from: 'editor' }}
                       className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700 hover:border-[var(--brand)]/40 hover:bg-[var(--brand)]/5 transition"
                     >
                       #{cr.id} · v{cr.current_version || 1} · {crStatusLabel(cr.status)}

@@ -35,6 +35,7 @@ import {
   savePreviewSnapshot,
 } from '../utils/changeRequestPreview'
 import SectionIframePreview from './SectionIframePreview'
+import { WcVersionCard } from '../../components/WebsiteComplianceUI'
 
 const ACTIVE_STATUSES = new Set(['pending', 'under_review', 'scheduled'])
 
@@ -742,31 +743,19 @@ const RequestCard = memo(function RequestCard({
           {versions ? 'Hide version history' : 'Show version history'}
         </button>
         {versions && (
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 wc-versions" style={{ marginBottom: 0 }}>
             {versions.length === 0 ? (
               <p className="text-xs text-gray-500">No versions recorded.</p>
             ) : (
-              versions.map((v) => (
-                <div
-                  key={v.id || v.version_number}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700"
-                >
-                  <div className="flex flex-wrap items-center gap-2 font-bold">
-                    <span>Version {v.version_number}</span>
-                    <StatusBadge status={v.status} />
-                    {v.submitted_at && (
-                      <span className="font-medium text-slate-500">
-                        {new Date(v.submitted_at).toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                  {v.feedback ? (
-                    <p className="mt-1 text-slate-600">
-                      <span className="font-semibold">Feedback:</span> {v.feedback}
-                    </p>
-                  ) : null}
-                </div>
-              ))
+              [...versions]
+                .sort((a, b) => Number(b.version_number || 0) - Number(a.version_number || 0))
+                .map((v) => (
+                  <WcVersionCard
+                    key={v.id || v.version_number}
+                    version={v}
+                    isLatest={Number(v.version_number) === Number(req.current_version || 1)}
+                  />
+                ))
             )}
           </div>
         )}

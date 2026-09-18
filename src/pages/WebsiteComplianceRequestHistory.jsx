@@ -8,10 +8,11 @@ export default function WebsiteComplianceRequestHistory() {
   const { can, loading: hubLoading } = useHub()
   const moduleOn = can('module_website_compliance')
   const canAssign = can('wc_assign_change_requests')
-  const canReview = can('wc_review_change_requests') || can('wc_view_all_change_requests')
-  const canView = canAssign || canReview
+  const canTakeReviewActions = can('wc_review_change_requests')
+  const canViewAll = can('wc_view_all_change_requests')
+  const canView = canAssign || canTakeReviewActions || canViewAll
   const seesHubWide =
-    can('wc_view_all_change_requests') && String(user?.role || '') !== 'approver'
+    canViewAll && String(user?.role || '') !== 'approver'
 
   if (!hubLoading && !moduleOn) {
     return (
@@ -54,7 +55,7 @@ export default function WebsiteComplianceRequestHistory() {
             {seesHubWide
               ? 'Browse completed and in-progress website content reviews across the hub.'
               : 'Browse your own completed and in-progress website content reviews — only requests you picked.'}
-            {canReview && (
+            {canTakeReviewActions && (
               <>
                 {' '}
                 Active work lives in the <Link to="/my-dashboard/website-compliance/review">review queue</Link>.

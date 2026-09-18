@@ -461,7 +461,7 @@ export const DASHBOARD_LINKS = [
     label: 'Review queue',
     title: 'Review queue',
     description: 'Approve, reject, or approve with feedback website content changes.',
-    anyOf: ['wc_review_change_requests', 'wc_view_all_change_requests'],
+    capability: 'wc_review_change_requests',
     group: 'wc',
   },
   {

@@ -58,7 +58,7 @@ const EDITOR_CARDS = [
   {
     to: '/my-dashboard/website-compliance/my-requests',
     title: 'My change requests',
-    description: 'Track every content change you submitted, including version history.',
+    description: 'Track submissions, feedback, and version history.',
     icon: FaHistory,
     anyOf: ['wc_submit_change_requests', 'wc_edit_sections', 'wc_publish_live_content'],
   },
@@ -77,7 +77,7 @@ const APPROVER_CARDS = [
     title: 'Review queue',
     description: 'Pick up requests and approve, reject, or approve with feedback.',
     icon: FaClipboardCheck,
-    anyOf: ['wc_review_change_requests', 'wc_view_all_change_requests'],
+    anyOf: ['wc_review_change_requests'],
   },
   {
     to: '/my-dashboard/website-compliance/history',

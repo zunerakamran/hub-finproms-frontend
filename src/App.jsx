@@ -47,6 +47,7 @@ import WebsiteComplianceRequestSite from './pages/WebsiteComplianceRequestSite'
 import WebsiteComplianceMySites from './pages/WebsiteComplianceMySites'
 import WebsiteComplianceContentEditor from './pages/WebsiteComplianceContentEditor'
 import WebsiteComplianceMyRequests from './pages/WebsiteComplianceMyRequests'
+import WebsiteComplianceRequestDetail from './pages/WebsiteComplianceRequestDetail'
 import WebsiteComplianceAssignRequests from './pages/WebsiteComplianceAssignRequests'
 import WebsiteComplianceReviewQueue from './pages/WebsiteComplianceReviewQueue'
 import WebsiteComplianceRequestHistory from './pages/WebsiteComplianceRequestHistory'
@@ -436,6 +437,22 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="website-compliance/my-requests/:id"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'wc_submit_change_requests',
+                        'wc_edit_sections',
+                        'wc_publish_live_content',
+                        'wc_view_all_change_requests',
+                        'wc_review_change_requests',
+                      ]}
+                    >
+                      <WebsiteComplianceRequestDetail />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
                   path="website-compliance/deployments"
                   element={
                     <HubCapabilityRoute
@@ -464,9 +481,7 @@ export default function App() {
                 <Route
                   path="website-compliance/review"
                   element={
-                    <HubCapabilityRoute
-                      anyOf={['wc_review_change_requests', 'wc_view_all_change_requests']}
-                    >
+                    <HubCapabilityRoute capability="wc_review_change_requests">
                       <WebsiteComplianceReviewQueue />
                     </HubCapabilityRoute>
                   }

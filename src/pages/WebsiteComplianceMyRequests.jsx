@@ -49,11 +49,29 @@ function formatWhen(value) {
 }
 
 function sectionTitle(cr) {
+  if (Array.isArray(cr.section_edits) && cr.section_edits.length) {
+    const names = cr.section_edits.map((e) => e.section_name || e.display_name).filter(Boolean)
+    if (names.length) return names.join(', ')
+  }
   return (
     cr.section?.display_name ||
     cr.section?.name ||
     (cr.section_id ? `Section #${cr.section_id}` : 'Website change')
   )
+}
+
+function editableSectionSummary(cr) {
+  if (Array.isArray(cr.editable_section_ids) && cr.editable_section_ids.length) {
+    if (Array.isArray(cr.section_edits) && cr.section_edits.length) {
+      const allowed = new Set(cr.editable_section_ids.map(Number))
+      const names = cr.section_edits
+        .filter((e) => allowed.has(Number(e.section_id)))
+        .map((e) => e.section_name || e.display_name || `Section #${e.section_id}`)
+      if (names.length) return names.join(', ')
+    }
+    return cr.editable_section_ids.map((id) => `Section #${id}`).join(', ')
+  }
+  return sectionTitle(cr)
 }
 
 function RequestCard({ request, expanded, onToggle, versions, versionsLoading, highlight }) {
@@ -75,6 +93,11 @@ function RequestCard({ request, expanded, onToggle, versions, versionsLoading, h
             <StatusBadge status={request.status} />
           </div>
           <p className="text-sm font-semibold text-slate-800 truncate">{sectionTitle(request)}</p>
+          {(request.status === 'rejected' || request.status === 'approved_with_feedback') && (
+            <p className="text-xs text-amber-800 mt-1">
+              <span className="font-bold">Editable on next version:</span> {editableSectionSummary(request)}
+            </p>
+          )}
           <p className="text-xs text-slate-500 mt-1">
             Submitted {formatWhen(request.created_at) || '—'}
             {request.approver?.name ? ` · Reviewer: ${request.approver.name}` : ''}
@@ -144,6 +167,14 @@ function RequestCard({ request, expanded, onToggle, versions, versionsLoading, h
                         <span className="font-semibold">Feedback:</span> {v.feedback}
                       </p>
                     ) : null}
+                    {Array.isArray(v.section_edits) && v.section_edits.length > 0 && (
+                      <p className="mt-1.5 text-slate-600">
+                        <span className="font-semibold">Sections:</span>{' '}
+                        {v.section_edits
+                          .map((e) => e.section_name || e.display_name || `Section #${e.section_id}`)
+                          .join(', ')}
+                      </p>
+                    )}
                     {v.reviewed_at && (
                       <p className="mt-1 text-slate-500">Reviewed {formatWhen(v.reviewed_at)}</p>
                     )}

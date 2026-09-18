@@ -401,15 +401,12 @@ export const DASHBOARD_LINKS = [
     label: 'Overview',
     title: 'Website Compliance',
     description: 'Choose a workspace for sites, content editing, and requests.',
+    // Hub landing for people who edit, request sites, or review — not view-only / report-only roles.
     anyOf: [
       'wc_edit_sections',
       'wc_submit_change_requests',
       'wc_request_deployments',
-      'wc_view_all_deployments',
       'wc_publish_live_content',
-      'wc_deploy_websites',
-      'wc_manage_templates',
-      'wc_manage_deployment_sections',
       'wc_assign_change_requests',
       'wc_view_all_change_requests',
       'wc_review_change_requests',

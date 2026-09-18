@@ -374,14 +374,17 @@ export default function App() {
                         'wc_edit_sections',
                         'wc_submit_change_requests',
                         'wc_request_deployments',
-                        'wc_view_all_deployments',
                         'wc_publish_live_content',
-                        'wc_deploy_websites',
-                        'wc_manage_templates',
-                        'wc_manage_deployment_sections',
                         'wc_assign_change_requests',
                         'wc_view_all_change_requests',
                         'wc_review_change_requests',
+                        // View-only / report roles may still hit this URL; Home redirects them.
+                        'wc_view_all_deployments',
+                        'wc_deploy_websites',
+                        'wc_manage_templates',
+                        'wc_manage_deployment_sections',
+                        'wc_view_platform_report',
+                        'wc_view_activity_logs',
                       ]}
                     >
                       <WebsiteComplianceHome />

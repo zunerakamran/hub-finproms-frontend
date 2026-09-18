@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import {
+  FaChartBar,
   FaClipboardCheck,
   FaEdit,
   FaHistory,
@@ -120,21 +121,25 @@ export default function WebsiteComplianceHome() {
 
   const editorCards = EDITOR_CARDS.filter((card) => card.anyOf.some((cap) => can(cap)))
   const approverCards = APPROVER_CARDS.filter((card) => card.anyOf.some((cap) => can(cap)))
+  const hasWorkspace = editorCards.length > 0 || approverCards.length > 0
   const canStaffOps =
     can('wc_view_all_deployments') ||
     can('wc_deploy_websites') ||
     can('wc_manage_templates') ||
     can('wc_manage_deployment_sections') ||
     can('wc_assign_change_requests')
+  const canReports = can('wc_view_platform_report')
 
   if (!hubLoading && !moduleOn) return <ModuleOff />
 
-  if (
-    !hubLoading &&
-    editorCards.length === 0 &&
-    approverCards.length === 0 &&
-    !canStaffOps
-  ) {
+  // View-only / report-only roles: skip this hub landing and go to their real page.
+  if (!hubLoading && !hasWorkspace) {
+    if (canStaffOps) {
+      return <Navigate to="/my-dashboard/website-compliance/deployments" replace />
+    }
+    if (canReports) {
+      return <Navigate to="/my-dashboard/website-compliance/reports" replace />
+    }
     return (
       <section>
         <div className="page-head">
@@ -179,16 +184,27 @@ export default function WebsiteComplianceHome() {
           </div>
         )}
 
-        {canStaffOps && (
+        {(canStaffOps || canReports) && (
           <div className="space-y-2">
             <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">Staff tools</p>
             <div className="flex flex-wrap gap-2">
-              <Link
-                to="/my-dashboard/website-compliance/deployments"
-                className="inline-flex items-center text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-slate-700 hover:border-[var(--brand)]/40"
-              >
-                Site operations
-              </Link>
+              {canStaffOps && (
+                <Link
+                  to="/my-dashboard/website-compliance/deployments"
+                  className="inline-flex items-center text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-slate-700 hover:border-[var(--brand)]/40"
+                >
+                  Site operations
+                </Link>
+              )}
+              {canReports && (
+                <Link
+                  to="/my-dashboard/website-compliance/reports"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-slate-700 hover:border-[var(--brand)]/40"
+                >
+                  <FaChartBar className="w-3 h-3" />
+                  Reports
+                </Link>
+              )}
             </div>
           </div>
         )}

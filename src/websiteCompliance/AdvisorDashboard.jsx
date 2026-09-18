@@ -368,11 +368,25 @@ function DeploymentSummaryBadge({ deployed, pending, rejected }) {
   )
 }
 
+function isAdvisorOwnedDeployment(request) {
+  const requester = request.requested_by || request.requestedBy
+  if (requester?.role) {
+    return requester.role === 'advisor' || requester.role === 'editor'
+  }
+  return Boolean(request.advisor_id)
+}
+
+function isAssignedDeployment(request) {
+  return Boolean(request.assigned_advisor_id) && !isAdvisorOwnedDeployment(request)
+}
+
 function DeploymentRequestCard({ request, isActive, onSelect }) {
   const { roleLabel } = useHub()
   const powerAdminLabel = roleLabel('power_admin')
   const config = REQUEST_STATUS_CONFIG[request.status] || REQUEST_STATUS_CONFIG.pending
   const isDeployed = request.status === 'deployed'
+  const assignedToYou = isAssignedDeployment(request)
+  const yourOwnSite = isAdvisorOwnedDeployment(request)
 
   return (
     <div
@@ -391,6 +405,16 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
             <div className="flex items-center flex-wrap gap-2">
               <h3 className="font-extrabold text-sm text-[var(--brand-dark)] truncate">{request.domain_name}</h3>
               <RequestStatusBadge status={request.status} />
+              {assignedToYou && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-200 uppercase tracking-wide">
+                  Assigned to you
+                </span>
+              )}
+              {yourOwnSite && !assignedToYou && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200 uppercase tracking-wide">
+                  Your website
+                </span>
+              )}
               {isActive && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand)] text-white uppercase tracking-wide">
                   Editing
@@ -403,6 +427,11 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
                 <> · cPanel: <code className="font-mono text-[11px] bg-white/80 px-1.5 py-0.5 rounded border border-gray-200">{request.cpanel_domain}</code></>
               )}
             </p>
+            {assignedToYou && (
+              <p className="text-xs text-violet-700 mt-2">
+                This website was assigned to you for content editing — it is not your own website request.
+              </p>
+            )}
             {request.status === 'rejected' && request.rejection_reason && (
               <p className="text-xs text-rose-700 mt-2 bg-white/70 border border-rose-100 rounded-lg px-2.5 py-2">
                 {request.rejection_reason}
@@ -3348,6 +3377,8 @@ export default function AdvisorDashboard({
                 <div className="grid sm:grid-cols-2 gap-3">
                   {deployedRequests.map(req => {
                     const isSelected = req.id === activeDeployment?.id
+                    const assignedToYou = isAssignedDeployment(req)
+                    const yourOwnSite = isAdvisorOwnedDeployment(req)
                     return (
                       <button
                         key={req.id}
@@ -3367,6 +3398,12 @@ export default function AdvisorDashboard({
                           )}
                         </div>
                         <p className="text-xs text-gray-500">{req.template_name || 'template4'}</p>
+                        {assignedToYou && (
+                          <p className="text-[10px] font-bold text-violet-700 mt-1.5 uppercase tracking-wide">Assigned to you</p>
+                        )}
+                        {yourOwnSite && !assignedToYou && (
+                          <p className="text-[10px] font-bold text-sky-700 mt-1.5 uppercase tracking-wide">Your website</p>
+                        )}
                       </button>
                     )
                   })}

@@ -408,7 +408,7 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
             <p className="text-xs text-amber-700 mt-1">No advisor accounts were found. Create an advisor user first.</p>
           )}
           <p className="text-[11px] text-gray-500 mt-1">
-            Required. Hub sections for this advisor are created only after Power Admin deploys the site.
+            Assigns this website to the advisor for editing (not their own site request). Hub sections are created only after Power Admin deploys the site.
           </p>
         </div>
         )}
@@ -492,8 +492,8 @@ function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
           <div className="flex items-start gap-2">
             <FaExclamationTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
             <p>
-              The assigned advisor will see this site in their <strong>Deployments</strong> tab and can edit its content sections.
-              Their edits will go through the standard change request → approver approval workflow.
+              This assigns the website to the advisor for editing — it is <strong>not</strong> treated as the advisor&apos;s own website request.
+              They will see it marked as assigned in their <strong>Deployments</strong> tab. Edits still go through the standard change request → approver approval workflow.
             </p>
           </div>
         </div>
@@ -564,8 +564,9 @@ function DeploymentCard({ req, advisors, canAssignAdvisor, onAssignAdvisor }) {
               {contentAdvisor && (
                 <span className="inline-flex items-center gap-1.5">
                   <FaUserCheck className="w-3 h-3 text-[var(--brand)]" />
-                  {advisorOwned && !assignedAdvisor ? 'Advisor' : 'Assigned'}:{' '}
-                  <strong className="text-[var(--brand)]">{contentAdvisor.name}</strong>
+                  {advisorOwned && !assignedAdvisor
+                    ? <>Advisor&apos;s own website: <strong className="text-[var(--brand)]">{contentAdvisor.name}</strong></>
+                    : <>Assigned this website to: <strong className="text-[var(--brand)]">{contentAdvisor.name}</strong></>}
                 </span>
               )}
               {!contentAdvisor && (
@@ -664,8 +665,10 @@ function DeploymentCard({ req, advisors, canAssignAdvisor, onAssignAdvisor }) {
                   <p className="font-bold">Site is deployed and live.</p>
                   {contentAdvisor
                     ? <p className="mt-0.5">
-                        <strong>{contentAdvisor.name}</strong> can now edit sections in their Advisor Dashboard.
-                        Content changes go through the standard approver review workflow.
+                        {advisorOwned && !assignedAdvisor
+                          ? <>This is <strong>{contentAdvisor.name}</strong>&apos;s own website. They can edit sections in their Advisor Dashboard.</>
+                          : <>This website is assigned to <strong>{contentAdvisor.name}</strong> (not their own site). They can edit sections in their Advisor Dashboard.</>}
+                        {' '}Content changes go through the standard approver review workflow.
                       </p>
                     : <p className="mt-0.5 text-amber-700">No advisor assigned — assign one so they can edit content.</p>
                   }
@@ -682,10 +685,9 @@ function DeploymentCard({ req, advisors, canAssignAdvisor, onAssignAdvisor }) {
                   <p className="font-bold">Awaiting deployment by the platform administrator.</p>
                   {contentAdvisor
                     ? <p className="mt-0.5">
-                        <strong>{contentAdvisor.name}</strong>
                         {advisorOwned
-                          ? ' submitted this request and will edit content once the site is deployed.'
-                          : ' is assigned and will be able to edit content once the site goes live.'}
+                          ? <>This is <strong>{contentAdvisor.name}</strong>&apos;s own website request — they will edit content once the site is deployed.</>
+                          : <>Assigned this website to <strong>{contentAdvisor.name}</strong> — they will edit content once the site goes live (this is not their own site).</>}
                       </p>
                     : <p className="mt-0.5">You can assign an advisor now so they are ready once the site goes live.</p>
                   }
@@ -797,7 +799,7 @@ export default function DeploymentRequestPanel() {
     setAssignTarget(null)
     setRequests(prev => prev.map(r => r.id === updatedRequest.id ? updatedRequest : r))
     const advisorName = updatedRequest.assigned_advisor?.name || updatedRequest.assignedAdvisor?.name || 'Advisor'
-    setMessage(`${advisorName} assigned successfully. They can now edit this site's content once it is deployed.`)
+    setMessage(`Assigned this website to ${advisorName}. They can edit its content once it is deployed (this is not their own site).`)
   }
 
   return (

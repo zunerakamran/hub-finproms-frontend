@@ -8,8 +8,6 @@ const emptyForm = {
   password: '',
   role: 'user',
   credits: 0,
-  is_advisor: false,
-  has_unlimited_credits: false,
   is_suspended: false,
 }
 
@@ -70,9 +68,7 @@ export default function PowerAdminUsers() {
       email: user.email || '',
       password: '',
       role: user.role || 'user',
-      credits: Number(user.credits || 0),
-      is_advisor: Boolean(user.is_advisor),
-      has_unlimited_credits: Boolean(user.has_unlimited_credits),
+      credits: user.has_unlimited_credits ? 0 : Number(user.credits || 0),
       is_suspended: Boolean(user.is_suspended),
     })
     setMessage('')
@@ -92,8 +88,6 @@ export default function PowerAdminUsers() {
         email: form.email.trim(),
         role: form.role,
         credits: Number(form.credits) || 0,
-        is_advisor: Boolean(form.is_advisor),
-        has_unlimited_credits: Boolean(form.has_unlimited_credits),
         is_suspended: Boolean(form.is_suspended),
       }
       if (form.password.trim()) {
@@ -239,24 +233,6 @@ export default function PowerAdminUsers() {
         <label className="checkbox">
           <input
             type="checkbox"
-            checked={form.is_advisor}
-            onChange={(e) => setForm((f) => ({ ...f, is_advisor: e.target.checked }))}
-          />
-          Excel advisor flag (is_advisor)
-        </label>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={form.has_unlimited_credits}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, has_unlimited_credits: e.target.checked }))
-            }
-          />
-          Unlimited credits
-        </label>
-        <label className="checkbox">
-          <input
-            type="checkbox"
             checked={form.is_suspended}
             onChange={(e) => setForm((f) => ({ ...f, is_suspended: e.target.checked }))}
           />
@@ -319,7 +295,6 @@ export default function PowerAdminUsers() {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Credits</th>
-                <th>Flags</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -329,19 +304,7 @@ export default function PowerAdminUsers() {
                   <td>{user.name}</td>
                   <td>{user.email}</td>
                   <td>{user.role_label || user.role}</td>
-                  <td>{user.credits}</td>
-                  <td>
-                    <span className="muted">
-                      {[
-                        user.is_advisor ? 'advisor' : null,
-                        user.has_unlimited_credits ? 'unlimited' : null,
-                        user.is_suspended ? 'suspended' : null,
-                        user.is_discontinued ? 'discontinued' : null,
-                      ]
-                        .filter(Boolean)
-                        .join(', ') || '—'}
-                    </span>
-                  </td>
+                  <td>{user.has_unlimited_credits ? 'Unlimited' : user.credits}</td>
                   <td>
                     <div className="row" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>
                       <button type="button" className="btn ghost" onClick={() => startEdit(user)}>

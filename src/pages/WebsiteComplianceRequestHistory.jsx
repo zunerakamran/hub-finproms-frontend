@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { useHub } from '../context/HubContext'
-import ChangeRequestAssignmentPanel from '../websiteCompliance/components/ChangeRequestAssignmentPanel'
 import ReviewQueuePanel from '../websiteCompliance/components/ReviewQueuePanel'
 
 export default function WebsiteComplianceRequestHistory() {
@@ -61,11 +60,9 @@ export default function WebsiteComplianceRequestHistory() {
         </div>
       </div>
       <div className="wc-app wc-surface">
-        {canAssign ? (
-          <ChangeRequestAssignmentPanel variant="history" />
-        ) : (
-          <ReviewQueuePanel variant="history" />
-        )}
+        {/* Always the review panel: without view-all it scopes to requests picked by this user.
+            AssignmentPanel history is hub-wide and was leaking other approvers' work. */}
+        <ReviewQueuePanel variant="history" />
       </div>
     </section>
   )

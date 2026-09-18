@@ -13,19 +13,19 @@ import {
 } from 'react-icons/fa'
 import api from '../wcApi'
 
-function MetricRow({ label, value, icon: Icon, accent, sub }) {
+function MetricCard({ label, value, icon: Icon, accent, sub }) {
   return (
-    <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4 flex items-center gap-4">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${accent}`}>
-        <Icon className="w-5 h-5" />
+    <div className="min-w-0 bg-white rounded-2xl border border-gray-200 shadow-sm px-4 py-4 flex flex-col gap-3 h-full">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accent}`}>
+        <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{label}</p>
+        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide leading-snug">{label}</p>
         {sub != null && sub !== '' && (
-          <p className="text-[11px] text-gray-400 font-medium mt-0.5">{sub}</p>
+          <p className="text-[11px] text-gray-400 font-medium mt-1 leading-snug">{sub}</p>
         )}
       </div>
-      <p className="text-2xl font-extrabold text-[var(--brand-dark)] tabular-nums shrink-0">{value ?? 0}</p>
+      <p className="text-2xl font-extrabold text-[var(--brand-dark)] tabular-nums leading-none">{value ?? 0}</p>
     </div>
   )
 }
@@ -226,7 +226,7 @@ export default function PlatformSummaryReport({ onError }) {
     .map((status) => [status, cr.by_status[status]])
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
       <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-[var(--brand-dark)]">Website Compliance summary</h2>
@@ -258,41 +258,43 @@ export default function PlatformSummaryReport({ onError }) {
         </div>
       </div>
 
-      <MetricRow
-        label="Active templates"
-        value={summary.templates?.active}
-        sub={`${summary.templates?.total ?? 0} in catalog`}
-        icon={FaLayerGroup}
-        accent="bg-slate-100 text-slate-600"
-      />
-      <MetricRow
-        label="Pending deployments"
-        value={deployments.by_status?.pending}
-        sub={`${deployments.awaiting_advisor ?? 0} need advisor`}
-        icon={FaRocket}
-        accent="bg-amber-100 text-amber-600"
-      />
-      <MetricRow
-        label="Live sites"
-        value={deployments.by_status?.deployed}
-        sub={`${deployments.by_status?.rejected ?? 0} rejected`}
-        icon={FaGlobe}
-        accent="bg-emerald-100 text-emerald-600"
-      />
-      <MetricRow
-        label="Open change requests"
-        value={cr.open}
-        sub={`${cr.awaiting_assignment ?? 0} unassigned`}
-        icon={FaClipboardList}
-        accent="bg-[var(--brand)]/10 text-[var(--brand)]"
-      />
-      <MetricRow
-        label="Avg. CR version"
-        value={cr.avg_version ?? 1}
-        sub={`${cr.resubmitted ?? 0} resubmitted`}
-        icon={FaCodeBranch}
-        accent="bg-violet-100 text-violet-600"
-      />
+      <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <MetricCard
+          label="Active templates"
+          value={summary.templates?.active}
+          sub={`${summary.templates?.total ?? 0} in catalog`}
+          icon={FaLayerGroup}
+          accent="bg-slate-100 text-slate-600"
+        />
+        <MetricCard
+          label="Pending deployments"
+          value={deployments.by_status?.pending}
+          sub={`${deployments.awaiting_advisor ?? 0} need advisor`}
+          icon={FaRocket}
+          accent="bg-amber-100 text-amber-600"
+        />
+        <MetricCard
+          label="Live sites"
+          value={deployments.by_status?.deployed}
+          sub={`${deployments.by_status?.rejected ?? 0} rejected`}
+          icon={FaGlobe}
+          accent="bg-emerald-100 text-emerald-600"
+        />
+        <MetricCard
+          label="Open change requests"
+          value={cr.open}
+          sub={`${cr.awaiting_assignment ?? 0} unassigned`}
+          icon={FaClipboardList}
+          accent="bg-[var(--brand)]/10 text-[var(--brand)]"
+        />
+        <MetricCard
+          label="Avg. CR version"
+          value={cr.avg_version ?? 1}
+          sub={`${cr.resubmitted ?? 0} resubmitted`}
+          icon={FaCodeBranch}
+          accent="bg-violet-100 text-violet-600"
+        />
+      </div>
 
       <SectionCard
         title="Site deployments"

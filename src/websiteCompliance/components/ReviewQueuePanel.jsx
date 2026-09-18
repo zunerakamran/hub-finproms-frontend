@@ -947,7 +947,10 @@ const RequestCard = memo(function RequestCard({
 export default function ReviewQueuePanel({ variant = 'active' } = {}) {
   const { user } = useAuth()
   const { can } = useHub()
-  const canViewAll = can('wc_view_all_change_requests')
+  // Hub-wide history only when view-all is granted. Approver role must never inherit
+  // hub-wide history from a stale matrix default — only requests they picked.
+  const canViewAll =
+    can('wc_view_all_change_requests') && String(user?.role || '') !== 'approver'
   const [requests, setRequests] = useState([])
   const previewSnapshotsRef = useRef({})
   const snapshotsLoadedRef = useRef(false)

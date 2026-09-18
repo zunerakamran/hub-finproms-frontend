@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import ActingHubSwitcher from './ActingHubSwitcher'
 import { useAuth } from '../context/AuthContext'
@@ -15,6 +15,8 @@ export default function MyDashboardLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
+  const topbarRef = useRef(null)
+  const dashMainRef = useRef(null)
 
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = branding?.logo_url || null
@@ -59,6 +61,23 @@ export default function MyDashboardLayout() {
       document.body.classList.remove('dash-nav-open')
     }
   }, [navOpen])
+
+  // Expose real topbar height so in-page sticky headers (e.g. WC section bar) sit below it
+  useEffect(() => {
+    const topbar = topbarRef.current
+    const main = dashMainRef.current
+    if (!topbar || !main) return undefined
+
+    const syncHeight = () => {
+      const height = Math.ceil(topbar.getBoundingClientRect().height)
+      main.style.setProperty('--dash-topbar-height', `${height}px`)
+    }
+
+    syncHeight()
+    const observer = new ResizeObserver(syncHeight)
+    observer.observe(topbar)
+    return () => observer.disconnect()
+  }, [])
 
   const onLogout = async () => {
     await logout()
@@ -140,8 +159,8 @@ export default function MyDashboardLayout() {
         </div>
       </aside>
 
-      <div className="dash-main">
-        <header className="dash-topbar">
+      <div className="dash-main" ref={dashMainRef}>
+        <header className="dash-topbar" ref={topbarRef}>
           <div className="dash-topbar__lead">
             <div className="dash-topbar__title-row">
               <button

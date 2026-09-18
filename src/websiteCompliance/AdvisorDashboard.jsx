@@ -3277,7 +3277,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                               </button>
                             </div>
                           ) : (
-                            <div className={`sticky ${embedded ? 'top-0' : 'top-16'} z-20 px-6 py-2.5 flex items-center justify-between gap-3 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm rounded-t-2xl`}>
+                            <div className={`sticky ${embedded ? 'top-[var(--dash-topbar-height,7rem)]' : 'top-16'} z-10 px-6 py-2.5 flex items-center justify-between gap-3 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm rounded-t-2xl`}>
                               <button
                                 type="button"
                                 onClick={() => toggleEditorExpanded(secId)}

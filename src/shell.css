@@ -628,6 +628,8 @@ h2,
   min-width: 0;
   display: flex;
   flex-direction: column;
+  /* Fallback until layout measures the real sticky topbar height */
+  --dash-topbar-height: 7rem;
 }
 
 .dash-topbar {
@@ -642,7 +644,8 @@ h2,
   border-bottom: 1px solid color-mix(in srgb, var(--brand) 16%, var(--line));
   position: sticky;
   top: 0;
-  z-index: 20;
+  /* Above in-page sticky bars (e.g. WC section editor header at z-10/20) */
+  z-index: 30;
 }
 
 .dash-topbar__eyebrow {

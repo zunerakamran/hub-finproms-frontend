@@ -498,7 +498,7 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/website-compliance/reports',
     label: 'Reports',
     title: 'Reports',
-    description: 'Platform summary for templates, deployments, and change requests.',
+    description: 'Website Compliance summary for templates, deployments, and change requests.',
     capability: 'wc_view_platform_report',
     group: 'wc',
   },

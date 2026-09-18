@@ -43,7 +43,7 @@ export default function WebsiteComplianceReports() {
         <div>
           <p className="eyebrow">Website Compliance</p>
           <h1>Reports</h1>
-          <p className="muted">Platform summary for templates, deployments, and change requests.</p>
+          <p className="muted">Summary of templates, site deployments, and content change requests.</p>
         </div>
       </div>
       <div className="wc-app wc-surface">

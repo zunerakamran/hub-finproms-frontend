@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import ActingHubSwitcher from './ActingHubSwitcher'
+import WebsiteNavLink from './WebsiteNavLink'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import {
@@ -141,9 +142,7 @@ export default function MyDashboardLayout() {
         </nav>
 
         <div className="dash-sidebar__footer">
-          <NavLink to="/" className="dash-site-link">
-            ← Back to website
-          </NavLink>
+          <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
           <div className="dash-user-row">
             <span className="dash-user-avatar" aria-hidden="true">
               {String(user?.name || 'U').charAt(0).toUpperCase()}
@@ -181,9 +180,7 @@ export default function MyDashboardLayout() {
             <ActingHubSwitcher />
           </div>
           <div className="dash-topbar__links">
-            <NavLink to="/" className="dash-top-link">
-              Website
-            </NavLink>
+            <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
             <NavLink to="/my-dashboard" className="dash-top-link" end>
               Overview
             </NavLink>

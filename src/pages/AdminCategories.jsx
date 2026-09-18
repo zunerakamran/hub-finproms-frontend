@@ -21,7 +21,9 @@ export default function AdminCategories({ shell = 'client-admin' }) {
     setLoading(true)
     setError('')
     try {
-      const data = await api.listCategories()
+      const data = isActingOnWhiteLabel
+        ? await api.hubContentCategories(apiOpts)
+        : await api.listCategories()
       setCategories(data.categories || [])
     } catch (err) {
       setError(err.message)

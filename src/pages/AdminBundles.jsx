@@ -46,13 +46,21 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   const load = async () => {
     setLoading(true)
     try {
-      const [bundlesRes, postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
-        api.adminBundles({ per_page: 50 }, apiOpts),
-        api.posts({ per_page: 100 }),
-        api.listTypes(),
-        api.listCategories(),
-        api.listTags(),
-      ])
+      const [bundlesRes, postsRes, typesRes, catsRes, tagsRes] = isActingOnWhiteLabel
+        ? await Promise.all([
+            api.hubContentBundles({ per_page: 50 }, apiOpts),
+            api.hubContentPosts({ per_page: 100 }, apiOpts),
+            api.hubContentTypes(apiOpts),
+            api.hubContentCategories(apiOpts),
+            api.hubContentTags(apiOpts),
+          ])
+        : await Promise.all([
+            api.adminBundles({ per_page: 50 }, apiOpts),
+            api.posts({ per_page: 100 }),
+            api.listTypes(),
+            api.listCategories(),
+            api.listTags(),
+          ])
       setBundles(bundlesRes.data || [])
       setPosts(postsRes.data || [])
       setTypes(typesRes.types || [])

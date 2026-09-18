@@ -37,12 +37,19 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     setLoading(true)
     setError('')
     try {
-      const [postsRes, typesRes, catsRes, tagsRes] = await Promise.all([
-        api.posts({ per_page: 50 }),
-        api.listTypes(),
-        api.listCategories(),
-        api.listTags(),
-      ])
+      const [postsRes, typesRes, catsRes, tagsRes] = isActingOnWhiteLabel
+        ? await Promise.all([
+            api.hubContentPosts({ per_page: 50 }, apiOpts),
+            api.hubContentTypes(apiOpts),
+            api.hubContentCategories(apiOpts),
+            api.hubContentTags(apiOpts),
+          ])
+        : await Promise.all([
+            api.posts({ per_page: 50 }),
+            api.listTypes(),
+            api.listCategories(),
+            api.listTags(),
+          ])
       setPosts(postsRes.data || [])
       setTypes(typesRes.types || [])
       setCategories(catsRes.categories || [])

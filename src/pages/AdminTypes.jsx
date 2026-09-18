@@ -22,7 +22,9 @@ export default function AdminTypes({ shell = 'client-admin' }) {
     setLoading(true)
     setError('')
     try {
-      const data = await api.listTypes()
+      const data = isActingOnWhiteLabel
+        ? await api.hubContentTypes(apiOpts)
+        : await api.listTypes()
       setTypes(data.types || [])
     } catch (err) {
       setError(err.message)

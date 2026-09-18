@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import AdminSubnav from './AdminSubnav'
+import WebsiteNavLink from './WebsiteNavLink'
 
 export default function ClientAdminLayout() {
   const { user, logout, isFinpromsAdmin, isManager, isApprover, isAdvisor } = useAuth()
@@ -44,9 +45,7 @@ export default function ClientAdminLayout() {
         </div>
         <AdminSubnav />
         <div className="dash-sidebar__footer">
-          <NavLink to="/" className="dash-site-link">
-            ← Back to website
-          </NavLink>
+          <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
           <div className="dash-user-row">
             <span className="dash-user-avatar" aria-hidden="true">
               {String(user?.name || 'U').charAt(0).toUpperCase()}
@@ -67,9 +66,7 @@ export default function ClientAdminLayout() {
             <h1 className="dash-topbar__title">{shellTitle}</h1>
           </div>
           <div className="dash-topbar__links">
-            <NavLink to="/" className="dash-top-link">
-              Website
-            </NavLink>
+            <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
             <NavLink to="/client-admin" className="dash-top-link" end>
               Home
             </NavLink>

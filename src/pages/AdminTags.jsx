@@ -21,7 +21,9 @@ export default function AdminTags({ shell = 'client-admin' }) {
     setLoading(true)
     setError('')
     try {
-      const data = await api.listTags()
+      const data = isActingOnWhiteLabel
+        ? await api.hubContentTags(apiOpts)
+        : await api.listTags()
       setTags(data.tags || [])
     } catch (err) {
       setError(err.message)

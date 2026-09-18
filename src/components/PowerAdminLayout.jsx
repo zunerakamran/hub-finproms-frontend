@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import WebsiteNavLink from './WebsiteNavLink'
 
 const links = [
   { to: '/power-admin', label: 'Dashboard', end: true, capability: 'pa_view_dashboard' },
@@ -128,9 +129,7 @@ export default function PowerAdminLayout() {
         </nav>
 
         <div className="dash-sidebar__footer">
-          <NavLink to="/" className="dash-site-link">
-            ← Back to website
-          </NavLink>
+          <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
           <div className="dash-user-row">
             <span className="dash-user-avatar" aria-hidden="true">
               {String(user?.name || 'U').charAt(0).toUpperCase()}
@@ -152,9 +151,7 @@ export default function PowerAdminLayout() {
             <h1 className="dash-topbar__title">Platform control</h1>
           </div>
           <div className="dash-topbar__links">
-            <NavLink to="/" className="dash-top-link">
-              Website
-            </NavLink>
+            <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
             <NavLink to="/power-admin" className="dash-top-link" end>
               Home
             </NavLink>

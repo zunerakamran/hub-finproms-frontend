@@ -946,6 +946,8 @@ const RequestCard = memo(function RequestCard({
 
 export default function ReviewQueuePanel({ variant = 'active' } = {}) {
   const { user } = useAuth()
+  const { can } = useHub()
+  const canViewAll = can('wc_view_all_change_requests')
   const [requests, setRequests] = useState([])
   const previewSnapshotsRef = useRef({})
   const snapshotsLoadedRef = useRef(false)
@@ -1008,6 +1010,20 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
       ? requests.filter(r => !ACTIVE_STATUSES.has(r.status))
       : requests.filter(r => ACTIVE_STATUSES.has(r.status))
 
+    // Approvers without view-all only see their own completed/assigned work in history.
+    if (variant === 'history' && !canViewAll) {
+      list = list.filter(r => Number(r.approver_id) === Number(user?.id))
+    }
+
+    // Active queue without view-all: pickup pool (unassigned pending) + assigned to me.
+    if (variant === 'active' && !canViewAll) {
+      list = list.filter(r => {
+        const mine = Number(r.approver_id) === Number(user?.id)
+        const pickup = r.status === 'pending' && !r.approver_id
+        return mine || pickup
+      })
+    }
+
     if (search.trim()) {
       const q = search.trim().toLowerCase()
       list = list.filter(r => {
@@ -1019,7 +1035,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     }
 
     return list
-  }, [requests, variant, search])
+  }, [requests, variant, search, canViewAll, user?.id])
 
   return (
     <div>
@@ -1060,13 +1076,19 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
             <FaInbox className="w-6 h-6 text-gray-400" />
           </div>
           <h3 className="text-lg font-bold text-[var(--brand-dark)]">
-            {search.trim() ? 'No matching requests' : variant === 'history' ? 'No history yet' : 'No change requests found'}
+            {search.trim()
+              ? 'No matching requests'
+              : variant === 'history'
+                ? (canViewAll ? 'No history yet' : 'No reviews assigned to you yet')
+                : 'No change requests found'}
           </h3>
           <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
             {search.trim()
               ? 'Try a different search term or clear the filter.'
               : variant === 'history'
-                ? 'Approved, rejected, and feedback requests will appear here.'
+                ? (canViewAll
+                  ? 'Approved, rejected, and feedback requests will appear here.'
+                  : 'Once you complete reviews assigned to you, they will appear here.')
                 : 'You\'re all caught up — no requests need review right now.'}
           </p>
           {search.trim() && (

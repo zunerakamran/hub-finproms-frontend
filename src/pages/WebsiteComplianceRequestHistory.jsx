@@ -48,7 +48,9 @@ export default function WebsiteComplianceRequestHistory() {
           <p className="eyebrow">Website Compliance</p>
           <h1>Request history</h1>
           <p className="muted">
-            Browse completed and in-progress website content reviews.
+            {can('wc_view_all_change_requests')
+              ? 'Browse completed and in-progress website content reviews across the hub.'
+              : 'Browse your own completed and in-progress website content reviews.'}
             {canReview && (
               <>
                 {' '}

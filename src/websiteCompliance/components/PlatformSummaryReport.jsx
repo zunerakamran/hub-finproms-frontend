@@ -103,8 +103,6 @@ function exportSummaryToCsv(summary) {
     ['Deployments', 'Live', deployments.by_status?.deployed ?? 0],
     ['Deployments', 'Rejected', deployments.by_status?.rejected ?? 0],
     ['Deployments', 'Awaiting advisor assignment', deployments.awaiting_advisor ?? 0],
-    ['Deployments', 'Advisor websites', deployments.by_type?.advisor_website ?? 0],
-    ['Deployments', 'Hub main websites', deployments.by_type?.hub_main_website ?? 0],
   ]
 
   ;(deployments.by_template || []).forEach((row) => {
@@ -279,7 +277,7 @@ export default function PlatformSummaryReport({ onError }) {
           icon={FaRocket}
           iconAccent="bg-amber-50 text-amber-600"
         >
-          <div className="grid grid-cols-3 gap-3 mb-5">
+          <div className="grid grid-cols-1 gap-3 mb-5">
             <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3 text-center">
               <p className="text-xl font-extrabold text-amber-700">{deployments.by_status?.pending ?? 0}</p>
               <p className="text-[11px] font-semibold text-amber-700/80 mt-1">Pending</p>
@@ -303,22 +301,6 @@ export default function PlatformSummaryReport({ onError }) {
               </p>
             </div>
           )}
-
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">By site type</p>
-          <div className="space-y-3 mb-5">
-            <BreakdownRow
-              label="Advisor showcase sites"
-              value={deployments.by_type?.advisor_website ?? 0}
-              total={deployments.total ?? 0}
-              barClass="bg-indigo-500"
-            />
-            <BreakdownRow
-              label="Hub main websites"
-              value={deployments.by_type?.hub_main_website ?? 0}
-              total={deployments.total ?? 0}
-              barClass="bg-[var(--brand)]"
-            />
-          </div>
 
           {(deployments.by_template || []).length > 0 && (
             <>

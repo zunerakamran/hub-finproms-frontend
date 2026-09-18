@@ -701,7 +701,6 @@ function DeploymentCard({ req, advisors, canAssignAdvisor, onAssignAdvisor }) {
 
 export default function DeploymentRequestPanel() {
   const { can } = useHub()
-  const getRoleLabel = (k) => ({ power_admin: 'Power Admin', advisor: 'Advisor', approver: 'Approver', manager: 'Manager', client_admin: 'Client Admin' }[k] || k)
   const canRequest = can('wc_request_deployments')
   const canViewAll = can('wc_view_all_deployments')
   const canAssignAdvisor = can('wc_assign_change_requests') || can('wc_request_deployments')
@@ -787,8 +786,6 @@ export default function DeploymentRequestPanel() {
     setMessage(`${advisorName} assigned successfully. They can now edit this site's content once it is deployed.`)
   }
 
-  const advisorLabel = getRoleLabel('advisor')
-
   return (
     <div>
       {message && <AlertBanner type="success" message={message} onDismiss={() => setMessage('')} />}
@@ -799,7 +796,7 @@ export default function DeploymentRequestPanel() {
         <div className="flex-1 min-w-0">
           <p className="text-xs text-gray-500">
             {canRequest
-              ? `Request new advisor showcase sites and assign ${advisorLabel.toLowerCase()}s to edit their content.`
+              ? `Staff tools: request showcase sites for advisors, assign editors, and track deployment status. Advisors requesting their own site should use Request a site.`
               : 'Browse all deployment requests across the platform.'}
           </p>
         </div>

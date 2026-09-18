@@ -14,7 +14,7 @@ export default function WebsiteComplianceQueue() {
         <div className="page-head">
           <div>
             <p className="eyebrow">Website Compliance</p>
-            <h1>Change requests</h1>
+            <h1>Review queue</h1>
             <p className="muted">
               Website Compliance is not enabled for this hub. Ask Power Admin to enable Website Compliance
               under Modules.
@@ -30,8 +30,8 @@ export default function WebsiteComplianceQueue() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Website Compliance</p>
-          <h1>Change requests</h1>
-          <p className="muted">Assign and approve or reject website content changes.</p>
+          <h1>Review queue</h1>
+          <p className="muted">Assign and approve or reject website content changes submitted by editors.</p>
         </div>
       </div>
       <div className="wc-app wc-surface space-y-8">

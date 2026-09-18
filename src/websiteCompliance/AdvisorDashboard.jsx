@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import api from './wcApi'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -1158,8 +1159,21 @@ function aboutPreviewPayload(values) {
   })
 }
 
-export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExitPowerAdmin = null, embedded = false } = {}) {
+const WC_TAB_ROUTES = {
+  templates: '/my-dashboard/website-compliance/request-site',
+  deployments: '/my-dashboard/website-compliance/my-sites',
+  editor: '/my-dashboard/website-compliance/content-editor',
+}
+
+export default function AdvisorDashboard({
+  powerAdminDeploymentId = null,
+  onExitPowerAdmin = null,
+  embedded = false,
+  forcedTab = null,
+} = {}) {
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const getRoleLabel = (k) => ({ power_admin: 'Power Admin', advisor: 'Advisor', approver: 'Approver', manager: 'Manager', client_admin: 'Client Admin' }[k] || k); const getConsoleTitle = (r) => (r === 'advisor' ? 'Advisor console' : 'Console')
   const { can, hub, actingHub } = useHub()
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
@@ -1168,6 +1182,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
   const powerAdminLabel = getRoleLabel('power_admin')
   const advisorLabel = getRoleLabel('advisor')
   const isPowerAdminPublishMode = Boolean(powerAdminDeploymentId)
+  const singleTabMode = Boolean(forcedTab) || isPowerAdminPublishMode
   // Advisor website branding defaults (not hub dashboard greens / showcase chrome)
   const sitePrimaryDefault = '#0B1B3D'
   const siteSecondaryDefault = '#C8102E'
@@ -1185,7 +1200,9 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
   const [templateRequests, setTemplateRequests] = useState([])
   const [availableTemplates, setAvailableTemplates] = useState([])
   const [templateSearch, setTemplateSearch] = useState('')
-  const [activeTab, setActiveTab] = useState('templates')
+  const [activeTab, setActiveTab] = useState(
+    forcedTab || (isPowerAdminPublishMode ? 'editor' : 'templates')
+  )
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [selectedTemplateName, setSelectedTemplateName] = useState('template4')
   const [domainName, setDomainName] = useState('')
@@ -1808,6 +1825,32 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
     setActiveTab('editor')
   }, [isPowerAdminPublishMode, powerAdminDeploymentId])
 
+  useEffect(() => {
+    if (!forcedTab) return
+    setActiveTab(forcedTab)
+  }, [forcedTab])
+
+  // Deep-link a live site into the content editor (?deploymentId=)
+  useEffect(() => {
+    if (forcedTab !== 'editor' && !isPowerAdminPublishMode) return
+    const raw = searchParams.get('deploymentId')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id) || id <= 0) return
+    setSelectedDeploymentId(id)
+  }, [forcedTab, isPowerAdminPublishMode, searchParams])
+
+  const goToTab = (tabId, opts = {}) => {
+    if (forcedTab && WC_TAB_ROUTES[tabId] && tabId !== forcedTab) {
+      const params = new URLSearchParams()
+      if (opts.deploymentId) params.set('deploymentId', String(opts.deploymentId))
+      const qs = params.toString()
+      navigate(`${WC_TAB_ROUTES[tabId]}${qs ? `?${qs}` : ''}`)
+      return
+    }
+    setActiveTab(tabId)
+  }
+
   const applyPages = (data) => {
     const list = Array.isArray(data) ? data : (data?.pages || [])
     setPages(list)
@@ -1832,7 +1875,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
   }, [templateRequests, selectedDeploymentId])
 
   const handleDeploymentSelect = (deploymentId) => {
-    if (deploymentId === selectedDeploymentId) return
+    if (deploymentId === selectedDeploymentId && activeTab === 'editor' && !forcedTab) return
     setSelectedDeploymentId(deploymentId)
     setSelectedPageId('')
     setSections([])
@@ -1841,7 +1884,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
     setPreviewTab({})
     setActiveItemTab({})
     setExpandedEditors({})
-    setActiveTab('editor')
+    goToTab('editor', { deploymentId })
   }
 
   // Fetch pages for the selected deployed site
@@ -1888,7 +1931,12 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
 
   const openDeploymentModal = (templateSlug, switchToDeployments = false) => {
     if (templateSlug) setSelectedTemplateName(templateSlug)
-    if (switchToDeployments) setActiveTab('deployments')
+    // From content editor, send users to the dedicated request-site page
+    if (forcedTab === 'editor' && switchToDeployments) {
+      navigate(WC_TAB_ROUTES.templates)
+      return
+    }
+    if (switchToDeployments && !forcedTab) setActiveTab('deployments')
     setShowTemplateModal(true)
   }
 
@@ -2652,7 +2700,12 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                   <span className="font-mono">{activeDeployment.domain_name || activeDeployment.cpanel_domain}</span>
                 </p>
               ) : (
-                <p className="text-xs text-gray-500">Templates, deployments, and section editing for your sites.</p>
+                <p className="text-xs text-gray-500">
+                  {forcedTab === 'templates' && 'Browse templates and request a new showcase site.'}
+                  {forcedTab === 'deployments' && 'Track your site requests and open a live site to edit.'}
+                  {forcedTab === 'editor' && 'Edit sections on your live site and submit changes for review.'}
+                  {!forcedTab && 'Templates, deployments, and section editing for your sites.'}
+                </p>
               )}
               <div className="flex items-center gap-2">
                 {isPowerAdminPublishMode ? (
@@ -2664,21 +2717,22 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
                     <FaArrowLeft className="w-3.5 h-3.5" />
                     Back
                   </button>
-                ) : canRequestDeployments ? (
+                ) : canRequestDeployments && forcedTab !== 'templates' ? (
                   <button
                     type="button"
                     onClick={() => openDeploymentModal(null, true)}
                     className="inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-md"
                   >
                     <FaPlus className="w-3.5 h-3.5" />
-                    New Deployment
+                    Request a site
                   </button>
                 ) : null}
               </div>
             </div>
           )}
 
-          {/* Quick stats */}
+          {/* Quick stats — hide on dedicated request-site page */}
+          {forcedTab !== 'templates' && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="bg-white rounded-xl border border-gray-200/80 p-4 shadow-sm">
               <div className="flex items-center gap-3">
@@ -2732,10 +2786,11 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
               </div>
             </div>
           </div>
+          )}
         </div>
 
-        {/* Workflow progress */}
-        {!isPowerAdminPublishMode && (
+        {/* Workflow progress — only on the combined / editor flow */}
+        {!isPowerAdminPublishMode && !forcedTab && (
         <WorkflowStepper
           isSiteDeployed={hasDeployedSite}
           hasPage={Boolean(selectedPageId)}
@@ -2748,7 +2803,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
         {message && <AlertBanner type="success" message={message} onDismiss={() => setMessage('')} />}
         {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
 
-        {/* Tabs */}
+        {/* Tabs — hidden when each concern has its own page */}
+        {!singleTabMode && (
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           {tabs.map(tab => {
             const Icon = tab.icon
@@ -2776,6 +2832,7 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
             )
           })}
         </div>
+        )}
 
         {activeTab === 'templates' && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -2887,14 +2944,26 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
               <span className="font-bold text-[var(--brand-dark)]">{templateRequests.length}</span>
               {' '}deployment request{templateRequests.length === 1 ? '' : 's'} total
             </p>
-            <button
-              type="button"
-              onClick={() => openDeploymentModal()}
-              className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-[var(--brand-dark)] text-white hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-sm"
-            >
-              <FaPlus className="w-3 h-3" />
-              Request New Deployment
-            </button>
+            {canRequestDeployments && (
+              forcedTab === 'deployments' ? (
+                <Link
+                  to={WC_TAB_ROUTES.templates}
+                  className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-[var(--brand-dark)] text-white hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-sm"
+                >
+                  <FaPlus className="w-3 h-3" />
+                  Request a site
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openDeploymentModal()}
+                  className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-[var(--brand-dark)] text-white hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-sm"
+                >
+                  <FaPlus className="w-3 h-3" />
+                  Request New Deployment
+                </button>
+              )
+            )}
           </div>
 
           {templateRequests.length === 0 ? (
@@ -2906,14 +2975,26 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
               <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
                 Submit your first deployment request. You can request additional sites anytime after that.
               </p>
-              <button
-                type="button"
-                onClick={() => openDeploymentModal()}
-                className="mt-5 inline-flex items-center gap-2 bg-[var(--brand)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition shadow-md"
-              >
-                <FaPlus className="w-4 h-4" />
-                Request First Deployment
-              </button>
+              {canRequestDeployments && (
+                forcedTab === 'deployments' ? (
+                  <Link
+                    to={WC_TAB_ROUTES.templates}
+                    className="mt-5 inline-flex items-center gap-2 bg-[var(--brand)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition shadow-md"
+                  >
+                    <FaPlus className="w-4 h-4" />
+                    Request First Site
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openDeploymentModal()}
+                    className="mt-5 inline-flex items-center gap-2 bg-[var(--brand)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition shadow-md"
+                  >
+                    <FaPlus className="w-4 h-4" />
+                    Request First Deployment
+                  </button>
+                )
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -2969,8 +3050,8 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab('deployments')
-                  openDeploymentModal()
+                  goToTab('deployments')
+                  if (!forcedTab) openDeploymentModal()
                 }}
                 className="mt-5 inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-md"
               >
@@ -3060,15 +3141,24 @@ export default function AdvisorDashboard({ powerAdminDeploymentId = null, onExit
 
             {!isPowerAdminPublishMode && myChangeRequests.length > 0 && (
               <div className="mb-5 bg-white rounded-xl border border-gray-200 p-4">
-                <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500 mb-2">My change requests</p>
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">My change requests</p>
+                  <Link
+                    to="/my-dashboard/website-compliance/my-requests"
+                    className="text-[11px] font-bold text-[var(--brand)] hover:underline"
+                  >
+                    View all & versions
+                  </Link>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {myChangeRequests.slice(0, 8).map((cr) => (
-                    <span
+                    <Link
                       key={cr.id}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700"
+                      to={`/my-dashboard/website-compliance/my-requests?highlight=${cr.id}`}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700 hover:border-[var(--brand)]/40 hover:bg-[var(--brand)]/5 transition"
                     >
                       #{cr.id} · v{cr.current_version || 1} · {crStatusLabel(cr.status)}
-                    </span>
+                    </Link>
                   ))}
                 </div>
               </div>

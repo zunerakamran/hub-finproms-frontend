@@ -191,7 +191,7 @@ function BrandingUploadField({
   )
 }
 
-function CreateDeploymentModal({ advisors, onClose, onCreated }) {
+function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, onCreated }) {
   const { branding, hub, actingHub } = useHub()
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const domainPlaceholder = hubDomainPlaceholder(previewBase)
@@ -249,6 +249,10 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!domainName.trim()) { setError('Domain name is required.'); return }
+    if (canAssignAdvisor && !assignedAdvisorId) {
+      setError('Assign an advisor for content editing before submitting.')
+      return
+    }
     setSubmitting(true)
     setError('')
     try {
@@ -261,7 +265,9 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
         secondary_color: secondaryColor,
         request_type: 'advisor_website',
       }
-      if (assignedAdvisorId) payload.assigned_advisor_id = Number(assignedAdvisorId)
+      if (canAssignAdvisor && assignedAdvisorId) {
+        payload.assigned_advisor_id = Number(assignedAdvisorId)
+      }
       const res = await api.post('/template-requests', payload)
       onCreated(res.data)
     } catch (err) {
@@ -277,7 +283,11 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
   return (
     <ModalShell
       title="Request New Deployment"
-      subtitle="Submit a new advisor showcase site for deployment. Assign an advisor to allow them to edit content."
+      subtitle={
+        canAssignAdvisor
+          ? 'Submit a showcase site for deployment and assign an advisor who will edit its content after go-live.'
+          : 'Submit a new advisor showcase site for deployment.'
+      }
       onClose={onClose}
       maxWidth="max-w-xl"
     >
@@ -374,15 +384,17 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
           </div>
         </div>
 
-        {/* Assign Advisor */}
+        {/* Assign Advisor — managers with assign capability only; required */}
+        {canAssignAdvisor && (
         <div>
           <label className={labelClass}>
-            Assign Advisor for Content Editing <span className="text-gray-400 font-normal">(optional)</span>
+            Assign Advisor for Content Editing <span className="text-rose-500">*</span>
           </label>
           <select
             value={assignedAdvisorId}
             onChange={e => setAssignedAdvisorId(e.target.value)}
             className={inputClass}
+            required
           >
             <option value="">— Select an advisor —</option>
             {advisors.map(a => (
@@ -395,9 +407,10 @@ function CreateDeploymentModal({ advisors, onClose, onCreated }) {
             <p className="text-xs text-amber-700 mt-1">No advisor accounts were found. Create an advisor user first.</p>
           )}
           <p className="text-[11px] text-gray-500 mt-1">
-            The assigned advisor will be able to edit this site's content sections and submit change requests for approval.
+            Required. Hub sections for this advisor are created only after Power Admin deploys the site.
           </p>
         </div>
+        )}
 
         <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
           <button
@@ -703,7 +716,7 @@ export default function DeploymentRequestPanel() {
   const { can } = useHub()
   const canRequest = can('wc_request_deployments')
   const canViewAll = can('wc_view_all_deployments')
-  const canAssignAdvisor = can('wc_assign_change_requests') || can('wc_request_deployments')
+  const canAssignAdvisor = can('wc_assign_change_requests')
   const canAccess = canRequest || canViewAll
 
   const [requests, setRequests] = useState([])
@@ -897,6 +910,7 @@ export default function DeploymentRequestPanel() {
       {showCreateModal && canRequest && (
         <CreateDeploymentModal
           advisors={advisors}
+          canAssignAdvisor={canAssignAdvisor}
           onClose={() => setShowCreateModal(false)}
           onCreated={handleCreated}
         />

@@ -8,7 +8,7 @@ import { formatGcDate } from '../utils/generalCompliance'
 
 export default function GeneralComplianceQueue() {
   const { user, isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading, complianceStatusLabel } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel, actingHubId } = useHub()
   const [items, setItems] = useState([])
   const [meta, setMeta] = useState(null)
   const [reviewers, setReviewers] = useState([])
@@ -69,7 +69,7 @@ export default function GeneralComplianceQueue() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, enabled, page, applied, asPowerAdmin, useFullList, canAssign])
+  }, [hubLoading, enabled, page, applied, asPowerAdmin, useFullList, canAssign, actingHubId])
 
   const assign = async (requestId, assignedTo) => {
     setAssigning(requestId)

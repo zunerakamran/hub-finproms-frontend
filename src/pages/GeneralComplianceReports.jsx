@@ -8,7 +8,7 @@ const emptyFilters = { status: '', from: '', to: '', q: '' }
 
 export default function GeneralComplianceReports() {
   const { isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading, complianceStatusLabel } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel, actingHubId } = useHub()
   const [tab, setTab] = useState('report')
   const [filters, setFilters] = useState(emptyFilters)
   const [applied, setApplied] = useState(emptyFilters)
@@ -65,7 +65,7 @@ export default function GeneralComplianceReports() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, enabled, tab, applied, asPowerAdmin])
+  }, [hubLoading, enabled, tab, applied, asPowerAdmin, actingHubId])
 
   const exportCsv = async () => {
     setExporting(true)

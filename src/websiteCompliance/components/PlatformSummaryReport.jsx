@@ -164,7 +164,7 @@ function exportSummaryToCsv(summary, complianceStatusLabel) {
 }
 
 export default function PlatformSummaryReport({ onError }) {
-  const { complianceStatusLabel } = useHub()
+  const { complianceStatusLabel, actingHubId } = useHub()
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -197,7 +197,7 @@ export default function PlatformSummaryReport({ onError }) {
 
   useEffect(() => {
     fetchSummary()
-  }, [fetchSummary])
+  }, [fetchSummary, actingHubId])
 
   if (loading && !summary) {
     return (
@@ -238,7 +238,7 @@ export default function PlatformSummaryReport({ onError }) {
           <p className="text-xs text-gray-500 mt-0.5">
             Templates, site deployments, and content change requests
             {summary.generated_at
-              ? ` · Updated ${new Date(summary.generated_at).toLocaleString()}`
+              ? ` · Live as of ${new Date(summary.generated_at).toLocaleString()}`
               : ''}
           </p>
         </div>

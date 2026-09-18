@@ -8,7 +8,7 @@ import { formatSmcDate } from '../utils/socialMediaCompliance'
 
 export default function SocialMediaComplianceQueue() {
   const { user, isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading, complianceStatusLabel } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel, actingHubId } = useHub()
   const [items, setItems] = useState([])
   const [meta, setMeta] = useState(null)
   const [reviewers, setReviewers] = useState([])
@@ -70,7 +70,7 @@ export default function SocialMediaComplianceQueue() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, enabled, page, applied, asPowerAdmin, useFullList, canAssign])
+  }, [hubLoading, enabled, page, applied, asPowerAdmin, useFullList, canAssign, actingHubId])
 
   const assign = async (requestId, assignedTo) => {
     setAssigning(requestId)

@@ -376,6 +376,7 @@ export default function App() {
                         'wc_request_deployments',
                         'wc_publish_live_content',
                         'wc_assign_change_requests',
+                        'wc_assign_website_templates',
                         'wc_view_all_change_requests',
                         'wc_review_change_requests',
                         // View-only / report roles may still hit this URL; Home redirects them.
@@ -443,7 +444,7 @@ export default function App() {
                         'wc_deploy_websites',
                         'wc_manage_templates',
                         'wc_manage_deployment_sections',
-                        'wc_assign_change_requests',
+                        'wc_assign_website_templates',
                       ]}
                     >
                       <WebsiteComplianceDeployments />

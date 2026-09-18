@@ -127,7 +127,7 @@ export default function WebsiteComplianceHome() {
     can('wc_deploy_websites') ||
     can('wc_manage_templates') ||
     can('wc_manage_deployment_sections') ||
-    can('wc_assign_change_requests')
+    can('wc_assign_website_templates')
   const canReports = can('wc_view_platform_report')
 
   if (!hubLoading && !moduleOn) return <ModuleOff />

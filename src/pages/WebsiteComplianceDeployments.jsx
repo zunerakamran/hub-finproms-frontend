@@ -7,7 +7,9 @@ export default function WebsiteComplianceDeployments() {
   const { can, loading: hubLoading } = useHub()
   const moduleOn = can('module_website_compliance')
   const canRequestOrView =
-    can('wc_request_deployments') || can('wc_view_all_deployments') || can('wc_assign_change_requests')
+    can('wc_request_deployments') ||
+    can('wc_assign_website_templates') ||
+    can('wc_view_all_deployments')
   const canAdmin =
     can('wc_manage_templates') || can('wc_deploy_websites') || can('wc_manage_deployment_sections')
   const canAccessPage =
@@ -15,7 +17,7 @@ export default function WebsiteComplianceDeployments() {
     can('wc_deploy_websites') ||
     can('wc_manage_templates') ||
     can('wc_manage_deployment_sections') ||
-    can('wc_assign_change_requests')
+    can('wc_assign_website_templates')
 
   if (!hubLoading && !moduleOn) {
     return (

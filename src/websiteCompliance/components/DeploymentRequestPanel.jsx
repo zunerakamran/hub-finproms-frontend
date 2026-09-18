@@ -714,9 +714,9 @@ function DeploymentCard({ req, advisors, canAssignAdvisor, onAssignAdvisor }) {
 
 export default function DeploymentRequestPanel() {
   const { can } = useHub()
-  const canRequest = can('wc_request_deployments')
+  const canRequest = can('wc_request_deployments') || can('wc_assign_website_templates')
   const canViewAll = can('wc_view_all_deployments')
-  const canAssignAdvisor = can('wc_assign_change_requests')
+  const canAssignAdvisor = can('wc_assign_website_templates')
   const canAccess = canRequest || canViewAll
 
   const [requests, setRequests] = useState([])

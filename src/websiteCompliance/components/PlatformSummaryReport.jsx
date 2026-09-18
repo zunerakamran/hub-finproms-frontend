@@ -12,6 +12,7 @@ import {
   FaUserClock,
 } from 'react-icons/fa'
 import api from '../wcApi'
+import { useHub } from '../../context/HubContext'
 
 function MetricCard({ label, value, icon: Icon, accent, sub }) {
   return (
@@ -82,7 +83,10 @@ function BreakdownRow({ label, value, total, barClass }) {
   )
 }
 
-function formatStatusLabel(status) {
+function formatStatusLabel(status, complianceStatusLabel) {
+  if (typeof complianceStatusLabel === 'function') {
+    return complianceStatusLabel(status)
+  }
   return (status || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
@@ -113,7 +117,7 @@ const CR_STATUS_ORDER = [
   'rejected',
 ]
 
-function exportSummaryToCsv(summary) {
+function exportSummaryToCsv(summary, complianceStatusLabel) {
   if (!summary) return
 
   const deployments = summary.deployments || summary.template_requests || {}
@@ -125,9 +129,9 @@ function exportSummaryToCsv(summary) {
     ['Templates', 'Active', summary.templates?.active ?? 0],
     ['Templates', 'Inactive', summary.templates?.inactive ?? 0],
     ['Deployments', 'Total', deployments.total ?? 0],
-    ['Deployments', 'Pending', deployments.by_status?.pending ?? 0],
-    ['Deployments', 'Live', deployments.by_status?.deployed ?? 0],
-    ['Deployments', 'Rejected', deployments.by_status?.rejected ?? 0],
+    ['Deployments', formatStatusLabel('pending', complianceStatusLabel), deployments.by_status?.pending ?? 0],
+    ['Deployments', formatStatusLabel('deployed', complianceStatusLabel), deployments.by_status?.deployed ?? 0],
+    ['Deployments', formatStatusLabel('rejected', complianceStatusLabel), deployments.by_status?.rejected ?? 0],
     ['Deployments', 'Awaiting advisor assignment', deployments.awaiting_advisor ?? 0],
   ]
 
@@ -145,7 +149,7 @@ function exportSummaryToCsv(summary) {
 
   CR_STATUS_ORDER.forEach((status) => {
     if (cr.by_status?.[status] != null) {
-      rows.push(['Change requests', formatStatusLabel(status), cr.by_status[status]])
+      rows.push(['Change requests', formatStatusLabel(status, complianceStatusLabel), cr.by_status[status]])
     }
   })
 
@@ -160,6 +164,7 @@ function exportSummaryToCsv(summary) {
 }
 
 export default function PlatformSummaryReport({ onError }) {
+  const { complianceStatusLabel } = useHub()
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -249,7 +254,7 @@ export default function PlatformSummaryReport({ onError }) {
           </button>
           <button
             type="button"
-            onClick={() => exportSummaryToCsv(summary)}
+            onClick={() => exportSummaryToCsv(summary, complianceStatusLabel)}
             className="inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-sm"
           >
             <FaDownload className="w-3.5 h-3.5" />
@@ -341,7 +346,7 @@ export default function PlatformSummaryReport({ onError }) {
         {crStatusEntries.map(([status, count]) => (
           <StatusRow
             key={status}
-            label={formatStatusLabel(status)}
+            label={formatStatusLabel(status, complianceStatusLabel)}
             value={count}
             tone={STATUS_TONE[status] || 'neutral'}
           />
@@ -351,7 +356,7 @@ export default function PlatformSummaryReport({ onError }) {
           {crStatusEntries.map(([status, count]) => (
             <BreakdownRow
               key={`bar-${status}`}
-              label={formatStatusLabel(status)}
+              label={formatStatusLabel(status, complianceStatusLabel)}
               value={count}
               total={cr.total ?? 0}
               barClass={STATUS_BAR[status] || 'bg-gray-500'}

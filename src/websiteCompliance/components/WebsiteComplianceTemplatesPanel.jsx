@@ -59,6 +59,7 @@ const STATUS_CONFIG = {
 }
 
 function StatusBadge({ status }) {
+  const { complianceStatusLabel } = useHub()
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending
   const Icon = config.icon
   return (
@@ -66,7 +67,7 @@ function StatusBadge({ status }) {
       className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${config.className}`}
     >
       <Icon className="w-3 h-3 shrink-0" aria-hidden="true" />
-      {config.label}
+      {complianceStatusLabel(status)}
     </span>
   )
 }

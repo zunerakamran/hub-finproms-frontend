@@ -8,7 +8,7 @@ import { formatGcDate } from '../utils/generalCompliance'
 
 export default function GeneralComplianceQueue() {
   const { user, isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel } = useHub()
   const [items, setItems] = useState([])
   const [meta, setMeta] = useState(null)
   const [reviewers, setReviewers] = useState([])
@@ -146,10 +146,10 @@ export default function GeneralComplianceQueue() {
         />
         <select value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">All statuses</option>
-          <option value="Pending">Pending</option>
-          <option value="Approved">Approved</option>
-          <option value="Rejected">Rejected</option>
-          <option value="Approved with Feedback">Approved with Feedback</option>
+          <option value="Pending">{complianceStatusLabel('Pending')}</option>
+          <option value="Approved">{complianceStatusLabel('Approved')}</option>
+          <option value="Rejected">{complianceStatusLabel('Rejected')}</option>
+          <option value="Approved with Feedback">{complianceStatusLabel('Approved with Feedback')}</option>
         </select>
         <button className="btn primary" type="submit">
           Filter

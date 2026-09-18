@@ -1,8 +1,10 @@
 import { smcStatusClass, formatSmcDate } from '../utils/socialMediaCompliance'
+import { useHub } from '../context/HubContext'
 
 export default function SmcStatusBadge({ status }) {
-  const label = status || 'Pending'
-  return <span className={smcStatusClass(label)}>{label}</span>
+  const { complianceStatusLabel } = useHub()
+  const raw = status || 'Pending'
+  return <span className={smcStatusClass(raw)}>{complianceStatusLabel(raw)}</span>
 }
 
 export function SmcBarChart({ labels = [], data = [], title }) {

@@ -81,6 +81,7 @@ const HUB_OPS_ANY = [
   'dashboard_manage_plans',
   'dashboard_manage_settings',
   'dashboard_manage_role_display_names',
+  'dashboard_manage_compliance_status_display_names',
   'dashboard_bank_transfers',
   'dashboard_view_activity_logs',
   'dashboard_manage_modules',
@@ -237,6 +238,14 @@ export const DASHBOARD_LINKS = [
     title: 'Role display names',
     description: 'Customize how role names appear across this hub’s UI.',
     capability: 'dashboard_manage_role_display_names',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/compliance-status-display-names',
+    label: 'Compliance status names',
+    title: 'Compliance status names',
+    description: 'Customize Pending / Approved / Rejected wording across compliance modules.',
+    capability: 'dashboard_manage_compliance_status_display_names',
     group: 'hub',
   },
   {

@@ -1,13 +1,14 @@
 import {
   formatWcDate,
   wcStatusClass,
-  wcStatusLabel,
   wcVersionSectionNames,
 } from '../utils/websiteCompliance'
+import { useHub } from '../context/HubContext'
 import ChangeRequestPreviewPanel from '../websiteCompliance/components/ChangeRequestPreviewPanel'
 
 export default function WcStatusBadge({ status }) {
-  return <span className={wcStatusClass(status)}>{wcStatusLabel(status)}</span>
+  const { complianceStatusLabel } = useHub()
+  return <span className={wcStatusClass(status)}>{complianceStatusLabel(status)}</span>
 }
 
 export function WcVersionCard({ version, isLatest, requestId = null, request = null }) {

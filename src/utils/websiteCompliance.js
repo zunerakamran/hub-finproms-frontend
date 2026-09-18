@@ -1,5 +1,11 @@
 /** Website Compliance shared helpers */
 
+import {
+  DEFAULT_COMPLIANCE_STATUS_LABELS,
+  complianceStatusLabel,
+  normalizeComplianceStatusKey,
+} from './complianceStatusLabels'
+
 export const WC_STATUSES = [
   'pending',
   'under_review',
@@ -9,17 +15,12 @@ export const WC_STATUSES = [
   'approved_with_feedback',
 ]
 
-export function wcStatusLabel(status) {
-  return (
-    {
-      pending: 'Pending',
-      under_review: 'Under review',
-      scheduled: 'Scheduled',
-      approved: 'Approved',
-      rejected: 'Rejected',
-      approved_with_feedback: 'Approved with Feedback',
-    }[status] || status || 'Pending'
-  )
+export function wcStatusLabel(status, hubOrLabels = null) {
+  if (hubOrLabels) {
+    return complianceStatusLabel(hubOrLabels, status)
+  }
+  const key = normalizeComplianceStatusKey(status)
+  return DEFAULT_COMPLIANCE_STATUS_LABELS[key] || status || 'Pending'
 }
 
 export function wcStatusClass(status) {

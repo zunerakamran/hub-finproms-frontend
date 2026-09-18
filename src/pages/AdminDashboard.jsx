@@ -93,6 +93,12 @@ const sections = [
     capability: 'dashboard_manage_role_display_names',
   },
   {
+    to: '/client-admin/compliance-status-display-names',
+    title: 'Compliance status names',
+    description: 'Customize Pending / Approved / Rejected wording across compliance modules.',
+    capability: 'dashboard_manage_compliance_status_display_names',
+  },
+  {
     to: '/client-admin/bank-transfers',
     title: 'Bank transfers',
     description: 'Confirm pending bank payments and grant credits (temporary until Stripe).',

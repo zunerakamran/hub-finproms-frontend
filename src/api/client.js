@@ -304,6 +304,13 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ roles }),
     }),
+  complianceStatusDisplayNames: () =>
+    request(`${CLIENT_ADMIN}/compliance-status-display-names`),
+  updateComplianceStatusDisplayNames: (statuses) =>
+    request(`${CLIENT_ADMIN}/compliance-status-display-names`, {
+      method: 'PUT',
+      body: JSON.stringify({ statuses }),
+    }),
   powerAdminPaymentMethods: (hubId) => {
     const query = hubId ? `?hub_id=${hubId}` : ''
     return request(`/power-admin/payment-methods${query}`)

@@ -46,6 +46,11 @@ const links = [
     label: 'Role display names',
     capability: 'dashboard_manage_role_display_names',
   },
+  {
+    to: '/client-admin/compliance-status-display-names',
+    label: 'Compliance status names',
+    capability: 'dashboard_manage_compliance_status_display_names',
+  },
   { to: '/client-admin/bank-transfers', label: 'Bank transfers', capability: 'dashboard_bank_transfers' },
 ]
 

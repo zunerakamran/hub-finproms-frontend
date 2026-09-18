@@ -8,7 +8,7 @@ const emptyFilters = { status: '', from: '', to: '', q: '' }
 
 export default function GeneralComplianceReports() {
   const { isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel } = useHub()
   const [tab, setTab] = useState('report')
   const [filters, setFilters] = useState(emptyFilters)
   const [applied, setApplied] = useState(emptyFilters)
@@ -170,10 +170,10 @@ export default function GeneralComplianceReports() {
           onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
         >
           <option value="">All statuses</option>
-          <option value="Pending">Pending</option>
-          <option value="Approved">Approved</option>
-          <option value="Rejected">Rejected</option>
-          <option value="Approved with Feedback">Approved with Feedback</option>
+          <option value="Pending">{complianceStatusLabel('Pending')}</option>
+          <option value="Approved">{complianceStatusLabel('Approved')}</option>
+          <option value="Rejected">{complianceStatusLabel('Rejected')}</option>
+          <option value="Approved with Feedback">{complianceStatusLabel('Approved with Feedback')}</option>
           <option value="Approved (Right First Time)">Approved (Right First Time)</option>
           <option value="Approved (Multiple Attempts)">Approved (Multiple Attempts)</option>
         </select>
@@ -216,7 +216,7 @@ export default function GeneralComplianceReports() {
               {Object.entries(summary.by_status || {}).map(([status, count]) => (
                 <div className="stat-card" key={status}>
                   <strong>{count}</strong>
-                  <span>{status}</span>
+                  <span>{complianceStatusLabel(status)}</span>
                 </div>
               ))}
               <div className="stat-card">

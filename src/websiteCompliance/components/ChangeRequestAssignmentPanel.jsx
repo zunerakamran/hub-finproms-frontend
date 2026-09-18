@@ -185,18 +185,20 @@ function RequestTitle({ req }) {
 }
 
 function StatusBadge({ status, scheduledAt }) {
+  const { complianceStatusLabel } = useHub()
   const config = STATUS_CONFIG[status]
   if (!config) {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border bg-gray-50 text-gray-700 border-gray-200">
-        {status}
+        {complianceStatusLabel(status)}
       </span>
     )
   }
   const Icon = config.icon
+  const statusLabel = complianceStatusLabel(status)
   const label = status === 'scheduled' && scheduledAt
-    ? `${config.label} · ${new Date(scheduledAt).toLocaleString()}`
-    : config.label
+    ? `${statusLabel} · ${new Date(scheduledAt).toLocaleString()}`
+    : statusLabel
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${config.className}`}>
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dot}`} />

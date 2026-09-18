@@ -323,6 +323,7 @@ const REQUEST_STATUS_CONFIG = {
 }
 
 function RequestStatusBadge({ status }) {
+  const { complianceStatusLabel } = useHub()
   const config = REQUEST_STATUS_CONFIG[status]
   if (!config) return null
   const Icon = config.icon
@@ -330,7 +331,7 @@ function RequestStatusBadge({ status }) {
     <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border uppercase tracking-wide ${config.className}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
       <Icon className="w-3 h-3" />
-      {config.label}
+      {complianceStatusLabel(status)}
     </span>
   )
 }
@@ -1174,7 +1175,7 @@ export default function AdvisorDashboard({
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { can, hub, actingHub, roleLabel } = useHub()
+  const { can, hub, actingHub, roleLabel, complianceStatusLabel } = useHub()
   const getConsoleTitle = (r) => (r === 'advisor' ? `${roleLabel('advisor')} console` : 'Console')
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const domainPlaceholder = hubDomainPlaceholder(previewBase)
@@ -2760,14 +2761,7 @@ export default function AdvisorDashboard({
   const revisionModeActive = !isPowerAdminPublishMode && actionChangeRequests.length > 0
   const revisionNeedsFocus = revisionModeActive && actionChangeRequests.length > 1 && !focusedRevisionCr
 
-  const crStatusLabel = (status) => ({
-    pending: 'Pending',
-    under_review: 'Under Review',
-    scheduled: 'Scheduled',
-    approved: 'Approved',
-    rejected: 'Rejected',
-    approved_with_feedback: 'Approved with Feedback',
-  }[status] || status)
+  const crStatusLabel = (status) => complianceStatusLabel(status)
 
   const tabs = isPowerAdminPublishMode
     ? [{ id: 'editor', label: 'Content Editor', icon: FaEdit, count: checkedSectionIds.length }]

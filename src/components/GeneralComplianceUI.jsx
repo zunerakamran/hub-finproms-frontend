@@ -1,8 +1,10 @@
 import { gcStatusClass, formatGcDate, formatGcFileSize } from '../utils/generalCompliance'
+import { useHub } from '../context/HubContext'
 
 export default function GcStatusBadge({ status }) {
-  const label = status || 'Pending'
-  return <span className={gcStatusClass(label)}>{label}</span>
+  const { complianceStatusLabel } = useHub()
+  const raw = status || 'Pending'
+  return <span className={gcStatusClass(raw)}>{complianceStatusLabel(raw)}</span>
 }
 
 export function GcBarChart({ labels = [], data = [], title }) {

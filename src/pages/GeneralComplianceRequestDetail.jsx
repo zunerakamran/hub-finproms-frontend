@@ -10,7 +10,7 @@ export default function GeneralComplianceRequestDetail() {
   const { id } = useParams()
   const location = useLocation()
   const { user, isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel } = useHub()
 
   const [row, setRow] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -255,7 +255,7 @@ export default function GeneralComplianceRequestDetail() {
                   checked={reviewStatus === status}
                   onChange={() => setReviewStatus(status)}
                 />
-                {status}
+                {complianceStatusLabel(status)}
               </label>
             ))}
           </fieldset>

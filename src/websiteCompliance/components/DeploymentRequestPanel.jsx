@@ -50,10 +50,11 @@ const STATUS_CONFIG = {
 }
 
 function StatusBadge({ status }) {
+  const { complianceStatusLabel } = useHub()
   const config = STATUS_CONFIG[status]
   if (!config) return (
     <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border bg-gray-50 text-gray-700 border-gray-200">
-      {status}
+      {complianceStatusLabel(status)}
     </span>
   )
   const Icon = config.icon
@@ -61,7 +62,7 @@ function StatusBadge({ status }) {
     <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full border ${config.className}`}>
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dot}`} aria-hidden="true" />
       <Icon className="w-3 h-3 shrink-0" aria-hidden="true" />
-      <span>{config.label}</span>
+      <span>{complianceStatusLabel(status)}</span>
     </span>
   )
 }

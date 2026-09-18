@@ -22,6 +22,7 @@ import AdminPlans from './pages/AdminPlans'
 import AdminPosts from './pages/AdminPosts'
 import AdminSettings from './pages/AdminSettings'
 import AdminRoleDisplayNames from './pages/AdminRoleDisplayNames'
+import AdminComplianceStatusDisplayNames from './pages/AdminComplianceStatusDisplayNames'
 import AdminTags from './pages/AdminTags'
 import AdminTypes from './pages/AdminTypes'
 import AdvisorBillingSuccess from './pages/AdvisorBillingSuccess'
@@ -578,6 +579,14 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_role_display_names">
                       <AdminRoleDisplayNames />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="compliance-status-display-names"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_compliance_status_display_names">
+                      <AdminComplianceStatusDisplayNames />
                     </HubCapabilityRoute>
                   }
                 />

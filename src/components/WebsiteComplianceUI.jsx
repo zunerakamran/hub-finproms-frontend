@@ -4,13 +4,15 @@ import {
   wcStatusLabel,
   wcVersionSectionNames,
 } from '../utils/websiteCompliance'
+import ChangeRequestPreviewPanel from '../websiteCompliance/components/ChangeRequestPreviewPanel'
 
 export default function WcStatusBadge({ status }) {
   return <span className={wcStatusClass(status)}>{wcStatusLabel(status)}</span>
 }
 
-export function WcVersionCard({ version, isLatest }) {
+export function WcVersionCard({ version, isLatest, requestId = null, request = null }) {
   const sectionNames = wcVersionSectionNames(version)
+  const resolvedRequestId = requestId || request?.id || version?.request_id
 
   return (
     <article className={`wc-version ${isLatest ? 'is-latest' : ''}`}>
@@ -53,6 +55,17 @@ export function WcVersionCard({ version, isLatest }) {
           )}
           {version.feedback ? <p className="wc-feedback">{version.feedback}</p> : null}
         </footer>
+      )}
+      {resolvedRequestId && (
+        <div className="wc-version-preview">
+          <ChangeRequestPreviewPanel
+            request={request}
+            requestId={resolvedRequestId}
+            version={version}
+            historical
+            compact
+          />
+        </div>
       )}
     </article>
   )

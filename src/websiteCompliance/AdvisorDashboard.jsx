@@ -3248,6 +3248,13 @@ export default function AdvisorDashboard({
                           {isFocused
                             ? 'Only the sections listed above appear in the editor. Select them below, then use the actions here.'
                             : 'Click “Edit these sections” to revise this previous version.'}
+                          {' '}
+                          <Link
+                            to={`/my-dashboard/website-compliance/my-requests/${cr.id}`}
+                            className="font-bold text-[var(--brand)] hover:underline"
+                          >
+                            View preview &amp; versions
+                          </Link>
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2 shrink-0">

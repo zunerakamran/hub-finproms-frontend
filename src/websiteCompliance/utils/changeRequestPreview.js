@@ -100,6 +100,68 @@ export function buildPreviewFromRequest(req) {
   }
 }
 
+/** Build a preview payload from a single change-request version row. */
+export function buildPreviewFromVersion(version) {
+  if (!version) return null
+
+  if (Array.isArray(version.section_edits) && version.section_edits.length) {
+    return {
+      is_batch: true,
+      edits: version.section_edits.map((item) => ({
+        section_id: item.section_id,
+        section_name: pickSectionName(item),
+        current_content: pickCurrentContent(item),
+        proposed_content: pickProposedContent(item),
+      })),
+      version_number: version.version_number,
+    }
+  }
+
+  const built = buildPreviewFromRequest({
+    proposed_content: version.proposed_content,
+    section_edits: version.section_edits,
+  })
+  if (!built) return null
+  return { ...built, version_number: version.version_number }
+}
+
+export async function fetchLivePreview(api, requestId, { version = null } = {}) {
+  const path = version != null
+    ? `/change-requests/${requestId}/preview?version=${encodeURIComponent(version)}`
+    : `/change-requests/${requestId}/preview`
+  const res = await api.get(path)
+  return res.data
+}
+
+export async function resolveVersionPreview(api, requestId, version, { brandingRequest = null } = {}) {
+  const local = buildPreviewFromVersion(version)
+  try {
+    const live = await fetchLivePreview(api, requestId, { version: version?.version_number })
+    if (previewHasStoredSnapshot(local)) {
+      return preferStoredPreview(live, local)
+    }
+    return live
+  } catch {
+    if (local && brandingRequest) {
+      try {
+        const branded = await fetchLivePreview(api, requestId)
+        return {
+          ...branded,
+          ...local,
+          is_batch: local.is_batch,
+          edits: local.edits,
+          current_content: local.current_content,
+          proposed_content: local.proposed_content,
+          version_number: version?.version_number,
+        }
+      } catch {
+        return local
+      }
+    }
+    return local
+  }
+}
+
 export function clonePreviewData(data) {
   if (!data) return null
   try {
@@ -222,11 +284,6 @@ async function fetchRequestDetail(api, req) {
   } catch {
     return req
   }
-}
-
-export async function fetchLivePreview(api, requestId) {
-  const res = await api.get(`/change-requests/${requestId}/preview`)
-  return res.data
 }
 
 export async function resolveRequestPreview(api, req, { cachedPreview = null } = {}) {

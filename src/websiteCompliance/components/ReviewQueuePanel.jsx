@@ -754,6 +754,8 @@ const RequestCard = memo(function RequestCard({
                     key={v.id || v.version_number}
                     version={v}
                     isLatest={Number(v.version_number) === Number(req.current_version || 1)}
+                    requestId={req.id}
+                    request={req}
                   />
                 ))
             )}

@@ -58,7 +58,8 @@ async function get(path, config = {}) {
       return wrap(await hubApi.websiteComplianceShowChangeRequest(p.split('/')[1]))
     }
     if (/^change-requests\/\d+\/preview$/.test(p)) {
-      return wrap(await hubApi.websiteComplianceChangeRequestPreview(p.split('/')[1]))
+      const id = p.split('/')[1]
+      return wrap(await hubApi.websiteComplianceChangeRequestPreview(id, params))
     }
     if (p === 'template-requests') return wrap(await hubApi.websiteComplianceTemplateRequests(params))
     if (/^template-requests\/\d+\/sections$/.test(p)) {

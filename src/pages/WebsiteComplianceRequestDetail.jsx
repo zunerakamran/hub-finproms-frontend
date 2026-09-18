@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import WcStatusBadge, { WcVersionCard } from '../components/WebsiteComplianceUI'
+import ChangeRequestPreviewPanel from '../websiteCompliance/components/ChangeRequestPreviewPanel'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatWcDate, wcSectionTitle } from '../utils/websiteCompliance'
+import { isHistoricalRequest } from '../websiteCompliance/utils/changeRequestPreview'
 
 export default function WebsiteComplianceRequestDetail() {
   const { id } = useParams()
@@ -134,18 +136,31 @@ export default function WebsiteComplianceRequestDetail() {
         <div className="wc-banner wc-banner--warn">Not assigned to a reviewer yet.</div>
       )}
 
-      <div className="wc-versions">
-        {versions.length === 0 ? (
-          <p className="muted">No versions recorded for this request yet.</p>
-        ) : (
-          versions.map((ver) => (
-            <WcVersionCard
-              key={ver.id || ver.version_number}
-              version={ver}
-              isLatest={Number(ver.version_number) === Number(row.current_version || 1)}
-            />
-          ))
-        )}
+      <div className="wc-app">
+        <div className="wc-panel" style={{ marginTop: 0, marginBottom: '1.25rem' }}>
+          <ChangeRequestPreviewPanel
+            request={row}
+            requestId={row.id}
+            historical={isHistoricalRequest(row)}
+            defaultOpen
+          />
+        </div>
+
+        <div className="wc-versions">
+          {versions.length === 0 ? (
+            <p className="muted">No versions recorded for this request yet.</p>
+          ) : (
+            versions.map((ver) => (
+              <WcVersionCard
+                key={ver.id || ver.version_number}
+                version={ver}
+                isLatest={Number(ver.version_number) === Number(row.current_version || 1)}
+                requestId={row.id}
+                request={row}
+              />
+            ))
+          )}
+        </div>
       </div>
 
       {isOwner && canSubmit && row.status === 'rejected' && (

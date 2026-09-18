@@ -691,8 +691,12 @@ export const api = {
   },
   websiteComplianceCreateChangeRequest: (body) =>
     request('/website-compliance/change-requests', { method: 'POST', body: JSON.stringify(body) }),
-  websiteComplianceChangeRequestPreview: (id) =>
-    request(`/website-compliance/change-requests/${id}/preview`),
+  websiteComplianceChangeRequestPreview: (id, params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+    ).toString()
+    return request(`/website-compliance/change-requests/${id}/preview${query ? `?${query}` : ''}`)
+  },
   websiteComplianceAssignChangeRequest: (id) =>
     request(`/website-compliance/change-requests/${id}/assign`, { method: 'POST' }),
   websiteComplianceAssignToApprover: (id, payload) =>

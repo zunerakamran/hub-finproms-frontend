@@ -26,10 +26,11 @@ export default function SocialMediaComplianceQueue() {
   const canAssign = can('smc_assign_requests')
   const canViewAll = can('smc_view_all_requests')
   const canReview = can('smc_review_requests')
+  const canChangeStatus = can('smc_change_request_status')
   const canSelfAssign = canReview
-  // Full hub list when view-all or assign; reviewers without those see assigned + unassigned (pickup).
-  const useFullList = canViewAll || canAssign
-  const enabled = moduleOn && (canViewAll || canAssign || canReview)
+  // Full hub list when view-all, assign, or change-status; reviewers without those see assigned + unassigned (pickup).
+  const useFullList = canViewAll || canAssign || canChangeStatus
+  const enabled = moduleOn && (canViewAll || canAssign || canReview || canChangeStatus)
 
   useEffect(() => {
     if (hubLoading || !enabled) {

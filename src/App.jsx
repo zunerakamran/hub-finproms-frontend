@@ -298,7 +298,7 @@ export default function App() {
                   path="social-media-compliance/queue"
                   element={
                     <HubCapabilityRoute
-                      anyOf={['smc_view_all_requests', 'smc_assign_requests', 'smc_review_requests']}
+                      anyOf={['smc_view_all_requests', 'smc_assign_requests', 'smc_review_requests', 'smc_change_request_status']}
                     >
                       <SocialMediaComplianceQueue />
                     </HubCapabilityRoute>
@@ -322,6 +322,7 @@ export default function App() {
                         'smc_view_all_requests',
                         'smc_assign_requests',
                         'smc_review_requests',
+                        'smc_change_request_status',
                       ]}
                     >
                       <SocialMediaComplianceRequestDetail />
@@ -348,7 +349,7 @@ export default function App() {
                   path="general-compliance/queue"
                   element={
                     <HubCapabilityRoute
-                      anyOf={['gc_view_all_requests', 'gc_assign_requests', 'gc_review_requests']}
+                      anyOf={['gc_view_all_requests', 'gc_assign_requests', 'gc_review_requests', 'gc_change_request_status']}
                     >
                       <GeneralComplianceQueue />
                     </HubCapabilityRoute>
@@ -372,6 +373,7 @@ export default function App() {
                         'gc_view_all_requests',
                         'gc_assign_requests',
                         'gc_review_requests',
+                        'gc_change_request_status',
                       ]}
                     >
                       <GeneralComplianceRequestDetail />
@@ -457,6 +459,7 @@ export default function App() {
                         'wc_publish_live_content',
                         'wc_view_all_change_requests',
                         'wc_review_change_requests',
+                        'wc_change_request_status',
                       ]}
                     >
                       <WebsiteComplianceRequestDetail />
@@ -505,6 +508,7 @@ export default function App() {
                         'wc_assign_change_requests',
                         'wc_review_change_requests',
                         'wc_view_all_change_requests',
+                        'wc_change_request_status',
                       ]}
                     >
                       <WebsiteComplianceRequestHistory />
@@ -519,6 +523,7 @@ export default function App() {
                         'wc_view_all_change_requests',
                         'wc_assign_change_requests',
                         'wc_review_change_requests',
+                        'wc_change_request_status',
                       ]}
                     >
                       <WebsiteComplianceQueue />

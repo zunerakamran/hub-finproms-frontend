@@ -88,6 +88,7 @@ const APPROVER_CARDS = [
       'wc_assign_change_requests',
       'wc_review_change_requests',
       'wc_view_all_change_requests',
+      'wc_change_request_status',
     ],
   },
 ]

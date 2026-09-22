@@ -33,6 +33,7 @@ const SMC_NAV_ANY = [
   'smc_view_all_requests',
   'smc_assign_requests',
   'smc_review_requests',
+  'smc_change_request_status',
   'smc_view_reports',
 ]
 
@@ -42,6 +43,7 @@ const GC_NAV_ANY = [
   'gc_view_all_requests',
   'gc_assign_requests',
   'gc_review_requests',
+  'gc_change_request_status',
   'gc_view_reports',
 ]
 
@@ -51,6 +53,7 @@ const WC_NAV_ANY = [
   'wc_assign_change_requests',
   'wc_view_all_change_requests',
   'wc_review_change_requests',
+  'wc_change_request_status',
   'wc_request_deployments',
   'wc_assign_website_templates',
   'wc_view_all_deployments',
@@ -367,7 +370,7 @@ export const DASHBOARD_LINKS = [
     label: 'All requests',
     title: 'All requests',
     description: 'Assign and review social media compliance requests for this hub.',
-    anyOf: ['smc_view_all_requests', 'smc_assign_requests', 'smc_review_requests'],
+    anyOf: ['smc_view_all_requests', 'smc_assign_requests', 'smc_review_requests', 'smc_change_request_status'],
     group: 'smc',
   },
   {
@@ -407,7 +410,7 @@ export const DASHBOARD_LINKS = [
     label: 'All requests',
     title: 'All requests',
     description: 'Assign and review general compliance requests for this hub.',
-    anyOf: ['gc_view_all_requests', 'gc_assign_requests', 'gc_review_requests'],
+    anyOf: ['gc_view_all_requests', 'gc_assign_requests', 'gc_review_requests', 'gc_change_request_status'],
     group: 'gc',
   },
   {
@@ -501,6 +504,7 @@ export const DASHBOARD_LINKS = [
       'wc_assign_change_requests',
       'wc_review_change_requests',
       'wc_view_all_change_requests',
+      'wc_change_request_status',
     ],
     group: 'wc',
   },

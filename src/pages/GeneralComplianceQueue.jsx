@@ -26,9 +26,10 @@ export default function GeneralComplianceQueue() {
   const canAssign = can('gc_assign_requests')
   const canViewAll = can('gc_view_all_requests')
   const canReview = can('gc_review_requests')
+  const canChangeStatus = can('gc_change_request_status')
   const canSelfAssign = canReview
-  const useFullList = canViewAll || canAssign
-  const enabled = moduleOn && (canViewAll || canAssign || canReview)
+  const useFullList = canViewAll || canAssign || canChangeStatus
+  const enabled = moduleOn && (canViewAll || canAssign || canReview || canChangeStatus)
 
   useEffect(() => {
     if (hubLoading || !enabled) {

@@ -119,6 +119,9 @@ async function post(path, body, _config = {}) {
     if (/^change-requests\/\d+\/approve-with-feedback$/.test(p)) {
       return wrap(await hubApi.websiteComplianceApproveChangeRequestWithFeedback(p.split('/')[1], body))
     }
+    if (/^change-requests\/\d+\/change-status$/.test(p)) {
+      return wrap(await hubApi.websiteComplianceChangeRequestStatus(p.split('/')[1], body))
+    }
     if (p === 'template-requests') return wrap(await hubApi.websiteComplianceCreateTemplateRequest(body))
     if (/^template-requests\/\d+\/deploy$/.test(p)) {
       return wrap(await hubApi.websiteComplianceDeployTemplateRequest(p.split('/')[1], body))

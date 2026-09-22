@@ -538,6 +538,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  socialMediaComplianceChangeStatus: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/social-media-compliance/requests/${id}/change-status`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   socialMediaComplianceReport: (params = {}, options = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
@@ -617,6 +622,11 @@ export const api = {
     }),
   generalComplianceReview: (id, payload, options = {}) =>
     request(`${adminBase(options)}/general-compliance/requests/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  generalComplianceChangeStatus: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/general-compliance/requests/${id}/change-status`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
@@ -749,6 +759,11 @@ export const api = {
     }),
   websiteComplianceApproveChangeRequestWithFeedback: (id, payload) =>
     request(`/website-compliance/change-requests/${id}/approve-with-feedback`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  websiteComplianceChangeRequestStatus: (id, payload) =>
+    request(`/website-compliance/change-requests/${id}/change-status`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }),

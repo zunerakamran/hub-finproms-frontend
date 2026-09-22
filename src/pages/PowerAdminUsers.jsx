@@ -101,7 +101,12 @@ export default function PowerAdminUsers() {
         role: form.role,
         credits: Number(form.credits) || 0,
         is_suspended: Boolean(form.is_suspended),
-        firm_id: form.firm_id ? Number(form.firm_id) : null,
+        firm_id:
+          form.role === 'power_admin' || form.role === 'finproms_admin'
+            ? null
+            : form.firm_id
+              ? Number(form.firm_id)
+              : null,
       }
       if (form.password.trim()) {
         payload.password = form.password
@@ -212,7 +217,14 @@ export default function PowerAdminUsers() {
             Role
             <select
               value={form.role}
-              onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+              onChange={(e) => {
+                const role = e.target.value
+                setForm((f) => ({
+                  ...f,
+                  role,
+                  firm_id: role === 'power_admin' || role === 'finproms_admin' ? '' : f.firm_id,
+                }))
+              }}
               required
             >
               {(roles.length ? roles : fallbackRoles).map((role) => (
@@ -227,9 +239,13 @@ export default function PowerAdminUsers() {
             <select
               value={form.firm_id}
               onChange={(e) => setForm((f) => ({ ...f, firm_id: e.target.value }))}
+              disabled={form.role === 'power_admin' || form.role === 'finproms_admin'}
             >
               <option value="">No firm</option>
-              {firms.map((firm) => (
+              {(form.role === 'power_admin' || form.role === 'finproms_admin'
+                ? []
+                : firms
+              ).map((firm) => (
                 <option key={firm.id} value={firm.id}>
                   {firm.name}
                   {firm.is_central ? ' (Central / Network)' : ''}

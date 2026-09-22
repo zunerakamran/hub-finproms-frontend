@@ -24,10 +24,14 @@ export default function GeneralComplianceRequestDetail() {
   const [resubFiles, setResubFiles] = useState([])
   const [confirmFiles, setConfirmFiles] = useState([])
   const [assigningSelf, setAssigningSelf] = useState(false)
+  const [changeStatus, setChangeStatus] = useState('Pending')
+  const [changeComment, setChangeComment] = useState('')
 
   const moduleOn = can('module_general_compliance')
   const canReview = can('gc_review_requests')
-  const canViewAll = can('gc_view_all_requests') || can('gc_assign_requests')
+  const canChangeStatus = can('gc_change_request_status')
+  const canViewAll =
+    can('gc_view_all_requests') || can('gc_assign_requests') || canChangeStatus
   const asPowerAdmin = isPowerAdmin
 
   const backFrom = location.state?.from
@@ -36,7 +40,7 @@ export default function GeneralComplianceRequestDetail() {
       ? '/my-dashboard/general-compliance/queue'
       : backFrom === 'mine' || backFrom === 'submit'
         ? '/my-dashboard/general-compliance'
-        : canViewAll || canReview
+        : canViewAll || canReview || canChangeStatus
           ? '/my-dashboard/general-compliance/queue'
           : '/my-dashboard/general-compliance'
   const backLabel =
@@ -47,7 +51,7 @@ export default function GeneralComplianceRequestDetail() {
     setError('')
     try {
       let data
-      if (canViewAll || canReview) {
+      if (canViewAll || canReview || canChangeStatus) {
         try {
           data = await api.generalComplianceAdminShow(id, { asPowerAdmin })
         } catch {
@@ -60,6 +64,8 @@ export default function GeneralComplianceRequestDetail() {
       setRow(item)
       setReviewStatus(item.status || 'Pending')
       setFeedback(item.feedback || '')
+      setChangeStatus(item.status || 'Pending')
+      setChangeComment('')
       setResubDescription(item.description || '')
     } catch (err) {
       setError(err.message || 'Failed to load request.')
@@ -115,6 +121,28 @@ export default function GeneralComplianceRequestDetail() {
       setMessage('Review saved.')
     } catch (err) {
       setError(err.message || 'Review failed.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveChangeStatus = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.generalComplianceChangeStatus(
+        id,
+        { status: changeStatus, comment: changeComment },
+        { asPowerAdmin }
+      )
+      setRow(data.data)
+      setChangeComment('')
+      setChangeStatus(data.data?.status || changeStatus)
+      setMessage('Status updated (new version created).')
+    } catch (err) {
+      setError(err.message || 'Status change failed.')
     } finally {
       setSaving(false)
     }
@@ -271,6 +299,44 @@ export default function GeneralComplianceRequestDetail() {
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Saving…' : 'Save review'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {canChangeStatus && (
+        <form className="admin-form gc-panel" onSubmit={saveChangeStatus}>
+          <h2>Change status</h2>
+          <p className="muted">
+            Creates a new version with the selected status and optional comment. Firm visibility still applies.
+          </p>
+          <fieldset className="gc-status-group">
+            <legend>New status</legend>
+            {GC_STATUSES.map((status) => (
+              <label key={status} className="gc-radio">
+                <input
+                  type="radio"
+                  name="change-status"
+                  value={status}
+                  checked={changeStatus === status}
+                  onChange={() => setChangeStatus(status)}
+                />
+                {complianceStatusLabel(status)}
+              </label>
+            ))}
+          </fieldset>
+          <label>
+            Comment (optional)
+            <textarea
+              rows={3}
+              value={changeComment}
+              onChange={(e) => setChangeComment(e.target.value)}
+              placeholder="Reason for changing status…"
+            />
+          </label>
+          <div className="actions">
+            <button className="btn primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Update status'}
             </button>
           </div>
         </form>

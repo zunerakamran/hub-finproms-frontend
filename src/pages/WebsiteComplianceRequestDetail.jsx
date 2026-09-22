@@ -5,24 +5,31 @@ import WcStatusBadge, { WcVersionCard } from '../components/WebsiteComplianceUI'
 import ChangeRequestPreviewPanel from '../websiteCompliance/components/ChangeRequestPreviewPanel'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { formatWcDate, wcSectionTitle } from '../utils/websiteCompliance'
+import { formatWcDate, wcSectionTitle, WC_STATUSES } from '../utils/websiteCompliance'
 import { isHistoricalRequest } from '../websiteCompliance/utils/changeRequestPreview'
+
+const WC_CHANGE_STATUS_OPTIONS = WC_STATUSES.filter(
+  (s) => !['approved', 'scheduled'].includes(s)
+)
 
 export default function WebsiteComplianceRequestDetail() {
   const { id } = useParams()
   const location = useLocation()
   const { user } = useAuth()
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel } = useHub()
 
   const [row, setRow] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
+  const [changeStatus, setChangeStatus] = useState('pending')
+  const [changeComment, setChangeComment] = useState('')
 
   const moduleOn = can('module_website_compliance')
   const canSubmit = can('wc_submit_change_requests') || can('wc_edit_sections')
-  const canViewAll = can('wc_view_all_change_requests')
+  const canChangeStatus = can('wc_change_request_status')
+  const canViewAll = can('wc_view_all_change_requests') || canChangeStatus
   const canReview = can('wc_review_change_requests')
 
   const backFrom = location.state?.from
@@ -45,6 +52,11 @@ export default function WebsiteComplianceRequestDetail() {
     try {
       const data = await api.websiteComplianceShowChangeRequest(id)
       setRow(data?.change_request || data)
+      const item = data?.change_request || data
+      setChangeStatus(
+        WC_CHANGE_STATUS_OPTIONS.includes(item?.status) ? item.status : 'pending'
+      )
+      setChangeComment('')
     } catch (err) {
       setError(err.message || 'Failed to load request.')
       setRow(null)
@@ -63,6 +75,9 @@ export default function WebsiteComplianceRequestDetail() {
   }, [id, hubLoading, moduleOn])
 
   const isOwner = row && user && Number(row.editor_id) === Number(user.id)
+  const statusLocked =
+    row && ['approved', 'scheduled'].includes(String(row.status || '').toLowerCase())
+  const canShowChangeStatus = canChangeStatus && row && !statusLocked
 
   const confirmFeedback = async () => {
     setSaving(true)
@@ -74,6 +89,26 @@ export default function WebsiteComplianceRequestDetail() {
       setMessage('Request confirmed as Approved.')
     } catch (err) {
       setError(err.message || err.data?.message || 'Confirm failed.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveChangeStatus = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.websiteComplianceChangeRequestStatus(id, {
+        status: changeStatus,
+        comment: changeComment,
+      })
+      setRow(data?.change_request || data)
+      setChangeComment('')
+      setMessage('Status updated (new version created).')
+    } catch (err) {
+      setError(err.message || err.data?.message || 'Status change failed.')
     } finally {
       setSaving(false)
     }
@@ -162,6 +197,51 @@ export default function WebsiteComplianceRequestDetail() {
           )}
         </div>
       </div>
+
+      {canShowChangeStatus && (
+        <form className="admin-form wc-panel" onSubmit={saveChangeStatus}>
+          <h2>Change status</h2>
+          <p className="muted">
+            Creates a new version with the selected status and optional comment. Not available once
+            content is scheduled or published.
+          </p>
+          <fieldset className="wc-status-group">
+            <legend>New status</legend>
+            {WC_CHANGE_STATUS_OPTIONS.map((status) => (
+              <label key={status} className="wc-radio">
+                <input
+                  type="radio"
+                  name="change-status"
+                  value={status}
+                  checked={changeStatus === status}
+                  onChange={() => setChangeStatus(status)}
+                />
+                {complianceStatusLabel ? complianceStatusLabel(status) : status}
+              </label>
+            ))}
+          </fieldset>
+          <label>
+            Comment (optional)
+            <textarea
+              rows={3}
+              value={changeComment}
+              onChange={(e) => setChangeComment(e.target.value)}
+              placeholder="Reason for changing status…"
+            />
+          </label>
+          <div className="actions">
+            <button className="btn primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Update status'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {canChangeStatus && statusLocked && (
+        <p className="muted" style={{ marginTop: '1rem' }}>
+          Status cannot be changed because this content is scheduled or already published.
+        </p>
+      )}
 
       {isOwner && canSubmit && row.status === 'rejected' && (
         <div className="admin-form wc-panel">

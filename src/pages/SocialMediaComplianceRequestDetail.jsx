@@ -27,7 +27,9 @@ export default function SocialMediaComplianceRequestDetail() {
 
   const moduleOn = can('module_social_media_compliance')
   const canReview = can('smc_review_requests')
-  const canViewAll = can('smc_view_all_requests') || can('smc_assign_requests')
+  const canChangeStatus = can('smc_change_request_status')
+  const canViewAll =
+    can('smc_view_all_requests') || can('smc_assign_requests') || canChangeStatus
   const asPowerAdmin = isPowerAdmin
 
   const backFrom = location.state?.from
@@ -36,18 +38,21 @@ export default function SocialMediaComplianceRequestDetail() {
       ? '/my-dashboard/social-media-compliance/queue'
       : backFrom === 'mine' || backFrom === 'submit'
         ? '/my-dashboard/social-media-compliance'
-        : canViewAll || canReview
+        : canViewAll || canReview || canChangeStatus
           ? '/my-dashboard/social-media-compliance/queue'
           : '/my-dashboard/social-media-compliance'
   const backLabel =
     backTo.endsWith('/queue') ? '← Back to queue' : '← Back to my requests'
+
+  const [changeStatus, setChangeStatus] = useState('Pending')
+  const [changeComment, setChangeComment] = useState('')
 
   const load = async () => {
     setLoading(true)
     setError('')
     try {
       let data
-      if (canViewAll || canReview) {
+      if (canViewAll || canReview || canChangeStatus) {
         try {
           data = await api.socialMediaComplianceAdminShow(id, { asPowerAdmin })
         } catch {
@@ -60,6 +65,8 @@ export default function SocialMediaComplianceRequestDetail() {
       setRow(item)
       setReviewStatus(item.status || 'Pending')
       setFeedback(item.feedback || '')
+      setChangeStatus(item.status || 'Pending')
+      setChangeComment('')
       setResubDescription(item.description || '')
     } catch (err) {
       setError(err.message || 'Failed to load request.')
@@ -115,6 +122,28 @@ export default function SocialMediaComplianceRequestDetail() {
       setMessage('Review saved.')
     } catch (err) {
       setError(err.message || 'Review failed.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveChangeStatus = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.socialMediaComplianceChangeStatus(
+        id,
+        { status: changeStatus, comment: changeComment },
+        { asPowerAdmin }
+      )
+      setRow(data.data)
+      setChangeComment('')
+      setChangeStatus(data.data?.status || changeStatus)
+      setMessage('Status updated (new version created).')
+    } catch (err) {
+      setError(err.message || 'Status change failed.')
     } finally {
       setSaving(false)
     }
@@ -260,6 +289,44 @@ export default function SocialMediaComplianceRequestDetail() {
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Saving…' : 'Save review'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {canChangeStatus && (
+        <form className="admin-form smc-panel" onSubmit={saveChangeStatus}>
+          <h2>Change status</h2>
+          <p className="muted">
+            Creates a new version with the selected status and optional comment. Firm visibility still applies.
+          </p>
+          <fieldset className="smc-status-group">
+            <legend>New status</legend>
+            {SMC_STATUSES.map((status) => (
+              <label key={status} className="smc-radio">
+                <input
+                  type="radio"
+                  name="change-status"
+                  value={status}
+                  checked={changeStatus === status}
+                  onChange={() => setChangeStatus(status)}
+                />
+                {complianceStatusLabel(status)}
+              </label>
+            ))}
+          </fieldset>
+          <label>
+            Comment (optional)
+            <textarea
+              rows={3}
+              value={changeComment}
+              onChange={(e) => setChangeComment(e.target.value)}
+              placeholder="Reason for changing status…"
+            />
+          </label>
+          <div className="actions">
+            <button className="btn primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Update status'}
             </button>
           </div>
         </form>

@@ -12,6 +12,8 @@ const emptyForm = {
   firm_id: '',
   credits: 0,
   is_suspended: false,
+  allows_admin_staff_acting: false,
+  is_advisor: false,
 }
 
 export default function PowerAdminUsers() {
@@ -82,11 +84,16 @@ export default function PowerAdminUsers() {
       firm_id: user.firm_id ? String(user.firm_id) : '',
       credits: user.has_unlimited_credits ? 0 : Number(user.credits || 0),
       is_suspended: Boolean(user.is_suspended),
+      allows_admin_staff_acting: Boolean(user.allows_admin_staff_acting),
+      is_advisor: Boolean(user.is_advisor) || user.role === 'advisor',
     })
     setMessage('')
     setError('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  const isAdvisorForm = form.role === 'advisor' || Boolean(form.is_advisor)
+  const staffLabel = (roleLabels || DEFAULT_ROLE_LABELS).admin_staff || 'Admin-staff'
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -101,6 +108,9 @@ export default function PowerAdminUsers() {
         role: form.role,
         credits: Number(form.credits) || 0,
         is_suspended: Boolean(form.is_suspended),
+        allows_admin_staff_acting: isAdvisorForm
+          ? Boolean(form.allows_admin_staff_acting)
+          : false,
         firm_id:
           form.role === 'power_admin' || form.role === 'finproms_admin'
             ? null
@@ -222,6 +232,9 @@ export default function PowerAdminUsers() {
                 setForm((f) => ({
                   ...f,
                   role,
+                  is_advisor: role === 'advisor' ? true : f.is_advisor,
+                  allows_admin_staff_acting:
+                    role === 'advisor' || f.is_advisor ? f.allows_admin_staff_acting : false,
                   firm_id: role === 'power_admin' || role === 'finproms_admin' ? '' : f.firm_id,
                 }))
               }}
@@ -265,10 +278,21 @@ export default function PowerAdminUsers() {
         </div>
         {form.role === 'admin_staff' ? (
           <p className="muted" style={{ marginTop: '0.5rem' }}>
-            {(roleLabels || DEFAULT_ROLE_LABELS).admin_staff || 'Admin-staff'} can submit compliance
-            on behalf of advisors in their firm. Assign a firm, then they pick an advisor from the
-            dashboard.
+            {staffLabel} can submit compliance on behalf of advisors in their firm who have
+            granted permission. Assign a firm, then they pick an advisor from the dashboard.
           </p>
+        ) : null}
+        {isAdvisorForm ? (
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={Boolean(form.allows_admin_staff_acting)}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, allows_admin_staff_acting: e.target.checked }))
+              }
+            />
+            Allow {staffLabel} to submit compliance on behalf of this advisor
+          </label>
         ) : null}
         <label className="checkbox">
           <input

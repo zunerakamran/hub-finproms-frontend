@@ -59,7 +59,7 @@ export default function ActingAdvisorSwitcher() {
       )}
       {advisors.length === 0 ? (
         <p className="muted acting-hub-switcher__hint">
-          No advisors found in your firm. Assign a firm and ensure advisors exist.
+          No advisors found in your firm who have allowed Admin-staff to act on their behalf.
         </p>
       ) : null}
       {error ? <p className="muted">{error}</p> : null}

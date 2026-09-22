@@ -31,6 +31,7 @@ import {
   savePreviewSnapshot,
 } from '../utils/changeRequestPreview'
 import SectionIframePreview from './SectionIframePreview'
+import { reviewersForSubmitterFirm } from '../../utils/firmAssigneeFilter'
 
 const PENDING_STATUS = 'pending'
 const PREVIOUS_STATUSES = new Set(['under_review', 'scheduled', 'approved', 'rejected', 'approved_with_feedback'])
@@ -779,7 +780,7 @@ export default function ChangeRequestAssignmentPanel({
           <AssignmentRequestCard
             key={req.id}
             req={req}
-            approvers={approvers}
+            approvers={reviewersForSubmitterFirm(approvers, req.editor?.firm)}
             selectedApproverId={selectedApprover[req.id]}
             onSelectApprover={(id, approverId) => setSelectedApprover(prev => ({ ...prev, [id]: approverId }))}
             onAssign={handleAssign}

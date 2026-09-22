@@ -5,6 +5,7 @@ import SmcStatusBadge from '../components/SocialMediaComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatSmcDate } from '../utils/socialMediaCompliance'
+import { reviewersForSubmitterFirm } from '../utils/firmAssigneeFilter'
 
 export default function SocialMediaComplianceQueue() {
   const { user, isPowerAdmin } = useAuth()
@@ -213,9 +214,10 @@ export default function SocialMediaComplianceQueue() {
                           onChange={(e) => assign(row.id, e.target.value)}
                         >
                           <option value="">— Unassigned —</option>
-                          {reviewers.map((r) => (
+                          {reviewersForSubmitterFirm(reviewers, row.submitter?.firm).map((r) => (
                             <option key={r.id} value={r.id}>
                               {r.name}
+                              {r.firm?.name ? ` (${r.firm.name})` : ''}
                             </option>
                           ))}
                         </select>

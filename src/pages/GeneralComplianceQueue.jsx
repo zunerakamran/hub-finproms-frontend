@@ -5,6 +5,7 @@ import GcStatusBadge from '../components/GeneralComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatGcDate } from '../utils/generalCompliance'
+import { reviewersForSubmitterFirm } from '../utils/firmAssigneeFilter'
 
 export default function GeneralComplianceQueue() {
   const { user, isPowerAdmin } = useAuth()
@@ -210,9 +211,10 @@ export default function GeneralComplianceQueue() {
                           onChange={(e) => assign(row.id, e.target.value)}
                         >
                           <option value="">— Unassigned —</option>
-                          {reviewers.map((r) => (
+                          {reviewersForSubmitterFirm(reviewers, row.submitter?.firm).map((r) => (
                             <option key={r.id} value={r.id}>
                               {r.name}
+                              {r.firm?.name ? ` (${r.firm.name})` : ''}
                             </option>
                           ))}
                         </select>

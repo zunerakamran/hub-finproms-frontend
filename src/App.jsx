@@ -16,6 +16,7 @@ import AdminAdvisorRenewal from './pages/AdminAdvisorRenewal'
 import AdminSubscriberCredits from './pages/AdminSubscriberCredits'
 import AdminBundles from './pages/AdminBundles'
 import AdminCategories from './pages/AdminCategories'
+import AdminFirms from './pages/AdminFirms'
 import AdminPaymentCard from './pages/AdminPaymentCard'
 import AdminPaymentCardSuccess from './pages/AdminPaymentCardSuccess'
 import AdminPlans from './pages/AdminPlans'
@@ -218,6 +219,14 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_tags">
                       <AdminTags />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="firms"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_firms">
+                      <AdminFirms />
                     </HubCapabilityRoute>
                   }
                 />

@@ -141,6 +141,14 @@ export const api = {
     request(`${adminBase(options)}/tags/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteTag: (id, options = {}) =>
     request(`${adminBase(options)}/tags/${id}`, { method: 'DELETE' }),
+
+  listFirms: (options = {}) => request(`${adminBase(options)}/firms`),
+  createFirm: (payload, options = {}) =>
+    request(`${adminBase(options)}/firms`, { method: 'POST', body: JSON.stringify(payload) }),
+  updateFirm: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/firms/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteFirm: (id, options = {}) =>
+    request(`${adminBase(options)}/firms/${id}`, { method: 'DELETE' }),
   purchasePost: (id, paymentMethod = null) =>
     request(`/posts/${id}/purchase`, {
       method: 'POST',

@@ -8,6 +8,7 @@ const links = [
   { to: '/client-admin/types', label: 'Types', capability: 'dashboard_manage_types' },
   { to: '/client-admin/categories', label: 'Categories', capability: 'dashboard_manage_categories' },
   { to: '/client-admin/tags', label: 'Tags', capability: 'dashboard_manage_tags' },
+  { to: '/client-admin/firms', label: 'Firms', capability: 'dashboard_manage_firms' },
   { to: '/client-admin/plans', label: 'Plans', capability: 'dashboard_manage_plans' },
   { to: '/client-admin/advisors', label: 'Advisors', anyOf: ['advisor_excel_import', 'advisor_discontinue'] },
   {

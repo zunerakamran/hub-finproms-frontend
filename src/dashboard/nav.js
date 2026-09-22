@@ -82,6 +82,7 @@ const HUB_OPS_ANY = [
   'dashboard_manage_settings',
   'dashboard_manage_role_display_names',
   'dashboard_manage_compliance_status_display_names',
+  'dashboard_manage_firms',
   'dashboard_bank_transfers',
   'dashboard_view_activity_logs',
   'dashboard_manage_modules',
@@ -215,6 +216,15 @@ export const DASHBOARD_LINKS = [
     kind: 'section',
     label: 'Hub',
     anyOf: [...HUB_OPS_ANY],
+  },
+  {
+    to: '/my-dashboard/firms',
+    label: 'Firms',
+    title: 'Firms',
+    description:
+      'Manage firms, rename Central / Network, and set who can review and report on each firm’s compliance requests.',
+    capability: 'dashboard_manage_firms',
+    group: 'hub',
   },
   {
     to: '/my-dashboard/plans',

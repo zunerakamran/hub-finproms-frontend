@@ -75,6 +75,13 @@ export default function PowerAdminDashboard() {
       hubCapability: 'dashboard_manage_tags',
     },
     {
+      to: '/power-admin/firms',
+      title: 'Firms',
+      description:
+        'Manage firms, rename Central / Network, and set compliance review/report visibility.',
+      hubCapability: 'dashboard_manage_firms',
+    },
+    {
       to: '/power-admin/hubs',
       title: 'White-label hubs',
       description: 'Create and configure white-labelled hubs (branding, private access).',

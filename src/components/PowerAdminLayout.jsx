@@ -52,6 +52,11 @@ const links = [
     label: 'Tags',
     hubCapability: 'dashboard_manage_tags',
   },
+  {
+    to: '/power-admin/firms',
+    label: 'Firms',
+    hubCapability: 'dashboard_manage_firms',
+  },
   { to: '/power-admin/hubs', label: 'White-label hubs', capability: 'pa_manage_hubs' },
   { to: '/power-admin/checklist', label: 'Functionalities', capability: 'pa_manage_hub_checklists' },
   { to: '/power-admin/modules', label: 'Modules', hubCapability: 'dashboard_manage_modules' },

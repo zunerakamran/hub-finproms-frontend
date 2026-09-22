@@ -9,13 +9,14 @@ const emptyForm = {
   email: '',
   password: '',
   role: 'user',
+  firm_id: '',
   credits: 0,
   is_suspended: false,
 }
 
 export default function PowerAdminUsers() {
   const { canPower, user: me } = useAuth()
-  const { roleLabels } = useHub()
+  const { roleLabels, actingHubId } = useHub()
   const allowed = canPower('pa_manage_users_roles')
 
   const fallbackRoles = Object.entries(roleLabels || DEFAULT_ROLE_LABELS).map(([key, label]) => ({
@@ -25,6 +26,7 @@ export default function PowerAdminUsers() {
 
   const [users, setUsers] = useState([])
   const [roles, setRoles] = useState([])
+  const [firms, setFirms] = useState([])
   const [meta, setMeta] = useState(null)
   const [q, setQ] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
@@ -51,6 +53,7 @@ export default function PowerAdminUsers() {
       })
       setUsers(data.users || [])
       setRoles(data.roles || [])
+      setFirms(data.firms || [])
       setMeta(data.meta || null)
     } catch (err) {
       setError(err.message)
@@ -62,7 +65,7 @@ export default function PowerAdminUsers() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowed])
+  }, [allowed, actingHubId])
 
   const resetForm = () => {
     setForm(emptyForm)
@@ -76,6 +79,7 @@ export default function PowerAdminUsers() {
       email: user.email || '',
       password: '',
       role: user.role || 'user',
+      firm_id: user.firm_id ? String(user.firm_id) : '',
       credits: user.has_unlimited_credits ? 0 : Number(user.credits || 0),
       is_suspended: Boolean(user.is_suspended),
     })
@@ -97,6 +101,7 @@ export default function PowerAdminUsers() {
         role: form.role,
         credits: Number(form.credits) || 0,
         is_suspended: Boolean(form.is_suspended),
+        firm_id: form.firm_id ? Number(form.firm_id) : null,
       }
       if (form.password.trim()) {
         payload.password = form.password
@@ -218,6 +223,21 @@ export default function PowerAdminUsers() {
             </select>
           </label>
           <label>
+            Firm
+            <select
+              value={form.firm_id}
+              onChange={(e) => setForm((f) => ({ ...f, firm_id: e.target.value }))}
+            >
+              <option value="">No firm</option>
+              {firms.map((firm) => (
+                <option key={firm.id} value={firm.id}>
+                  {firm.name}
+                  {firm.is_central ? ' (Central / Network)' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
             Credits
             <input
               type="number"
@@ -291,6 +311,7 @@ export default function PowerAdminUsers() {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
+                <th>Firm</th>
                 <th>Credits</th>
                 <th>Actions</th>
               </tr>
@@ -301,6 +322,7 @@ export default function PowerAdminUsers() {
                   <td>{user.name}</td>
                   <td>{user.email}</td>
                   <td>{user.role_label || user.role}</td>
+                  <td>{user.firm?.name || '—'}</td>
                   <td>{user.has_unlimited_credits ? 'Unlimited' : user.credits}</td>
                   <td>
                     <div className="row" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>

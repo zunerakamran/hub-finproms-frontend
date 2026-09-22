@@ -33,6 +33,13 @@ const sections = [
     capability: 'dashboard_manage_tags',
   },
   {
+    to: '/client-admin/firms',
+    title: 'Firms',
+    description:
+      'Manage firms, Central / Network, and compliance visibility (own, central, or another firm).',
+    capability: 'dashboard_manage_firms',
+  },
+  {
     to: '/client-admin/plans',
     title: 'Subscription plans',
     description: 'Add and update credit packages users can purchase.',

@@ -253,9 +253,10 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       <form className="admin-form advisor-import-form" onSubmit={onImport}>
         <h2>Upload advisors</h2>
         <p className="muted">
-          Columns: <code>name</code>, <code>email</code>, optional <code>password</code>. If
-          password is blank, a temporary password is generated (shown once after you pay). You can
-          upload <strong>.csv</strong> or <strong>.xlsx</strong>.
+          Columns: <code>name</code>, <code>email</code>, optional <code>password</code>,{' '}
+          <code>firm</code> (required — must match an existing firm name). If password is blank, a
+          temporary password is generated (shown once after you pay). You can upload{' '}
+          <strong>.csv</strong> or <strong>.xlsx</strong>.
           {billingEnabled
             ? ' Choosing a payment method and clicking Pay now creates the advisor accounts.'
             : ''}

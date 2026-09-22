@@ -133,8 +133,11 @@ export default function WebsiteComplianceHome() {
 
   if (!hubLoading && !moduleOn) return <ModuleOff />
 
-  // View-only / report-only roles: skip this hub landing and go to their real page.
+  // View-only / report-only / change-status roles: skip this hub landing and go to their real page.
   if (!hubLoading && !hasWorkspace) {
+    if (can('wc_change_request_status') || can('wc_view_all_change_requests')) {
+      return <Navigate to="/my-dashboard/website-compliance/history" replace />
+    }
     if (canStaffOps) {
       return <Navigate to="/my-dashboard/website-compliance/deployments" replace />
     }

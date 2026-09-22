@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   FaCheckCircle,
   FaClock,
@@ -23,7 +24,7 @@ import {
 import api from '../wcApi'
 import { useAuth } from '../../context/AuthContext'
 import { useHub } from '../../context/HubContext'
-import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
+import { resolveAdvisorLiveSiteUrl } from '../utils/assetUrl'
 import { parseJson } from '../utils/parseJson'
 import {
   buildPreviewFromRequest,
@@ -36,6 +37,11 @@ import {
 } from '../utils/changeRequestPreview'
 import SectionIframePreview from './SectionIframePreview'
 import { WcVersionCard } from '../../components/WebsiteComplianceUI'
+import { WC_STATUSES } from '../../utils/websiteCompliance'
+
+const WC_CHANGE_STATUS_OPTIONS = WC_STATUSES.filter(
+  (s) => !['approved', 'scheduled'].includes(s)
+)
 
 const ACTIVE_STATUSES = new Set(['pending', 'under_review', 'scheduled'])
 
@@ -235,6 +241,7 @@ const RequestCard = memo(function RequestCard({
   onError,
   getCachedPreview,
   cachePreview,
+  canChangeStatus = false,
 }) {
   const [previewData, setPreviewData] = useState(null)
   const [previewMode, setPreviewMode] = useState('visual')
@@ -245,13 +252,55 @@ const RequestCard = memo(function RequestCard({
   const [decision, setDecision] = useState('approve') // 'approve' | 'reject' | 'awf'
   const [busy, setBusy] = useState(null)
   const [versions, setVersions] = useState(null)
-  const { hub, actingHub } = useHub()
+  const { complianceStatusLabel } = useHub()
   const deployedSiteUrl = useMemo(
-    () => defaultTemplatePreviewUrl('template4', resolveHubPreviewBase({ hub, actingHub })),
-    [hub, actingHub]
+    () => resolveAdvisorLiveSiteUrl({ siteUrl: previewData?.site_url || null }),
+    [previewData?.site_url]
   )
+  const statusLocked = ['approved', 'scheduled'].includes(String(req.status || '').toLowerCase())
+  const showChangeStatus = canChangeStatus && !statusLocked
+  const [changeStatus, setChangeStatus] = useState(
+    WC_CHANGE_STATUS_OPTIONS.includes(req.status) ? req.status : 'pending'
+  )
+  const [changeComment, setChangeComment] = useState('')
+
+  useEffect(() => {
+    setChangeStatus(WC_CHANGE_STATUS_OPTIONS.includes(req.status) ? req.status : 'pending')
+    setChangeComment('')
+  }, [req.id, req.status])
 
   const isAssignedToMe = req.approver_id === user?.id
+
+  const handleChangeStatus = async (event) => {
+    event.preventDefault()
+    setBusy('change-status')
+    onError('')
+    onMessage('')
+    try {
+      const res = await api.post(`/change-requests/${req.id}/change-status`, {
+        status: changeStatus,
+        comment: changeComment,
+      })
+      const updated = res.data?.change_request || res.data
+      onStatusChange(req.id, {
+        status: updated?.status || changeStatus,
+        current_version: updated?.current_version || req.current_version,
+        feedback: updated?.feedback ?? (changeComment || req.feedback),
+        rejection_reason: updated?.rejection_reason ?? req.rejection_reason,
+        scheduled_at: updated?.scheduled_at ?? null,
+      })
+      setChangeComment('')
+      setVersions(null)
+      onMessage(`Request #${req.id} status updated (new version created).`)
+    } catch (err) {
+      const validation =
+        err.response?.data?.errors?.status?.[0]
+        || err.response?.data?.errors?.capability?.[0]
+      onError(validation || err.response?.data?.message || err.message || 'Could not change status.')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   const handleAssign = async () => {
     setBusy('assign')
@@ -498,6 +547,75 @@ const RequestCard = memo(function RequestCard({
           )}
         </div>
       </div>
+
+      {showChangeStatus && (
+        <form
+          onSubmit={handleChangeStatus}
+          className="px-5 sm:px-6 py-4 border-b border-amber-100 bg-amber-50/60 space-y-3"
+        >
+          <div>
+            <h4 className="text-sm font-extrabold text-[var(--brand-dark)]">Change status</h4>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Creates a new version with the selected status and optional comment. Not available once
+              content is scheduled or published.
+            </p>
+          </div>
+          <fieldset className="flex flex-wrap gap-3">
+            <legend className="sr-only">New status</legend>
+            {WC_CHANGE_STATUS_OPTIONS.map((status) => (
+              <label key={status} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                <input
+                  type="radio"
+                  name={`change-status-${req.id}`}
+                  value={status}
+                  checked={changeStatus === status}
+                  onChange={() => setChangeStatus(status)}
+                />
+                {complianceStatusLabel(status)}
+              </label>
+            ))}
+          </fieldset>
+          <label className="block text-xs font-bold text-slate-600">
+            Comment (optional)
+            <textarea
+              rows={2}
+              value={changeComment}
+              onChange={(e) => setChangeComment(e.target.value)}
+              placeholder="Reason for changing status…"
+              className="mt-1 w-full text-sm font-medium border border-slate-200 rounded-lg px-3 py-2"
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              disabled={busy === 'change-status'}
+              className="inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-60"
+            >
+              {busy === 'change-status' ? 'Saving…' : 'Update status'}
+            </button>
+            <Link
+              to={`/my-dashboard/website-compliance/my-requests/${req.id}`}
+              state={{ from: 'history' }}
+              className="text-xs font-bold text-[var(--brand)] hover:underline"
+            >
+              Open full request →
+            </Link>
+          </div>
+        </form>
+      )}
+
+      {canChangeStatus && statusLocked && (
+        <div className="px-5 sm:px-6 py-3 border-b border-slate-100 bg-slate-50 text-xs text-slate-600">
+          Status cannot be changed because this content is scheduled or already published.{' '}
+          <Link
+            to={`/my-dashboard/website-compliance/my-requests/${req.id}`}
+            state={{ from: 'history' }}
+            className="font-bold text-[var(--brand)] hover:underline"
+          >
+            Open request
+          </Link>
+        </div>
+      )}
 
       {req.status === 'pending' && (
         <div className="bg-amber-50 border-b border-amber-100 px-5 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
@@ -779,14 +897,16 @@ const RequestCard = memo(function RequestCard({
                   Showing content as it existed when this request was submitted.
                 </p>
               )}
-              <a
-                href={deployedSiteUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-[var(--brand)] font-bold underline mt-1 inline-block hover:opacity-80"
-              >
-                View deployed advisor site ↗
-              </a>
+              {deployedSiteUrl ? (
+                <a
+                  href={deployedSiteUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-[var(--brand)] font-bold underline mt-1 inline-block hover:opacity-80"
+                >
+                  View deployed advisor site ↗
+                </a>
+              ) : null}
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -940,10 +1060,12 @@ const RequestCard = memo(function RequestCard({
 export default function ReviewQueuePanel({ variant = 'active' } = {}) {
   const { user } = useAuth()
   const { can } = useHub()
-  // Hub-wide history only when view-all is granted. Approver role must never inherit
-  // hub-wide history from a stale matrix default — only requests they picked.
+  // Hub-wide list when view-all or change-status is granted. Approver role must never
+  // inherit hub-wide history from a stale matrix default — only requests they picked.
+  const canChangeStatus = can('wc_change_request_status')
   const canViewAll =
-    can('wc_view_all_change_requests') && String(user?.role || '') !== 'approver'
+    (can('wc_view_all_change_requests') || canChangeStatus)
+    && String(user?.role || '') !== 'approver'
   const [requests, setRequests] = useState([])
   const previewSnapshotsRef = useRef({})
   const snapshotsLoadedRef = useRef(false)
@@ -1109,6 +1231,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
               onError={setError}
               getCachedPreview={getCachedPreview}
               cachePreview={cachePreview}
+              canChangeStatus={canChangeStatus}
             />
           ))}
         </div>

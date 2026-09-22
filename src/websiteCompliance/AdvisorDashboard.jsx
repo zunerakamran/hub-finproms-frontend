@@ -3342,32 +3342,6 @@ export default function AdvisorDashboard({
               </div>
             )}
 
-            {!isPowerAdminPublishMode && myChangeRequests.length > 0 && (
-              <div className="mb-5 bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex items-center justify-between gap-3 mb-2">
-                  <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">My change requests</p>
-                  <Link
-                    to="/my-dashboard/website-compliance/my-requests"
-                    className="text-[11px] font-bold text-[var(--brand)] hover:underline"
-                  >
-                    View all & versions
-                  </Link>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {myChangeRequests.slice(0, 8).map((cr) => (
-                    <Link
-                      key={cr.id}
-                      to={`/my-dashboard/website-compliance/my-requests/${cr.id}`}
-                      state={{ from: 'editor' }}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700 hover:border-[var(--brand)]/40 hover:bg-[var(--brand)]/5 transition"
-                    >
-                      #{cr.id} · v{cr.current_version || 1} · {crStatusLabel(cr.status)}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {!isPowerAdminPublishMode && deployedRequests.length > 1 && (
               <StepCard
                 step={2}

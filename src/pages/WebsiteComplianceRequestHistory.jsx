@@ -10,9 +10,10 @@ export default function WebsiteComplianceRequestHistory() {
   const canAssign = can('wc_assign_change_requests')
   const canTakeReviewActions = can('wc_review_change_requests')
   const canViewAll = can('wc_view_all_change_requests')
-  const canView = canAssign || canTakeReviewActions || canViewAll
+  const canChangeStatus = can('wc_change_request_status')
+  const canView = canAssign || canTakeReviewActions || canViewAll || canChangeStatus
   const seesHubWide =
-    canViewAll && String(user?.role || '') !== 'approver'
+    (canViewAll || canChangeStatus) && String(user?.role || '') !== 'approver'
 
   if (!hubLoading && !moduleOn) {
     return (

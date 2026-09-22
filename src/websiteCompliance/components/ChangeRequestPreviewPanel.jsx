@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FaChevronDown, FaEye, FaEyeSlash, FaSync } from 'react-icons/fa'
 import api from '../wcApi'
+import { resolveAdvisorLiveSiteUrl } from '../utils/assetUrl'
 import { parseJson } from '../utils/parseJson'
 import {
   buildPreviewFromVersion,
@@ -33,7 +34,10 @@ export default function ChangeRequestPreviewPanel({
   const [error, setError] = useState('')
 
   const batchEdits = previewData?.is_batch && Array.isArray(previewData.edits) ? previewData.edits : null
-  const siteUrl = previewData?.site_url || null
+  const siteUrl = useMemo(
+    () => resolveAdvisorLiveSiteUrl({ siteUrl: previewData?.site_url || null }),
+    [previewData?.site_url]
+  )
 
   const title = useMemo(() => {
     if (version?.version_number != null) return `Version ${version.version_number} preview`

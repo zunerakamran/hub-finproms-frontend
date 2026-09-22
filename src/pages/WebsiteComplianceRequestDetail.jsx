@@ -163,41 +163,6 @@ export default function WebsiteComplianceRequestDetail() {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
-      {row.approver ? (
-        <p className="wc-banner">
-          Assigned to <strong>{row.approver.name}</strong>
-        </p>
-      ) : (
-        <div className="wc-banner wc-banner--warn">Not assigned to a reviewer yet.</div>
-      )}
-
-      <div className="wc-app">
-        <div className="wc-panel" style={{ marginTop: 0, marginBottom: '1.25rem' }}>
-          <ChangeRequestPreviewPanel
-            request={row}
-            requestId={row.id}
-            historical={isHistoricalRequest(row)}
-            defaultOpen
-          />
-        </div>
-
-        <div className="wc-versions">
-          {versions.length === 0 ? (
-            <p className="muted">No versions recorded for this request yet.</p>
-          ) : (
-            versions.map((ver) => (
-              <WcVersionCard
-                key={ver.id || ver.version_number}
-                version={ver}
-                isLatest={Number(ver.version_number) === Number(row.current_version || 1)}
-                requestId={row.id}
-                request={row}
-              />
-            ))
-          )}
-        </div>
-      </div>
-
       {canShowChangeStatus && (
         <form className="admin-form wc-panel" onSubmit={saveChangeStatus}>
           <h2>Change status</h2>
@@ -238,10 +203,45 @@ export default function WebsiteComplianceRequestDetail() {
       )}
 
       {canChangeStatus && statusLocked && (
-        <p className="muted" style={{ marginTop: '1rem' }}>
+        <p className="muted" style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
           Status cannot be changed because this content is scheduled or already published.
         </p>
       )}
+
+      {row.approver ? (
+        <p className="wc-banner">
+          Assigned to <strong>{row.approver.name}</strong>
+        </p>
+      ) : (
+        <div className="wc-banner wc-banner--warn">Not assigned to a reviewer yet.</div>
+      )}
+
+      <div className="wc-app">
+        <div className="wc-panel" style={{ marginTop: 0, marginBottom: '1.25rem' }}>
+          <ChangeRequestPreviewPanel
+            request={row}
+            requestId={row.id}
+            historical={isHistoricalRequest(row)}
+            defaultOpen
+          />
+        </div>
+
+        <div className="wc-versions">
+          {versions.length === 0 ? (
+            <p className="muted">No versions recorded for this request yet.</p>
+          ) : (
+            versions.map((ver) => (
+              <WcVersionCard
+                key={ver.id || ver.version_number}
+                version={ver}
+                isLatest={Number(ver.version_number) === Number(row.current_version || 1)}
+                requestId={row.id}
+                request={row}
+              />
+            ))
+          )}
+        </div>
+      </div>
 
       {isOwner && canSubmit && row.status === 'rejected' && (
         <div className="admin-form wc-panel">

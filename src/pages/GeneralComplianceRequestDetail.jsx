@@ -234,6 +234,44 @@ export default function GeneralComplianceRequestDetail() {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
+      {canChangeStatus && (
+        <form className="admin-form gc-panel" onSubmit={saveChangeStatus}>
+          <h2>Change status</h2>
+          <p className="muted">
+            Creates a new version with the selected status and optional comment. Firm visibility still applies.
+          </p>
+          <fieldset className="gc-status-group">
+            <legend>New status</legend>
+            {GC_STATUSES.map((status) => (
+              <label key={status} className="gc-radio">
+                <input
+                  type="radio"
+                  name="change-status"
+                  value={status}
+                  checked={changeStatus === status}
+                  onChange={() => setChangeStatus(status)}
+                />
+                {complianceStatusLabel(status)}
+              </label>
+            ))}
+          </fieldset>
+          <label>
+            Comment (optional)
+            <textarea
+              rows={3}
+              value={changeComment}
+              onChange={(e) => setChangeComment(e.target.value)}
+              placeholder="Reason for changing status…"
+            />
+          </label>
+          <div className="actions">
+            <button className="btn primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Update status'}
+            </button>
+          </div>
+        </form>
+      )}
+
       {row.assignee ? (
         <p className="gc-banner">
           Assigned to <strong>{row.assignee.name}</strong>
@@ -299,44 +337,6 @@ export default function GeneralComplianceRequestDetail() {
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Saving…' : 'Save review'}
-            </button>
-          </div>
-        </form>
-      )}
-
-      {canChangeStatus && (
-        <form className="admin-form gc-panel" onSubmit={saveChangeStatus}>
-          <h2>Change status</h2>
-          <p className="muted">
-            Creates a new version with the selected status and optional comment. Firm visibility still applies.
-          </p>
-          <fieldset className="gc-status-group">
-            <legend>New status</legend>
-            {GC_STATUSES.map((status) => (
-              <label key={status} className="gc-radio">
-                <input
-                  type="radio"
-                  name="change-status"
-                  value={status}
-                  checked={changeStatus === status}
-                  onChange={() => setChangeStatus(status)}
-                />
-                {complianceStatusLabel(status)}
-              </label>
-            ))}
-          </fieldset>
-          <label>
-            Comment (optional)
-            <textarea
-              rows={3}
-              value={changeComment}
-              onChange={(e) => setChangeComment(e.target.value)}
-              placeholder="Reason for changing status…"
-            />
-          </label>
-          <div className="actions">
-            <button className="btn primary" disabled={saving}>
-              {saving ? 'Saving…' : 'Update status'}
             </button>
           </div>
         </form>

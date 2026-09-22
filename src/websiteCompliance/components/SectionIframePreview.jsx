@@ -9,21 +9,6 @@ function normalizeName(name) {
   return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
-function normalizeBranding(branding) {
-  if (!branding || typeof branding !== 'object') return null
-  const primary = branding.primary_color || branding.primaryColor || null
-  const secondary = branding.secondary_color || branding.secondaryColor || null
-  const logo = branding.logo_url || branding.logoUrl || null
-  const favicon = branding.favicon_url || branding.faviconUrl || null
-  if (!primary && !secondary && !logo && !favicon) return null
-  return {
-    primary_color: primary,
-    secondary_color: secondary,
-    logo_url: logo,
-    favicon_url: favicon,
-  }
-}
-
 /**
  * Renders the advisor's live website section inside an iframe.
  * Uses the hub embed proxy so X-Frame-Options on the advisor host cannot block it.
@@ -124,9 +109,10 @@ export default function SectionIframePreview({
 
   const key = normalizeName(sectionName)
   const src = `${templateBase}?section=${encodeURIComponent(key)}`
-  const hubBranding = useMemo(() => normalizeBranding(branding), [branding])
-  // Prefer live site colours; only fall back to hub branding when undeployed.
-  const brandingForPreview = liveBranding || (liveSiteRoot ? null : hubBranding)
+  // Live advisor colours only. Never apply hub / TemplateRequest / showcase
+  // fallbacks — those override the template's own CSS (e.g. hub greens or
+  // default navy/red) and make previews look wrong on My requests / review.
+  const brandingForPreview = liveBranding
 
   latestData.current = data
   latestBranding.current = brandingForPreview

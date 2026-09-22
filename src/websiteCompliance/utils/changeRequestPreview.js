@@ -133,27 +133,61 @@ export async function fetchLivePreview(api, requestId, { version = null } = {}) 
   return res.data
 }
 
+/** True when preview carries deployment site / colour metadata. */
+export function previewHasBranding(preview) {
+  if (!preview || typeof preview !== 'object') return false
+  return Boolean(
+    preview.template_request_id
+    || preview.site_url
+    || preview.primary_color
+    || preview.secondary_color
+  )
+}
+
+/**
+ * Keep stored section content, but always take site/colour metadata from the
+ * live preview API so Submission preview can load the advisor embed + colours.
+ */
+export function mergePreviewContentWithBranding(contentPreview, brandingPreview) {
+  if (!contentPreview) return brandingPreview
+  if (!brandingPreview) return contentPreview
+
+  return {
+    ...brandingPreview,
+    ...contentPreview,
+    is_batch: contentPreview.is_batch,
+    edits: contentPreview.edits ?? brandingPreview.edits,
+    current_content: contentPreview.current_content ?? brandingPreview.current_content,
+    proposed_content: contentPreview.proposed_content ?? brandingPreview.proposed_content,
+    version_number: contentPreview.version_number ?? brandingPreview.version_number,
+    primary_color: brandingPreview.primary_color ?? contentPreview.primary_color ?? null,
+    secondary_color: brandingPreview.secondary_color ?? contentPreview.secondary_color ?? null,
+    logo_url: brandingPreview.logo_url ?? contentPreview.logo_url ?? null,
+    favicon_url: brandingPreview.favicon_url ?? contentPreview.favicon_url ?? null,
+    template_request_id: brandingPreview.template_request_id ?? contentPreview.template_request_id ?? null,
+    advisor_id: brandingPreview.advisor_id ?? contentPreview.advisor_id ?? null,
+    site_url: brandingPreview.site_url ?? contentPreview.site_url ?? null,
+    template_name: brandingPreview.template_name ?? contentPreview.template_name ?? null,
+  }
+}
+
 export async function resolveVersionPreview(api, requestId, version, { brandingRequest = null } = {}) {
   const local = buildPreviewFromVersion(version)
   try {
     const live = await fetchLivePreview(api, requestId, { version: version?.version_number })
     if (previewHasStoredSnapshot(local)) {
-      return preferStoredPreview(live, local)
+      const merged = preferStoredPreview(live, local)
+      return mergePreviewContentWithBranding(merged, live)
     }
     return live
   } catch {
     if (local && brandingRequest) {
       try {
         const branded = await fetchLivePreview(api, requestId)
-        return {
-          ...branded,
-          ...local,
-          is_batch: local.is_batch,
-          edits: local.edits,
-          current_content: local.current_content,
-          proposed_content: local.proposed_content,
-          version_number: version?.version_number,
-        }
+        return mergePreviewContentWithBranding(
+          { ...local, version_number: version?.version_number },
+          branded
+        )
       } catch {
         return local
       }
@@ -289,29 +323,48 @@ async function fetchRequestDetail(api, req) {
 export async function resolveRequestPreview(api, req, { cachedPreview = null } = {}) {
   const historical = isHistoricalRequest(req)
 
-  if (cachedPreview && (historical || previewHasDistinctSides(cachedPreview))) {
+  // Reuse cache only when it already has deployment branding; otherwise refresh
+  // so Submission preview can apply advisor colours / embed site.
+  if (
+    cachedPreview
+    && previewHasBranding(cachedPreview)
+    && (historical || previewHasDistinctSides(cachedPreview))
+  ) {
     return clonePreviewData(cachedPreview)
   }
 
   const detailedReq = historical ? await fetchRequestDetail(api, req) : req
   const storedPreview = buildPreviewFromRequest(detailedReq)
 
-  if (historical && previewHasStoredSnapshot(storedPreview) && previewHasDistinctSides(storedPreview)) {
+  try {
+    const livePreview = await fetchLivePreview(api, req.id)
+    let nextPreview = livePreview
+
+    if (historical && previewHasStoredSnapshot(storedPreview) && previewHasDistinctSides(storedPreview)) {
+      // Historical content must stay frozen, but colours/site come from live API.
+      nextPreview = mergePreviewContentWithBranding(storedPreview, livePreview)
+    } else if (previewHasStoredSnapshot(storedPreview)) {
+      nextPreview = mergePreviewContentWithBranding(
+        preferStoredPreview(livePreview, storedPreview),
+        livePreview
+      )
+    }
+
+    if (
+      cachedPreview
+      && previewHasBranding(cachedPreview)
+      && previewSidesMatch(nextPreview)
+    ) {
+      return clonePreviewData(cachedPreview)
+    }
+
+    return nextPreview
+  } catch {
+    if (cachedPreview && previewHasBranding(cachedPreview)) {
+      return clonePreviewData(cachedPreview)
+    }
     return storedPreview
   }
-
-  const livePreview = await fetchLivePreview(api, req.id)
-  let nextPreview = livePreview
-
-  if (previewHasStoredSnapshot(storedPreview)) {
-    nextPreview = preferStoredPreview(nextPreview, storedPreview)
-  }
-
-  if (cachedPreview && previewSidesMatch(nextPreview)) {
-    return clonePreviewData(cachedPreview)
-  }
-
-  return nextPreview
 }
 
 export async function capturePreviewSnapshot(api, requestId, existingPreview = null) {

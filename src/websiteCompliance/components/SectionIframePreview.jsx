@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useHub } from '../../context/HubContext'
 import {
+  API_BASE,
   resolveAdvisorLiveSiteUrl,
   resolveAdvisorPreviewUrl,
 } from '../utils/assetUrl'
@@ -9,10 +10,28 @@ function normalizeName(name) {
   return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
+/** Only real colours — never invent hub/showcase defaults. */
+function normalizeBranding(branding) {
+  if (!branding || typeof branding !== 'object') return null
+  const primary = branding.primary_color || branding.primaryColor || null
+  const secondary = branding.secondary_color || branding.secondaryColor || null
+  if (!primary && !secondary) return null
+  return {
+    primary_color: primary || null,
+    secondary_color: secondary || null,
+    logo_url: null,
+    favicon_url: null,
+  }
+}
+
 /**
  * Renders the advisor's live website section inside an iframe.
  * Uses the hub embed proxy so X-Frame-Options on the advisor host cannot block it.
- * Colours always come from the live advisor api.php (not hub/showcase TemplateRequest).
+ *
+ * Colours (priority):
+ * 1. Live advisor api.php (via same-origin embed proxy when possible)
+ * 2. Deployment TemplateRequest colours from the preview API
+ * Never use hub dashboard greens / invented showcase defaults.
  */
 export default function SectionIframePreview({
   sectionName,
@@ -69,16 +88,23 @@ export default function SectionIframePreview({
   const latestBranding = useRef(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Always pull colours from the live advisor site when we have a URL.
-  // Hub TemplateRequest / showcase defaults are often wrong (e.g. red #C8102E).
+  const deploymentBranding = useMemo(() => normalizeBranding(branding), [branding])
+
+  // Pull live colours via hub embed proxy (avoids CORS) when possible.
   useEffect(() => {
-    if (!liveSiteRoot) {
+    const proxyApi =
+      resolvedRequestId && API_BASE
+        ? `${API_BASE}/embed-site/${resolvedRequestId}/api.php`
+        : null
+    const directApi = liveSiteRoot ? `${liveSiteRoot}api.php` : null
+    const apiUrl = proxyApi || directApi
+
+    if (!apiUrl) {
       setLiveBranding(null)
       return undefined
     }
 
     let cancelled = false
-    const apiUrl = `${liveSiteRoot}api.php`
 
     fetch(apiUrl, { cache: 'no-store', credentials: 'omit' })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
@@ -90,7 +116,6 @@ export default function SectionIframePreview({
           setLiveBranding(null)
           return
         }
-        // Colours only — skip huge data-URI logos over postMessage.
         setLiveBranding({
           primary_color: primary,
           secondary_color: secondary,
@@ -105,14 +130,12 @@ export default function SectionIframePreview({
     return () => {
       cancelled = true
     }
-  }, [liveSiteRoot])
+  }, [liveSiteRoot, resolvedRequestId])
 
   const key = normalizeName(sectionName)
   const src = `${templateBase}?section=${encodeURIComponent(key)}`
-  // Live advisor colours only. Never apply hub / TemplateRequest / showcase
-  // fallbacks — those override the template's own CSS (e.g. hub greens or
-  // default navy/red) and make previews look wrong on My requests / review.
-  const brandingForPreview = liveBranding
+  // Live site wins; otherwise use saved deployment colours so Submission preview updates.
+  const brandingForPreview = liveBranding || deploymentBranding
 
   latestData.current = data
   latestBranding.current = brandingForPreview

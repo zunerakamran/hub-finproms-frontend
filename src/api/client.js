@@ -223,6 +223,15 @@ export const api = {
       body: JSON.stringify({ hub_id: hubId == null || hubId === '' ? null : Number(hubId) }),
     }),
 
+  getActingAdvisor: () => request('/acting-advisor'),
+  setActingAdvisor: (advisorId) =>
+    request('/acting-advisor', {
+      method: 'PUT',
+      body: JSON.stringify({
+        advisor_id: advisorId == null || advisorId === '' ? null : Number(advisorId),
+      }),
+    }),
+
   /** @deprecated Prefer normal CRUD while acting hub is set; hub_id is no longer required. */
   hubContentTargets: (options = {}) =>
     request(`${adminBase(options)}/hub-content/targets`),

@@ -6,6 +6,7 @@ export const DEFAULT_ROLE_LABELS = {
   manager: 'Manager',
   approver: 'Approver',
   advisor: 'Advisor',
+  admin_staff: 'Admin-staff',
   user: 'User',
 }
 

@@ -189,7 +189,14 @@ export default function SocialMediaComplianceQueue() {
                   <td>
                     <strong>{row.id}</strong>
                   </td>
-                  <td>{row.name}</td>
+                  <td>
+                    {row.attribution_label || row.name}
+                    {row.on_behalf_by?.name ? (
+                      <div className="muted">
+                        <small>Advisor: {row.submitter?.name || row.name}</small>
+                      </div>
+                    ) : null}
+                  </td>
                   <td>v{row.current_version}</td>
                   <td>{(row.description || '').slice(0, 80)}</td>
                   <td>

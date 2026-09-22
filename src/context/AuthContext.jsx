@@ -146,6 +146,7 @@ export function AuthProvider({ children }) {
       isManager: user?.role === 'manager',
       isApprover: user?.role === 'approver',
       isAdvisor: user?.role === 'advisor' || Boolean(user?.is_advisor),
+      isAdminStaff: user?.role === 'admin_staff',
       isPowerAdmin: user?.role === 'power_admin',
       isAdmin: HUB_ADMIN_ROLES.includes(user?.role),
       isAuthenticated: Boolean(user),

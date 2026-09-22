@@ -153,7 +153,9 @@ export default function WebsiteComplianceRequestDetail() {
             Request #{row.id} <WcStatusBadge status={row.status} />
           </h1>
           <p className="muted">
-            Submitted by {row.editor?.name || 'Advisor'} · {formatWcDate(row.created_at)}
+            {row.attribution_label ||
+              `Submitted by ${row.editor?.name || 'Advisor'}`}{' '}
+            · {formatWcDate(row.created_at)}
             {wcSectionTitle(row) ? ` · ${wcSectionTitle(row)}` : ''}
             <span> · v{row.current_version || 1}</span>
           </p>

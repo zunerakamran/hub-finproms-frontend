@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import ActingHubSwitcher from './ActingHubSwitcher'
+import ActingAdvisorSwitcher from './ActingAdvisorSwitcher'
 import WebsiteNavLink from './WebsiteNavLink'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -12,7 +13,7 @@ import {
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, actingHub, roleLabel } = useHub()
+  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, actingHub, actingAdvisor, roleLabel } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
@@ -121,6 +122,11 @@ export default function MyDashboardLayout() {
         {isActingOnWhiteLabel ? (
           <div className="dash-acting-pill">Controlling {actingHub?.name}</div>
         ) : null}
+        {actingAdvisor ? (
+          <div className="dash-acting-pill">
+            On behalf of {actingAdvisor.name} ({roleLabel('admin_staff') || 'Admin-staff'})
+          </div>
+        ) : null}
 
         <nav className="dash-nav" aria-label="Dashboard sections">
           {visible.map((link) =>
@@ -178,6 +184,7 @@ export default function MyDashboardLayout() {
               </div>
             </div>
             <ActingHubSwitcher />
+            <ActingAdvisorSwitcher />
           </div>
           <div className="dash-topbar__links">
             <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>

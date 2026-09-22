@@ -265,6 +265,7 @@ export function HubProvider({ children }) {
       const isActingOnWhiteLabel = Boolean(
         switcher?.is_acting_on_white_label ?? actingHub?.is_white_label
       )
+      const actingAdvisorSwitcher = hub?.acting_advisor_switcher || null
 
       return {
         hub,
@@ -295,6 +296,13 @@ export function HubProvider({ children }) {
         ),
         setActingHub: async (hubId, { asPowerAdmin = false } = {}) => {
           const data = await api.setActingHub(hubId, { asPowerAdmin })
+          await refreshHub({ silent: true })
+          return data
+        },
+        actingAdvisorSwitcher,
+        actingAdvisor: actingAdvisorSwitcher?.acting_advisor || null,
+        setActingAdvisor: async (advisorId) => {
+          const data = await api.setActingAdvisor(advisorId)
           await refreshHub({ silent: true })
           return data
         },

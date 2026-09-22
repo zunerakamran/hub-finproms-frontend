@@ -501,7 +501,18 @@ const RequestCard = memo(function RequestCard({
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
               <span className="inline-flex items-center gap-1.5">
                 <FaUser className="w-3 h-3 text-gray-400" />
-                <span>Submitted by <strong className="text-gray-700">{req.editor?.name || 'Editor'}</strong></span>
+                <span>
+                  {req.attribution_label ? (
+                    <>
+                      <strong className="text-gray-700">{req.attribution_label}</strong>
+                    </>
+                  ) : (
+                    <>
+                      Submitted by{' '}
+                      <strong className="text-gray-700">{req.editor?.name || 'Editor'}</strong>
+                    </>
+                  )}
+                </span>
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <FaClock className="w-3 h-3 text-gray-400" />

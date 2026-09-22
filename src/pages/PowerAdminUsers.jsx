@@ -12,6 +12,7 @@ const emptyForm = {
   firm_id: '',
   credits: 0,
   is_suspended: false,
+  is_admin_staff: false,
 }
 
 export default function PowerAdminUsers() {
@@ -82,6 +83,7 @@ export default function PowerAdminUsers() {
       firm_id: user.firm_id ? String(user.firm_id) : '',
       credits: user.has_unlimited_credits ? 0 : Number(user.credits || 0),
       is_suspended: Boolean(user.is_suspended),
+      is_admin_staff: user.role === 'admin_staff',
     })
     setMessage('')
     setError('')
@@ -95,14 +97,19 @@ export default function PowerAdminUsers() {
     setError('')
     setMessage('')
     try {
+      const role = form.is_admin_staff
+        ? 'admin_staff'
+        : form.role === 'admin_staff'
+          ? 'user'
+          : form.role
       const payload = {
         name: form.name.trim(),
         email: form.email.trim(),
-        role: form.role,
+        role,
         credits: Number(form.credits) || 0,
         is_suspended: Boolean(form.is_suspended),
         firm_id:
-          form.role === 'power_admin' || form.role === 'finproms_admin'
+          role === 'power_admin' || role === 'finproms_admin'
             ? null
             : form.firm_id
               ? Number(form.firm_id)
@@ -216,12 +223,13 @@ export default function PowerAdminUsers() {
           <label>
             Role
             <select
-              value={form.role}
+              value={form.is_admin_staff ? 'admin_staff' : form.role}
               onChange={(e) => {
                 const role = e.target.value
                 setForm((f) => ({
                   ...f,
                   role,
+                  is_admin_staff: role === 'admin_staff',
                   firm_id: role === 'power_admin' || role === 'finproms_admin' ? '' : f.firm_id,
                 }))
               }}
@@ -239,12 +247,17 @@ export default function PowerAdminUsers() {
             <select
               value={form.firm_id}
               onChange={(e) => setForm((f) => ({ ...f, firm_id: e.target.value }))}
-              disabled={form.role === 'power_admin' || form.role === 'finproms_admin'}
+              disabled={
+                form.is_admin_staff
+                  ? false
+                  : form.role === 'power_admin' || form.role === 'finproms_admin'
+              }
             >
               <option value="">No firm</option>
-              {(form.role === 'power_admin' || form.role === 'finproms_admin'
-                ? []
-                : firms
+              {(
+                (form.role === 'power_admin' || form.role === 'finproms_admin') && !form.is_admin_staff
+                  ? []
+                  : firms
               ).map((firm) => (
                 <option key={firm.id} value={firm.id}>
                   {firm.name}
@@ -263,6 +276,22 @@ export default function PowerAdminUsers() {
             />
           </label>
         </div>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={form.is_admin_staff}
+            onChange={(e) => {
+              const checked = e.target.checked
+              setForm((f) => ({
+                ...f,
+                is_admin_staff: checked,
+                role: checked ? 'admin_staff' : f.role === 'admin_staff' ? 'user' : f.role,
+              }))
+            }}
+          />
+          {(roleLabels || DEFAULT_ROLE_LABELS).admin_staff || 'Admin-staff'} — can submit
+          compliance on behalf of advisors in their firm
+        </label>
         <label className="checkbox">
           <input
             type="checkbox"

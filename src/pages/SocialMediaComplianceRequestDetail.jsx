@@ -223,8 +223,9 @@ export default function SocialMediaComplianceRequestDetail() {
             Request #{row.id} <SmcStatusBadge status={row.status} />
           </h1>
           <p className="muted">
-            Submitted by {row.submitter?.name || row.name} ·{' '}
-            {formatSmcDate(row.submission_date)}
+            {row.attribution_label ||
+              `Submitted by ${row.submitter?.name || row.name}`}{' '}
+            · {formatSmcDate(row.submission_date)}
             {row.post?.title ? ` · ${row.post.title}` : ''}
           </p>
         </div>

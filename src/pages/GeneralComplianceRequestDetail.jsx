@@ -226,7 +226,9 @@ export default function GeneralComplianceRequestDetail() {
             Request #{row.id} <GcStatusBadge status={row.status} />
           </h1>
           <p className="muted">
-            Submitted by {row.submitter?.name || row.name} · {formatGcDate(row.submission_date)}
+            {row.attribution_label ||
+              `Submitted by ${row.submitter?.name || row.name}`}{' '}
+            · {formatGcDate(row.submission_date)}
           </p>
         </div>
       </div>

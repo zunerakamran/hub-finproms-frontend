@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
+import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
 import WcStatusBadge from '../components/WebsiteComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatWcDate, wcSectionTitle } from '../utils/websiteCompliance'
+import { submissionAttributionText } from '../utils/submissionAttribution'
 
 export default function WebsiteComplianceMyRequests() {
   const { user } = useAuth()
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, effectiveAdvisorId, actingAdvisor } = useHub()
   const [searchParams] = useSearchParams()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -21,6 +23,7 @@ export default function WebsiteComplianceMyRequests() {
     can('wc_edit_sections') ||
     can('wc_publish_live_content')
   const highlightId = Number(searchParams.get('highlight') || 0) || null
+  const ownerId = effectiveAdvisorId ?? user?.id
 
   useEffect(() => {
     if (hubLoading || !moduleOn || !canView) {
@@ -35,7 +38,16 @@ export default function WebsiteComplianceMyRequests() {
       .then((data) => {
         if (cancelled) return
         const list = Array.isArray(data) ? data : []
-        const mine = list.filter((cr) => Number(cr.editor_id) === Number(user?.id))
+        // Admin-staff acting as an advisor: editor_id is the advisor; also include
+        // anything they submitted on behalf of that advisor.
+        const mine = list.filter((cr) => {
+          const editorId = Number(cr.editor_id)
+          return (
+            editorId === Number(ownerId) ||
+            editorId === Number(user?.id) ||
+            Number(cr.on_behalf_by_user_id) === Number(user?.id)
+          )
+        })
         setItems(mine)
       })
       .catch((err) => {
@@ -47,7 +59,7 @@ export default function WebsiteComplianceMyRequests() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, moduleOn, canView, user?.id])
+  }, [hubLoading, moduleOn, canView, user?.id, ownerId, effectiveAdvisorId])
 
   const sorted = useMemo(
     () =>
@@ -94,7 +106,12 @@ export default function WebsiteComplianceMyRequests() {
         <div>
           <p className="eyebrow">Website Compliance</p>
           <h1>My requests</h1>
-          <p className="muted">Track submissions, feedback, and version history.</p>
+          <p className="muted">
+            {actingAdvisor
+              ? `Change request history for ${actingAdvisor.name}.`
+              : 'Track submissions, feedback, and version history.'}
+          </p>
+          <ActingAdvisorBanner action="requests" />
         </div>
         {canSubmit && (
           <Link className="btn primary" to="/my-dashboard/website-compliance/content-editor">
@@ -130,6 +147,11 @@ export default function WebsiteComplianceMyRequests() {
                 <strong>#{row.id}</strong>
                 <span className="muted"> v{row.current_version || 1}</span>
                 <p>{wcSectionTitle(row)}</p>
+                {row.attribution_label || row.on_behalf_by?.name ? (
+                  <p className="muted" style={{ margin: '0.25rem 0 0' }}>
+                    <small>{submissionAttributionText(row, 'editor')}</small>
+                  </p>
+                ) : null}
                 <small className="muted">
                   {formatWcDate(row.created_at)}
                   {row.approver?.name ? ` · Reviewer: ${row.approver.name}` : ''}

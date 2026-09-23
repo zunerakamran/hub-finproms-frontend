@@ -6,7 +6,7 @@ import { useHub } from '../context/HubContext'
 import { formatSmcDate } from '../utils/socialMediaCompliance'
 
 export default function SocialMediaComplianceMyRequests() {
-  const { can, loading: hubLoading } = useHub()
+  const { can, loading: hubLoading, effectiveAdvisorId } = useHub()
   const [searchParams] = useSearchParams()
   const [items, setItems] = useState([])
   const [meta, setMeta] = useState(null)
@@ -43,7 +43,7 @@ export default function SocialMediaComplianceMyRequests() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, moduleOn, canView, page])
+  }, [hubLoading, moduleOn, canView, page, effectiveAdvisorId])
 
   if (!hubLoading && !moduleOn) {
     return (

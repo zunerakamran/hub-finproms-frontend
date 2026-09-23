@@ -1208,6 +1208,16 @@ export default function AdvisorDashboard({
     useHub()
   const getConsoleTitle = (r) =>
     actingAdvisor || r === 'advisor' ? `${roleLabel('advisor')} console` : 'Console'
+  const lockOwnerIds = useMemo(() => {
+    const ids = []
+    if (user?.id != null) ids.push(Number(user.id))
+    if (effectiveAdvisorId != null) ids.push(Number(effectiveAdvisorId))
+    return ids
+  }, [user?.id, effectiveAdvisorId])
+  const isSectionLockedByMe = (section) =>
+    Boolean(section?.is_locked && section?.locked_by != null && lockOwnerIds.includes(Number(section.locked_by)))
+  const isSectionLockedByOther = (section) =>
+    Boolean(section?.is_locked && section?.locked_by != null && !lockOwnerIds.includes(Number(section.locked_by)))
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const domainPlaceholder = hubDomainPlaceholder(previewBase)
   const canRequestDeployments = can('wc_request_deployments')
@@ -2099,7 +2109,7 @@ export default function AdvisorDashboard({
         }
 
         const lockedByMeIds = deploymentSections
-          .filter(s => s.is_locked && s.locked_by === user?.id && isAdvisorVisibleSection(sectionTemplateKey(s)))
+          .filter(s => s.is_locked && isSectionLockedByMe(s) && isAdvisorVisibleSection(sectionTemplateKey(s)))
           .map(s => s.id)
 
         setCheckedSectionIds(lockedByMeIds)
@@ -2150,7 +2160,7 @@ export default function AdvisorDashboard({
     }
 
     const lockedByMeIds = sectionsForAdvisor
-      .filter(s => s.is_locked && s.locked_by === user?.id && isAdvisorVisibleSection(sectionTemplateKey(s)))
+      .filter(s => s.is_locked && isSectionLockedByMe(s) && isAdvisorVisibleSection(sectionTemplateKey(s)))
       .map(s => s.id)
 
     setCheckedSectionIds(lockedByMeIds)
@@ -2216,7 +2226,7 @@ export default function AdvisorDashboard({
       }
     }
 
-    if (!isPowerAdminPublishMode && section.is_locked && section.locked_by !== user?.id) {
+    if (!isPowerAdminPublishMode && section.is_locked && !isSectionLockedByMe(section)) {
       const msg = section.locked_by
         ? `Section "${sectionDisplayName(section)}" is locked by ${section.locked_by_user?.name || 'another user'}.`
         : `Section "${sectionDisplayName(section)}" has a pending or scheduled change request and cannot be edited until it is reviewed.`
@@ -3456,8 +3466,10 @@ export default function AdvisorDashboard({
                   <div className="grid sm:grid-cols-2 gap-3">
                     {pickerSections.map(section => {
                       const isChecked = checkedSectionIds.includes(section.id)
-                      const isLockedByMe = !isPowerAdminPublishMode && section.is_locked && section.locked_by === user?.id
-                      const isLockedByOther = !isPowerAdminPublishMode && section.is_locked && section.locked_by !== user?.id
+                      const isLockedByMe = !isPowerAdminPublishMode && isSectionLockedByMe(section)
+                      const isLockedByOther = !isPowerAdminPublishMode && (
+                        (section.is_locked && !section.locked_by) || isSectionLockedByOther(section)
+                      )
                       const SecIcon = sectionIcon(sectionTemplateKey(section))
 
                       return (

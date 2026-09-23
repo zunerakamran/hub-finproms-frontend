@@ -25,8 +25,7 @@ export default function WebsiteComplianceMySites() {
   const canView =
     can('wc_edit_sections') ||
     can('wc_submit_change_requests') ||
-    can('wc_request_deployments') ||
-    can('wc_publish_live_content')
+    can('wc_request_deployments')
 
   if (!hubLoading && !moduleOn) return <ModuleOff />
 

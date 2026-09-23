@@ -2855,7 +2855,7 @@ export default function AdvisorDashboard({
                   className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold px-5 py-3 rounded-xl hover:bg-gray-50 transition shadow-sm"
                 >
                   <FaArrowLeft className="w-4 h-4" />
-                  Back to Deployments
+                  Back to live sites
                 </button>
               ) : canRequestDeployments ? (
                 <button

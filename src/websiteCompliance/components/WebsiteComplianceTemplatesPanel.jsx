@@ -117,7 +117,8 @@ export default function WebsiteComplianceTemplatesPanel() {
   const canDeployWebsites = can('wc_deploy_websites')
   const canPublishLive = can('wc_publish_live_content')
   const canManageSections = can('wc_manage_deployment_sections')
-  const canViewDeployments = canDeployWebsites || can('wc_view_all_deployments')
+  const canViewDeployments =
+    canDeployWebsites || can('wc_view_all_deployments') || canPublishLive
 
   const [activeTab, setActiveTab] = useState(
     canManageTemplates ? 'templates' : canViewDeployments ? 'deployments' : 'templates'
@@ -581,7 +582,7 @@ export default function WebsiteComplianceTemplatesPanel() {
                               to={`/my-dashboard/website-compliance/publish/${req.id}`}
                               className="inline-flex items-center gap-1.5 bg-[var(--brand)] text-white text-xs font-bold px-3 py-2 rounded-lg"
                             >
-                              <FaPen className="w-3 h-3" /> Edit
+                              <FaPen className="w-3 h-3" /> Edit &amp; publish
                             </Link>
                           )}
                           {req.status === 'deployed' && canManageSections && (

@@ -18,10 +18,7 @@ export default function WebsiteComplianceMyRequests() {
 
   const moduleOn = can('module_website_compliance')
   const canSubmit = can('wc_submit_change_requests') || can('wc_edit_sections')
-  const canView =
-    can('wc_submit_change_requests') ||
-    can('wc_edit_sections') ||
-    can('wc_publish_live_content')
+  const canView = canSubmit
   const highlightId = Number(searchParams.get('highlight') || 0) || null
   const ownerId = effectiveAdvisorId ?? user?.id
 

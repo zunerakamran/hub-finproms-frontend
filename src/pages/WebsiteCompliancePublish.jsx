@@ -48,19 +48,21 @@ export default function WebsiteCompliancePublish() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
-          <h1>Publish content</h1>
-          <p className="muted">Edit and publish live section content for deployment #{deploymentId}.</p>
+          <p className="eyebrow">Website Compliance · Direct publish</p>
+          <h1>Edit &amp; publish</h1>
+          <p className="muted">
+            Changes publish to the live site immediately — no approver review. Deployment #{deploymentId}.
+          </p>
         </div>
-        <Link className="btn ghost" to="/my-dashboard/website-compliance/deployments">
-          Back
+        <Link className="btn ghost" to="/my-dashboard/website-compliance/publish-live">
+          ← All live sites
         </Link>
       </div>
       <div className="wc-app wc-surface">
         <AdvisorDashboard
           embedded
           powerAdminDeploymentId={Number(deploymentId) || deploymentId}
-          onExitPowerAdmin={() => navigate('/my-dashboard/website-compliance/deployments')}
+          onExitPowerAdmin={() => navigate('/my-dashboard/website-compliance/publish-live')}
         />
       </div>
     </section>

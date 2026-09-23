@@ -9,6 +9,7 @@ import {
   FaServer,
   FaUserCheck,
 } from 'react-icons/fa'
+import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
 function ModuleOff() {
@@ -35,6 +36,7 @@ const EDITOR_CARDS = [
     description: 'Browse templates and request a new showcase website deployment.',
     icon: FaRocket,
     anyOf: ['wc_request_deployments'],
+    exceptRoles: ['power_admin', 'finproms_admin'],
   },
   {
     to: '/my-dashboard/website-compliance/my-sites',
@@ -45,22 +47,31 @@ const EDITOR_CARDS = [
       'wc_edit_sections',
       'wc_submit_change_requests',
       'wc_request_deployments',
-      'wc_publish_live_content',
     ],
+    exceptRoles: ['power_admin', 'finproms_admin'],
   },
   {
     to: '/my-dashboard/website-compliance/content-editor',
     title: 'Content editor',
     description: 'Edit website sections and submit changes for compliance review.',
     icon: FaEdit,
-    anyOf: ['wc_edit_sections', 'wc_submit_change_requests', 'wc_publish_live_content'],
+    anyOf: ['wc_edit_sections', 'wc_submit_change_requests'],
+    exceptRoles: ['power_admin', 'finproms_admin'],
   },
   {
     to: '/my-dashboard/website-compliance/my-requests',
     title: 'My change requests',
     description: 'Track submissions, feedback, and version history.',
     icon: FaHistory,
-    anyOf: ['wc_submit_change_requests', 'wc_edit_sections', 'wc_publish_live_content'],
+    anyOf: ['wc_submit_change_requests', 'wc_edit_sections'],
+    exceptRoles: ['power_admin', 'finproms_admin'],
+  },
+  {
+    to: '/my-dashboard/website-compliance/publish-live',
+    title: 'Publish live content',
+    description: 'Edit and publish live site content without approver review.',
+    icon: FaEdit,
+    anyOf: ['wc_publish_live_content'],
   },
 ]
 
@@ -117,10 +128,15 @@ function CardGrid({ cards }) {
 }
 
 export default function WebsiteComplianceHome() {
+  const { user } = useAuth()
   const { can, loading: hubLoading } = useHub()
   const moduleOn = can('module_website_compliance')
+  const role = String(user?.role || '')
 
-  const editorCards = EDITOR_CARDS.filter((card) => card.anyOf.some((cap) => can(cap)))
+  const editorCards = EDITOR_CARDS.filter((card) => {
+    if (Array.isArray(card.exceptRoles) && card.exceptRoles.includes(role)) return false
+    return card.anyOf.some((cap) => can(cap))
+  })
   const approverCards = APPROVER_CARDS.filter((card) => card.anyOf.some((cap) => can(cap)))
   const hasWorkspace = editorCards.length > 0 || approverCards.length > 0
   const canStaffOps =
@@ -135,6 +151,9 @@ export default function WebsiteComplianceHome() {
 
   // View-only / report-only / change-status roles: skip this hub landing and go to their real page.
   if (!hubLoading && !hasWorkspace) {
+    if (can('wc_publish_live_content')) {
+      return <Navigate to="/my-dashboard/website-compliance/publish-live" replace />
+    }
     if (can('wc_change_request_status') || can('wc_view_all_change_requests')) {
       return <Navigate to="/my-dashboard/website-compliance/history" replace />
     }
@@ -163,7 +182,11 @@ export default function WebsiteComplianceHome() {
         <div>
           <p className="eyebrow">Website Compliance</p>
           <h1>Website Compliance</h1>
-          <p className="muted">Choose a workspace — each task has its own page.</p>
+          <p className="muted">
+            {editorCards.some((c) => c.to.includes('publish-live')) && editorCards.length === 1
+              ? 'Choose a live site and publish content directly — no approver review.'
+              : 'Choose a workspace — each task has its own page.'}
+          </p>
         </div>
       </div>
 

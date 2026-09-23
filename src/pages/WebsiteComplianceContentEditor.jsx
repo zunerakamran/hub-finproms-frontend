@@ -24,8 +24,7 @@ export default function WebsiteComplianceContentEditor() {
   const moduleOn = can('module_website_compliance')
   const canEditor =
     can('wc_edit_sections') ||
-    can('wc_submit_change_requests') ||
-    can('wc_publish_live_content')
+    can('wc_submit_change_requests')
 
   if (!hubLoading && !moduleOn) return <ModuleOff />
 

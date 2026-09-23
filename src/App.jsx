@@ -44,6 +44,7 @@ import GeneralComplianceSubmit from './pages/GeneralComplianceSubmit'
 import WebsiteComplianceDeployments from './pages/WebsiteComplianceDeployments'
 import WebsiteComplianceHome from './pages/WebsiteComplianceHome'
 import WebsiteCompliancePublish from './pages/WebsiteCompliancePublish'
+import WebsiteCompliancePublishLive from './pages/WebsiteCompliancePublishLive'
 import WebsiteComplianceQueue from './pages/WebsiteComplianceQueue'
 import WebsiteComplianceReports from './pages/WebsiteComplianceReports'
 import WebsiteComplianceRequestSite from './pages/WebsiteComplianceRequestSite'
@@ -422,7 +423,6 @@ export default function App() {
                         'wc_edit_sections',
                         'wc_submit_change_requests',
                         'wc_request_deployments',
-                        'wc_publish_live_content',
                       ]}
                     >
                       <WebsiteComplianceMySites />
@@ -433,7 +433,7 @@ export default function App() {
                   path="website-compliance/content-editor"
                   element={
                     <HubCapabilityRoute
-                      anyOf={['wc_edit_sections', 'wc_submit_change_requests', 'wc_publish_live_content']}
+                      anyOf={['wc_edit_sections', 'wc_submit_change_requests']}
                     >
                       <WebsiteComplianceContentEditor />
                     </HubCapabilityRoute>
@@ -443,9 +443,17 @@ export default function App() {
                   path="website-compliance/my-requests"
                   element={
                     <HubCapabilityRoute
-                      anyOf={['wc_submit_change_requests', 'wc_edit_sections', 'wc_publish_live_content']}
+                      anyOf={['wc_submit_change_requests', 'wc_edit_sections']}
                     >
                       <WebsiteComplianceMyRequests />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="website-compliance/publish-live"
+                  element={
+                    <HubCapabilityRoute capability="wc_publish_live_content">
+                      <WebsiteCompliancePublishLive />
                     </HubCapabilityRoute>
                   }
                 />

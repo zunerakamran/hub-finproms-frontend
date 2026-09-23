@@ -31,8 +31,9 @@ export default function MyDashboardLayout() {
         advisorBillingEnabled,
         canManagePaymentCard,
         isActingOnWhiteLabel,
+        userRole: user?.role,
       }),
-    [advisorBillingEnabled, canManagePaymentCard, can, canPower, isActingOnWhiteLabel]
+    [advisorBillingEnabled, canManagePaymentCard, can, canPower, isActingOnWhiteLabel, user?.role]
   )
 
   const activeLink = useMemo(

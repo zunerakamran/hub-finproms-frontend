@@ -59,6 +59,7 @@ export default function MyDashboard() {
           advisorBillingEnabled,
           canManagePaymentCard,
           isActingOnWhiteLabel,
+          userRole: user?.role,
         })
       )
       .map((link) => {

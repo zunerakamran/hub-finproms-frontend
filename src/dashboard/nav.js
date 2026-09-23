@@ -24,6 +24,7 @@ export const GENERAL_DASHBOARD_ANY = [
  *   billingOnly?: boolean,
  *   sharedOnly?: boolean,
  *   homeOnly?: boolean,
+ *   exceptRoles?: string[],
  *   group?: string,
  * }} DashboardLink */
 
@@ -445,8 +446,9 @@ export const DASHBOARD_LINKS = [
       'wc_edit_sections',
       'wc_submit_change_requests',
       'wc_request_deployments',
-      'wc_publish_live_content',
     ],
+    // Power Admin / FinProms use Publish live content + Site operations instead.
+    exceptRoles: ['power_admin', 'finproms_admin'],
     group: 'wc',
   },
   {
@@ -454,7 +456,8 @@ export const DASHBOARD_LINKS = [
     label: 'Content editor',
     title: 'Content editor',
     description: 'Edit website sections and submit changes for review.',
-    anyOf: ['wc_edit_sections', 'wc_submit_change_requests', 'wc_publish_live_content'],
+    anyOf: ['wc_edit_sections', 'wc_submit_change_requests'],
+    exceptRoles: ['power_admin', 'finproms_admin'],
     group: 'wc',
   },
   {
@@ -462,7 +465,16 @@ export const DASHBOARD_LINKS = [
     label: 'My change requests',
     title: 'My change requests',
     description: 'See your submitted content changes and version history.',
-    anyOf: ['wc_submit_change_requests', 'wc_edit_sections', 'wc_publish_live_content'],
+    anyOf: ['wc_submit_change_requests', 'wc_edit_sections'],
+    exceptRoles: ['power_admin', 'finproms_admin'],
+    group: 'wc',
+  },
+  {
+    to: '/my-dashboard/website-compliance/publish-live',
+    label: 'Publish live content',
+    title: 'Publish live content',
+    description: 'Edit and publish live site content without approver review.',
+    capability: 'wc_publish_live_content',
     group: 'wc',
   },
   {
@@ -568,9 +580,13 @@ export const DASHBOARD_LINKS = [
 
 export function isDashboardLinkVisible(
   link,
-  { can, canPower, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel }
+  { can, canPower, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, userRole }
 ) {
   if (link.sharedOnly && isActingOnWhiteLabel) return false
+  if (Array.isArray(link.exceptRoles) && link.exceptRoles.length > 0) {
+    const role = String(userRole || '')
+    if (role && link.exceptRoles.includes(role)) return false
+  }
   // Payment card is client_admin only when advisor billing is on.
   if (link.billingOnly) return Boolean(canManagePaymentCard)
   if (Array.isArray(link.anyOf) && link.anyOf.length > 0) {

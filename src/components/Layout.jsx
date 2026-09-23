@@ -4,14 +4,15 @@ import { useHub } from '../context/HubContext'
 
 export default function Layout() {
   const { user, logout, isAdvisor } = useAuth()
-  const { can, hub, hasDashboardAccess, branding } = useHub()
+  const { can, hub, hasDashboardAccess, branding, isActingAsAdvisor } = useHub()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = branding?.logo_url || null
   const showPlans =
     can('member_view_plans') && (can('public_subscribe') || can('paid_credits'))
 
   const creditsLabel =
-    user?.has_unlimited_credits || (can('unlimited_credits') && isAdvisor)
+    user?.has_unlimited_credits ||
+    (can('unlimited_credits') && (isAdvisor || isActingAsAdvisor))
       ? 'Unlimited'
       : `${user?.credits ?? 0}`
 

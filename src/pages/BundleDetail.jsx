@@ -8,7 +8,7 @@ export default function BundleDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user, setUser, refreshUser } = useAuth()
-  const { can } = useHub()
+  const { can, isActingAsAdvisor } = useHub()
   const [bundle, setBundle] = useState(null)
   const [paymentMethods, setPaymentMethods] = useState([])
   const [oneOffPurchase, setOneOffPurchase] = useState(false)
@@ -124,7 +124,8 @@ export default function BundleDetail() {
   const canBuy =
     can('member_purchase_content') && user && !bundle.is_purchased && bundle.is_active !== false
   const unlimited =
-    user?.has_unlimited_credits || (can('unlimited_credits') && user?.is_advisor)
+    user?.has_unlimited_credits ||
+    (can('unlimited_credits') && (user?.is_advisor || isActingAsAdvisor))
   const hasCredits = unlimited || (user?.credits ?? 0) >= (bundle.credits_cost ?? 0)
   const oneOffEnabled = oneOffPurchase || can('one_off_purchase')
   const stripeMethod = paymentMethods.find((m) => m.id === 'stripe') || {

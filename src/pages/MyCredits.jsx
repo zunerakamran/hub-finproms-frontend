@@ -4,13 +4,14 @@ import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
 
 export default function MyCredits() {
-  const { can } = useHub()
+  const { can, effectiveAdvisorId, actingAdvisor, roleLabel } = useHub()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
     api
       .myDashboard()
       .then((payload) => {
@@ -25,7 +26,7 @@ export default function MyCredits() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [effectiveAdvisorId])
 
   if (loading) return <div className="state">Loading...</div>
   if (error) return <div className="alert">{error}</div>
@@ -35,6 +36,7 @@ export default function MyCredits() {
   const balanceLabel = credits?.has_unlimited_credits
     ? 'Unlimited credits'
     : `${credits?.balance ?? 0} credits remaining`
+  const advisorLabel = roleLabel('advisor') || 'Advisor'
 
   return (
     <section>
@@ -42,7 +44,11 @@ export default function MyCredits() {
         <div>
           <p className="eyebrow">Account</p>
           <h1>Credits</h1>
-          <p className="muted">Credits are spent when you unlock posts or bundles.</p>
+          <p className="muted">
+            {actingAdvisor
+              ? `Showing ${actingAdvisor.name}'s ${advisorLabel.toLowerCase()} credits while you work on their behalf.`
+              : 'Credits are spent when you unlock posts or bundles.'}
+          </p>
         </div>
         {showPlans && (
           <Link to="/subscriptions" className="btn primary">
@@ -57,7 +63,9 @@ export default function MyCredits() {
           <p>{balanceLabel}</p>
           <p className="muted">
             {credits?.has_unlimited_credits
-              ? 'Your account can unlock catalog content without spending a balance.'
+              ? actingAdvisor
+                ? `${actingAdvisor.name} can unlock catalog content without spending a balance.`
+                : 'Your account can unlock catalog content without spending a balance.'
               : 'Buy a plan or individual content from the main website to use credits.'}
           </p>
           <Link to="/" className="admin-dashboard-link">

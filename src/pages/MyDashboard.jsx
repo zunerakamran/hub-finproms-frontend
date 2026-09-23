@@ -25,7 +25,7 @@ const GROUP_ORDER = ['account', 'content', 'hub', 'advisors', 'smc', 'gc', 'wc',
 
 export default function MyDashboard() {
   const { user, canPower } = useAuth()
-  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel } = useHub()
+  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, effectiveAdvisorId, actingAdvisor } = useHub()
   const [data, setData] = useState(null)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
@@ -42,7 +42,7 @@ export default function MyDashboard() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [effectiveAdvisorId])
 
   const groups = useMemo(() => {
     const activePlan = data?.subscription?.active_plan
@@ -68,7 +68,9 @@ export default function MyDashboard() {
           const balanceLabel = credits.has_unlimited_credits
             ? 'Unlimited credits'
             : `${credits.balance ?? '—'} credits remaining`
-          description = `${balanceLabel}. Credits are spent when you unlock posts or bundles.`
+          description = actingAdvisor
+            ? `${balanceLabel} (${actingAdvisor.name}). Credits are spent when unlocking posts or bundles on their behalf.`
+            : `${balanceLabel}. Credits are spent when you unlock posts or bundles.`
         }
 
         if (link.to === '/my-dashboard/subscription') {
@@ -103,7 +105,7 @@ export default function MyDashboard() {
       label: DASHBOARD_GROUPS[key] || key,
       cards: cards.filter((c) => c.group === key),
     })).filter((g) => g.cards.length > 0)
-  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel])
+  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, actingAdvisor])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
 

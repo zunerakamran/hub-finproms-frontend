@@ -9,7 +9,7 @@ import { useHub } from '../context/HubContext'
 export default function PostDetail() {
   const { id } = useParams()
   const { user, isAuthenticated, isClientAdmin, setUser, refreshUser } = useAuth()
-  const { can, registrationEnabled } = useHub()
+  const { can, registrationEnabled, isActingAsAdvisor } = useHub()
   const navigate = useNavigate()
   const [post, setPost] = useState(null)
   const [error, setError] = useState('')
@@ -24,7 +24,8 @@ export default function PostDetail() {
   const canPurchase = can('member_purchase_content')
   const canDownload = can('member_download_content')
   const unlimited =
-    user?.has_unlimited_credits || (can('unlimited_credits') && user?.is_advisor)
+    user?.has_unlimited_credits ||
+    (can('unlimited_credits') && (user?.is_advisor || isActingAsAdvisor))
   const oneOffEnabled = oneOffPurchase || can('one_off_purchase')
   const stripeMethod = paymentMethods.find((m) => m.id === 'stripe') || {
     id: 'stripe',

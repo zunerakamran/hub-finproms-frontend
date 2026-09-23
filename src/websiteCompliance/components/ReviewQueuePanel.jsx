@@ -1205,7 +1205,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
               onError={setError}
               getCachedPreview={getCachedPreview}
               cachePreview={cachePreview}
-              canChangeStatus={canChangeStatus}
+              canChangeStatus={canChangeStatus && variant !== 'history'}
             />
           ))}
         </div>

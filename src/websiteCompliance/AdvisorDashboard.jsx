@@ -1204,8 +1204,10 @@ export default function AdvisorDashboard({
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { can, hub, actingHub, roleLabel, complianceStatusLabel } = useHub()
-  const getConsoleTitle = (r) => (r === 'advisor' ? `${roleLabel('advisor')} console` : 'Console')
+  const { can, hub, actingHub, roleLabel, complianceStatusLabel, effectiveAdvisorId, actingAdvisor } =
+    useHub()
+  const getConsoleTitle = (r) =>
+    actingAdvisor || r === 'advisor' ? `${roleLabel('advisor')} console` : 'Console'
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const domainPlaceholder = hubDomainPlaceholder(previewBase)
   const canRequestDeployments = can('wc_request_deployments')
@@ -1824,10 +1826,18 @@ export default function AdvisorDashboard({
 
   const fetchMyChangeRequests = () => {
     if (isPowerAdminPublishMode) return
+    const ownerId = effectiveAdvisorId ?? user?.id
     api.get('/change-requests')
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : []
-        setMyChangeRequests(list.filter((cr) => Number(cr.editor_id) === Number(user?.id)))
+        setMyChangeRequests(
+          list.filter(
+            (cr) =>
+              Number(cr.editor_id) === Number(ownerId) ||
+              Number(cr.editor_id) === Number(user?.id) ||
+              Number(cr.on_behalf_by_user_id) === Number(user?.id)
+          )
+        )
       })
       .catch(() => {})
   }
@@ -1849,7 +1859,7 @@ export default function AdvisorDashboard({
     if (!isPowerAdminPublishMode) {
       fetchAvailableTemplates()
     }
-  }, [isPowerAdminPublishMode, user?.id])
+  }, [isPowerAdminPublishMode, user?.id, effectiveAdvisorId])
 
   useEffect(() => {
     if (!isPowerAdminPublishMode || !powerAdminDeploymentId) return
@@ -2044,7 +2054,8 @@ export default function AdvisorDashboard({
   }
 
   const fetchAdvisorSections = async (pageId, advisorIdOverride = null, templateRequestId = null) => {
-    const advisorId = advisorIdOverride ?? (isPowerAdminPublishMode ? null : user?.id)
+    const advisorId =
+      advisorIdOverride ?? (isPowerAdminPublishMode ? null : effectiveAdvisorId ?? user?.id)
     const params = {}
     if (advisorId) params.advisor_id = advisorId
     if (templateRequestId) params.template_request_id = templateRequestId

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
+import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
 import { useHub } from '../context/HubContext'
 
 export default function SocialMediaComplianceSubmit() {
@@ -103,6 +104,7 @@ export default function SocialMediaComplianceSubmit() {
             Send a purchased post for review. You can attach an updated image or use the post
             attachment.
           </p>
+          <ActingAdvisorBanner action="submissions" />
         </div>
         <Link to="/my-dashboard/social-media-compliance" className="btn ghost">
           My requests

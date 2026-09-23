@@ -249,6 +249,12 @@ export default function GeneralComplianceReports() {
                     <td>{row.id}</td>
                     <td>
                       {row.submitted_by}
+                      {row.on_behalf_of ? (
+                        <>
+                          <br />
+                          <small className="muted">Advisor: {row.on_behalf_of}</small>
+                        </>
+                      ) : null}
                       <br />
                       <small className="muted">{row.submitter_email}</small>
                     </td>

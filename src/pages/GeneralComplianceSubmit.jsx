@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
+import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
 import { useHub } from '../context/HubContext'
 import { GC_ACCEPT } from '../utils/generalCompliance'
 
@@ -76,6 +77,7 @@ export default function GeneralComplianceSubmit() {
             Describe the material and attach supporting files (PDF, Office, images, ZIP — max 10
             files, 10MB each).
           </p>
+          <ActingAdvisorBanner action="submissions" />
         </div>
         <Link to="/my-dashboard/general-compliance" className="btn ghost">
           My requests

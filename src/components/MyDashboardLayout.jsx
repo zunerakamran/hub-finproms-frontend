@@ -124,7 +124,8 @@ export default function MyDashboardLayout() {
         ) : null}
         {actingAdvisor ? (
           <div className="dash-acting-pill">
-            On behalf of {actingAdvisor.name} ({roleLabel('admin_staff') || 'Admin-staff'})
+            On behalf of {actingAdvisor.name} — acting as {roleLabel('advisor') || 'Advisor'} (
+            {roleLabel('admin_staff') || 'Admin-staff'})
           </div>
         ) : null}
 

@@ -42,6 +42,8 @@ function sameHub(a, b) {
     JSON.stringify(a.auth) === JSON.stringify(b.auth) &&
     JSON.stringify(a.hub_switcher) === JSON.stringify(b.hub_switcher) &&
     JSON.stringify(a.acting_hub) === JSON.stringify(b.acting_hub) &&
+    JSON.stringify(a.acting_advisor_switcher) === JSON.stringify(b.acting_advisor_switcher) &&
+    a.effective_role === b.effective_role &&
     JSON.stringify(a.role_labels) === JSON.stringify(b.role_labels) &&
     JSON.stringify(a.compliance_status_labels) === JSON.stringify(b.compliance_status_labels)
   )
@@ -266,6 +268,13 @@ export function HubProvider({ children }) {
         switcher?.is_acting_on_white_label ?? actingHub?.is_white_label
       )
       const actingAdvisorSwitcher = hub?.acting_advisor_switcher || null
+      const actingAdvisor = actingAdvisorSwitcher?.acting_advisor || null
+      const isAdvisorUser = user?.role === 'advisor' || Boolean(user?.is_advisor)
+      const effectiveAdvisorId = actingAdvisor?.id
+        ? Number(actingAdvisor.id)
+        : isAdvisorUser && user?.id
+          ? Number(user.id)
+          : null
 
       return {
         hub,
@@ -300,7 +309,11 @@ export function HubProvider({ children }) {
           return data
         },
         actingAdvisorSwitcher,
-        actingAdvisor: actingAdvisorSwitcher?.acting_advisor || null,
+        actingAdvisor,
+        effectiveAdvisorId,
+        isActingAsAdvisor: Boolean(actingAdvisor),
+        effectiveRole:
+          hub?.effective_role || actingAdvisorSwitcher?.effective_role || user?.role || null,
         setActingAdvisor: async (advisorId) => {
           const data = await api.setActingAdvisor(advisorId)
           await refreshHub({ silent: true })
@@ -322,6 +335,7 @@ export function HubProvider({ children }) {
       hasHubDashboardAccess,
       hasGeneralDashboardAccess,
       hasDashboardAccess,
+      user,
     ]
   )
 

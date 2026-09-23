@@ -4,6 +4,7 @@ import { useHub } from '../context/HubContext'
 
 /**
  * Admin-staff advisor picker — work on behalf of a firm-scoped advisor.
+ * Optional: leave empty to use Admin-staff Capabilities matrix cells.
  */
 export default function ActingAdvisorSwitcher() {
   const { isAdminStaff, refreshUser } = useAuth()
@@ -18,6 +19,7 @@ export default function ActingAdvisorSwitcher() {
   const advisors = actingAdvisorSwitcher.advisors || []
   const currentId = String(actingAdvisorSwitcher.acting_advisor?.id || '')
   const staffLabel = roleLabel('admin_staff') || 'Admin-staff'
+  const advisorLabel = roleLabel('advisor') || 'Advisor'
 
   const onChange = async (e) => {
     const next = e.target.value
@@ -38,7 +40,9 @@ export default function ActingAdvisorSwitcher() {
       <label className="acting-hub-switcher__label">
         <span>Work on behalf of</span>
         <select value={currentId} disabled={saving || advisors.length === 0} onChange={onChange}>
-          <option value="">Select advisor…</option>
+          <option value="">
+            {staffLabel} (own access)
+          </option>
           {advisors.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
@@ -49,17 +53,20 @@ export default function ActingAdvisorSwitcher() {
       </label>
       {actingAdvisorSwitcher.acting_advisor ? (
         <p className="muted acting-hub-switcher__hint">
-          Acting as <strong>{actingAdvisorSwitcher.acting_advisor.name}</strong> — compliance
-          submissions are attributed to them, with you recorded as {staffLabel}.
+          Dashboard and website match {actingAdvisorSwitcher.acting_advisor.name} (
+          {advisorLabel}). Submissions are attributed as {staffLabel} on behalf of that{' '}
+          {advisorLabel.toLowerCase()}.
         </p>
       ) : (
         <p className="muted acting-hub-switcher__hint">
-          Choose an advisor in your firm before submitting compliance work.
+          Using your {staffLabel} capabilities. Select a firm {advisorLabel.toLowerCase()} to
+          work on their behalf.
         </p>
       )}
       {advisors.length === 0 ? (
         <p className="muted acting-hub-switcher__hint">
-          No advisors found in your firm who have allowed Admin-staff to act on their behalf.
+          No {advisorLabel.toLowerCase()}s in your firm have allowed {staffLabel} to act on
+          their behalf yet.
         </p>
       ) : null}
       {error ? <p className="muted">{error}</p> : null}

@@ -278,8 +278,9 @@ export default function PowerAdminUsers() {
         </div>
         {form.role === 'admin_staff' ? (
           <p className="muted" style={{ marginTop: '0.5rem' }}>
-            {staffLabel} can submit compliance on behalf of advisors in their firm who have
-            granted permission. Assign a firm, then they pick an advisor from the dashboard.
+            {staffLabel} use their Capabilities matrix access by default. Assign a firm so they
+            can pick advisors who have granted “work on behalf” permission, then act as that
+            advisor with attribution on submissions and reporting.
           </p>
         ) : null}
         {isAdvisorForm ? (
@@ -291,7 +292,7 @@ export default function PowerAdminUsers() {
                 setForm((f) => ({ ...f, allows_admin_staff_acting: e.target.checked }))
               }
             />
-            Allow {staffLabel} to submit compliance on behalf of this advisor
+            Allow {staffLabel} to work on behalf of this advisor
           </label>
         ) : null}
         <label className="checkbox">

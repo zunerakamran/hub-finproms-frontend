@@ -30,7 +30,7 @@ import {
   resolveRequestPreview,
   savePreviewSnapshot,
 } from '../utils/changeRequestPreview'
-import SectionIframePreview from './SectionIframePreview'
+import SyncedSectionPreviewPair from './SyncedSectionPreviewPair'
 import { reviewersForSubmitterFirm } from '../../utils/firmAssigneeFilter'
 import OnBehalfAttribution from '../../components/OnBehalfAttribution'
 
@@ -548,30 +548,18 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
                     {isExpanded && (
                       <div className="px-5 pb-5 border-t border-gray-100 pt-4">
                         {previewMode === 'visual' ? (
-                          <div className="grid lg:grid-cols-2 gap-6">
-                            <SectionIframePreview
-                              sectionName={item.section_name}
-                              data={curParsed}
-                              branding={previewData}
-                              templateSlug={previewData?.template_name || 'template4'}
-                              siteUrl={previewData?.site_url || null}
-                              cpanelDomain={previewData?.site_url || null}
-                              height={480}
-                              label={isHistorical ? 'Live Published (at submission)' : 'Current Live Published'}
-                              borderColor="border-gray-300"
-                            />
-                            <SectionIframePreview
-                              sectionName={item.section_name}
-                              data={propParsed}
-                              branding={previewData}
-                              templateSlug={previewData?.template_name || 'template4'}
-                              siteUrl={previewData?.site_url || null}
-                              cpanelDomain={previewData?.site_url || null}
-                              height={480}
-                              label={isHistorical ? 'Proposed Draft (at submission)' : 'Proposed Draft'}
-                              borderColor="border-emerald-500"
-                            />
-                          </div>
+                          <SyncedSectionPreviewPair
+                            sectionName={item.section_name}
+                            currentData={curParsed}
+                            proposedData={propParsed}
+                            branding={previewData}
+                            templateSlug={previewData?.template_name || 'template4'}
+                            siteUrl={previewData?.site_url || null}
+                            cpanelDomain={previewData?.site_url || null}
+                            height={480}
+                            currentLabel={isHistorical ? 'Live Published (at submission)' : 'Current Live Published'}
+                            proposedLabel={isHistorical ? 'Proposed Draft (at submission)' : 'Proposed Draft'}
+                          />
                         ) : (
                           <div className="grid lg:grid-cols-2 gap-4 font-mono text-xs">
                             <div className="bg-gray-50 border p-3 rounded-lg">
@@ -591,30 +579,18 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
               })}
             </div>
           ) : (
-            <div className="grid lg:grid-cols-2 gap-6">
-              <SectionIframePreview
-                sectionName={req.section?.name}
-                data={parseJson(previewData.current_content)}
-                branding={previewData}
-                templateSlug={previewData?.template_name || 'template4'}
-                siteUrl={previewData?.site_url || null}
-                cpanelDomain={previewData?.site_url || null}
-                height={480}
-                label={isHistorical ? 'Live Published (at submission)' : 'Current Live Published'}
-                borderColor="border-gray-300"
-              />
-              <SectionIframePreview
-                sectionName={req.section?.name}
-                data={parseJson(previewData.proposed_content)}
-                branding={previewData}
-                templateSlug={previewData?.template_name || 'template4'}
-                siteUrl={previewData?.site_url || null}
-                cpanelDomain={previewData?.site_url || null}
-                height={480}
-                label={isHistorical ? 'Proposed Draft (at submission)' : 'Proposed Draft'}
-                borderColor="border-emerald-500"
-              />
-            </div>
+            <SyncedSectionPreviewPair
+              sectionName={req.section?.name}
+              currentData={parseJson(previewData.current_content)}
+              proposedData={parseJson(previewData.proposed_content)}
+              branding={previewData}
+              templateSlug={previewData?.template_name || 'template4'}
+              siteUrl={previewData?.site_url || null}
+              cpanelDomain={previewData?.site_url || null}
+              height={480}
+              currentLabel={isHistorical ? 'Live Published (at submission)' : 'Current Live Published'}
+              proposedLabel={isHistorical ? 'Proposed Draft (at submission)' : 'Proposed Draft'}
+            />
           )}
         </div>
       )}

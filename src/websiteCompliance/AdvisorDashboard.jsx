@@ -5210,6 +5210,7 @@ export default function AdvisorDashboard({
                                 siteUrl={activeDeployment?.cpanel_domain || activeDeployment?.domain_name || null}
                                 cpanelDomain={activeDeployment?.cpanel_domain || null}
                                 templateRequestId={activeDeployment?.id || null}
+                                showSlideControls={false}
                                 branding={{
                                   primary_color: activeDeployment?.primary_color || null,
                                   secondary_color: activeDeployment?.secondary_color || null,

@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useHub } from '../../context/HubContext'
 import {
   API_BASE,
   resolveAdvisorLiveSiteUrl,
   resolveAdvisorPreviewUrl,
 } from '../utils/assetUrl'
+import { getPreviewSlideCount, withPreviewSlide } from '../utils/previewSlides'
 
 function normalizeName(name) {
   return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -28,10 +29,8 @@ function normalizeBranding(branding) {
  * Renders the advisor's live website section inside an iframe.
  * Uses the hub embed proxy so X-Frame-Options on the advisor host cannot block it.
  *
- * Colours (priority):
- * 1. Live advisor api.php (via same-origin embed proxy when possible)
- * 2. Deployment TemplateRequest colours from the preview API
- * Never use hub dashboard greens / invented showcase defaults.
+ * For hero/slider sections, injects `preview_slide` and (unless disabled) shows
+ * slide tabs so reviewers can see slide 2, 3, etc. — not only the first slide.
  */
 export default function SectionIframePreview({
   sectionName,
@@ -44,6 +43,11 @@ export default function SectionIframePreview({
   height = 520,
   label,
   borderColor = 'border-gray-300',
+  /** When set, controls which hero slide the template shows (0-based). */
+  previewSlide: previewSlideProp = null,
+  onPreviewSlideChange = null,
+  /** Show built-in slide tabs when content has multiple slides. Default true. */
+  showSlideControls = true,
 }) {
   const { hub, actingHub } = useHub()
   const resolvedSiteUrl =
@@ -87,8 +91,38 @@ export default function SectionIframePreview({
   const latestData = useRef(data)
   const latestBranding = useRef(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [internalSlide, setInternalSlide] = useState(0)
 
   const deploymentBranding = useMemo(() => normalizeBranding(branding), [branding])
+
+  const slideCount = getPreviewSlideCount(data)
+  const hasSlides = slideCount > 1
+  const controlled =
+    typeof previewSlideProp === 'number'
+      ? previewSlideProp
+      : typeof data?.preview_slide === 'number'
+        ? data.preview_slide
+        : null
+  const activeSlide = Math.max(
+    0,
+    Math.min(controlled != null ? controlled : internalSlide, Math.max(0, slideCount - 1))
+  )
+
+  const setActiveSlide = (index) => {
+    const safe = Math.max(0, Math.min(Number(index) || 0, Math.max(0, slideCount - 1)))
+    if (onPreviewSlideChange) onPreviewSlideChange(safe)
+    if (previewSlideProp == null) setInternalSlide(safe)
+  }
+
+  useEffect(() => {
+    if (slideCount <= 0) return
+    if (internalSlide >= slideCount) setInternalSlide(0)
+  }, [slideCount, internalSlide])
+
+  const previewPayload = useMemo(
+    () => (hasSlides ? withPreviewSlide(data, activeSlide) : data),
+    [data, hasSlides, activeSlide]
+  )
 
   // Pull live colours via hub embed proxy (avoids CORS) when possible.
   useEffect(() => {
@@ -137,7 +171,7 @@ export default function SectionIframePreview({
   // Live site wins; otherwise use saved deployment colours so Submission preview updates.
   const brandingForPreview = liveBranding || deploymentBranding
 
-  latestData.current = data
+  latestData.current = previewPayload
   latestBranding.current = brandingForPreview
 
   const send = (payload, brandingPayload = latestBranding.current) => {
@@ -180,13 +214,15 @@ export default function SectionIframePreview({
 
   useEffect(() => {
     if (readyRef.current) {
-      send(data, brandingForPreview)
+      send(previewPayload, brandingForPreview)
     }
-  }, [data, brandingForPreview]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [previewPayload, brandingForPreview]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleIframeLoad = () => {
     setTimeout(() => setIsLoading(false), 1200)
   }
+
+  const renderSlideControls = showSlideControls && hasSlides
 
   return (
     <div className="space-y-1">
@@ -194,6 +230,30 @@ export default function SectionIframePreview({
         <span className="block text-[11px] font-extrabold uppercase tracking-wide text-gray-500">
           {label}
         </span>
+      )}
+
+      {renderSlideControls && (
+        <div className="flex flex-wrap items-center gap-2 py-1">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+            Slides
+          </span>
+          <div className="flex flex-wrap gap-1">
+            {Array.from({ length: slideCount }, (_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setActiveSlide(i)}
+                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition ${
+                  activeSlide === i
+                    ? 'bg-[var(--brand-dark)] text-white border-[var(--brand-dark)]'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Slide {i + 1}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       <div

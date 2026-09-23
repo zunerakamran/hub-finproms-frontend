@@ -1,4 +1,15 @@
 /**
+ * @param {{ attribution_label?: string|null, on_behalf_by?: {name?: string}|null, on_behalf_by_user_id?: number|null, submitter?: {name?: string}|null, editor?: {name?: string}|null, name?: string|null }} row
+ */
+export function hasOnBehalfAttribution(row) {
+  if (!row) return false
+  if (row.attribution_label) return true
+  if (row.on_behalf_by?.name) return true
+  if (row.on_behalf_by_user_id) return true
+  return false
+}
+
+/**
  * @param {{ attribution_label?: string|null, on_behalf_by?: {name?: string}|null, submitter?: {name?: string}|null, editor?: {name?: string}|null, name?: string|null }} row
  * @param {'submitter'|'editor'} [ownerKey='submitter']
  */

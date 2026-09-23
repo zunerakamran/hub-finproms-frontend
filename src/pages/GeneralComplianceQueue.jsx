@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import GcStatusBadge from '../components/GeneralComplianceUI'
+import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatGcDate } from '../utils/generalCompliance'
@@ -189,12 +190,11 @@ export default function GeneralComplianceQueue() {
                     <strong>{row.id}</strong>
                   </td>
                   <td>
-                    {row.attribution_label || row.name}
-                    {row.on_behalf_by?.name ? (
-                      <div className="muted">
-                        <small>Advisor: {row.submitter?.name || row.name}</small>
-                      </div>
-                    ) : null}
+                    {row.attribution_label || row.on_behalf_by?.name ? (
+                      <OnBehalfAttribution row={row} ownerKey="submitter" flush />
+                    ) : (
+                      row.name
+                    )}
                   </td>
                   <td>v{row.current_version}</td>
                   <td>{(row.description || '').slice(0, 80)}</td>

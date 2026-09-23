@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import GcStatusBadge from '../components/GeneralComplianceUI'
+import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import { useHub } from '../context/HubContext'
 import { formatGcDate } from '../utils/generalCompliance'
 
@@ -102,6 +103,7 @@ export default function GeneralComplianceMyRequests() {
                 <strong>#{row.id}</strong>
                 <span className="muted"> v{row.current_version}</span>
                 <p>{row.description?.slice(0, 100) || 'General compliance request'}</p>
+                <OnBehalfAttribution row={row} ownerKey="submitter" />
                 <small className="muted">
                   {formatGcDate(row.submission_date)}
                   {row.attachments?.length

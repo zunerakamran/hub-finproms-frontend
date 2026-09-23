@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
+import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import SmcStatusBadge from '../components/SocialMediaComplianceUI'
 import { useHub } from '../context/HubContext'
 import { formatSmcDate } from '../utils/socialMediaCompliance'
@@ -111,6 +112,7 @@ export default function SocialMediaComplianceMyRequests() {
                 <strong>#{row.id}</strong>
                 <span className="muted"> v{row.current_version}</span>
                 <p>{row.post?.title || row.description?.slice(0, 100) || 'Social media compliance request'}</p>
+                <OnBehalfAttribution row={row} ownerKey="submitter" />
                 <small className="muted">{formatSmcDate(row.submission_date)}</small>
               </div>
               <SmcStatusBadge status={row.status} />

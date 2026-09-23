@@ -16,7 +16,7 @@ export default function WebsiteComplianceRequestDetail() {
   const { id } = useParams()
   const location = useLocation()
   const { user } = useAuth()
-  const { can, loading: hubLoading, complianceStatusLabel } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel, effectiveAdvisorId } = useHub()
 
   const [row, setRow] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -74,7 +74,11 @@ export default function WebsiteComplianceRequestDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, hubLoading, moduleOn])
 
-  const isOwner = row && user && Number(row.editor_id) === Number(user.id)
+  const isOwner =
+    row &&
+    user &&
+    (Number(row.editor_id) === Number(user.id) ||
+      (effectiveAdvisorId != null && Number(row.editor_id) === Number(effectiveAdvisorId)))
   const statusLocked =
     row && ['approved', 'scheduled'].includes(String(row.status || '').toLowerCase())
   const canShowChangeStatus = canChangeStatus && row && !statusLocked
@@ -204,6 +208,41 @@ export default function WebsiteComplianceRequestDetail() {
         </form>
       )}
 
+      {isOwner && canSubmit && row.status === 'approved_with_feedback' && (
+        <div className="admin-form wc-panel">
+          <h2>Approved with feedback</h2>
+          <p className="muted">
+            Confirm as approved without changes, or open the content editor to revise only the previous
+            version&apos;s sections and publish.
+          </p>
+          {row.feedback && <p className="wc-feedback">{row.feedback}</p>}
+          <div className="actions">
+            <button type="button" className="btn primary" disabled={saving} onClick={confirmFeedback}>
+              {saving ? 'Publishing…' : 'Confirm approved'}
+            </button>
+            <Link className="btn ghost" to={editorPath}>
+              Edit sections &amp; publish
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {isOwner && canSubmit && row.status === 'rejected' && (
+        <div className="admin-form wc-panel">
+          <h2>Rejected — resubmit</h2>
+          {row.rejection_reason && <p className="wc-feedback">{row.rejection_reason}</p>}
+          <p className="muted">
+            Only sections from the previous version can be edited. Open the content editor to revise those
+            sections and resubmit.
+          </p>
+          <div className="actions">
+            <Link className="btn primary" to={editorPath}>
+              Open content editor to resubmit
+            </Link>
+          </div>
+        </div>
+      )}
+
       {canChangeStatus && statusLocked && (
         <p className="muted" style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
           Status cannot be changed because this content is scheduled or already published.
@@ -244,41 +283,6 @@ export default function WebsiteComplianceRequestDetail() {
           )}
         </div>
       </div>
-
-      {isOwner && canSubmit && row.status === 'rejected' && (
-        <div className="admin-form wc-panel">
-          <h2>Rejected — resubmit</h2>
-          {row.rejection_reason && <p className="wc-feedback">{row.rejection_reason}</p>}
-          <p className="muted">
-            Only sections from the previous version can be edited. Open the content editor to revise those
-            sections and resubmit.
-          </p>
-          <div className="actions">
-            <Link className="btn primary" to={editorPath}>
-              Open content editor to resubmit
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {isOwner && canSubmit && row.status === 'approved_with_feedback' && (
-        <div className="admin-form wc-panel">
-          <h2>Approved with feedback</h2>
-          <p className="muted">
-            Confirm as approved without changes, or open the content editor to revise only the previous
-            version&apos;s sections and publish.
-          </p>
-          {row.feedback && <p className="wc-feedback">{row.feedback}</p>}
-          <div className="actions">
-            <button type="button" className="btn primary" disabled={saving} onClick={confirmFeedback}>
-              {saving ? 'Publishing…' : 'Confirm approved'}
-            </button>
-            <Link className="btn ghost" to={editorPath}>
-              Edit sections &amp; publish
-            </Link>
-          </div>
-        </div>
-      )}
 
       {!isOwner && (canViewAll || canReview) && (
         <p className="muted" style={{ marginTop: '1rem' }}>

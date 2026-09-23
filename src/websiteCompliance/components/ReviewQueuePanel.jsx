@@ -37,6 +37,7 @@ import {
 } from '../utils/changeRequestPreview'
 import SectionIframePreview from './SectionIframePreview'
 import { WcVersionCard } from '../../components/WebsiteComplianceUI'
+import OnBehalfAttribution from '../../components/OnBehalfAttribution'
 import { WC_STATUSES } from '../../utils/websiteCompliance'
 
 const WC_CHANGE_STATUS_OPTIONS = WC_STATUSES.filter(
@@ -502,10 +503,8 @@ const RequestCard = memo(function RequestCard({
               <span className="inline-flex items-center gap-1.5">
                 <FaUser className="w-3 h-3 text-gray-400" />
                 <span>
-                  {req.attribution_label ? (
-                    <>
-                      <strong className="text-gray-700">{req.attribution_label}</strong>
-                    </>
+                  {req.attribution_label || req.on_behalf_by?.name ? (
+                    <OnBehalfAttribution row={req} ownerKey="editor" flush />
                   ) : (
                     <>
                       Submitted by{' '}

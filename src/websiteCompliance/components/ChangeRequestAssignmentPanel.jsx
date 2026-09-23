@@ -32,6 +32,7 @@ import {
 } from '../utils/changeRequestPreview'
 import SectionIframePreview from './SectionIframePreview'
 import { reviewersForSubmitterFirm } from '../../utils/firmAssigneeFilter'
+import OnBehalfAttribution from '../../components/OnBehalfAttribution'
 
 const PENDING_STATUS = 'pending'
 const PREVIOUS_STATUSES = new Set(['under_review', 'scheduled', 'approved', 'rejected', 'approved_with_feedback'])
@@ -331,8 +332,8 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
               <span className="inline-flex items-center gap-1.5">
                 <FaUser className="w-3 h-3 text-gray-400" />
                 <span>
-                  {req.attribution_label ? (
-                    <strong className="text-gray-700">{req.attribution_label}</strong>
+                  {req.attribution_label || req.on_behalf_by?.name ? (
+                    <OnBehalfAttribution row={req} ownerKey="editor" flush />
                   ) : (
                     <>
                       Submitted by{' '}

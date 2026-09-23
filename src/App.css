@@ -3581,3 +3581,20 @@ label {
   }
 }
 
+/* Admin-staff on-behalf attribution on compliance history lists */
+.attribution-highlight {
+  display: inline-block;
+  margin: 0.35rem 0 0;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--brand-dark, #0a3f30);
+  background: var(--brand-soft, #d8ebe4);
+  border: 1px solid color-mix(in srgb, var(--brand, #0f5c45) 28%, transparent);
+}
+.attribution-highlight--flush {
+  margin: 0;
+}
+

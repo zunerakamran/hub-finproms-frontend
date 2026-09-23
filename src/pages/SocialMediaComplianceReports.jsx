@@ -248,13 +248,13 @@ export default function SocialMediaComplianceReports() {
                   <tr key={row.id}>
                     <td>{row.id}</td>
                     <td>
-                      {row.submitted_by}
                       {row.on_behalf_of ? (
-                        <>
-                          <br />
-                          <small className="muted">Advisor: {row.on_behalf_of}</small>
-                        </>
-                      ) : null}
+                        <p className="attribution-highlight attribution-highlight--flush">
+                          {row.submitted_by}
+                        </p>
+                      ) : (
+                        row.submitted_by
+                      )}
                       <br />
                       <small className="muted">{row.submitter_email}</small>
                     </td>

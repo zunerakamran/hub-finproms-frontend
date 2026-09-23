@@ -10,7 +10,7 @@ export default function SocialMediaComplianceRequestDetail() {
   const { id } = useParams()
   const location = useLocation()
   const { user, isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading, complianceStatusLabel } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel, effectiveAdvisorId } = useHub()
 
   const [row, setRow] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -85,11 +85,18 @@ export default function SocialMediaComplianceRequestDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, hubLoading, moduleOn])
 
-  const isOwner = row && user && Number(row.user_id) === Number(user.id)
+  const isOwner =
+    row &&
+    user &&
+    (Number(row.user_id) === Number(user.id) ||
+      (effectiveAdvisorId != null && Number(row.user_id) === Number(effectiveAdvisorId)))
   const isAssignee = row && user && Number(row.assigned_to) === Number(user.id)
   const canReviewThis = canReview && (canViewAll || isAssignee)
   const canShowReviewForm = canReviewThis && row?.status === 'Pending'
   const canAssignToMyself = canReview && row && !row.assigned_to && user?.id
+  const canOwnerRespond =
+    isOwner && can('smc_submit_request') && row &&
+    (row.status === 'Rejected' || row.status === 'Approved with Feedback')
 
   const assignToMyself = async () => {
     if (!user?.id) return
@@ -234,6 +241,97 @@ export default function SocialMediaComplianceRequestDetail() {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
+      {canShowReviewForm && (
+        <form className="admin-form smc-panel" onSubmit={saveReview}>
+          <h2>Review</h2>
+          <fieldset className="smc-status-group">
+            <legend>Set status</legend>
+            {SMC_STATUSES.map((status) => (
+              <label key={status} className="smc-radio">
+                <input
+                  type="radio"
+                  name="status"
+                  value={status}
+                  checked={reviewStatus === status}
+                  onChange={() => setReviewStatus(status)}
+                />
+                {complianceStatusLabel(status)}
+              </label>
+            ))}
+          </fieldset>
+          <label>
+            Feedback / notes
+            <textarea
+              rows={4}
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="Leave feedback for the submitter…"
+            />
+          </label>
+          <div className="actions">
+            <button className="btn primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Save review'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {isOwner && can('smc_submit_request') && row.status === 'Approved with Feedback' && (
+        <div className="admin-form smc-panel">
+          <h2>Approved with feedback</h2>
+          <p className="muted">
+            Confirm as approved, or upload a corrected image (also becomes Approved).
+          </p>
+          {row.feedback && <p className="smc-feedback">{row.feedback}</p>}
+          <label>
+            Optional new image
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setConfirmImage(e.target.files?.[0] || null)}
+            />
+          </label>
+          <div className="actions">
+            <button
+              type="button"
+              className="btn primary"
+              disabled={saving}
+              onClick={() => confirmFeedback(Boolean(confirmImage))}
+            >
+              {confirmImage ? 'Upload & approve' : 'Confirm approved'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isOwner && can('smc_submit_request') && row.status === 'Rejected' && (
+        <form className="admin-form smc-panel" onSubmit={resubmit}>
+          <h2>Rejected — resubmit</h2>
+          <label>
+            Updated description
+            <textarea
+              rows={4}
+              value={resubDescription}
+              onChange={(e) => setResubDescription(e.target.value)}
+              required
+            />
+          </label>
+          <label>
+            New image (optional)
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setResubImage(e.target.files?.[0] || null)}
+            />
+          </label>
+          <div className="actions">
+            <button className="btn primary" disabled={saving}>
+              {saving ? 'Submitting…' : 'Resubmit'}
+            </button>
+          </div>
+        </form>
+      )}
+
       {canChangeStatus && (
         <form className="admin-form smc-panel" onSubmit={saveChangeStatus}>
           <h2>Change status</h2>
@@ -297,97 +395,6 @@ export default function SocialMediaComplianceRequestDetail() {
           />
         ))}
       </div>
-
-      {canShowReviewForm && (
-        <form className="admin-form smc-panel" onSubmit={saveReview}>
-          <h2>Review</h2>
-          <fieldset className="smc-status-group">
-            <legend>Set status</legend>
-            {SMC_STATUSES.map((status) => (
-              <label key={status} className="smc-radio">
-                <input
-                  type="radio"
-                  name="status"
-                  value={status}
-                  checked={reviewStatus === status}
-                  onChange={() => setReviewStatus(status)}
-                />
-                {complianceStatusLabel(status)}
-              </label>
-            ))}
-          </fieldset>
-          <label>
-            Feedback / notes
-            <textarea
-              rows={4}
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Leave feedback for the submitter…"
-            />
-          </label>
-          <div className="actions">
-            <button className="btn primary" disabled={saving}>
-              {saving ? 'Saving…' : 'Save review'}
-            </button>
-          </div>
-        </form>
-      )}
-
-      {isOwner && can('smc_submit_request') && row.status === 'Rejected' && (
-        <form className="admin-form smc-panel" onSubmit={resubmit}>
-          <h2>Rejected — resubmit</h2>
-          <label>
-            Updated description
-            <textarea
-              rows={4}
-              value={resubDescription}
-              onChange={(e) => setResubDescription(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            New image (optional)
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setResubImage(e.target.files?.[0] || null)}
-            />
-          </label>
-          <div className="actions">
-            <button className="btn primary" disabled={saving}>
-              {saving ? 'Submitting…' : 'Resubmit'}
-            </button>
-          </div>
-        </form>
-      )}
-
-      {isOwner && can('smc_submit_request') && row.status === 'Approved with Feedback' && (
-        <div className="admin-form smc-panel">
-          <h2>Approved with feedback</h2>
-          <p className="muted">
-            Confirm as approved, or upload a corrected image (also becomes Approved).
-          </p>
-          {row.feedback && <p className="smc-feedback">{row.feedback}</p>}
-          <label>
-            Optional new image
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setConfirmImage(e.target.files?.[0] || null)}
-            />
-          </label>
-          <div className="actions">
-            <button
-              type="button"
-              className="btn primary"
-              disabled={saving}
-              onClick={() => confirmFeedback(Boolean(confirmImage))}
-            >
-              {confirmImage ? 'Upload & approve' : 'Confirm approved'}
-            </button>
-          </div>
-        </div>
-      )}
     </section>
   )
 }

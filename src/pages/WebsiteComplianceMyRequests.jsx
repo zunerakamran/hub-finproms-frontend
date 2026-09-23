@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
+import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import WcStatusBadge from '../components/WebsiteComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatWcDate, wcSectionTitle } from '../utils/websiteCompliance'
-import { submissionAttributionText } from '../utils/submissionAttribution'
 
 export default function WebsiteComplianceMyRequests() {
   const { user } = useAuth()
@@ -147,11 +147,7 @@ export default function WebsiteComplianceMyRequests() {
                 <strong>#{row.id}</strong>
                 <span className="muted"> v{row.current_version || 1}</span>
                 <p>{wcSectionTitle(row)}</p>
-                {row.attribution_label || row.on_behalf_by?.name ? (
-                  <p className="muted" style={{ margin: '0.25rem 0 0' }}>
-                    <small>{submissionAttributionText(row, 'editor')}</small>
-                  </p>
-                ) : null}
+                <OnBehalfAttribution row={row} ownerKey="editor" />
                 <small className="muted">
                   {formatWcDate(row.created_at)}
                   {row.approver?.name ? ` · Reviewer: ${row.approver.name}` : ''}

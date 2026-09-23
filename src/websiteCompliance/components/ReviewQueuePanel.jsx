@@ -524,35 +524,44 @@ const RequestCard = memo(function RequestCard({
             </div>
           </div>
 
-          {canPreview && (
-            <button
-              type="button"
-              onClick={handleTogglePreview}
-              disabled={busy === 'preview'}
-              className={`inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl transition disabled:opacity-60 shrink-0 ${
-                previewData
-                  ? 'bg-[var(--brand-dark)] text-white hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)]'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Link
+              to={`/my-dashboard/website-compliance/my-requests/${req.id}`}
+              state={{ from: 'history' }}
+              className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-[var(--brand-dark)] hover:bg-gray-50 transition"
             >
-              {busy === 'preview' ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  Loading…
-                </>
-              ) : previewData ? (
-                <>
-                  <FaEyeSlash className="w-3.5 h-3.5" />
-                  Hide Preview
-                </>
-              ) : (
-                <>
-                  <FaEye className="w-3.5 h-3.5" />
-                  Preview Changes
-                </>
-              )}
-            </button>
-          )}
+              Open request →
+            </Link>
+            {canPreview && (
+              <button
+                type="button"
+                onClick={handleTogglePreview}
+                disabled={busy === 'preview'}
+                className={`inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl transition disabled:opacity-60 ${
+                  previewData
+                    ? 'bg-[var(--brand-dark)] text-white hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)]'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {busy === 'preview' ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Loading…
+                  </>
+                ) : previewData ? (
+                  <>
+                    <FaEyeSlash className="w-3.5 h-3.5" />
+                    Hide Preview
+                  </>
+                ) : (
+                  <>
+                    <FaEye className="w-3.5 h-3.5" />
+                    Preview Changes
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FaGlobe, FaPen, FaRocket, FaSearch } from 'react-icons/fa'
-import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
+import api from '../websiteCompliance/wcApi'
 
 function siteName(req) {
   return (

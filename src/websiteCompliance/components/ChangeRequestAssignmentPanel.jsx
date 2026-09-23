@@ -690,7 +690,7 @@ export default function ChangeRequestAssignmentPanel({
   const filteredRequests = useMemo(() => {
     const list = variant === 'history'
       ? requests.filter(r => PREVIOUS_STATUSES.has(r.status))
-      : requests.filter(r => r.status === PENDING_STATUS)
+      : requests.filter(r => r.status === PENDING_STATUS && !r.approver_id)
 
     if (!requestSearch.trim()) return list
     const q = requestSearch.trim().toLowerCase()

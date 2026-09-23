@@ -38,11 +38,7 @@ import {
 import SyncedSectionPreviewPair from './SyncedSectionPreviewPair'
 import { WcVersionCard } from '../../components/WebsiteComplianceUI'
 import OnBehalfAttribution from '../../components/OnBehalfAttribution'
-import { WC_STATUSES } from '../../utils/websiteCompliance'
-
-const WC_CHANGE_STATUS_OPTIONS = WC_STATUSES.filter(
-  (s) => !['approved', 'scheduled'].includes(s)
-)
+import { WC_CHANGE_STATUS_OPTIONS } from '../../utils/websiteCompliance'
 
 const ACTIVE_STATUSES = new Set(['pending', 'under_review', 'scheduled'])
 
@@ -310,7 +306,7 @@ const RequestCard = memo(function RequestCard({
     try {
       await api.post(`/change-requests/${req.id}/assign`)
       onStatusChange(req.id, {
-        status: 'under_review',
+        status: 'pending',
         approver_id: user.id,
         approver: user,
       })
@@ -463,7 +459,9 @@ const RequestCard = memo(function RequestCard({
 
   const isHistorical = isHistoricalRequest(req)
   const canPreview = req.status === 'under_review' || req.status === 'pending' || isAssignedToMe || isHistorical
-  const showReviewPanel = req.status === 'under_review' && isAssignedToMe
+  const showReviewPanel =
+    isAssignedToMe && (req.status === 'under_review' || req.status === 'pending')
+  const showPickBanner = req.status === 'pending' && !req.approver_id
   const batchEdits = previewData?.is_batch && Array.isArray(previewData.edits) ? previewData.edits : null
 
   const togglePreviewSection = (idx) => {
@@ -559,21 +557,16 @@ const RequestCard = memo(function RequestCard({
       </div>
 
       {showChangeStatus && (
-        <form
-          onSubmit={handleChangeStatus}
-          className="px-5 sm:px-6 py-4 border-b border-amber-100 bg-amber-50/60 space-y-3"
-        >
-          <div>
-            <h4 className="text-sm font-extrabold text-[var(--brand-dark)]">Change status</h4>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Creates a new version with the selected status and optional comment. Not available once
-              content is scheduled or published.
-            </p>
-          </div>
-          <fieldset className="flex flex-wrap gap-3">
-            <legend className="sr-only">New status</legend>
+        <form onSubmit={handleChangeStatus} className="admin-form wc-panel" style={{ margin: '0 0 0', borderRadius: 0, borderLeft: 0, borderRight: 0 }}>
+          <h2>Change status</h2>
+          <p className="muted">
+            Creates a new version with the selected status and optional comment. Firm visibility still
+            applies. Not available once content is scheduled or published.
+          </p>
+          <fieldset className="wc-status-group">
+            <legend>New status</legend>
             {WC_CHANGE_STATUS_OPTIONS.map((status) => (
-              <label key={status} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700">
+              <label key={status} className="wc-radio">
                 <input
                   type="radio"
                   name={`change-status-${req.id}`}
@@ -585,28 +578,23 @@ const RequestCard = memo(function RequestCard({
               </label>
             ))}
           </fieldset>
-          <label className="block text-xs font-bold text-slate-600">
+          <label>
             Comment (optional)
             <textarea
-              rows={2}
+              rows={3}
               value={changeComment}
               onChange={(e) => setChangeComment(e.target.value)}
               placeholder="Reason for changing status…"
-              className="mt-1 w-full text-sm font-medium border border-slate-200 rounded-lg px-3 py-2"
             />
           </label>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              disabled={busy === 'change-status'}
-              className="inline-flex items-center gap-2 bg-[var(--brand-dark)] text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-60"
-            >
+          <div className="actions">
+            <button type="submit" className="btn primary" disabled={busy === 'change-status'}>
               {busy === 'change-status' ? 'Saving…' : 'Update status'}
             </button>
             <Link
               to={`/my-dashboard/website-compliance/my-requests/${req.id}`}
               state={{ from: 'history' }}
-              className="text-xs font-bold text-[var(--brand)] hover:underline"
+              className="btn ghost"
             >
               Open full request →
             </Link>
@@ -627,7 +615,7 @@ const RequestCard = memo(function RequestCard({
         </div>
       )}
 
-      {req.status === 'pending' && (
+      {showPickBanner && (
         <div className="bg-amber-50 border-b border-amber-100 px-5 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-bold text-amber-900">Available for review</p>

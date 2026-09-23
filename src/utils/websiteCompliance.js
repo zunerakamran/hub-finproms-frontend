@@ -15,6 +15,14 @@ export const WC_STATUSES = [
   'approved_with_feedback',
 ]
 
+/** Manager override options — matches SMC/GC (Pending / Approved / Rejected / Approved with feedback). */
+export const WC_CHANGE_STATUS_OPTIONS = [
+  'pending',
+  'approved',
+  'rejected',
+  'approved_with_feedback',
+]
+
 export function wcStatusLabel(status, hubOrLabels = null) {
   if (hubOrLabels) {
     return complianceStatusLabel(hubOrLabels, status)

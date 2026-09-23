@@ -5,12 +5,8 @@ import WcStatusBadge, { WcVersionCard } from '../components/WebsiteComplianceUI'
 import ChangeRequestPreviewPanel from '../websiteCompliance/components/ChangeRequestPreviewPanel'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { formatWcDate, wcSectionTitle, WC_STATUSES } from '../utils/websiteCompliance'
+import { formatWcDate, wcSectionTitle, WC_CHANGE_STATUS_OPTIONS } from '../utils/websiteCompliance'
 import { isHistoricalRequest } from '../websiteCompliance/utils/changeRequestPreview'
-
-const WC_CHANGE_STATUS_OPTIONS = WC_STATUSES.filter(
-  (s) => !['approved', 'scheduled'].includes(s)
-)
 
 export default function WebsiteComplianceRequestDetail() {
   const { id } = useParams()
@@ -173,8 +169,8 @@ export default function WebsiteComplianceRequestDetail() {
         <form className="admin-form wc-panel" onSubmit={saveChangeStatus}>
           <h2>Change status</h2>
           <p className="muted">
-            Creates a new version with the selected status and optional comment. Not available once
-            content is scheduled or published.
+            Creates a new version with the selected status and optional comment. Firm visibility still
+            applies. Not available once content is scheduled or published.
           </p>
           <fieldset className="wc-status-group">
             <legend>New status</legend>

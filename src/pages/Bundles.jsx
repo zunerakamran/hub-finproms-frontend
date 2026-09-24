@@ -95,7 +95,7 @@ export default function Bundles() {
                 {bundle.posts_count ?? 0} items
               </span>
               <h2>{bundle.title}</h2>
-              <p>{bundle.description || 'No description.'}</p>
+              <p className="bundle-card__desc">{bundle.description || 'No description.'}</p>
               <div className="tool-card__meta">
                 <strong>{bundle.credits_cost} credits</strong>
                 {bundle.is_purchased && <span className="badge ok">Owned</span>}

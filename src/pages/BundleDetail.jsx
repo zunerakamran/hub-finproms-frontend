@@ -238,28 +238,33 @@ export default function BundleDetail() {
       )}
 
       <h2 className="section-title">Included posts</h2>
-      <div className="admin-list">
-        {(bundle.posts || []).map((post) => (
-          <div key={post.id} className="admin-row">
-            {post.cover_url ? (
-              <img className="admin-thumb" src={post.cover_url} alt="" />
-            ) : post.video_url || post.is_reel ? (
-              <div className="admin-thumb fallback reel-thumb">Reel</div>
-            ) : (
-              <div className="admin-thumb fallback" />
-            )}
-            <div>
-              <strong>{post.title}</strong>
-              <p className="muted">
-                {post.type} · {post.category}
-                {post.is_purchased ? ' · unlocked' : ''}
-              </p>
-            </div>
-            <Link to={`/posts/${post.id}`} className="btn ghost">
-              View
+      <div className="bundle-included">
+        {(bundle.posts || []).map((post) => {
+          const isReel = Boolean(post.is_reel) || String(post.type || '').toLowerCase() === 'reel'
+          return (
+            <Link key={post.id} to={`/posts/${post.id}`} className="bundle-included-card">
+              <div className={`bundle-included-card__media${isReel ? ' is-reel' : ''}`}>
+                {post.cover_url ? (
+                  <img src={post.cover_url} alt="" />
+                ) : (
+                  <span className="bundle-included-card__fallback">
+                    {isReel ? 'Reel' : post.type || 'Post'}
+                  </span>
+                )}
+              </div>
+              <div className="bundle-included-card__body">
+                <div className="bundle-included-card__meta">
+                  {post.type ? <span>{post.type}</span> : null}
+                  {post.category ? <span>{post.category}</span> : null}
+                  {post.is_purchased ? <span className="is-unlocked">Unlocked</span> : null}
+                </div>
+                <h3>{post.title}</h3>
+                <p>{post.description || 'No description provided.'}</p>
+              </div>
+              <span className="bundle-included-card__cta">View →</span>
             </Link>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )

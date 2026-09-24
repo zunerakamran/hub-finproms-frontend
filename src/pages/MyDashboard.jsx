@@ -4,10 +4,10 @@ import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import {
-  DASHBOARD_GROUPS,
   DASHBOARD_LINKS,
   isDashboardHomeCard,
   isDashboardLinkVisible,
+  resolveDashboardGroupLabel,
 } from '../dashboard/nav'
 
 function formatMoney(amount, currency = 'gbp') {
@@ -25,10 +25,13 @@ const GROUP_ORDER = ['account', 'content', 'hub', 'advisors', 'smc', 'gc', 'wc',
 
 export default function MyDashboard() {
   const { user, canPower } = useAuth()
-  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, effectiveAdvisorId, actingAdvisor, actingHubId } = useHub()
+  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, effectiveAdvisorId, actingAdvisor, actingHubId, actingHub } = useHub()
   const [data, setData] = useState(null)
   const [panelLoading, setPanelLoading] = useState(true)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
+  const isWhiteLabelHub = Boolean(
+    isActingOnWhiteLabel || hub?.type === 'white_label' || actingHub?.is_white_label
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -108,10 +111,10 @@ export default function MyDashboard() {
 
     return GROUP_ORDER.map((key) => ({
       key,
-      label: DASHBOARD_GROUPS[key] || key,
+      label: resolveDashboardGroupLabel(key, { isWhiteLabelHub }),
       cards: cards.filter((c) => c.group === key),
     })).filter((g) => g.cards.length > 0)
-  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, actingAdvisor, user?.role])
+  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, isWhiteLabelHub, actingAdvisor, user?.role])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
 

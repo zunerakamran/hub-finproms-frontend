@@ -121,6 +121,18 @@ export const DASHBOARD_GROUPS = {
   platform: 'Platform',
 }
 
+/**
+ * Resolve a dashboard group / section label for the current hub context.
+ * The "Hub" separator becomes Shared hub or White-labelled hub.
+ */
+export function resolveDashboardGroupLabel(groupOrLabel, { isWhiteLabelHub = false } = {}) {
+  const key = groupOrLabel === 'Hub' ? 'hub' : groupOrLabel
+  if (key === 'hub') {
+    return isWhiteLabelHub ? 'White-labelled hub' : 'Shared hub'
+  }
+  return DASHBOARD_GROUPS[key] || groupOrLabel
+}
+
 /** @type {DashboardLink[]} */
 export const DASHBOARD_LINKS = [
   {

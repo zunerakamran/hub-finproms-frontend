@@ -6,10 +6,10 @@ import WebsiteNavLink from './WebsiteNavLink'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import {
-  DASHBOARD_GROUPS,
   findActiveDashboardLink,
   getVisibleDashboardNav,
   isDashboardLinkVisible,
+  resolveDashboardGroupLabel,
 } from '../dashboard/nav'
 import { brandLogoUrl } from '../utils/brandLogo'
 
@@ -26,6 +26,9 @@ export default function MyDashboardLayout() {
   const logoUrl = brandLogoUrl(branding, { onDark: true })
   // Remount the white content panel when the controlled hub changes so page data reloads.
   const contentKey = `${isActingOnWhiteLabel ? 'wl' : 'shared'}:${actingHubId ?? hub?.id ?? 'hub'}`
+  const isWhiteLabelHub = Boolean(
+    isActingOnWhiteLabel || hub?.type === 'white_label' || actingHub?.is_white_label
+  )
 
   const visible = useMemo(
     () =>
@@ -47,7 +50,7 @@ export default function MyDashboardLayout() {
   const isOverview = location.pathname === '/my-dashboard'
   const sectionLabel = isOverview
     ? 'Dashboard'
-    : DASHBOARD_GROUPS[activeLink?.group] || 'Dashboard'
+    : resolveDashboardGroupLabel(activeLink?.group || 'Dashboard', { isWhiteLabelHub })
 
   // Leave pages that are unavailable for the selected hub (e.g. White-labelled hubs while controlling a WL tenant).
   useEffect(() => {
@@ -167,8 +170,12 @@ export default function MyDashboardLayout() {
         <nav className="dash-nav" aria-label="Dashboard sections">
           {visible.map((link) =>
             link.kind === 'section' ? (
-              <p key={`section-${link.label}`} className="dash-nav__section" role="presentation">
-                {link.label}
+              <p
+                key={`section-${link.label}`}
+                className="dash-nav__section"
+                role="presentation"
+              >
+                {resolveDashboardGroupLabel(link.label, { isWhiteLabelHub })}
               </p>
             ) : (
               <NavLink

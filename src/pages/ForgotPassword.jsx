@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import AuthScreen from '../components/AuthScreen'
 import { useHub } from '../context/HubContext'
 
 export default function ForgotPassword() {
@@ -27,8 +28,8 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="auth-wrap admin-auth-wrap power-auth">
-      <form className="auth-panel" onSubmit={onSubmit}>
+    <AuthScreen>
+      <form className="auth-screen__panel auth-screen__form" onSubmit={onSubmit}>
         <p className="eyebrow">{brandName}</p>
         <h1>Forgot password</h1>
         <p className="muted">Enter your account email and we’ll send a reset link if it exists.</p>
@@ -50,6 +51,6 @@ export default function ForgotPassword() {
           <Link to="/login">Back to sign in</Link>
         </p>
       </form>
-    </div>
+    </AuthScreen>
   )
 }

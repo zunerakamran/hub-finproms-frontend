@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
+import AuthScreen from '../components/AuthScreen'
 import { useHub } from '../context/HubContext'
 
 export default function ResetPassword() {
@@ -39,8 +40,8 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="auth-wrap admin-auth-wrap power-auth">
-      <form className="auth-panel" onSubmit={onSubmit}>
+    <AuthScreen>
+      <form className="auth-screen__panel auth-screen__form" onSubmit={onSubmit}>
         <p className="eyebrow">{brandName}</p>
         <h1>Reset password</h1>
         <p className="muted">Choose a new password for your account.</p>
@@ -83,6 +84,6 @@ export default function ResetPassword() {
           <Link to="/login">Back to sign in</Link>
         </p>
       </form>
-    </div>
+    </AuthScreen>
   )
 }

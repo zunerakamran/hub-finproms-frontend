@@ -181,6 +181,19 @@ h2,
   max-width: 2rem;
 }
 
+.settings-auth-bg-preview {
+  max-width: min(420px, 100%);
+  width: 100%;
+}
+
+.settings-auth-bg-preview img {
+  max-height: 160px;
+  max-width: 100%;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
 .nav {
   display: flex;
   gap: 0.35rem;

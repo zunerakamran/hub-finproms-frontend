@@ -19,6 +19,10 @@ export default function AdminSettings() {
   const [faviconFile, setFaviconFile] = useState(null)
   const [faviconPreview, setFaviconPreview] = useState('')
   const [removeFavicon, setRemoveFavicon] = useState(false)
+  const [authBgUrl, setAuthBgUrl] = useState('')
+  const [authBgFile, setAuthBgFile] = useState(null)
+  const [authBgPreview, setAuthBgPreview] = useState('')
+  const [removeAuthBg, setRemoveAuthBg] = useState(false)
   const [primaryColor, setPrimaryColor] = useState('')
   const [secondaryColor, setSecondaryColor] = useState('')
   const [loading, setLoading] = useState(true)
@@ -42,6 +46,10 @@ export default function AdminSettings() {
     setFaviconFile(null)
     setFaviconPreview('')
     setRemoveFavicon(false)
+    setAuthBgUrl(settings?.auth_bg_image_url ?? '')
+    setAuthBgFile(null)
+    setAuthBgPreview('')
+    setRemoveAuthBg(false)
     setPrimaryColor(settings?.color_scheme?.primary ?? '')
     setSecondaryColor(settings?.color_scheme?.secondary ?? '')
   }
@@ -94,6 +102,16 @@ export default function AdminSettings() {
     return () => URL.revokeObjectURL(url)
   }, [faviconFile])
 
+  useEffect(() => {
+    if (!authBgFile) {
+      setAuthBgPreview('')
+      return undefined
+    }
+    const url = URL.createObjectURL(authBgFile)
+    setAuthBgPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [authBgFile])
+
   const onLogoChange = (e) => {
     const file = e.target.files?.[0] || null
     setLogoFile(file)
@@ -130,9 +148,22 @@ export default function AdminSettings() {
     setRemoveFavicon(true)
   }
 
+  const onAuthBgChange = (e) => {
+    const file = e.target.files?.[0] || null
+    setAuthBgFile(file)
+    setRemoveAuthBg(false)
+  }
+
+  const onRemoveAuthBg = () => {
+    setAuthBgFile(null)
+    setAuthBgPreview('')
+    setRemoveAuthBg(true)
+  }
+
   const displayedLogo = logoPreview || (!removeLogo ? logoUrl : '')
   const displayedWhiteLogo = whiteLogoPreview || (!removeWhiteLogo ? whiteLogoUrl : '')
   const displayedFavicon = faviconPreview || (!removeFavicon ? faviconUrl : '')
+  const displayedAuthBg = authBgPreview || (!removeAuthBg ? authBgUrl : '')
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -164,6 +195,12 @@ export default function AdminSettings() {
       if (removeFavicon && !faviconFile) {
         fd.append('remove_favicon', '1')
       }
+      if (authBgFile) {
+        fd.append('auth_bg_image', authBgFile)
+      }
+      if (removeAuthBg && !authBgFile) {
+        fd.append('remove_auth_bg_image', '1')
+      }
 
       const data = await api.updateSettings(fd)
       applySettings(data.settings)
@@ -177,6 +214,7 @@ export default function AdminSettings() {
           errors.logo?.[0] ||
           errors.white_logo?.[0] ||
           errors.favicon?.[0] ||
+          errors.auth_bg_image?.[0] ||
           errors['color_scheme.primary']?.[0] ||
           errors['color_scheme.secondary']?.[0] ||
           errors.new_banner_days?.[0] ||
@@ -194,8 +232,8 @@ export default function AdminSettings() {
           <p className="eyebrow">Hub</p>
           <h1>Settings</h1>
           <p className="muted">
-            Branding for this hub — logo, white logo, favicon, name, and primary / secondary colours
-            apply across the whole product UI.
+            Branding for this hub — logo, white logo, favicon, auth background, name, and primary /
+            secondary colours apply across the whole product UI.
           </p>
         </div>
       </div>
@@ -325,6 +363,38 @@ export default function AdminSettings() {
             ) : (
               <p className="muted">No favicon set.</p>
             )}
+          </div>
+
+          <div className="settings-block">
+            <h2>Login / register background</h2>
+            <label>
+              Background image
+              <input type="file" accept="image/*" onChange={onAuthBgChange} />
+            </label>
+            <p className="muted form-hint">
+              Full-screen image behind the sign-in and sign-up forms, shown with a brand colour
+              gradient overlay (PNG, JPG, GIF, or WebP, max 8MB).
+            </p>
+
+            {displayedAuthBg ? (
+              <div className="settings-logo-preview settings-auth-bg-preview">
+                <img src={displayedAuthBg} alt="Auth background preview" />
+                <button type="button" className="btn ghost" onClick={onRemoveAuthBg}>
+                  Remove background
+                </button>
+              </div>
+            ) : (
+              <p className="muted">No background image set — auth pages use the default gradient.</p>
+            )}
+
+            <ul className="settings-logo-usage" aria-label="Where the auth background is used">
+              <li>
+                <span className="settings-logo-usage__check" aria-hidden="true">
+                  ✓
+                </span>
+                Login, register, forgot password, and reset password screens
+              </li>
+            </ul>
           </div>
 
           <div className="settings-block">

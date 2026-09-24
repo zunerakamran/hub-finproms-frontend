@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import AuthFavicon from '../components/AuthFavicon'
+import AuthScreen from '../components/AuthScreen'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -47,7 +48,7 @@ export default function Login() {
   }
 
   return (
-    <div className="auth-screen">
+    <AuthScreen>
       <div className="auth-screen__panel">
         <div className="auth-screen__brand">
           <AuthFavicon />
@@ -96,6 +97,6 @@ export default function Login() {
           </p>
         )}
       </div>
-    </div>
+    </AuthScreen>
   )
 }

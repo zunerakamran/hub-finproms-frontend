@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import AuthFavicon from '../components/AuthFavicon'
+import AuthScreen from '../components/AuthScreen'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -22,8 +23,8 @@ export default function Register() {
 
   if (!hubLoading && !registrationEnabled) {
     return (
-      <div className="auth-wrap admin-auth-wrap power-auth">
-        <div className="auth-panel">
+      <AuthScreen>
+        <div className="auth-screen__panel">
           <div className="auth-screen__brand">
             <AuthFavicon />
             <div>
@@ -39,7 +40,7 @@ export default function Register() {
             Already invited? <Link to="/login">Login</Link>
           </p>
         </div>
-      </div>
+      </AuthScreen>
     )
   }
 
@@ -63,8 +64,8 @@ export default function Register() {
   }
 
   return (
-    <div className="auth-wrap admin-auth-wrap power-auth">
-      <form className="auth-panel" onSubmit={onSubmit}>
+    <AuthScreen>
+      <form className="auth-screen__panel auth-screen__form" onSubmit={onSubmit}>
         <div className="auth-screen__brand">
           <AuthFavicon />
           <div>
@@ -116,6 +117,6 @@ export default function Register() {
           Already have an account? <Link to="/login">Login</Link>
         </p>
       </form>
-    </div>
+    </AuthScreen>
   )
 }

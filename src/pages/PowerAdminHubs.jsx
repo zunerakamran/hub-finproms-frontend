@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 
 const emptyForm = {
@@ -249,14 +248,6 @@ export default function PowerAdminHubs() {
                     ' · No frontend URL set'
                   )}
                 </p>
-                <div className="actions">
-                  <Link className="btn primary" to={`/my-dashboard/hubs/${hub.id}`}>
-                    Manage hub &amp; Functionalities
-                  </Link>
-                  <Link className="btn ghost" to={`/my-dashboard/checklist?hub=${hub.id}`}>
-                    Functionalities only
-                  </Link>
-                </div>
               </article>
             )
           })}

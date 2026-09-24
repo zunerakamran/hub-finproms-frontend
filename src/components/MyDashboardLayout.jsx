@@ -45,9 +45,6 @@ export default function MyDashboardLayout() {
     [location.pathname]
   )
   const isOverview = location.pathname === '/my-dashboard'
-  const pageTitle = isOverview
-    ? 'Overview'
-    : activeLink?.title || activeLink?.label || 'Workspace'
   const sectionLabel = isOverview
     ? 'Dashboard'
     : DASHBOARD_GROUPS[activeLink?.group] || 'Dashboard'
@@ -206,7 +203,7 @@ export default function MyDashboardLayout() {
       <div className="dash-main" ref={dashMainRef}>
         <header className="dash-topbar" ref={topbarRef}>
           <div className="dash-topbar__lead">
-            <div className="dash-topbar__title-row">
+            <div className="dash-topbar__toolbar">
               <button
                 type="button"
                 className="dash-menu-btn"
@@ -217,19 +214,15 @@ export default function MyDashboardLayout() {
                 <span className="dash-menu-btn__bars" aria-hidden="true" />
                 Menu
               </button>
-              <div>
-                <p className="dash-topbar__eyebrow">{sectionLabel}</p>
-                <p className="dash-topbar__title">{pageTitle}</p>
-              </div>
+              <p className="dash-topbar__section" role="presentation">
+                {sectionLabel}
+              </p>
+              <ActingHubSwitcher />
             </div>
-            <ActingHubSwitcher />
             <ActingAdvisorSwitcher />
           </div>
           <div className="dash-topbar__links">
             <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
-            <NavLink to="/my-dashboard" className="dash-top-link" end>
-              Overview
-            </NavLink>
           </div>
         </header>
         <main

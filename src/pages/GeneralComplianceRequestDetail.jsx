@@ -209,9 +209,15 @@ export default function GeneralComplianceRequestDetail() {
   if (error && !row) {
     return (
       <section>
-        <Link to={backTo} className="back">
-          {backLabel}
-        </Link>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">General Compliance</p>
+            <h1>Request</h1>
+          </div>
+          <Link to={backTo} className="btn ghost">
+            {backLabel}
+          </Link>
+        </div>
         <div className="alert">{error}</div>
       </section>
     )
@@ -222,10 +228,6 @@ export default function GeneralComplianceRequestDetail() {
 
   return (
     <section>
-      <Link to={backTo} className="back">
-        {backLabel}
-      </Link>
-
       <div className="page-head">
         <div>
           <p className="eyebrow">General Compliance</p>
@@ -238,6 +240,9 @@ export default function GeneralComplianceRequestDetail() {
             · {formatGcDate(row.submission_date)}
           </p>
         </div>
+        <Link to={backTo} className="btn ghost">
+          {backLabel}
+        </Link>
       </div>
 
       {error && <div className="alert">{error}</div>}

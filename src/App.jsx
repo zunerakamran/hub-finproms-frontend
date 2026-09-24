@@ -271,6 +271,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="advisor-invoices/:id"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_view_advisor_invoices">
+                      <InvoiceDetail />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
                   path="activity-logs"
                   element={
                     <HubCapabilityRoute capability="dashboard_view_activity_logs">

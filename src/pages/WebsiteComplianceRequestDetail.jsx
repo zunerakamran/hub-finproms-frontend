@@ -126,9 +126,15 @@ export default function WebsiteComplianceRequestDetail() {
   if (error && !row) {
     return (
       <section>
-        <Link to={backTo} className="back">
-          {backLabel}
-        </Link>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Website Compliance</p>
+            <h1>Request</h1>
+          </div>
+          <Link to={backTo} className="btn ghost">
+            {backLabel}
+          </Link>
+        </div>
         <div className="alert">{error}</div>
       </section>
     )
@@ -142,10 +148,6 @@ export default function WebsiteComplianceRequestDetail() {
 
   return (
     <section>
-      <Link to={backTo} className="back">
-        {backLabel}
-      </Link>
-
       <div className="page-head">
         <div>
           <p className="eyebrow">Website Compliance</p>
@@ -160,6 +162,9 @@ export default function WebsiteComplianceRequestDetail() {
             <span> · v{row.current_version || 1}</span>
           </p>
         </div>
+        <Link to={backTo} className="btn ghost">
+          {backLabel}
+        </Link>
       </div>
 
       {error && <div className="alert">{error}</div>}

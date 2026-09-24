@@ -206,9 +206,15 @@ export default function SocialMediaComplianceRequestDetail() {
   if (error && !row) {
     return (
       <section>
-        <Link to={backTo} className="back">
-          {backLabel}
-        </Link>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Social Media Compliance</p>
+            <h1>Request</h1>
+          </div>
+          <Link to={backTo} className="btn ghost">
+            {backLabel}
+          </Link>
+        </div>
         <div className="alert">{error}</div>
       </section>
     )
@@ -219,10 +225,6 @@ export default function SocialMediaComplianceRequestDetail() {
 
   return (
     <section>
-      <Link to={backTo} className="back">
-        {backLabel}
-      </Link>
-
       <div className="page-head">
         <div>
           <p className="eyebrow">Social Media Compliance</p>
@@ -236,6 +238,9 @@ export default function SocialMediaComplianceRequestDetail() {
             {row.post?.title ? ` · ${row.post.title}` : ''}
           </p>
         </div>
+        <Link to={backTo} className="btn ghost">
+          {backLabel}
+        </Link>
       </div>
 
       {error && <div className="alert">{error}</div>}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 
 function formatMoney(amount, currency = 'gbp') {
@@ -30,11 +30,14 @@ function typeLabel(type) {
 
 export default function InvoiceDetail() {
   const { id } = useParams()
+  const location = useLocation()
   const [invoice, setInvoice] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    setLoading(true)
+    setError('')
     api
       .invoice(id)
       .then((data) => setInvoice(data.invoice))
@@ -42,31 +45,69 @@ export default function InvoiceDetail() {
       .finally(() => setLoading(false))
   }, [id])
 
-  if (loading) return <div className="state">Loading...</div>
-  if (error) return <div className="alert">{error}</div>
-  if (!invoice) return null
-
-  const lines = invoice.line_items || []
-  const isAdvisorBilling = invoice.type === 'advisor_billing'
+  const fromAdvisorPath = location.pathname.includes('/advisor-invoices/')
+  const isAdvisorBilling = fromAdvisorPath || invoice?.type === 'advisor_billing'
   const backTo = isAdvisorBilling ? '/my-dashboard/advisor-invoices' : '/my-dashboard/invoices'
   const backLabel = isAdvisorBilling ? '← Back to advisor invoices' : '← Back to invoices'
 
+  if (loading) {
+    return (
+      <section className="invoice-detail">
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Account</p>
+            <h1>Invoice</h1>
+          </div>
+          <Link to={backTo} className="btn ghost">
+            {backLabel}
+          </Link>
+        </div>
+        <div className="state">Loading...</div>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="invoice-detail">
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Account</p>
+            <h1>Invoice</h1>
+          </div>
+          <Link to={backTo} className="btn ghost">
+            {backLabel}
+          </Link>
+        </div>
+        <div className="alert">{error}</div>
+      </section>
+    )
+  }
+
+  if (!invoice) return null
+
+  const lines = invoice.line_items || []
+
   return (
     <section className="invoice-detail">
-      <Link to={backTo} className="back">
-        {backLabel}
-      </Link>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">{isAdvisorBilling ? 'Advisors & billing' : 'Account'}</p>
+          <h1>{invoice.invoice_number}</h1>
+          <p className="muted">{invoice.description}</p>
+        </div>
+        <Link to={backTo} className="btn ghost">
+          {backLabel}
+        </Link>
+      </div>
 
       <div className="invoice-sheet">
         <div className="invoice-sheet-head">
           <div>
-            <p className="eyebrow">Account</p>
-            <h1>{invoice.invoice_number}</h1>
-            <p className="muted">{invoice.description}</p>
+            <p className="muted">Issued {new Date(invoice.issued_at).toLocaleString()}</p>
           </div>
           <div className="invoice-status">
             <span className="badge ok">{invoice.status}</span>
-            <p className="muted">Issued {new Date(invoice.issued_at).toLocaleString()}</p>
           </div>
         </div>
 

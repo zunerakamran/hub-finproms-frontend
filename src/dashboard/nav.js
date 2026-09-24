@@ -17,6 +17,7 @@ export const GENERAL_DASHBOARD_ANY = [
  *   title?: string,
  *   description?: string,
  *   end?: boolean,
+ *   alsoMatch?: string[],
  *   capability?: string,
  *   anyOf?: string[],
  *   paCapability?: string,
@@ -487,6 +488,8 @@ export const DASHBOARD_LINKS = [
     title: 'Publish live content',
     description: 'Edit and publish live site content without approver review.',
     capability: 'wc_publish_live_content',
+    // Detail editor lives at /publish/:deploymentId (not under publish-live/).
+    alsoMatch: ['/my-dashboard/website-compliance/publish/'],
     group: 'wc',
   },
   {
@@ -648,16 +651,35 @@ export function isDashboardHomeCard(link) {
   return link.kind !== 'section' && Boolean(link.to) && link.to !== '/my-dashboard'
 }
 
-/** Resolve the best matching nav link for the current path (for topbar title). */
+/** Resolve the best matching nav link for the current path (for topbar + active menu). */
 export function findActiveDashboardLink(pathname) {
   const links = DASHBOARD_LINKS.filter((l) => l.kind !== 'section' && l.to)
+
   const exact = links.find((l) => pathname === l.to)
   if (exact) return exact
 
-  // Longest prefix match for nested routes (e.g. /invoices/:id, /smc/:id)
-  return (
-    links
-      .filter((l) => pathname.startsWith(`${l.to}/`))
-      .sort((a, b) => b.to.length - a.to.length)[0] || null
-  )
+  const scored = links
+    .map((link) => {
+      let score = 0
+      if (pathname.startsWith(`${link.to}/`)) {
+        score = link.to.length
+      }
+      for (const prefix of link.alsoMatch || []) {
+        if (pathname === prefix || pathname.startsWith(prefix)) {
+          score = Math.max(score, prefix.length)
+        }
+      }
+      return { link, score }
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+
+  return scored[0]?.link || null
+}
+
+/** Whether a nav link should show the selected background for this path. */
+export function isDashboardNavActive(link, pathname) {
+  if (!link?.to || link.kind === 'section') return false
+  const active = findActiveDashboardLink(pathname)
+  return Boolean(active && active.to === link.to)
 }

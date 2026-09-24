@@ -9,6 +9,7 @@ import {
   findActiveDashboardLink,
   getVisibleDashboardNav,
   isDashboardLinkVisible,
+  isDashboardNavActive,
   resolveDashboardGroupLabel,
 } from '../dashboard/nav'
 import { brandLogoUrl } from '../utils/brandLogo'
@@ -182,7 +183,9 @@ export default function MyDashboardLayout() {
                 key={link.to}
                 to={link.to}
                 end={link.end}
-                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+                className={() =>
+                  isDashboardNavActive(link, location.pathname) ? 'is-active' : undefined
+                }
               >
                 {link.label}
               </NavLink>

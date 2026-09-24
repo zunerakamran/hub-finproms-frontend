@@ -1298,6 +1298,13 @@ h2,
   }
 }
 
+/* Dashboard detail back links stay visible in the white content panel */
+.dash-content .back,
+.dash-content a.back {
+  color: var(--brand);
+  font-weight: 700;
+}
+
 /* Buttons / forms lean on brand */
 .btn.primary {
   background: var(--brand) !important;

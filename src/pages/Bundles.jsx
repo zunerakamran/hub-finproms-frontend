@@ -70,7 +70,7 @@ export default function Bundles() {
         <div className="empty-state">
           <h2>No bundles yet</h2>
           <p className="muted">Check back later, or browse individual posts.</p>
-          <Link to="/posts" className="btn ghost">
+          <Link to="/posts?type=post" className="btn ghost">
             Browse posts
           </Link>
         </div>

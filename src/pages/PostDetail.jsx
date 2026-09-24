@@ -139,12 +139,13 @@ export default function PostDetail() {
   const unlocked = post.is_purchased || isClientAdmin
   const isReel = Boolean(post.is_reel)
   const previewVideo = post.video_url || (unlocked && post.is_video ? post.attachment_url : null)
+  const catalogBackTo = isReel ? '/posts?type=reel' : '/posts?type=post'
 
   if (locked) {
     return (
       <section className="detail locked-detail">
-        <Link to="/posts" className="back">
-          ← Back to posts
+        <Link to={catalogBackTo} className="back">
+          ← Back to {isReel ? 'reels' : 'posts'}
         </Link>
 
         <div className="locked-gate">
@@ -222,8 +223,8 @@ export default function PostDetail() {
 
   return (
     <section className="detail">
-        <Link to="/posts" className="back">
-          ← Back to posts
+        <Link to={catalogBackTo} className="back">
+          ← Back to {isReel ? 'reels' : 'posts'}
         </Link>
       <div className="detail-panel">
         {previewVideo ? (

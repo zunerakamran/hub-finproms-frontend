@@ -3,6 +3,13 @@ import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { brandLogoUrl } from '../utils/brandLogo'
 
+function resolveNavCatalogType(search) {
+  const type = new URLSearchParams(search).get('type')
+  const value = String(type || '').trim().toLowerCase()
+  if (value === 'reel' || value === 'reels') return 'reel'
+  return 'post'
+}
+
 export default function Layout() {
   const { user, logout, isAdvisor, isAuthenticated } = useAuth()
   const { can, hub, hasDashboardAccess, branding, isActingAsAdvisor, registrationEnabled } =
@@ -39,10 +46,28 @@ export default function Layout() {
             </NavLink>
             {isAuthenticated && can('member_browse_catalog') && (
               <NavLink
-                to="/posts"
-                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+                to="/posts?type=post"
+                className={() =>
+                  location.pathname === '/posts' &&
+                  resolveNavCatalogType(location.search) === 'post'
+                    ? 'is-active'
+                    : undefined
+                }
               >
                 Posts
+              </NavLink>
+            )}
+            {isAuthenticated && can('member_browse_catalog') && (
+              <NavLink
+                to="/posts?type=reel"
+                className={() =>
+                  location.pathname === '/posts' &&
+                  resolveNavCatalogType(location.search) === 'reel'
+                    ? 'is-active'
+                    : undefined
+                }
+              >
+                Reels
               </NavLink>
             )}
             {isAuthenticated && can('member_browse_catalog') && (

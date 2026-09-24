@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import PageLoader from '../components/PageLoader'
 import PostMetrics from '../components/PostMetrics'
@@ -16,23 +16,49 @@ function formatDate(value) {
   })
 }
 
+/** Normalize URL ?type= into post | reel */
+function resolveCatalogType(raw) {
+  const value = String(raw || '').trim().toLowerCase()
+  if (value === 'reel' || value === 'reels') return 'reel'
+  return 'post'
+}
+
 export default function Posts() {
   const { isAuthenticated, user, isClientAdmin } = useAuth()
   const { can, loading: hubLoading, registrationEnabled } = useHub()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const catalogType = resolveCatalogType(searchParams.get('type'))
+  const isReelsPage = catalogType === 'reel'
+
   const [posts, setPosts] = useState([])
   const [totalResults, setTotalResults] = useState(0)
-  const [types, setTypes] = useState([])
   const [categories, setCategories] = useState([])
   const [tags, setTags] = useState([])
-  const [totalPosts, setTotalPosts] = useState(0)
-  const [filters, setFilters] = useState({ search: '', type: '', category: '', tag: '' })
+  const [filters, setFilters] = useState({ search: '', category: '', tag: '' })
   const [searchDraft, setSearchDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [initialReady, setInitialReady] = useState(false)
   const [error, setError] = useState('')
 
   const catalogAllowed = can('member_browse_catalog')
+
+  // Keep /posts and /posts?type=post as the posts page; /posts?type=reel for reels.
+  useEffect(() => {
+    const raw = searchParams.get('type')
+    if (!raw || resolveCatalogType(raw) !== raw) {
+      const next = new URLSearchParams(searchParams)
+      next.set('type', catalogType)
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, catalogType, setSearchParams])
+
+  // Reset listing filters when switching posts ↔ reels.
+  useEffect(() => {
+    setSearchDraft('')
+    setFilters({ search: '', category: '', tag: '' })
+    setInitialReady(false)
+  }, [catalogType])
 
   useEffect(() => {
     if (hubLoading) return undefined
@@ -45,28 +71,28 @@ export default function Posts() {
 
     let cancelled = false
 
+    const query = {
+      ...filters,
+      type: catalogType,
+    }
+
     const run = async () => {
       setLoading(true)
       setError('')
       try {
-        // First paint: wait for filters + posts together.
-        // Later filter changes: only refresh posts (faster, less flicker).
         if (!initialReady) {
-          const [typesRes, catsRes, tagsRes, postsRes] = await Promise.all([
-            api.listTypes(),
+          const [catsRes, tagsRes, postsRes] = await Promise.all([
             api.listCategories(),
             api.listTags(),
-            api.posts(filters),
+            api.posts(query),
           ])
           if (cancelled) return
-          setTypes(typesRes.types || [])
           setCategories(catsRes.categories || [])
-          setTotalPosts(catsRes.total_posts ?? typesRes.total_posts ?? 0)
           setTags(tagsRes.tags || [])
           setPosts(postsRes.data || [])
           setTotalResults(postsRes.total ?? postsRes.data?.length ?? 0)
         } else {
-          const postsRes = await api.posts(filters)
+          const postsRes = await api.posts(query)
           if (cancelled) return
           setPosts(postsRes.data || [])
           setTotalResults(postsRes.total ?? postsRes.data?.length ?? 0)
@@ -89,7 +115,7 @@ export default function Posts() {
   }, [
     hubLoading,
     catalogAllowed,
-    filters.type,
+    catalogType,
     filters.category,
     filters.tag,
     filters.search,
@@ -104,17 +130,18 @@ export default function Posts() {
 
   const clearFilters = () => {
     setSearchDraft('')
-    setFilters({ search: '', type: '', category: '', tag: '' })
+    setFilters({ search: '', category: '', tag: '' })
   }
 
-  const hasFilters = Boolean(filters.search || filters.type || filters.category || filters.tag)
+  const hasFilters = Boolean(filters.search || filters.category || filters.tag)
   const catalogLocked = !isAuthenticated && !isClientAdmin
 
   const resultLabel = useMemo(() => {
-    if (loading) return 'Finding content...'
-    if (totalResults === 0) return 'No content match'
-    return `${totalResults} item${totalResults === 1 ? '' : 's'} found`
-  }, [loading, totalResults])
+    if (loading) return isReelsPage ? 'Finding reels...' : 'Finding posts...'
+    if (totalResults === 0) return isReelsPage ? 'No reels match' : 'No posts match'
+    const noun = isReelsPage ? 'reel' : 'post'
+    return `${totalResults} ${noun}${totalResults === 1 ? '' : 's'} found`
+  }, [loading, totalResults, isReelsPage])
 
   const onReached = useCallback((ids) => {
     const bumped = new Set(ids.map(Number))
@@ -155,10 +182,11 @@ export default function Posts() {
       <div className="catalog-hero">
         <div className="catalog-hero__copy">
           <p className="catalog-hero__eyebrow">Content library</p>
-          <h1>Ready-to-post social content</h1>
+          <h1>{isReelsPage ? 'Ready-to-post reels' : 'Ready-to-post social posts'}</h1>
           <p className="catalog-hero__lead">
-            Browse promo posts and reels, unlock with credits, and download the assets you need.
-            1 credit = £1.
+            {isReelsPage
+              ? 'Browse short-form reels, unlock with credits, and download the assets you need. 1 credit = £1.'
+              : 'Browse promo posts, unlock with credits, and download the assets you need. 1 credit = £1.'}
           </p>
         </div>
         <div className="catalog-hero__aside">
@@ -215,31 +243,19 @@ export default function Posts() {
         <div className="listing-filter-row">
           <form className="listing-search" onSubmit={onSearch}>
             <input
-              placeholder="Search by title or description..."
+              placeholder={
+                isReelsPage
+                  ? 'Search reels by title or description...'
+                  : 'Search posts by title or description...'
+              }
               value={searchDraft}
               onChange={(e) => setSearchDraft(e.target.value)}
-              aria-label="Search content"
+              aria-label={isReelsPage ? 'Search reels' : 'Search posts'}
             />
             <button className="btn primary" type="submit">
               Search
             </button>
           </form>
-
-          <label className="filter-select">
-            <span>Type</span>
-            <select
-              value={filters.type}
-              onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value }))}
-              aria-label="Filter by type"
-            >
-              <option value="">All types ({totalPosts})</option>
-              {types.map((type) => (
-                <option key={type.id || type.name} value={type.name}>
-                  {type.name} ({type.posts_count ?? 0})
-                </option>
-              ))}
-            </select>
-          </label>
 
           <label className="filter-select">
             <span>Category</span>
@@ -281,16 +297,6 @@ export default function Posts() {
             <p className="listing-count">{resultLabel}</p>
             {hasFilters && (
               <div className="active-filter-pills">
-                {filters.type && (
-                  <button
-                    type="button"
-                    className="filter-pill"
-                    onClick={() => setFilters((prev) => ({ ...prev, type: '' }))}
-                  >
-                    Type: {filters.type}
-                    <span aria-hidden="true">×</span>
-                  </button>
-                )}
                 {filters.category && (
                   <button
                     type="button"
@@ -339,11 +345,13 @@ export default function Posts() {
 
       {posts.length === 0 && !loading ? (
         <div className="empty-state">
-          <h2>No content found</h2>
+          <h2>{isReelsPage ? 'No reels found' : 'No posts found'}</h2>
           <p className="muted">
             {hasFilters
-              ? 'Try another type, category, tag, or clear your search.'
-              : 'New posts and reels will appear here once the client admin adds them.'}
+              ? 'Try another category, tag, or clear your search.'
+              : isReelsPage
+                ? 'New reels will appear here once the client admin adds them.'
+                : 'New posts will appear here once the client admin adds them.'}
           </p>
           {hasFilters && (
             <button className="btn primary" onClick={clearFilters}>
@@ -399,9 +407,7 @@ export default function Posts() {
                     <span className={`badge ${post.is_purchased ? 'ok' : locked ? '' : 'ok'}`}>
                       {post.is_purchased ? 'Owned' : locked ? 'Locked' : 'Available'}
                     </span>
-                    <span className="credit-chip">
-                      {post.credits_cost} credits
-                    </span>
+                    <span className="credit-chip">{post.credits_cost} credits</span>
                   </div>
                 </div>
                 <div className="post-tile-body">

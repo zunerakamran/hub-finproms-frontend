@@ -86,7 +86,7 @@ export default function ContentPurchaseSuccess() {
             Open post
           </Link>
         ) : (
-          <Link to="/posts" className="btn primary">
+          <Link to="/posts?type=post" className="btn primary">
             Browse posts
           </Link>
         )}

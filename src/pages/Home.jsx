@@ -49,7 +49,6 @@ export default function Home() {
 
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const catalogAllowed = can('member_browse_catalog')
-  const showPlans = can('member_view_plans') && (can('public_subscribe') || can('paid_credits'))
 
   useEffect(() => {
     if (hubLoading) return undefined
@@ -84,15 +83,11 @@ export default function Home() {
   const { left, right } = useMemo(() => splitColumns(posts), [posts])
 
   const primaryCta = isAuthenticated
-    ? { to: '/posts', label: 'Browse posts' }
+    ? { to: '/posts?type=post', label: 'Browse posts' }
     : { to: registrationEnabled ? '/register' : '/login', label: registrationEnabled ? 'Get started' : 'Log in' }
 
   const secondaryCta = isAuthenticated
-    ? showPlans
-      ? { to: '/subscriptions', label: 'View plans' }
-      : can('member_browse_catalog')
-        ? { to: '/bundles', label: 'Shop bundles' }
-        : null
+    ? { to: '/posts?type=reel', label: 'Browse reels' }
     : registrationEnabled
       ? { to: '/login', label: 'Log in' }
       : null

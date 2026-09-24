@@ -4,7 +4,7 @@ import { useHub } from '../context/HubContext'
 export const DEFAULT_FAVICON = '/vite.svg'
 
 /**
- * Always renders a favicon on auth screens (shared + white-label).
+ * Always renders a favicon on auth screens (shared + white-labelled).
  * Uses the hub favicon when set; otherwise the default icon.
  */
 export default function AuthFavicon({ className = 'auth-favicon' }) {

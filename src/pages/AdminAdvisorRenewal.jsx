@@ -96,7 +96,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
       {error && !billingDisabled && <div className="alert">{error}</div>}
       {billingDisabled && (
         <p className="muted">
-          Select a private white-label hub with advisor billing enabled in Control hub to set the
+          Select a private white-labelled hub with advisor billing enabled in Control hub to set the
           renew day.
         </p>
       )}

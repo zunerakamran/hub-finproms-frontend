@@ -105,7 +105,7 @@ export default function PowerAdminModules() {
           <h1>Modules</h1>
           <p className="muted">
             Enable product modules for <strong>{selectedName}</strong>
-            {isActingOnWhiteLabel ? ' (white-label)' : ' (shared)'}. Related Capabilities stay
+            {isActingOnWhiteLabel ? ' (white-labelled)' : ' (shared)'}. Related Capabilities stay
             blurred until a module is on. Who can open this screen is controlled by{' '}
             <strong>Manage hub modules</strong> in the Capabilities matrix.
           </p>

@@ -77,7 +77,7 @@ export default function PowerAdminHubs() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Platform</p>
-          <h1>White-label hubs</h1>
+          <h1>White-labelled hubs</h1>
           <p className="muted">
             Shared and white-labelled hubs share one codebase but each has its own database. Create a
             hub record with frontend URL and DB credentials. Logo and colours are configured later in
@@ -85,7 +85,7 @@ export default function PowerAdminHubs() {
           </p>
         </div>
         <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'Cancel' : 'New white-label hub'}
+          {showForm ? 'Cancel' : 'New white-labelled hub'}
         </button>
       </div>
 
@@ -117,7 +117,7 @@ export default function PowerAdminHubs() {
             <strong>Dashboard → Settings</strong> — not when creating the hub record.
           </p>
           <label>
-            Frontend URL (white-label site)
+            Frontend URL (white-labelled site)
             <input
               type="url"
               value={form.frontend_url}
@@ -143,10 +143,10 @@ export default function PowerAdminHubs() {
               placeholder="Enter hosting notes, env checklist, etc."
             />
           </label>
-          <h3 style={{ margin: '0.5rem 0 0' }}>White-label database (own DB)</h3>
+          <h3 style={{ margin: '0.5rem 0 0' }}>White-labelled database (own DB)</h3>
           <p className="muted" style={{ marginTop: 0 }}>
             Stored encrypted on the shared hub so content can be pushed into this hub&apos;s database.
-            The white-label server also uses these values in its own <code>.env</code>.
+            The white-labelled server also uses these values in its own <code>.env</code>.
           </p>
           <div className="form-row two">
             <label>
@@ -225,7 +225,7 @@ export default function PowerAdminHubs() {
                   </div>
                   <div className="hub-card-badges">
                     <span className={`badge ${hub.type === 'shared' ? 'ok' : ''}`}>
-                      {hub.type === 'shared' ? 'Shared' : 'White-label'}
+                      {hub.type === 'shared' ? 'Shared' : 'White-labelled'}
                     </span>
                     <span className={`badge ${hub.is_active ? 'ok' : ''}`}>
                       {hub.is_active ? 'Active' : 'Inactive'}

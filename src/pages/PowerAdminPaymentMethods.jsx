@@ -178,7 +178,7 @@ export default function PowerAdminPaymentMethods() {
             <select value={hubId} onChange={(e) => onHubChange(e.target.value)}>
               {hubs.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {h.name} ({h.type === 'shared' ? 'Shared' : 'White-label'})
+                  {h.name} ({h.type === 'shared' ? 'Shared' : 'White-labelled'})
                 </option>
               ))}
             </select>

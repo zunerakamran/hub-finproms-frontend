@@ -22,7 +22,7 @@ export default function PowerAdminDashboard() {
     {
       to: '/power-admin/advisor-pricing',
       title: 'Advisor billing rates',
-      description: 'Set rate-per-advisor tiers / quotas for private hub billing (rate × advisors).',
+      description: 'Set rate-per-advisor tiers / quotas for white-labelled hub billing (rate × advisors).',
       hubCapability: 'dashboard_manage_advisor_pricing',
     },
     {
@@ -35,13 +35,13 @@ export default function PowerAdminDashboard() {
       to: '/power-admin/subscriber-credits',
       title: 'Subscriber credits',
       description:
-        'Set unlimited or fixed credits for private-hub Excel subscribers (import + autorenew).',
+        'Set unlimited or fixed credits for white-labelled hub Excel subscribers (import + autorenew).',
       hubCapability: 'dashboard_manage_subscriber_credits',
     },
     {
       to: '/power-admin/plans',
       title: 'Subscriptions',
-      description: 'Create and edit credit packages for public hub self-serve subscriptions.',
+      description: 'Create and edit credit packages for shared hub self-serve subscriptions.',
       hubCapability: 'dashboard_manage_plans',
     },
     {
@@ -83,7 +83,7 @@ export default function PowerAdminDashboard() {
     },
     {
       to: '/power-admin/hubs',
-      title: 'White-label hubs',
+      title: 'White-labelled hubs',
       description: 'Create and configure white-labelled hubs (branding, private access).',
       capability: 'pa_manage_hubs',
     },

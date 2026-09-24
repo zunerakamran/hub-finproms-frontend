@@ -176,7 +176,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           <p className="muted">
             {isActingOnWhiteLabel
               ? `Creating on ${actingHub?.name}'s database (use Control hub in the top bar to switch).`
-              : 'Managing the shared hub catalog. Use Control hub in the top bar to work on a white-label hub.'}
+              : 'Managing the shared hub catalog. Use Control hub in the top bar to work on a white-labelled hub.'}
           </p>
         </div>
       </div>
@@ -289,7 +289,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
               : editingId
                 ? 'Update post'
                 : isActingOnWhiteLabel
-                  ? `Create on ${actingHub?.name || 'white-label'}`
+                  ? `Create on ${actingHub?.name || 'white-labelled'}`
                   : 'Create post'}
           </button>
           {editingId && (

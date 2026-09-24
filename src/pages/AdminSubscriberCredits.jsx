@@ -19,7 +19,7 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
   const apiOpts = { asPowerAdmin }
   const privateTarget = isActingOnWhiteLabel ? true : inviteOnly
   const targetName = isActingOnWhiteLabel
-    ? actingHub?.name || 'selected white-label hub'
+    ? actingHub?.name || 'selected white-labelled hub'
     : 'this hub'
 
   const [unlimited, setUnlimited] = useState(true)
@@ -97,7 +97,7 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
             <p className="eyebrow">{eyebrow}</p>
             <h1>Subscriber credits</h1>
             <p className="muted">
-              Enable &quot;Set subscriber credits (private hub)&quot; for your role under Power Admin →
+              Enable &quot;Set subscriber credits (white-labelled hub)&quot; for your role under Power Admin →
               Capabilities.
             </p>
           </div>
@@ -113,8 +113,8 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
           <p className="eyebrow">{eyebrow}</p>
           <h1>Subscriber credits</h1>
           <p className="muted">
-            Set unlimited or a fixed credit allotment for private-hub Excel subscribers on{' '}
-            <strong>{targetName}</strong>. Use <strong>Control hub</strong> to switch white-label
+            Set unlimited or a fixed credit allotment for white-labelled hub Excel subscribers on{' '}
+            <strong>{targetName}</strong>. Use <strong>Control hub</strong> to switch white-labelled
             hubs. New imports get the allotment immediately; existing subscribers get it on the next
             monthly autorenew.
           </p>
@@ -126,9 +126,9 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
 
       {!privateTarget && !loading && (
         <div className="empty-state">
-          <h2>Private hubs only</h2>
+          <h2>White-labelled hubs only</h2>
           <p className="muted">
-            Subscriber credits are not set on the shared / public hub. Select a private white-label
+            Subscriber credits are not set on the shared hub. Select a white-labelled
             hub in the Control hub switcher.
           </p>
         </div>

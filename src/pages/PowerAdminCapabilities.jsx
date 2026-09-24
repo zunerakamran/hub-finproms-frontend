@@ -162,7 +162,7 @@ export default function PowerAdminCapabilities() {
         matrixPayload[role.key] = {}
       }
       for (const row of rows) {
-        // Keep stored private-hub caps when public (inactive) — don't overwrite with false.
+        // Keep stored white-labelled hub caps when shared (inactive) — don't overwrite with false.
         if (row.inactive) continue
         for (const role of roles) {
           const cell = row.cells?.[role.key]
@@ -195,7 +195,7 @@ export default function PowerAdminCapabilities() {
           <h1>User capabilities</h1>
           <p className="muted">
             Editing roles for <strong>{selectedHubName}</strong>
-            {isActingOnWhiteLabel ? ' (white-label)' : ' (shared)'}. Use{' '}
+            {isActingOnWhiteLabel ? ' (white-labelled)' : ' (shared)'}. Use{' '}
             <strong>Control hub</strong> in the top bar to switch hubs. Hub Functionalities are
             configured separately under Hub checklists.
           </p>

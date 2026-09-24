@@ -44,9 +44,9 @@ export function inactiveReasonLabel(reason) {
 export function inactiveReasonHint(reason) {
   switch (reason) {
     case 'public_only':
-      return 'Inactive while the hub is private. Turn on Public subscribe to use this.'
+      return 'Inactive while the hub is white-labelled. Turn on Public subscribe to use this.'
     case 'private_only':
-      return 'Inactive while the hub is public. Turn on Private invite-only to use this.'
+      return 'Inactive while the hub is shared. Turn on Private invite-only to use this.'
     case 'module_social_media_compliance_off':
       return 'Inactive while Social Media Compliance module is off. Enable it under Functionalities → Modules.'
     case 'module_general_compliance_off':
@@ -61,9 +61,9 @@ export function inactiveReasonHint(reason) {
 export function inactiveReasonTitle(reason) {
   switch (reason) {
     case 'public_only':
-      return 'Public hub only — inactive while this hub is private'
+      return 'Shared hub only — inactive while this hub is white-labelled'
     case 'private_only':
-      return 'Private hub only — inactive while this hub is public'
+      return 'White-labelled hub only — inactive while this hub is shared'
     case 'module_social_media_compliance_off':
       return 'Requires Social Media Compliance module — enable it on the hub checklist'
     case 'module_general_compliance_off':

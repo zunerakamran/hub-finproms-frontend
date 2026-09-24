@@ -252,7 +252,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
       const params = { ...extra }
       if (applied.q) params.q = applied.q
       if (applied.action) params.action = applied.action
-      if (applied.user_id) params.user_id = applied.user_id
+      if (applied.user_id !== '' && applied.user_id != null) params.user_id = applied.user_id
       if (applied.from) params.from = applied.from
       if (applied.to) params.to = applied.to
       return params
@@ -321,17 +321,27 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
   }
 
   const openPersonActivities = (row) => {
-    const userId = row?.user_id
-    if (!userId) return
+    // Guests have no user_id — use 0 so the API filters where user_id IS NULL.
+    const userId = row?.user_id != null && row.user_id !== '' ? String(row.user_id) : '0'
     const next = {
       ...filters,
-      user_id: String(userId),
+      user_id: userId,
     }
     setFilters(next)
     setApplied(next)
     setPage(1)
     setTab('logs')
   }
+
+  const clearPersonFilter = () => {
+    const next = { ...filters, user_id: '' }
+    setFilters(next)
+    setApplied(next)
+    setPage(1)
+  }
+
+  const personFilterActive = applied.user_id !== '' && applied.user_id != null
+  const personFilterIsGuest = String(applied.user_id) === '0'
 
   const summary = report?.summary
   const totalEvents = summary?.total ?? 0
@@ -475,8 +485,8 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
             <span>User ID</span>
             <input
               type="number"
-              min="1"
-              placeholder="Optional"
+              min="0"
+              placeholder="0 = guests"
               value={filters.user_id}
               onChange={(e) => setFilters((f) => ({ ...f, user_id: e.target.value }))}
             />
@@ -563,18 +573,15 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
               </article>
               <article
                 className={`activity-insight-card${
-                  insights.topUser?.user_id ? ' activity-insight-card--clickable' : ''
+                  insights.topUser ? ' activity-insight-card--clickable' : ''
                 }`}
-                role={insights.topUser?.user_id ? 'button' : undefined}
-                tabIndex={insights.topUser?.user_id ? 0 : undefined}
+                role={insights.topUser ? 'button' : undefined}
+                tabIndex={insights.topUser ? 0 : undefined}
                 onClick={() => {
-                  if (insights.topUser?.user_id) openPersonActivities(insights.topUser)
+                  if (insights.topUser) openPersonActivities(insights.topUser)
                 }}
                 onKeyDown={(e) => {
-                  if (
-                    insights.topUser?.user_id &&
-                    (e.key === 'Enter' || e.key === ' ')
-                  ) {
+                  if (insights.topUser && (e.key === 'Enter' || e.key === ' ')) {
                     e.preventDefault()
                     openPersonActivities(insights.topUser)
                   }
@@ -589,7 +596,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                       }`
                     : 'No users yet'}
                 </p>
-                {insights.topUser?.user_id ? (
+                {insights.topUser ? (
                   <p className="activity-insight-card__cta muted">View their activities →</p>
                 ) : null}
               </article>
@@ -648,7 +655,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                   getLabel={(row) =>
                     [row.user_name || 'Guest', row.user_email, row.user_role].filter(Boolean).join(' · ')
                   }
-                  isRowClickable={(row) => Boolean(row.user_id)}
+                  isRowClickable={() => true}
                   onRowClick={openPersonActivities}
                 />
               </section>
@@ -695,25 +702,17 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
             <p>
               Showing <strong>{logs.length}</strong> of <strong>{meta?.total ?? logs.length}</strong>{' '}
               events {periodLabel}
-              {applied.user_id ? (
+              {personFilterActive ? (
                 <>
                   {' '}
-                  for user ID <strong>{applied.user_id}</strong>
+                  for{' '}
+                  <strong>{personFilterIsGuest ? 'Guest (anonymous)' : `user ID ${applied.user_id}`}</strong>
                 </>
               ) : null}
               .
             </p>
-            {applied.user_id ? (
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => {
-                  const next = { ...filters, user_id: '' }
-                  setFilters(next)
-                  setApplied(next)
-                  setPage(1)
-                }}
-              >
+            {personFilterActive ? (
+              <button type="button" className="btn ghost" onClick={clearPersonFilter}>
                 Clear person filter
               </button>
             ) : null}

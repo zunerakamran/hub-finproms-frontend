@@ -6,7 +6,7 @@ import Home from '../pages/Home'
 
 /**
  * Shared hubs: home is public (no login).
- * White-label hubs: home requires authentication (same as other member pages).
+ * White-labelled hubs: home requires authentication (same as other member pages).
  */
 export default function HomeRoute() {
   const { isAuthenticated, loading: authLoading } = useAuth()

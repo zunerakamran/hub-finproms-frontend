@@ -71,7 +71,7 @@ export default function AdminTags({ shell = 'client-admin' }) {
           <p className="muted">
             {isActingOnWhiteLabel
               ? `Managing tags on ${actingHub?.name}. Switch hubs from the top bar.`
-              : 'Managing shared hub tags. Use Control hub in the top bar for a white-label hub.'}
+              : 'Managing shared hub tags. Use Control hub in the top bar for a white-labelled hub.'}
           </p>
         </div>
       </div>

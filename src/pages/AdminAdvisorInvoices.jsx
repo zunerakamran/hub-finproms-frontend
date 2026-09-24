@@ -63,7 +63,7 @@ export default function AdminAdvisorInvoices({ shell = 'client-admin' }) {
         <div>
           <p className="eyebrow">{eyebrow}</p>
           <h1>Advisor billing invoices</h1>
-          <p className="muted">Invoices for rate × advisors private hub subscription billing.</p>
+          <p className="muted">Invoices for rate × advisors white-labelled hub subscription billing.</p>
         </div>
       </div>
 

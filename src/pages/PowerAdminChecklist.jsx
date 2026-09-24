@@ -75,7 +75,7 @@ export default function PowerAdminChecklist() {
           <h1>Hub Functionalities</h1>
           <p className="muted">
             Editing Functionalities for <strong>{selectedName}</strong>
-            {isActingOnWhiteLabel ? ' (white-label)' : ' (shared)'}. Use{' '}
+            {isActingOnWhiteLabel ? ' (white-labelled)' : ' (shared)'}. Use{' '}
             <strong>Control hub</strong> in the top bar to switch hubs. Enable product modules
             under <Link to="/my-dashboard/modules">Modules</Link>. User capabilities by role are
             managed under Capabilities.

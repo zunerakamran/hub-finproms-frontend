@@ -4,7 +4,7 @@ import { useHub } from '../context/HubContext'
 
 /**
  * Shared-dashboard hub switcher (Control white labelled hubs).
- * Selecting a white-label hub scopes content tools to that hub’s database.
+ * Selecting a white-labelled hub scopes content tools to that hub’s database.
  */
 export default function ActingHubSwitcher() {
   const { isPowerAdmin } = useAuth()
@@ -26,7 +26,7 @@ export default function ActingHubSwitcher() {
   const hubs = hubSwitcher.hubs || []
   const currentId = String(actingHub?.id || hubSwitcher.acting_hub?.id || hub?.id || '')
   const managedName = isActingOnWhiteLabel
-    ? actingHub?.name || 'white-label hub'
+    ? actingHub?.name || 'white-labelled hub'
     : hub?.name || 'shared hub'
 
   const onChange = async (e) => {

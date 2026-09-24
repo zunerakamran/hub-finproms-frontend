@@ -22,7 +22,7 @@ export function absoluteAssetUrl(url) {
 
 /**
  * Resolve the live site / template preview host for the current hub.
- * Prefer acting white-label frontend_url, then hub.frontend_url, then env / window.
+ * Prefer acting white-labelled frontend_url, then hub.frontend_url, then env / window.
  */
 export function resolveHubPreviewBase({ hub, actingHub } = {}) {
   const candidates = [

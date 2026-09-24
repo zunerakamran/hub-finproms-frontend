@@ -79,7 +79,7 @@ export default function AdminTypes({ shell = 'client-admin' }) {
           <p className="muted">
             {isActingOnWhiteLabel
               ? `Managing types on ${actingHub?.name}. Switch hubs from the top bar.`
-              : 'Managing shared hub types. Use Control hub in the top bar for a white-label hub.'}
+              : 'Managing shared hub types. Use Control hub in the top bar for a white-labelled hub.'}
           </p>
         </div>
       </div>

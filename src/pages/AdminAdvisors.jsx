@@ -221,7 +221,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
               ? billingEnabled
                 ? 'Upload a CSV or Excel sheet. New advisors are created only after you click Pay now.'
                 : 'Upload a CSV or Excel sheet of advisors. Imported advisors are marked subscribed with unlimited credits.'
-              : 'Manage imported advisors for this private hub.'}
+              : 'Manage imported advisors for this white-labelled hub.'}
             {canImport && billingEnabled
               ? ' The client admin pays rate × advisors per import batch (card is saved for auto-renew).'
               : ''}

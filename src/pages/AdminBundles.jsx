@@ -127,7 +127,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   const addDraftPost = () => {
     if (isActingOnWhiteLabel) {
       setError(
-        'While controlling a white-label hub, select existing posts from that hub (inline new posts are shared-hub only).'
+        'While controlling a white-labelled hub, select existing posts from that hub (inline new posts are shared-hub only).'
       )
       return
     }
@@ -180,7 +180,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     if (form.post_ids.length === 0 && (isActingOnWhiteLabel || newPosts.length === 0)) {
       setError(
         isActingOnWhiteLabel
-          ? 'Select at least one post that already exists on this white-label hub.'
+          ? 'Select at least one post that already exists on this white-labelled hub.'
           : 'Add at least one existing post or a new post to the bundle.'
       )
       return
@@ -280,7 +280,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
           <p className="muted">
             {isActingOnWhiteLabel
               ? `Bundles on ${actingHub?.name} use that hub's posts only. Switch hubs from the top bar.`
-              : 'Group posts into a bundle. Use Control hub in the top bar to manage a white-label hub.'}
+              : 'Group posts into a bundle. Use Control hub in the top bar to manage a white-labelled hub.'}
           </p>
         </div>
       </div>

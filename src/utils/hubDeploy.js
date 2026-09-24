@@ -52,7 +52,7 @@ export function buildDeployPreview(hub, meta) {
         key: 'remote_db',
         label: isShared
           ? 'Shared hub uses its own .env database (not stored here)'
-          : 'White-label database credentials recorded (own DB)',
+          : 'White-labelled database credentials recorded (own DB)',
         done: isShared || hasDb,
         required: !isShared,
       },
@@ -64,13 +64,13 @@ export function buildDeployPreview(hub, meta) {
       },
       {
         key: 'hub_slug',
-        label: `White-label backend uses HUB_SLUG=${slug}`,
+        label: `White-labelled backend uses HUB_SLUG=${slug}`,
         done: true,
         required: true,
       },
       {
         key: 'own_db_env',
-        label: 'White-label .env points at its OWN database (not shared)',
+        label: 'White-labelled .env points at its OWN database (not shared)',
         done: true,
         required: !isShared,
       },
@@ -82,7 +82,7 @@ export function buildDeployPreview(hub, meta) {
       },
     ],
     env_snippet: [
-      '# White-label deploy — same codebase, OWN database (not the shared hub DB)',
+      '# White-labelled deploy — same codebase, OWN database (not the shared hub DB)',
       `HUB_SLUG=${slug}`,
       frontend ? `FRONTEND_URL=${frontend.replace(/\/$/, '')}` : 'FRONTEND_URL=https://example.com',
       api ? `APP_URL=${api.replace(/\/$/, '')}` : 'APP_URL=https://api.example.com',

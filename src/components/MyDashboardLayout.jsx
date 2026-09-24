@@ -49,7 +49,7 @@ export default function MyDashboardLayout() {
     ? 'Dashboard'
     : DASHBOARD_GROUPS[activeLink?.group] || 'Dashboard'
 
-  // Leave pages that are unavailable for the selected hub (e.g. White-label hubs while controlling a WL tenant).
+  // Leave pages that are unavailable for the selected hub (e.g. White-labelled hubs while controlling a WL tenant).
   useEffect(() => {
     if (actingHubSwitching) return
     if (location.pathname === '/my-dashboard') return

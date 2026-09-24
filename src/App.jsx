@@ -105,7 +105,7 @@ export default function App() {
         <AppBootGate>
           <BrowserRouter>
             <Routes>
-            {/* Home — public on shared hubs; login required on white-label */}
+            {/* Home — public on shared hubs; login required on white-labelled */}
             <Route element={<Layout />}>
               <Route index element={<HomeRoute />} />
             </Route>

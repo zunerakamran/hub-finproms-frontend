@@ -60,7 +60,7 @@ const sections = [
   {
     to: '/client-admin/advisor-pricing',
     title: 'Advisor billing rates / quotas',
-    description: 'Set rate-per-advisor tiers used for private hub billing (rate × advisors).',
+    description: 'Set rate-per-advisor tiers used for white-labelled hub billing (rate × advisors).',
     capability: 'dashboard_manage_advisor_pricing',
   },
   {
@@ -72,7 +72,7 @@ const sections = [
   {
     to: '/client-admin/subscriber-credits',
     title: 'Subscriber credits',
-    description: 'Set unlimited or fixed credits for Excel-imported private-hub subscribers.',
+    description: 'Set unlimited or fixed credits for Excel-imported white-labelled hub subscribers.',
     capability: 'dashboard_manage_subscriber_credits',
   },
   {

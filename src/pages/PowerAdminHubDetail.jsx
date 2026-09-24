@@ -227,7 +227,7 @@ export default function PowerAdminHubDetail() {
         <h2>Deploy wiring</h2>
         <p className="muted">
           Record where this hub is hosted and the credentials for its own database. Shared uses
-          these credentials later to push content into that white-label DB.
+          these credentials later to push content into that white-labelled DB.
         </p>
         <label>
           Frontend URL
@@ -259,7 +259,7 @@ export default function PowerAdminHubDetail() {
 
         {hub.type !== 'shared' && (
           <>
-            <h3 style={{ margin: '0.75rem 0 0' }}>White-label database (own DB)</h3>
+            <h3 style={{ margin: '0.75rem 0 0' }}>White-labelled database (own DB)</h3>
             <p className="muted" style={{ marginTop: 0 }}>
               Password is stored encrypted and never shown again. Leave password blank to keep the
               current value.

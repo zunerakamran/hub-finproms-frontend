@@ -185,7 +185,7 @@ export function HubProvider({ children }) {
   )
 
   // Prefer explicit auth payload from API; fall back to checklist exclusivity.
-  // While acting on a white-label hub, use that hub's checklist for mode flags.
+  // While acting on a white-labelled hub, use that hub's checklist for mode flags.
   const actingChecklist = useMemo(() => {
     if (
       hub?.acting_checklist &&
@@ -226,7 +226,7 @@ export function HubProvider({ children }) {
   }, [actingChecklist])
 
   /**
-   * Payment-card is the client-admin payer tool only on private hubs
+   * Payment-card is the client-admin payer tool only on white-labelled hubs
    * (matches backend AdvisorPaymentCardController). Power / FinProms staff
    * complete import checkout against the client admin card — they do not
    * manage Payment card settings.

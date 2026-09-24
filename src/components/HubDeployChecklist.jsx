@@ -27,9 +27,9 @@ export default function HubDeployChecklist({ deploy, slug }) {
         <span className={`badge ${ready ? 'ok' : 'warn'}`}>{statusLabel}</span>
       </div>
       <p className="muted">
-        Registry fields below can be verified here. Each white-label has its <strong>own
+        Registry fields below can be verified here. Each white-labelled has its <strong>own
         database</strong>. <code>HUB_SLUG</code> and that hub&apos;s <code>DB_*</code> env are ops
-        steps on the white-label server — use the env snippet when provisioning. Shared stores a
+        steps on the white-labelled server — use the env snippet when provisioning. Shared stores a
         copy of the DB credentials so it can push content later.
       </p>
       <ul className="hub-deploy-steps">

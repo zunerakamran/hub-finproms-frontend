@@ -140,11 +140,40 @@ h2,
   justify-items: start;
 }
 
+.settings-logo-preview--dark {
+  background: #0f172a;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
 .settings-logo-preview img {
   display: block;
   max-height: 3rem;
   max-width: 12rem;
   object-fit: contain;
+}
+
+.settings-logo-usage {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.settings-logo-usage li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  color: var(--muted, #667085);
+  line-height: 1.35;
+}
+
+.settings-logo-usage__check {
+  color: #15803d;
+  font-weight: 800;
+  flex-shrink: 0;
+  line-height: 1.35;
 }
 
 .settings-favicon-preview img {

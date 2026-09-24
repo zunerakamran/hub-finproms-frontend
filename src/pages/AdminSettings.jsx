@@ -11,6 +11,10 @@ export default function AdminSettings() {
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreview, setLogoPreview] = useState('')
   const [removeLogo, setRemoveLogo] = useState(false)
+  const [whiteLogoUrl, setWhiteLogoUrl] = useState('')
+  const [whiteLogoFile, setWhiteLogoFile] = useState(null)
+  const [whiteLogoPreview, setWhiteLogoPreview] = useState('')
+  const [removeWhiteLogo, setRemoveWhiteLogo] = useState(false)
   const [faviconUrl, setFaviconUrl] = useState('')
   const [faviconFile, setFaviconFile] = useState(null)
   const [faviconPreview, setFaviconPreview] = useState('')
@@ -30,6 +34,10 @@ export default function AdminSettings() {
     setLogoFile(null)
     setLogoPreview('')
     setRemoveLogo(false)
+    setWhiteLogoUrl(settings?.white_logo_url ?? '')
+    setWhiteLogoFile(null)
+    setWhiteLogoPreview('')
+    setRemoveWhiteLogo(false)
     setFaviconUrl(settings?.favicon_url ?? '')
     setFaviconFile(null)
     setFaviconPreview('')
@@ -66,6 +74,16 @@ export default function AdminSettings() {
   }, [logoFile])
 
   useEffect(() => {
+    if (!whiteLogoFile) {
+      setWhiteLogoPreview('')
+      return undefined
+    }
+    const url = URL.createObjectURL(whiteLogoFile)
+    setWhiteLogoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [whiteLogoFile])
+
+  useEffect(() => {
     if (!faviconFile) {
       setFaviconPreview('')
       return undefined
@@ -87,6 +105,18 @@ export default function AdminSettings() {
     setRemoveLogo(true)
   }
 
+  const onWhiteLogoChange = (e) => {
+    const file = e.target.files?.[0] || null
+    setWhiteLogoFile(file)
+    setRemoveWhiteLogo(false)
+  }
+
+  const onRemoveWhiteLogo = () => {
+    setWhiteLogoFile(null)
+    setWhiteLogoPreview('')
+    setRemoveWhiteLogo(true)
+  }
+
   const onFaviconChange = (e) => {
     const file = e.target.files?.[0] || null
     setFaviconFile(file)
@@ -100,6 +130,7 @@ export default function AdminSettings() {
   }
 
   const displayedLogo = logoPreview || (!removeLogo ? logoUrl : '')
+  const displayedWhiteLogo = whiteLogoPreview || (!removeWhiteLogo ? whiteLogoUrl : '')
   const displayedFavicon = faviconPreview || (!removeFavicon ? faviconUrl : '')
 
   const onSubmit = async (e) => {
@@ -120,6 +151,12 @@ export default function AdminSettings() {
       if (removeLogo && !logoFile) {
         fd.append('remove_logo', '1')
       }
+      if (whiteLogoFile) {
+        fd.append('white_logo', whiteLogoFile)
+      }
+      if (removeWhiteLogo && !whiteLogoFile) {
+        fd.append('remove_white_logo', '1')
+      }
       if (faviconFile) {
         fd.append('favicon', faviconFile)
       }
@@ -137,6 +174,7 @@ export default function AdminSettings() {
         errors.application_name?.[0] ||
           errors.from_email?.[0] ||
           errors.logo?.[0] ||
+          errors.white_logo?.[0] ||
           errors.favicon?.[0] ||
           errors['color_scheme.primary']?.[0] ||
           errors['color_scheme.secondary']?.[0] ||
@@ -155,8 +193,8 @@ export default function AdminSettings() {
           <p className="eyebrow">Hub</p>
           <h1>Settings</h1>
           <p className="muted">
-            Branding for this hub — logo, favicon, name, and primary / secondary colours apply across
-            the whole product UI.
+            Branding for this hub — logo, white logo, favicon, name, and primary / secondary colours
+            apply across the whole product UI.
           </p>
         </div>
       </div>
@@ -217,6 +255,47 @@ export default function AdminSettings() {
             ) : (
               <p className="muted">No logo set.</p>
             )}
+
+            <ul className="settings-logo-usage" aria-label="When the normal logo is used">
+              <li>
+                <span className="settings-logo-usage__check" aria-hidden="true">✓</span>
+                Light backgrounds (website header, emails)
+              </li>
+            </ul>
+          </div>
+
+          <div className="settings-block">
+            <h2>White logo</h2>
+            <label>
+              White logo attachment
+              <input
+                type="file"
+                accept="image/*"
+                onChange={onWhiteLogoChange}
+              />
+            </label>
+            <p className="muted form-hint">
+              Light / white version of the logo for dark UI surfaces (max 5MB). If unset, the normal
+              logo is used everywhere.
+            </p>
+
+            {displayedWhiteLogo ? (
+              <div className="settings-logo-preview settings-logo-preview--dark">
+                <img src={displayedWhiteLogo} alt="White logo preview" />
+                <button type="button" className="btn ghost" onClick={onRemoveWhiteLogo}>
+                  Remove white logo
+                </button>
+              </div>
+            ) : (
+              <p className="muted">No white logo set.</p>
+            )}
+
+            <ul className="settings-logo-usage" aria-label="When the white logo is used">
+              <li>
+                <span className="settings-logo-usage__check" aria-hidden="true">✓</span>
+                Dark backgrounds (dashboard sidebar)
+              </li>
+            </ul>
           </div>
 
           <div className="settings-block">

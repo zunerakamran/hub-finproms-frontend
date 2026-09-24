@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import WebsiteNavLink from './WebsiteNavLink'
+import { brandLogoUrl } from '../utils/brandLogo'
 
 const links = [
   { to: '/power-admin', label: 'Dashboard', end: true, capability: 'pa_view_dashboard' },
@@ -88,6 +89,7 @@ export default function PowerAdminLayout() {
   const navigate = useNavigate()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const powerAdminTitle = roleLabel('power_admin')
+  const logoUrl = brandLogoUrl(branding, { onDark: true })
 
   const onLogout = async () => {
     await logout()
@@ -108,8 +110,8 @@ export default function PowerAdminLayout() {
     <div className="dash-shell dash-shell--power">
       <aside className="dash-sidebar">
         <div className="dash-sidebar__brand">
-          {branding?.logo_url ? (
-            <img src={branding.logo_url} alt="" className="dash-sidebar__logo" />
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="dash-sidebar__logo" />
           ) : (
             <span className="dash-sidebar__mark" aria-hidden="true">
               {String(brandName).charAt(0)}

@@ -10,6 +10,7 @@ import {
   findActiveDashboardLink,
   getVisibleDashboardNav,
 } from '../dashboard/nav'
+import { brandLogoUrl } from '../utils/brandLogo'
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
@@ -21,7 +22,7 @@ export default function MyDashboardLayout() {
   const dashMainRef = useRef(null)
 
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
-  const logoUrl = branding?.logo_url || null
+  const logoUrl = brandLogoUrl(branding, { onDark: true })
 
   const visible = useMemo(
     () =>

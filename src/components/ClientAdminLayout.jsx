@@ -3,12 +3,14 @@ import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import AdminSubnav from './AdminSubnav'
 import WebsiteNavLink from './WebsiteNavLink'
+import { brandLogoUrl } from '../utils/brandLogo'
 
 export default function ClientAdminLayout() {
   const { user, logout } = useAuth()
   const { branding, hub, roleLabel } = useHub()
   const navigate = useNavigate()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
+  const logoUrl = brandLogoUrl(branding, { onDark: true })
 
   const onLogout = async () => {
     await logout()
@@ -21,8 +23,8 @@ export default function ClientAdminLayout() {
     <div className="dash-shell">
       <aside className="dash-sidebar">
         <div className="dash-sidebar__brand">
-          {branding?.logo_url ? (
-            <img src={branding.logo_url} alt="" className="dash-sidebar__logo" />
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="dash-sidebar__logo" />
           ) : (
             <span className="dash-sidebar__mark" aria-hidden="true">
               {String(brandName).charAt(0)}

@@ -1,12 +1,13 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { brandLogoUrl } from '../utils/brandLogo'
 
 export default function Layout() {
   const { user, logout, isAdvisor } = useAuth()
   const { can, hub, hasDashboardAccess, branding, isActingAsAdvisor } = useHub()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
-  const logoUrl = branding?.logo_url || null
+  const logoUrl = brandLogoUrl(branding, { onDark: false })
   const showPlans =
     can('member_view_plans') && (can('public_subscribe') || can('paid_credits'))
 

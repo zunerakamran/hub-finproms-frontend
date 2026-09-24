@@ -54,9 +54,9 @@ export default function PowerAdminHubs() {
         frontend_url: form.frontend_url.trim() || null,
         api_url: form.api_url.trim() || null,
         deploy_notes: form.deploy_notes.trim() || null,
-        db_driver: form.db_driver.trim() || 'mysql',
+        db_driver: 'mysql',
         db_host: form.db_host.trim() || null,
-        db_port: form.db_port.trim() ? Number(form.db_port.trim()) : null,
+        db_port: 3306,
         db_database: form.db_database.trim() || null,
         db_username: form.db_username.trim() || null,
         db_password: form.db_password || null,
@@ -123,7 +123,7 @@ export default function PowerAdminHubs() {
               type="url"
               value={form.frontend_url}
               onChange={(e) => setForm({ ...form, frontend_url: e.target.value })}
-              placeholder="https://my-hub.example.com"
+              placeholder="https://my-hub.com"
             />
           </label>
           <label>
@@ -132,7 +132,7 @@ export default function PowerAdminHubs() {
               type="url"
               value={form.api_url}
               onChange={(e) => setForm({ ...form, api_url: e.target.value })}
-              placeholder="https://api.my-hub.example.com"
+              placeholder="https://api.my-hub.com"
             />
           </label>
           <label>
@@ -152,22 +152,11 @@ export default function PowerAdminHubs() {
           <div className="form-row two">
             <label>
               Driver
-              <select
-                value={form.db_driver}
-                onChange={(e) => setForm({ ...form, db_driver: e.target.value })}
-              >
-                <option value="mysql">mysql</option>
-                <option value="pgsql">pgsql</option>
-                <option value="sqlsrv">sqlsrv</option>
-              </select>
+              <input value="mysql" readOnly disabled />
             </label>
             <label>
               Port
-              <input
-                value={form.db_port}
-                onChange={(e) => setForm({ ...form, db_port: e.target.value })}
-                placeholder="3306"
-              />
+              <input value="3306" readOnly disabled />
             </label>
           </div>
           <label>
@@ -175,7 +164,7 @@ export default function PowerAdminHubs() {
             <input
               value={form.db_host}
               onChange={(e) => setForm({ ...form, db_host: e.target.value })}
-              placeholder="db.my-hub.example.com"
+              placeholder="db.my-hub.com"
             />
           </label>
           <label>
@@ -183,7 +172,7 @@ export default function PowerAdminHubs() {
             <input
               value={form.db_database}
               onChange={(e) => setForm({ ...form, db_database: e.target.value })}
-              placeholder="hub_my_hub"
+              placeholder="db_my_hub"
             />
           </label>
           <div className="form-row two">

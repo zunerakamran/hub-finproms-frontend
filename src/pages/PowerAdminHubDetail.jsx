@@ -79,9 +79,9 @@ export default function PowerAdminHubDetail() {
         frontend_url: meta.frontend_url.trim() || null,
         api_url: meta.api_url.trim() || null,
         deploy_notes: meta.deploy_notes.trim() || null,
-        db_driver: meta.db_driver.trim() || 'mysql',
+        db_driver: 'mysql',
         db_host: meta.db_host.trim() || null,
-        db_port: meta.db_port.trim() ? Number(meta.db_port.trim()) : null,
+        db_port: 3306,
         db_database: meta.db_database.trim() || null,
         db_username: meta.db_username.trim() || null,
         is_active: meta.is_active,
@@ -235,7 +235,7 @@ export default function PowerAdminHubDetail() {
             type="url"
             value={meta.frontend_url}
             onChange={(e) => setMeta({ ...meta, frontend_url: e.target.value })}
-            placeholder="https://my-hub.example.com"
+            placeholder="https://my-hub.com"
           />
         </label>
         <label>
@@ -244,7 +244,7 @@ export default function PowerAdminHubDetail() {
             type="url"
             value={meta.api_url}
             onChange={(e) => setMeta({ ...meta, api_url: e.target.value })}
-            placeholder="https://api.my-hub.example.com"
+            placeholder="https://api.my-hub.com"
           />
         </label>
         <label>
@@ -268,22 +268,11 @@ export default function PowerAdminHubDetail() {
             <div className="form-row two">
               <label>
                 Driver
-                <select
-                  value={meta.db_driver}
-                  onChange={(e) => setMeta({ ...meta, db_driver: e.target.value })}
-                >
-                  <option value="mysql">mysql</option>
-                  <option value="pgsql">pgsql</option>
-                  <option value="sqlsrv">sqlsrv</option>
-                </select>
+                <input value="mysql" readOnly disabled />
               </label>
               <label>
                 Port
-                <input
-                  value={meta.db_port}
-                  onChange={(e) => setMeta({ ...meta, db_port: e.target.value })}
-                  placeholder="3306"
-                />
+                <input value="3306" readOnly disabled />
               </label>
             </div>
             <label>
@@ -291,7 +280,7 @@ export default function PowerAdminHubDetail() {
               <input
                 value={meta.db_host}
                 onChange={(e) => setMeta({ ...meta, db_host: e.target.value })}
-                placeholder="db.my-hub.example.com"
+                placeholder="db.my-hub.com"
                 autoComplete="off"
               />
             </label>
@@ -300,7 +289,7 @@ export default function PowerAdminHubDetail() {
               <input
                 value={meta.db_database}
                 onChange={(e) => setMeta({ ...meta, db_database: e.target.value })}
-                placeholder="hub_my_hub"
+                placeholder="db_my_hub"
                 autoComplete="off"
               />
             </label>

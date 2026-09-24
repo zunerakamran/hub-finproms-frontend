@@ -3216,6 +3216,77 @@ label {
   color: #fff;
   border-color: transparent;
 }
+
+.email-audience-tabs .tab-row {
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.email-audience-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 11rem;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.12));
+  background: #fff;
+  color: var(--muted, #64748b);
+  box-shadow: none;
+  opacity: 0.85;
+}
+
+.email-audience-tab:hover {
+  border-color: var(--brand, #1d4ed8);
+  color: var(--brand-dark, #1e3a8a);
+  opacity: 1;
+}
+
+.email-audience-tab.active {
+  background: var(--brand, #1d4ed8);
+  color: #fff;
+  border-color: transparent;
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.25);
+}
+
+.email-audience-tab__label {
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.email-audience-tab__hint {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.email-audience-tab.active .email-audience-tab__hint {
+  opacity: 0.85;
+  color: #fff;
+}
+
+.email-audience-tab__badge {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+}
+
+.email-audience-tab.active .email-audience-tab__badge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));

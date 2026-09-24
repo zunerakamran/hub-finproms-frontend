@@ -189,30 +189,48 @@ export default function AdminEmailTemplateEdit() {
       )}
 
       {audiences.length > 1 && (
-        <div className="admin-subnav" style={{ marginBottom: '1rem' }}>
-          {audiences.map((key) => {
-            const tpl = event.templates[key]
-            return (
-              <button
-                key={key}
-                type="button"
-                className={audience === key ? 'active' : ''}
-                onClick={() => setAudience(key)}
-                style={{
-                  padding: '0.4rem 0.75rem',
-                  borderRadius: 999,
-                  border: '1px solid var(--line)',
-                  background: audience === key ? 'var(--brand-soft)' : 'white',
-                  color: audience === key ? 'var(--brand-dark)' : 'var(--muted)',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                }}
-              >
-                {tpl?.audience_label || key}
-                {tpl?.is_customized ? ' •' : ''}
-              </button>
-            )
-          })}
+        <div className="email-audience-tabs" style={{ marginBottom: '1.25rem' }}>
+          <p className="muted" style={{ marginBottom: '0.5rem' }}>
+            Choose which email to edit:
+          </p>
+          <div className="tab-row" role="tablist" aria-label="Email audience">
+            {audiences.map((key) => {
+              const tpl = event.templates[key]
+              const isActive = audience === key
+              const label =
+                key === 'admin'
+                  ? 'Admin mail'
+                  : key === 'user'
+                    ? 'User mail'
+                    : tpl?.audience_label || key
+              const hint =
+                key === 'admin'
+                  ? 'Sent to roles with “Receive admin emails”'
+                  : 'Sent to the member / recipient'
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`btn email-audience-tab ${isActive ? 'active' : 'ghost'}`}
+                  onClick={() => setAudience(key)}
+                >
+                  <span className="email-audience-tab__label">{label}</span>
+                  <span className="email-audience-tab__hint">{hint}</span>
+                  {tpl?.is_customized ? (
+                    <span className="email-audience-tab__badge">Customized</span>
+                  ) : null}
+                </button>
+              )
+            })}
+          </div>
+          <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
+            Currently editing:{' '}
+            <strong style={{ color: 'var(--text, #0f172a)' }}>
+              {audience === 'admin' ? 'Admin mail' : 'User mail'}
+            </strong>
+          </p>
         </div>
       )}
 

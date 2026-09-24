@@ -7,6 +7,8 @@ const GROUP_ORDER = ['behaviour']
  * Modules are managed separately under Modules (dashboard_manage_modules).
  */
 export default function ChecklistGroupedForm({ items, flags, setFlags, onSubmit, saving, submitLabel }) {
+  const labelByKey = Object.fromEntries((items || []).map((item) => [item.key, item.label]))
+
   const groups = GROUP_ORDER.map((group) => ({
     group,
     label: items.find((i) => i.group === group)?.group_label || 'Functionalities',
@@ -55,7 +57,7 @@ export default function ChecklistGroupedForm({ items, flags, setFlags, onSubmit,
                   <small className="muted">{item.description}</small>
                   {item.exclusive_with && (
                     <small className="muted exclusive-hint">
-                      Opposite of <code>{item.exclusive_with}</code>
+                      Opposite of {labelByKey[item.exclusive_with] || item.exclusive_with}
                     </small>
                   )}
                 </span>

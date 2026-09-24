@@ -85,7 +85,7 @@ export default function AdminTags({ shell = 'client-admin' }) {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="finance, promo..."
+            placeholder="Enter tag name"
           />
         </label>
         <div className="actions">

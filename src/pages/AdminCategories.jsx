@@ -85,7 +85,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="LinkedIn, Instagram, Mortgages..."
+            placeholder="Enter category name"
           />
         </label>
         <div className="actions">

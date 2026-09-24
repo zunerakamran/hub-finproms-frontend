@@ -102,7 +102,7 @@ export default function PowerAdminHubs() {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Acme Advisors"
+              placeholder="My Hub"
             />
           </label>
           <label>
@@ -110,7 +110,7 @@ export default function PowerAdminHubs() {
             <input
               value={form.slug}
               onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              placeholder="acme-advisors"
+              placeholder="my-hub"
             />
           </label>
           <p className="muted form-hint">
@@ -123,7 +123,7 @@ export default function PowerAdminHubs() {
               type="url"
               value={form.frontend_url}
               onChange={(e) => setForm({ ...form, frontend_url: e.target.value })}
-              placeholder="https://acme.example.com"
+              placeholder="https://my-hub.example.com"
             />
           </label>
           <label>
@@ -132,7 +132,7 @@ export default function PowerAdminHubs() {
               type="url"
               value={form.api_url}
               onChange={(e) => setForm({ ...form, api_url: e.target.value })}
-              placeholder="https://api.acme.example.com"
+              placeholder="https://api.my-hub.example.com"
             />
           </label>
           <label>
@@ -141,7 +141,7 @@ export default function PowerAdminHubs() {
               rows={3}
               value={form.deploy_notes}
               onChange={(e) => setForm({ ...form, deploy_notes: e.target.value })}
-              placeholder="Hosting notes, env checklist, etc."
+              placeholder="Enter hosting notes, env checklist, etc."
             />
           </label>
           <h3 style={{ margin: '0.5rem 0 0' }}>White-label database (own DB)</h3>
@@ -175,7 +175,7 @@ export default function PowerAdminHubs() {
             <input
               value={form.db_host}
               onChange={(e) => setForm({ ...form, db_host: e.target.value })}
-              placeholder="db.acme.example.com"
+              placeholder="db.my-hub.example.com"
             />
           </label>
           <label>
@@ -183,7 +183,7 @@ export default function PowerAdminHubs() {
             <input
               value={form.db_database}
               onChange={(e) => setForm({ ...form, db_database: e.target.value })}
-              placeholder="hub_acme"
+              placeholder="hub_my_hub"
             />
           </label>
           <div className="form-row two">
@@ -192,7 +192,7 @@ export default function PowerAdminHubs() {
               <input
                 value={form.db_username}
                 onChange={(e) => setForm({ ...form, db_username: e.target.value })}
-                placeholder="hub_user"
+                placeholder="my_hub_user"
                 autoComplete="off"
               />
             </label>
@@ -202,7 +202,7 @@ export default function PowerAdminHubs() {
                 type="password"
                 value={form.db_password}
                 onChange={(e) => setForm({ ...form, db_password: e.target.value })}
-                placeholder="••••••••"
+                placeholder="Enter database password"
                 autoComplete="new-password"
               />
             </label>

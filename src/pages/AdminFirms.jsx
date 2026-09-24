@@ -132,7 +132,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
             required
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder={isEditingCentral ? 'Central / Network' : 'Acme Wealth'}
+            placeholder={isEditingCentral ? 'Enter Central / Network name' : 'Enter firm name'}
           />
         </label>
 

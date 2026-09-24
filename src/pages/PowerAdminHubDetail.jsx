@@ -186,6 +186,7 @@ export default function PowerAdminHubDetail() {
             required
             value={meta.name}
             onChange={(e) => setMeta({ ...meta, name: e.target.value })}
+            placeholder="My Hub"
           />
         </label>
         <label>
@@ -195,6 +196,7 @@ export default function PowerAdminHubDetail() {
             disabled={hub.type === 'shared'}
             value={meta.slug}
             onChange={(e) => setMeta({ ...meta, slug: e.target.value })}
+            placeholder="my-hub"
           />
         </label>
         <div className="info-callout">
@@ -233,7 +235,7 @@ export default function PowerAdminHubDetail() {
             type="url"
             value={meta.frontend_url}
             onChange={(e) => setMeta({ ...meta, frontend_url: e.target.value })}
-            placeholder="https://acme.example.com"
+            placeholder="https://my-hub.example.com"
           />
         </label>
         <label>
@@ -242,7 +244,7 @@ export default function PowerAdminHubDetail() {
             type="url"
             value={meta.api_url}
             onChange={(e) => setMeta({ ...meta, api_url: e.target.value })}
-            placeholder="https://api.acme.example.com"
+            placeholder="https://api.my-hub.example.com"
           />
         </label>
         <label>
@@ -251,7 +253,7 @@ export default function PowerAdminHubDetail() {
             rows={4}
             value={meta.deploy_notes}
             onChange={(e) => setMeta({ ...meta, deploy_notes: e.target.value })}
-            placeholder="Hosting provider, env checklist, contact, etc."
+            placeholder="Enter hosting notes, env checklist, contact, etc."
           />
         </label>
 
@@ -289,7 +291,7 @@ export default function PowerAdminHubDetail() {
               <input
                 value={meta.db_host}
                 onChange={(e) => setMeta({ ...meta, db_host: e.target.value })}
-                placeholder="db.acme.example.com"
+                placeholder="db.my-hub.example.com"
                 autoComplete="off"
               />
             </label>
@@ -298,7 +300,7 @@ export default function PowerAdminHubDetail() {
               <input
                 value={meta.db_database}
                 onChange={(e) => setMeta({ ...meta, db_database: e.target.value })}
-                placeholder="hub_acme"
+                placeholder="hub_my_hub"
                 autoComplete="off"
               />
             </label>
@@ -308,7 +310,7 @@ export default function PowerAdminHubDetail() {
                 <input
                   value={meta.db_username}
                   onChange={(e) => setMeta({ ...meta, db_username: e.target.value })}
-                  placeholder="hub_user"
+                  placeholder="my_hub_user"
                   autoComplete="off"
                 />
               </label>
@@ -320,7 +322,11 @@ export default function PowerAdminHubDetail() {
                   onChange={(e) =>
                     setMeta({ ...meta, db_password: e.target.value, clear_db_password: false })
                   }
-                  placeholder={hub.deploy?.database?.password_set ? '•••••••• (unchanged)' : '••••••••'}
+                  placeholder={
+                    hub.deploy?.database?.password_set
+                      ? 'Leave blank to keep current password'
+                      : 'Enter database password'
+                  }
                   autoComplete="new-password"
                 />
               </label>

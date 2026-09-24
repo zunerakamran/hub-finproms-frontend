@@ -112,7 +112,7 @@ const PLATFORM_PA_ANY = [
 /** Human-readable group labels for home + nav. */
 export const DASHBOARD_GROUPS = {
   account: 'Account',
-  content: 'Content',
+  content: 'SM Template',
   hub: 'Hub',
   advisors: 'Advisors & billing',
   smc: 'Social Media Compliance',
@@ -168,10 +168,10 @@ export const DASHBOARD_LINKS = [
     group: 'account',
   },
 
-  // —— Content ——
+  // —— SM Template ——
   {
     kind: 'section',
-    label: 'Content',
+    label: 'SM Template',
     anyOf: CONTENT_ANY,
   },
   {

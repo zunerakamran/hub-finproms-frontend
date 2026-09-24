@@ -66,7 +66,7 @@ export default function AdminTags({ shell = 'client-admin' }) {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Content</p>
+          <p className="eyebrow">SM Template</p>
           <h1>{editingId ? 'Edit tag' : 'Post tags'}</h1>
           <p className="muted">
             {isActingOnWhiteLabel

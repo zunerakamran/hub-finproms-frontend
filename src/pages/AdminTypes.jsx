@@ -74,7 +74,7 @@ export default function AdminTypes({ shell = 'client-admin' }) {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Content</p>
+          <p className="eyebrow">SM Template</p>
           <h1>{editingId ? 'Edit type' : 'Content types'}</h1>
           <p className="muted">
             {isActingOnWhiteLabel

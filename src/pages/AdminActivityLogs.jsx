@@ -153,7 +153,7 @@ function formatDayLabel(dateStr) {
   }
 }
 
-function BreakdownList({ rows, total, getLabel, getKey }) {
+function BreakdownList({ rows, total, getLabel, getKey, onRowClick, isRowClickable }) {
   if (!rows?.length) {
     return <p className="muted">Nothing to show for this period.</p>
   }
@@ -166,20 +166,45 @@ function BreakdownList({ rows, total, getLabel, getKey }) {
         const count = Number(row.count) || 0
         const pctOfMax = Math.round((count / max) * 100)
         const pctOfTotal = total > 0 ? Math.round((count / total) * 100) : 0
+        const clickable = Boolean(onRowClick && (isRowClickable ? isRowClickable(row) : true))
+
         return (
-          <li key={getKey(row, idx)}>
-            <div className="activity-breakdown__head">
-              <span className="activity-breakdown__label" title={getLabel(row)}>
-                {getLabel(row)}
-              </span>
-              <span className="activity-breakdown__meta">
-                <strong>{count}</strong>
-                <span className="muted">{pctOfTotal}%</span>
-              </span>
-            </div>
-            <div className="activity-breakdown__track" aria-hidden>
-              <div className="activity-breakdown__fill" style={{ width: `${pctOfMax}%` }} />
-            </div>
+          <li key={getKey(row, idx)} className={clickable ? 'is-clickable' : undefined}>
+            {clickable ? (
+              <button
+                type="button"
+                className="activity-breakdown__btn"
+                onClick={() => onRowClick(row)}
+              >
+                <div className="activity-breakdown__head">
+                  <span className="activity-breakdown__label" title={getLabel(row)}>
+                    {getLabel(row)}
+                  </span>
+                  <span className="activity-breakdown__meta">
+                    <strong>{count}</strong>
+                    <span className="muted">{pctOfTotal}%</span>
+                  </span>
+                </div>
+                <div className="activity-breakdown__track" aria-hidden>
+                  <div className="activity-breakdown__fill" style={{ width: `${pctOfMax}%` }} />
+                </div>
+              </button>
+            ) : (
+              <>
+                <div className="activity-breakdown__head">
+                  <span className="activity-breakdown__label" title={getLabel(row)}>
+                    {getLabel(row)}
+                  </span>
+                  <span className="activity-breakdown__meta">
+                    <strong>{count}</strong>
+                    <span className="muted">{pctOfTotal}%</span>
+                  </span>
+                </div>
+                <div className="activity-breakdown__track" aria-hidden>
+                  <div className="activity-breakdown__fill" style={{ width: `${pctOfMax}%` }} />
+                </div>
+              </>
+            )}
           </li>
         )
       })}
@@ -293,6 +318,19 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     setFilters(next)
     setApplied(next)
     setPage(1)
+  }
+
+  const openPersonActivities = (row) => {
+    const userId = row?.user_id
+    if (!userId) return
+    const next = {
+      ...filters,
+      user_id: String(userId),
+    }
+    setFilters(next)
+    setApplied(next)
+    setPage(1)
+    setTab('logs')
   }
 
   const summary = report?.summary
@@ -493,7 +531,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
               <StatCard
                 icon={FaBolt}
                 accent="events"
-                label="Total events"
+                label="Total activities"
                 value={summary?.total ?? 0}
                 hint="All recorded actions in this period"
               />
@@ -523,7 +561,25 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                     : 'No actions yet'}
                 </p>
               </article>
-              <article className="activity-insight-card">
+              <article
+                className={`activity-insight-card${
+                  insights.topUser?.user_id ? ' activity-insight-card--clickable' : ''
+                }`}
+                role={insights.topUser?.user_id ? 'button' : undefined}
+                tabIndex={insights.topUser?.user_id ? 0 : undefined}
+                onClick={() => {
+                  if (insights.topUser?.user_id) openPersonActivities(insights.topUser)
+                }}
+                onKeyDown={(e) => {
+                  if (
+                    insights.topUser?.user_id &&
+                    (e.key === 'Enter' || e.key === ' ')
+                  ) {
+                    e.preventDefault()
+                    openPersonActivities(insights.topUser)
+                  }
+                }}
+              >
                 <p className="activity-insight-card__eyebrow">Most active person</p>
                 <h3>{insights.topUser?.user_name || insights.topUser?.user_email || '—'}</h3>
                 <p className="muted">
@@ -533,6 +589,9 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                       }`
                     : 'No users yet'}
                 </p>
+                {insights.topUser?.user_id ? (
+                  <p className="activity-insight-card__cta muted">View their activities →</p>
+                ) : null}
               </article>
               <article className="activity-insight-card">
                 <p className="activity-insight-card__eyebrow">Busiest day</p>
@@ -579,7 +638,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                   </div>
                   <div>
                     <h2>By person</h2>
-                    <p className="muted">Who generated the most activity.</p>
+                    <p className="muted">Who generated the most activity. Click a person to open their timeline.</p>
                   </div>
                 </header>
                 <BreakdownList
@@ -589,6 +648,8 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                   getLabel={(row) =>
                     [row.user_name || 'Guest', row.user_email, row.user_role].filter(Boolean).join(' · ')
                   }
+                  isRowClickable={(row) => Boolean(row.user_id)}
+                  onRowClick={openPersonActivities}
                 />
               </section>
 
@@ -633,8 +694,29 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           <div className="activity-feed-meta">
             <p>
               Showing <strong>{logs.length}</strong> of <strong>{meta?.total ?? logs.length}</strong>{' '}
-              events {periodLabel}.
+              events {periodLabel}
+              {applied.user_id ? (
+                <>
+                  {' '}
+                  for user ID <strong>{applied.user_id}</strong>
+                </>
+              ) : null}
+              .
             </p>
+            {applied.user_id ? (
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  const next = { ...filters, user_id: '' }
+                  setFilters(next)
+                  setApplied(next)
+                  setPage(1)
+                }}
+              >
+                Clear person filter
+              </button>
+            ) : null}
           </div>
 
           <div className="activity-feed">
@@ -909,6 +991,25 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           font-size: 0.88rem;
         }
 
+        .activity-insight-card--clickable {
+          cursor: pointer;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+        }
+
+        .activity-insight-card--clickable:hover,
+        .activity-insight-card--clickable:focus-visible {
+          border-color: color-mix(in srgb, var(--brand) 35%, var(--line));
+          box-shadow: 0 8px 22px rgba(16, 24, 40, 0.08);
+          transform: translateY(-1px);
+          outline: none;
+        }
+
+        .activity-insight-card__cta {
+          margin-top: 0.55rem !important;
+          font-weight: 600;
+          color: var(--brand) !important;
+        }
+
         .activity-section-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -964,6 +1065,28 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           gap: 0.75rem;
           max-height: 22rem;
           overflow: auto;
+        }
+
+        .activity-breakdown__btn {
+          display: block;
+          width: 100%;
+          margin: 0;
+          padding: 0.45rem 0.5rem;
+          border: 1px solid transparent;
+          border-radius: 10px;
+          background: transparent;
+          text-align: left;
+          font: inherit;
+          color: inherit;
+          cursor: pointer;
+          transition: background 0.15s ease, border-color 0.15s ease;
+        }
+
+        .activity-breakdown__btn:hover,
+        .activity-breakdown__btn:focus-visible {
+          background: color-mix(in srgb, var(--brand) 8%, #fff);
+          border-color: color-mix(in srgb, var(--brand) 22%, var(--line));
+          outline: none;
         }
 
         .activity-breakdown__head {
@@ -1040,6 +1163,11 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
 
         .activity-feed-meta {
           margin-bottom: 0.75rem;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
         }
 
         .activity-feed-meta p {

@@ -68,7 +68,7 @@ export default function AdminComplianceStatusDisplayNames() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Hub</p>
-          <h1>Compliance status names</h1>
+          <h1>Workflows status title</h1>
           <p className="muted">
             Customize how compliance statuses appear across Social Media, General, and Website
             Compliance. Leave a field as the default (or clear it) to reset that status.

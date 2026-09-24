@@ -266,7 +266,7 @@ export default function AdminSettings() {
                 type="email"
                 value={fromEmail}
                 onChange={(e) => setFromEmail(e.target.value)}
-                placeholder="orders@yoursite.com"
+                placeholder="info@yoursite.com"
               />
             </label>
             <p className="muted form-hint">
@@ -455,7 +455,7 @@ export default function AdminSettings() {
           <div className="settings-block">
             <h2>Content</h2>
             <label>
-              NEW banner duration (days)
+              NEW label duration (days)
               <input
                 type="number"
                 min="0"
@@ -466,7 +466,7 @@ export default function AdminSettings() {
               />
             </label>
             <p className="muted form-hint">
-              Posts and reels newer than this many days show a NEW banner on the listing. Set to 0 to
+              Posts and reels newer than this many days show a NEW label on the listing. Set to 0 to
               disable.
             </p>
           </div>

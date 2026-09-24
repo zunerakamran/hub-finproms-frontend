@@ -95,13 +95,13 @@ const sections = [
   },
   {
     to: '/client-admin/role-display-names',
-    title: 'Role display names',
+    title: 'User role title',
     description: 'Customize how role names appear across this hub’s UI.',
     capability: 'dashboard_manage_role_display_names',
   },
   {
     to: '/client-admin/compliance-status-display-names',
-    title: 'Compliance status names',
+    title: 'Workflows status title',
     description: 'Customize Pending / Approved / Rejected wording across compliance modules.',
     capability: 'dashboard_manage_compliance_status_display_names',
   },

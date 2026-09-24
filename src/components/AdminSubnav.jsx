@@ -44,12 +44,12 @@ const links = [
   { to: '/client-admin/settings', label: 'Settings', capability: 'dashboard_manage_settings' },
   {
     to: '/client-admin/role-display-names',
-    label: 'Role display names',
+    label: 'User role title',
     capability: 'dashboard_manage_role_display_names',
   },
   {
     to: '/client-admin/compliance-status-display-names',
-    label: 'Compliance status names',
+    label: 'Workflows status title',
     capability: 'dashboard_manage_compliance_status_display_names',
   },
   { to: '/client-admin/bank-transfers', label: 'Bank transfers', capability: 'dashboard_bank_transfers' },

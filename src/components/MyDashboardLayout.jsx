@@ -9,6 +9,7 @@ import {
   DASHBOARD_GROUPS,
   findActiveDashboardLink,
   getVisibleDashboardNav,
+  isDashboardLinkVisible,
 } from '../dashboard/nav'
 import { brandLogoUrl } from '../utils/brandLogo'
 
@@ -50,6 +51,39 @@ export default function MyDashboardLayout() {
   const sectionLabel = isOverview
     ? 'Dashboard'
     : DASHBOARD_GROUPS[activeLink?.group] || 'Dashboard'
+
+  // Leave pages that are unavailable for the selected hub (e.g. White-label hubs while controlling a WL tenant).
+  useEffect(() => {
+    if (actingHubSwitching) return
+    if (location.pathname === '/my-dashboard') return
+
+    const link = findActiveDashboardLink(location.pathname)
+    if (!link) return
+
+    const stillVisible = isDashboardLinkVisible(link, {
+      can,
+      canPower,
+      advisorBillingEnabled,
+      canManagePaymentCard,
+      isActingOnWhiteLabel,
+      userRole: user?.role,
+    })
+
+    if (!stillVisible) {
+      navigate('/my-dashboard', { replace: true })
+    }
+  }, [
+    actingHubSwitching,
+    location.pathname,
+    can,
+    canPower,
+    advisorBillingEnabled,
+    canManagePaymentCard,
+    isActingOnWhiteLabel,
+    actingHubId,
+    user?.role,
+    navigate,
+  ])
 
   useEffect(() => {
     setNavOpen(false)

@@ -333,6 +333,17 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ statuses }),
     }),
+  emailTemplates: () => request(`${CLIENT_ADMIN}/email-templates`),
+  emailTemplate: (event) => request(`${CLIENT_ADMIN}/email-templates/${event}`),
+  updateEmailTemplate: (event, audience, payload) =>
+    request(`${CLIENT_ADMIN}/email-templates/${event}/${audience}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  resetEmailTemplate: (event, audience) =>
+    request(`${CLIENT_ADMIN}/email-templates/${event}/${audience}/reset`, {
+      method: 'POST',
+    }),
   powerAdminPaymentMethods: (hubId) => {
     const query = hubId ? `?hub_id=${hubId}` : ''
     return request(`/power-admin/payment-methods${query}`)

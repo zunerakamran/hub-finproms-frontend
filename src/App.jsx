@@ -24,6 +24,8 @@ import AdminPosts from './pages/AdminPosts'
 import AdminSettings from './pages/AdminSettings'
 import AdminRoleDisplayNames from './pages/AdminRoleDisplayNames'
 import AdminComplianceStatusDisplayNames from './pages/AdminComplianceStatusDisplayNames'
+import AdminEmailTemplates from './pages/AdminEmailTemplates'
+import AdminEmailTemplateEdit from './pages/AdminEmailTemplateEdit'
 import AdminTags from './pages/AdminTags'
 import AdminTypes from './pages/AdminTypes'
 import AdvisorBillingSuccess from './pages/AdvisorBillingSuccess'
@@ -616,6 +618,22 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_compliance_status_display_names">
                       <AdminComplianceStatusDisplayNames />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="email-templates"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_email_templates">
+                      <AdminEmailTemplates />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="email-templates/:event"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_email_templates">
+                      <AdminEmailTemplateEdit />
                     </HubCapabilityRoute>
                   }
                 />

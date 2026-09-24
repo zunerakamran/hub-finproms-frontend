@@ -106,6 +106,12 @@ const sections = [
     capability: 'dashboard_manage_compliance_status_display_names',
   },
   {
+    to: '/client-admin/email-templates',
+    title: 'Email templates',
+    description: 'Edit subject and body copy for user and admin transactional emails.',
+    capability: 'dashboard_manage_email_templates',
+  },
+  {
     to: '/client-admin/bank-transfers',
     title: 'Bank transfers',
     description: 'Confirm pending bank payments and grant credits (temporary until Stripe).',

@@ -52,6 +52,11 @@ const links = [
     label: 'Workflows status title',
     capability: 'dashboard_manage_compliance_status_display_names',
   },
+  {
+    to: '/client-admin/email-templates',
+    label: 'Email templates',
+    capability: 'dashboard_manage_email_templates',
+  },
   { to: '/client-admin/bank-transfers', label: 'Bank transfers', capability: 'dashboard_bank_transfers' },
 ]
 

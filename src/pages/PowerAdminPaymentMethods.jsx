@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useHub } from '../context/HubContext'
 
 const emptyMethods = {
   stripe: {
@@ -24,8 +25,7 @@ const emptyMethods = {
 }
 
 export default function PowerAdminPaymentMethods() {
-  const [hubs, setHubs] = useState([])
-  const [hubId, setHubId] = useState('')
+  const { actingHubId, actingHub, isActingOnWhiteLabel } = useHub()
   const [hub, setHub] = useState(null)
   const [methods, setMethods] = useState(emptyMethods)
   const [platformStripe, setPlatformStripe] = useState({
@@ -65,9 +65,7 @@ export default function PowerAdminPaymentMethods() {
     setStripeEnabled(Boolean(next.stripe.enabled))
     setBankEnabled(Boolean(next.bank_transfer.enabled))
     setBankAutoConfirm(Boolean(next.bank_transfer.auto_confirm))
-    setHubs(data.hubs || [])
     setHub(data.hub || null)
-    if (data.hub?.id) setHubId(String(data.hub.id))
     setPlatformStripe({
       key: data.platform_stripe?.key || '',
       secret_set: Boolean(data.platform_stripe?.secret_set),
@@ -91,11 +89,11 @@ export default function PowerAdminPaymentMethods() {
     })
   }
 
-  const load = async (selectedHubId = hubId) => {
+  const load = async () => {
     setLoading(true)
     setError('')
     try {
-      const data = await api.powerAdminPaymentMethods(selectedHubId || undefined)
+      const data = await api.powerAdminPaymentMethods(actingHubId || undefined)
       applyResponse(data)
     } catch (err) {
       setError(err.message)
@@ -107,12 +105,7 @@ export default function PowerAdminPaymentMethods() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const onHubChange = async (id) => {
-    setHubId(id)
-    await load(id)
-  }
+  }, [actingHubId])
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -121,7 +114,7 @@ export default function PowerAdminPaymentMethods() {
     setMessage('')
     try {
       const payload = {
-        hub_id: hubId ? Number(hubId) : undefined,
+        hub_id: actingHubId || undefined,
         stripe_enabled: stripeEnabled,
         bank_transfer_enabled: bankEnabled,
         bank_transfer_auto_confirm: bankAutoConfirm,
@@ -153,6 +146,10 @@ export default function PowerAdminPaymentMethods() {
     }
   }
 
+  const hubLabel = hub?.name || actingHub?.name || 'current hub'
+  const hubTypeLabel =
+    hub?.type === 'shared' || (!hub && !isActingOnWhiteLabel) ? 'shared' : 'white-labelled'
+
   return (
     <section>
       <div className="page-head">
@@ -160,8 +157,9 @@ export default function PowerAdminPaymentMethods() {
           <p className="eyebrow">Platform</p>
           <h1>Payment methods</h1>
           <p className="muted">
-            Configure Stripe credentials and checkout options for the shared hub and each
-            white-labelled hub. Hub values override platform defaults.
+            Configure Stripe credentials and checkout options. Platform defaults apply to all hubs;
+            optional overrides apply to the hub selected in the top bar
+            {hub ? ` (currently ${hubLabel})` : ''}.
           </p>
         </div>
       </div>
@@ -172,17 +170,6 @@ export default function PowerAdminPaymentMethods() {
         <form className="admin-form payment-methods-form" onSubmit={onSubmit}>
           {error && <div className="alert">{error}</div>}
           {message && <div className="alert success">{message}</div>}
-
-          <label>
-            Hub
-            <select value={hubId} onChange={(e) => onHubChange(e.target.value)}>
-              {hubs.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.name} ({h.type === 'shared' ? 'Shared' : 'White-labelled'})
-                </option>
-              ))}
-            </select>
-          </label>
 
           <div className="payment-method-card">
             <div className="payment-method-card-head">
@@ -265,7 +252,7 @@ export default function PowerAdminPaymentMethods() {
             </label>
 
             <p className="muted">
-              Active source for selected hub: <strong>{methods.stripe.source}</strong>
+              Active source for {hubLabel}: <strong>{methods.stripe.source}</strong>
               {' · '}
               Secret set:{' '}
               <strong>{methods.stripe.secret_set || platformStripe.env_secret_set ? 'Yes' : 'No'}</strong>
@@ -283,14 +270,10 @@ export default function PowerAdminPaymentMethods() {
           <div className="payment-method-card">
             <div className="payment-method-card-head">
               <div>
-                <h2>
-                  Hub override
-                  {hub ? `: ${hub.name}` : ''}
-                </h2>
+                <h2>Hub override: {hubLabel}</h2>
                 <p className="muted">
-                  Optional. Set different Stripe keys for this{' '}
-                  {hub?.type === 'shared' ? 'shared' : 'white-labelled'} hub. Leave blank to use
-                  platform defaults.
+                  Optional. Set different Stripe keys for this {hubTypeLabel} hub. Leave blank to use
+                  platform defaults. Switch hubs from the top bar to edit another hub&apos;s override.
                 </p>
               </div>
             </div>

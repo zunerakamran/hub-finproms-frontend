@@ -78,7 +78,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
 
   const billingDisabled =
     error &&
-    /private invite-only|advisor billing|auto-renew settings apply/i.test(error)
+    /white-labelled invite-only|private invite-only|advisor billing|auto-renew settings apply/i.test(error)
 
   return (
     <section>
@@ -96,7 +96,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
       {error && !billingDisabled && <div className="alert">{error}</div>}
       {billingDisabled && (
         <p className="muted">
-          Select a private white-labelled hub with advisor billing enabled in Control hub to set the
+          Select a white-labelled hub with advisor billing enabled in Control hub to set the
           renew day.
         </p>
       )}

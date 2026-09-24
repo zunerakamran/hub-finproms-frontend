@@ -141,7 +141,7 @@ export default function AdminSubscriberCredits({ shell = 'client-admin' }) {
           {hubMeta && (
             <p className="muted">
               Editing <strong>{hubMeta.name}</strong>
-              {hubMeta.private_invite_only ? ' (private invite-only)' : ''}
+              {hubMeta.private_invite_only ? ' (white-labelled invite-only)' : ''}
             </p>
           )}
           {note && <p className="muted">{note}</p>}

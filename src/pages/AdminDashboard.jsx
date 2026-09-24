@@ -41,7 +41,7 @@ const sections = [
   },
   {
     to: '/client-admin/plans',
-    title: 'Subscription plans',
+    title: 'Subscriptions',
     description: 'Add and update credit packages users can purchase.',
     capability: 'dashboard_manage_plans',
   },

@@ -40,7 +40,7 @@ export default function PowerAdminDashboard() {
     },
     {
       to: '/power-admin/plans',
-      title: 'Subscription plans',
+      title: 'Subscriptions',
       description: 'Create and edit credit packages for public hub self-serve subscriptions.',
       hubCapability: 'dashboard_manage_plans',
     },

@@ -232,8 +232,8 @@ export const DASHBOARD_LINKS = [
   },
   {
     to: '/my-dashboard/plans',
-    label: 'Plans',
-    title: 'Plans',
+    label: 'Subscriptions',
+    title: 'Subscriptions',
     description: 'Create and edit credit packages for public hub self-serve subscriptions.',
     capability: 'dashboard_manage_plans',
     group: 'hub',

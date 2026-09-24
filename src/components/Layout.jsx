@@ -46,7 +46,7 @@ export default function Layout() {
                 to="/subscriptions"
                 className={({ isActive }) => (isActive ? 'is-active' : undefined)}
               >
-                Plans
+                Subscriptions
               </NavLink>
             )}
             {hasDashboardAccess && (

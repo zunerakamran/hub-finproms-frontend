@@ -34,7 +34,7 @@ export default function Subscriptions() {
         <div className="page-head">
           <div>
             <p className="eyebrow">Credits</p>
-            <h1>Subscription plans</h1>
+            <h1>Subscriptions</h1>
             <p className="muted">
               Self-serve subscriptions are disabled for this hub. Access and credits are managed by
               your administrator.
@@ -50,7 +50,7 @@ export default function Subscriptions() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Credits</p>
-          <h1>Subscription plans</h1>
+          <h1>Subscriptions</h1>
           <p className="muted">Choose a plan to view full details and subscribe.</p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function Subscriptions() {
       ) : plans.length === 0 ? (
         <div className="empty-state">
           <h2>No plans available</h2>
-          <p className="muted">Subscription plans will appear here once they are published.</p>
+          <p className="muted">Subscriptions will appear here once they are published.</p>
         </div>
       ) : (
         <div className="plan-grid">

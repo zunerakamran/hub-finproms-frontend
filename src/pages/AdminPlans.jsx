@@ -265,7 +265,7 @@ export default function AdminPlans({ shell = 'client-admin' }) {
         <div className="page-head">
           <div>
             <p className="eyebrow">{eyebrow}</p>
-            <h1>Subscription plans</h1>
+            <h1>Subscriptions</h1>
             <p className="muted">
               Managing subscription plans is disabled for your role on this hub. Enable
               &quot;Manage subscription plans&quot; under Power Admin → Capabilities.
@@ -281,9 +281,9 @@ export default function AdminPlans({ shell = 'client-admin' }) {
       <div className="page-head">
         <div>
           <p className="eyebrow">{eyebrow}</p>
-          <h1>{editingId ? 'Edit plan' : 'Subscription plans'}</h1>
+          <h1>{editingId ? 'Edit plan' : 'Subscriptions'}</h1>
           <p className="muted">
-            Create credit packages users can buy on the Plans page. Control which post
+            Create credit packages users can buy on the Subscriptions page. Control which post
             metrics (reach, views, buys) each plan&apos;s subscribers can see.
           </p>
         </div>
@@ -424,7 +424,7 @@ export default function AdminPlans({ shell = 'client-admin' }) {
             checked={form.is_active}
             onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
           />
-          Active (visible on public Plans page)
+          Active (visible on public Subscriptions page)
         </label>
         <div className="actions">
           <button type="submit" className="btn primary" disabled={saving}>

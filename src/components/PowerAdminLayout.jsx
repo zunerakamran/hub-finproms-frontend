@@ -25,7 +25,7 @@ const links = [
   },
   {
     to: '/power-admin/plans',
-    label: 'Subscription plans',
+    label: 'Subscriptions',
     hubCapability: 'dashboard_manage_plans',
   },
   {

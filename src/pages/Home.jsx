@@ -15,7 +15,13 @@ function splitColumns(posts) {
 }
 
 function MarqueeColumn({ posts, direction }) {
-  const loop = posts.length > 0 ? [...posts, ...posts] : []
+  // Duplicate enough times so the column stays full while scrolling.
+  const loop =
+    posts.length > 0
+      ? posts.length < 6
+        ? [...posts, ...posts, ...posts, ...posts]
+        : [...posts, ...posts]
+      : []
 
   if (loop.length === 0) {
     return <div className="home-marquee__column home-marquee__column--empty" aria-hidden="true" />
@@ -26,13 +32,7 @@ function MarqueeColumn({ posts, direction }) {
       <div className="home-marquee__track">
         {loop.map((post, index) => (
           <div key={`${post.id}-${index}`} className="home-marquee__card">
-            {post.cover_url ? (
-              <img src={post.cover_url} alt="" loading="lazy" />
-            ) : (
-              <div className="home-marquee__placeholder">
-                <span>{post.title || 'Post'}</span>
-              </div>
-            )}
+            <img src={post.cover_url} alt="" loading="lazy" />
           </div>
         ))}
       </div>
@@ -63,10 +63,10 @@ export default function Home() {
     setError('')
 
     api
-      .posts({ per_page: 24 })
+      .posts({ per_page: 50 })
       .then((res) => {
         if (cancelled) return
-        const rows = (res.data || []).filter((p) => p.cover_url || p.title)
+        const rows = (res.data || []).filter((p) => p.cover_url)
         setPosts(rows)
       })
       .catch((err) => {

@@ -1880,11 +1880,11 @@ h2,
 }
 
 .home-marquee__column--down .home-marquee__track {
-  animation: home-marquee-down 42s linear infinite;
+  animation: home-marquee-down 16s linear infinite;
 }
 
 .home-marquee__column--up .home-marquee__track {
-  animation: home-marquee-up 48s linear infinite;
+  animation: home-marquee-up 18s linear infinite;
 }
 
 .home-marquee__column:hover .home-marquee__track {

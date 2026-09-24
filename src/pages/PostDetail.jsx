@@ -143,7 +143,7 @@ export default function PostDetail() {
   if (locked) {
     return (
       <section className="detail locked-detail">
-        <Link to="/" className="back">
+        <Link to="/posts" className="back">
           ← Back to posts
         </Link>
 
@@ -222,9 +222,9 @@ export default function PostDetail() {
 
   return (
     <section className="detail">
-      <Link to="/" className="back">
-        ← Back to posts
-      </Link>
+        <Link to="/posts" className="back">
+          ← Back to posts
+        </Link>
       <div className="detail-panel">
         {previewVideo ? (
           <div className={`detail-cover ${isReel ? 'is-reel' : ''}`}>

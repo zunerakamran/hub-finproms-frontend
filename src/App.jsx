@@ -77,6 +77,7 @@ import ResetPassword from './pages/ResetPassword'
 import SubscriptionDetail from './pages/SubscriptionDetail'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import Subscriptions from './pages/Subscriptions'
+import HomeRoute from './components/HomeRoute'
 import './App.css'
 import './shell.css'
 
@@ -104,7 +105,12 @@ export default function App() {
         <AppBootGate>
           <BrowserRouter>
             <Routes>
-            {/* Member catalog — login required */}
+            {/* Home — public on shared hubs; login required on white-label */}
+            <Route element={<Layout />}>
+              <Route index element={<HomeRoute />} />
+            </Route>
+
+            {/* Member catalog & plans — login always required */}
             <Route
               element={
                 <ProtectedRoute>
@@ -112,21 +118,14 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<Posts />} />
+              <Route path="posts" element={<Posts />} />
               <Route path="posts/:id" element={<PostDetail />} />
               <Route path="bundles" element={<Bundles />} />
               <Route path="bundles/:id" element={<BundleDetail />} />
               <Route path="subscriptions" element={<Subscriptions />} />
               <Route path="subscriptions/success" element={<SubscriptionSuccess />} />
               <Route path="subscriptions/bank-transfer" element={<BankTransferPending />} />
-              <Route
-                path="purchases/success"
-                element={
-                  <ProtectedRoute>
-                    <ContentPurchaseSuccess />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="purchases/success" element={<ContentPurchaseSuccess />} />
               <Route path="subscriptions/:id" element={<SubscriptionDetail />} />
             </Route>
 

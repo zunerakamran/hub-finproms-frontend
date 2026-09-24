@@ -1,15 +1,18 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { brandLogoUrl } from '../utils/brandLogo'
 
 export default function Layout() {
-  const { user, logout, isAdvisor } = useAuth()
-  const { can, hub, hasDashboardAccess, branding, isActingAsAdvisor } = useHub()
+  const { user, logout, isAdvisor, isAuthenticated } = useAuth()
+  const { can, hub, hasDashboardAccess, branding, isActingAsAdvisor, registrationEnabled } =
+    useHub()
+  const location = useLocation()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = brandLogoUrl(branding, { onDark: false })
   const showPlans =
     can('member_view_plans') && (can('public_subscribe') || can('paid_credits'))
+  const isHome = location.pathname === '/'
 
   const creditsLabel =
     user?.has_unlimited_credits ||
@@ -31,17 +34,26 @@ export default function Layout() {
           </NavLink>
 
           <nav className="site-nav" aria-label="Main">
-            {can('member_browse_catalog') && (
-              <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : undefined)}>
+            <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : undefined)}>
+              Home
+            </NavLink>
+            {isAuthenticated && can('member_browse_catalog') && (
+              <NavLink
+                to="/posts"
+                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+              >
                 Posts
               </NavLink>
             )}
-            {can('member_browse_catalog') && (
-              <NavLink to="/bundles" className={({ isActive }) => (isActive ? 'is-active' : undefined)}>
+            {isAuthenticated && can('member_browse_catalog') && (
+              <NavLink
+                to="/bundles"
+                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+              >
                 Bundles
               </NavLink>
             )}
-            {showPlans && (
+            {isAuthenticated && showPlans && (
               <NavLink
                 to="/subscriptions"
                 className={({ isActive }) => (isActive ? 'is-active' : undefined)}
@@ -49,7 +61,7 @@ export default function Layout() {
                 Subscriptions
               </NavLink>
             )}
-            {hasDashboardAccess && (
+            {isAuthenticated && hasDashboardAccess && (
               <NavLink
                 to="/my-dashboard"
                 className={({ isActive }) => (isActive ? 'is-active' : undefined)}
@@ -60,24 +72,39 @@ export default function Layout() {
           </nav>
 
           <div className="site-header__actions">
-            <div className="site-credit-chip" title="Credit balance">
-              <span className="site-credit-chip__label">Credits</span>
-              <strong>{creditsLabel}</strong>
-            </div>
-            <div className="site-user">
-              <span className="site-user__avatar" aria-hidden="true">
-                {String(user?.name || 'U').charAt(0).toUpperCase()}
-              </span>
-              <span className="site-user__name">{user?.name}</span>
-            </div>
-            <button type="button" className="btn site-logout" onClick={logout}>
-              Log out
-            </button>
+            {isAuthenticated ? (
+              <>
+                <div className="site-credit-chip" title="Credit balance">
+                  <span className="site-credit-chip__label">Credits</span>
+                  <strong>{creditsLabel}</strong>
+                </div>
+                <div className="site-user">
+                  <span className="site-user__avatar" aria-hidden="true">
+                    {String(user?.name || 'U').charAt(0).toUpperCase()}
+                  </span>
+                  <span className="site-user__name">{user?.name}</span>
+                </div>
+                <button type="button" className="btn site-logout" onClick={logout}>
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <NavLink to="/login" className="btn ghost site-auth-btn">
+                  Log in
+                </NavLink>
+                {registrationEnabled && (
+                  <NavLink to="/register" className="btn primary site-auth-btn">
+                    Sign up
+                  </NavLink>
+                )}
+              </>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="site-main">
+      <main className={`site-main${isHome ? ' site-main--home' : ''}`}>
         <Outlet />
       </main>
 

@@ -40,7 +40,7 @@ export default function MyPurchases() {
         <div className="state">Loading...</div>
       ) : items.length === 0 ? (
         <div className="state">
-          No purchases yet. <Link to="/">Browse posts</Link>
+          No purchases yet. <Link to="/posts">Browse posts</Link>
         </div>
       ) : (
         <div className="post-grid listing-grid">

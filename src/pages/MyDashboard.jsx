@@ -25,12 +25,14 @@ const GROUP_ORDER = ['account', 'content', 'hub', 'advisors', 'smc', 'gc', 'wc',
 
 export default function MyDashboard() {
   const { user, canPower } = useAuth()
-  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, effectiveAdvisorId, actingAdvisor } = useHub()
+  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, effectiveAdvisorId, actingAdvisor, actingHubId } = useHub()
   const [data, setData] = useState(null)
+  const [panelLoading, setPanelLoading] = useState(true)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
   useEffect(() => {
     let cancelled = false
+    setPanelLoading(true)
     api
       .myDashboard()
       .then((payload) => {
@@ -39,10 +41,13 @@ export default function MyDashboard() {
       .catch(() => {
         if (!cancelled) setData(null)
       })
+      .finally(() => {
+        if (!cancelled) setPanelLoading(false)
+      })
     return () => {
       cancelled = true
     }
-  }, [effectiveAdvisorId])
+  }, [effectiveAdvisorId, actingHubId])
 
   const groups = useMemo(() => {
     const activePlan = data?.subscription?.active_plan
@@ -106,7 +111,7 @@ export default function MyDashboard() {
       label: DASHBOARD_GROUPS[key] || key,
       cards: cards.filter((c) => c.group === key),
     })).filter((g) => g.cards.length > 0)
-  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, actingAdvisor])
+  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, actingAdvisor, user?.role])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
 
@@ -130,7 +135,11 @@ export default function MyDashboard() {
         </div>
       </div>
 
-      {groups.length === 0 ? (
+      {panelLoading ? (
+        <div className="dash-panel dash-panel--loading" role="status" aria-live="polite" aria-label="Loading dashboard">
+          <div className="page-loader__spinner" />
+        </div>
+      ) : groups.length === 0 ? (
         <div className="empty-state dash-panel">
           <h2>No dashboard tools enabled</h2>
           <p className="muted">

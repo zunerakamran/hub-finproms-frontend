@@ -14,7 +14,7 @@ import { brandLogoUrl } from '../utils/brandLogo'
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, actingHub, actingAdvisor, roleLabel } = useHub()
+  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, actingHub, actingHubId, actingHubSwitching, actingAdvisor, roleLabel } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
@@ -23,6 +23,8 @@ export default function MyDashboardLayout() {
 
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = brandLogoUrl(branding, { onDark: true })
+  // Remount the white content panel when the controlled hub changes so page data reloads.
+  const contentKey = `${isActingOnWhiteLabel ? 'wl' : 'shared'}:${actingHubId ?? hub?.id ?? 'hub'}`
 
   const visible = useMemo(
     () =>
@@ -196,8 +198,16 @@ export default function MyDashboardLayout() {
             </NavLink>
           </div>
         </header>
-        <main className="dash-content">
-          <Outlet />
+        <main
+          className={`dash-content${actingHubSwitching ? ' is-hub-switching' : ''}`}
+          aria-busy={actingHubSwitching || undefined}
+        >
+          {actingHubSwitching ? (
+            <div className="dash-content-refresh-overlay" aria-live="polite" aria-label="Loading hub">
+              <div className="page-loader__spinner" />
+            </div>
+          ) : null}
+          <Outlet key={contentKey} />
         </main>
       </div>
     </div>

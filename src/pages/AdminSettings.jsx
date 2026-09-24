@@ -3,7 +3,7 @@ import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
 
 export default function AdminSettings() {
-  const { refreshHub } = useHub()
+  const { refreshHub, actingHubId } = useHub()
   const [newBannerDays, setNewBannerDays] = useState(7)
   const [applicationName, setApplicationName] = useState('')
   const [fromEmail, setFromEmail] = useState('')
@@ -49,6 +49,7 @@ export default function AdminSettings() {
   const load = async () => {
     setLoading(true)
     setError('')
+    setMessage('')
     try {
       const data = await api.adminSettings()
       applySettings(data.settings)
@@ -61,7 +62,7 @@ export default function AdminSettings() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [actingHubId])
 
   useEffect(() => {
     if (!logoFile) {
@@ -200,7 +201,9 @@ export default function AdminSettings() {
       </div>
 
       {loading ? (
-        <div className="state">Loading...</div>
+        <div className="dash-panel dash-panel--loading" role="status" aria-live="polite" aria-label="Loading settings">
+          <div className="page-loader__spinner" />
+        </div>
       ) : (
         <form className="admin-form settings-form" onSubmit={onSubmit}>
           {error && <div className="alert">{error}</div>}

@@ -54,6 +54,7 @@ export function HubProvider({ children }) {
   const [hub, setHubState] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [actingHubSwitching, setActingHubSwitching] = useState(false)
   const hubRef = useRef(null)
   const lastIdentityRef = useRef(null)
 
@@ -260,6 +261,20 @@ export function HubProvider({ children }) {
     return false
   }, [user, hasHubDashboardAccess, hasGeneralDashboardAccess])
 
+  const setActingHub = useCallback(
+    async (hubId, { asPowerAdmin = false } = {}) => {
+      setActingHubSwitching(true)
+      try {
+        const data = await api.setActingHub(hubId, { asPowerAdmin })
+        await refreshHub({ silent: true })
+        return data
+      } finally {
+        setActingHubSwitching(false)
+      }
+    },
+    [refreshHub]
+  )
+
   const value = useMemo(
     () => {
       const switcher = hub?.hub_switcher || null
@@ -300,14 +315,11 @@ export function HubProvider({ children }) {
         actingHub,
         actingHubId: actingHub?.id ?? null,
         isActingOnWhiteLabel,
+        actingHubSwitching,
         canControlWhiteLabelHubs: Boolean(
           switcher?.enabled || can('dashboard_control_white_label_hubs')
         ),
-        setActingHub: async (hubId, { asPowerAdmin = false } = {}) => {
-          const data = await api.setActingHub(hubId, { asPowerAdmin })
-          await refreshHub({ silent: true })
-          return data
-        },
+        setActingHub,
         actingAdvisorSwitcher,
         actingAdvisor,
         effectiveAdvisorId,
@@ -336,6 +348,8 @@ export function HubProvider({ children }) {
       hasGeneralDashboardAccess,
       hasDashboardAccess,
       user,
+      actingHubSwitching,
+      setActingHub,
     ]
   )
 

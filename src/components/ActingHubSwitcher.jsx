@@ -15,8 +15,8 @@ export default function ActingHubSwitcher() {
     setActingHub,
     isActingOnWhiteLabel,
     actingHub,
+    actingHubSwitching,
   } = useHub()
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   if (!canControlWhiteLabelHubs || hub?.type !== 'shared' || !hubSwitcher?.enabled) {
@@ -28,14 +28,11 @@ export default function ActingHubSwitcher() {
 
   const onChange = async (e) => {
     const next = e.target.value
-    setSaving(true)
     setError('')
     try {
       await setActingHub(next, { asPowerAdmin: isPowerAdmin })
     } catch (err) {
       setError(err.message || 'Could not switch hub')
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -43,7 +40,11 @@ export default function ActingHubSwitcher() {
     <div className="acting-hub-switcher">
       <label className="acting-hub-switcher__label">
         <span>Control hub</span>
-        <select value={currentId} disabled={saving || hubs.length === 0} onChange={onChange}>
+        <select
+          value={currentId}
+          disabled={actingHubSwitching || hubs.length === 0}
+          onChange={onChange}
+        >
           {hubs.map((h) => (
             <option
               key={h.id}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import PostMetrics from '../components/PostMetrics'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -161,6 +162,7 @@ export default function BundleDetail() {
         </div>
 
         <h1>{bundle.title}</h1>
+        <PostMetrics post={bundle} className="post-metrics detail-metrics" />
         <p>{bundle.description || 'No description provided.'}</p>
 
         {error && <div className="alert">{error}</div>}
@@ -267,6 +269,7 @@ export default function BundleDetail() {
                   {post.is_purchased ? <span className="is-unlocked">Unlocked</span> : null}
                 </div>
                 <h3>{post.title}</h3>
+                <PostMetrics post={post} />
                 <p>{post.description || 'No description provided.'}</p>
               </div>
               <span className="bundle-included-card__cta">View →</span>

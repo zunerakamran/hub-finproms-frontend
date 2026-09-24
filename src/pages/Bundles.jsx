@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import PageLoader from '../components/PageLoader'
+import PostMetrics from '../components/PostMetrics'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -96,6 +97,7 @@ export default function Bundles() {
                   {bundle.posts_count ?? 0} items
                 </span>
                 <h2>{bundle.title}</h2>
+                <PostMetrics post={bundle} />
                 <p className="bundle-card__desc">{bundle.description || 'No description.'}</p>
                 <div className="tool-card__meta">
                   <strong>{bundle.credits_cost} credits</strong>

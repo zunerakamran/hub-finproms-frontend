@@ -529,7 +529,6 @@ h2,
   white-space: nowrap;
 }
 
-.dash-nav__section::before,
 .dash-nav__section::after {
   content: '';
   flex: 1 1 0;

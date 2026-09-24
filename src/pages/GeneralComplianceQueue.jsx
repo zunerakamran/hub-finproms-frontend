@@ -110,7 +110,7 @@ export default function GeneralComplianceQueue() {
             <h1>All requests</h1>
             <p className="muted">
               {!moduleOn
-                ? 'Enable the General Compliance module first.'
+                ? 'Enable the Generic Content Pre Approval module first.'
                 : 'You need assign, view-all, or review capability for this queue.'}
             </p>
           </div>

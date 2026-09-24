@@ -54,8 +54,8 @@ export default function SocialMediaComplianceMyRequests() {
             <p className="eyebrow">Social Media Compliance</p>
             <h1>My requests</h1>
             <p className="muted">
-              Social Media Compliance is not enabled for this hub. Ask Power Admin to turn on the
-              module under Functionalities → Modules.
+              Social Media Pre Approval is not enabled for this hub. Ask Power Admin to enable it under
+              Modules.
             </p>
           </div>
         </div>

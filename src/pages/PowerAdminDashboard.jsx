@@ -97,7 +97,7 @@ export default function PowerAdminDashboard() {
       to: '/power-admin/modules',
       title: 'Modules',
       description:
-        'Enable Social Media Compliance, General Compliance, and Website Compliance for the current hub.',
+        'Enable White Label Hub, template libraries, and pre-approval workflows for the current hub.',
       hubCapability: 'dashboard_manage_modules',
     },
     {

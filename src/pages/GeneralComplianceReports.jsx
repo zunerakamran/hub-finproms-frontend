@@ -102,7 +102,7 @@ export default function GeneralComplianceReports() {
             <h1>Reports</h1>
             <p className="muted">
               {!moduleOn
-                ? 'Enable the General Compliance module first.'
+                ? 'Enable the Generic Content Pre Approval module first.'
                 : 'Enable “View general compliance reports & charts” for your role.'}
             </p>
           </div>

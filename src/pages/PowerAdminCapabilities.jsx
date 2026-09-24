@@ -20,6 +20,7 @@ const DEFAULT_GROUP_ORDER = [
   'admin_emails',
   'social_media_compliance',
   'general_compliance',
+  'website_template_library',
   'website_compliance',
 ]
 
@@ -33,9 +34,10 @@ const GROUP_FALLBACK_LABELS = {
   dashboard_hub: 'Hub operations',
   dashboard: 'Hub-admin dashboard',
   admin_emails: 'Admin emails',
-  social_media_compliance: 'Social Media Compliance',
-  general_compliance: 'General Compliance',
-  website_compliance: 'Website Compliance',
+  social_media_compliance: 'Social Media Pre Approval',
+  general_compliance: 'Generic Content Pre Approval',
+  website_template_library: 'Website Template Library',
+  website_compliance: 'Website Content Pre Approval',
 }
 
 export default function PowerAdminCapabilities() {

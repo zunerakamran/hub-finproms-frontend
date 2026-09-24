@@ -102,7 +102,7 @@ export default function SocialMediaComplianceReports() {
             <h1>Reports</h1>
             <p className="muted">
               {!moduleOn
-                ? 'Enable the Social Media Compliance module first.'
+                ? 'Enable the Social Media Pre Approval module first.'
                 : 'Enable “View social media compliance reports & charts” for your role.'}
             </p>
           </div>

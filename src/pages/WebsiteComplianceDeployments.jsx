@@ -2,10 +2,16 @@ import { Link } from 'react-router-dom'
 import { useHub } from '../context/HubContext'
 import DeploymentRequestPanel from '../websiteCompliance/components/DeploymentRequestPanel'
 import WebsiteComplianceTemplatesPanel from '../websiteCompliance/components/WebsiteComplianceTemplatesPanel'
+import {
+  anyWebsiteModuleOn,
+  websiteModuleOffMessage,
+  websiteTemplateLibraryOn,
+} from '../utils/websiteCompliance'
 
 export default function WebsiteComplianceDeployments() {
   const { can, loading: hubLoading } = useHub()
-  const moduleOn = can('module_website_compliance')
+  const templateModuleOn = websiteTemplateLibraryOn(can)
+  const moduleOn = anyWebsiteModuleOn(can)
   const canRequestOrView =
     can('wc_request_deployments') ||
     can('wc_assign_website_templates') ||
@@ -24,11 +30,24 @@ export default function WebsiteComplianceDeployments() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website</p>
+            <h1>Site operations</h1>
+            <p className="muted">{websiteModuleOffMessage()}</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (!hubLoading && !templateModuleOn && !can('wc_manage_deployment_sections')) {
+    return (
+      <section>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Website</p>
             <h1>Site operations</h1>
             <p className="muted">
-              Website Compliance is not enabled for this hub. Ask Power Admin to enable Website Compliance
-              under Modules.
+              {websiteModuleOffMessage({ templateLibrary: true })}
             </p>
           </div>
         </div>

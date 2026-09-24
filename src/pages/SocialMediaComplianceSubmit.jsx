@@ -85,7 +85,7 @@ export default function SocialMediaComplianceSubmit() {
             <h1>New request</h1>
             <p className="muted">
               {!moduleOn
-                ? 'Social Media Compliance module is off for this hub.'
+                ? 'Social Media Pre Approval module is off for this hub.'
                 : 'You do not have permission to submit social media compliance requests.'}
             </p>
           </div>

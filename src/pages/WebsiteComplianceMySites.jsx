@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useHub } from '../context/HubContext'
+import { anyWebsiteModuleOn, websiteModuleOffMessage } from '../utils/websiteCompliance'
 import AdvisorDashboard from '../websiteCompliance/AdvisorDashboard'
 
 function ModuleOff() {
@@ -9,10 +10,7 @@ function ModuleOff() {
         <div>
           <p className="eyebrow">Website Compliance</p>
           <h1>My sites</h1>
-          <p className="muted">
-            Website Compliance is not enabled for this hub. Ask Power Admin to enable Website Compliance
-            under Modules.
-          </p>
+          <p className="muted">{websiteModuleOffMessage()}</p>
         </div>
       </div>
     </section>
@@ -21,7 +19,7 @@ function ModuleOff() {
 
 export default function WebsiteComplianceMySites() {
   const { can, loading: hubLoading } = useHub()
-  const moduleOn = can('module_website_compliance')
+  const moduleOn = anyWebsiteModuleOn(can)
   const canView =
     can('wc_edit_sections') ||
     can('wc_submit_change_requests') ||

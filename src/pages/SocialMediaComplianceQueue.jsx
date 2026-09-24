@@ -111,7 +111,7 @@ export default function SocialMediaComplianceQueue() {
             <h1>All requests</h1>
             <p className="muted">
               {!moduleOn
-                ? 'Enable the Social Media Compliance module first.'
+                ? 'Enable the Social Media Pre Approval module first.'
                 : 'You need assign, view-all, or review capability for this queue.'}
             </p>
           </div>

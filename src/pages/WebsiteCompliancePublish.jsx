@@ -18,7 +18,7 @@ export default function WebsiteCompliancePublish() {
             <p className="eyebrow">Website Compliance</p>
             <h1>Publish content</h1>
             <p className="muted">
-              Website Compliance is not enabled for this hub. Ask Power Admin to enable Website Compliance
+              Website Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it
               under Modules.
             </p>
           </div>

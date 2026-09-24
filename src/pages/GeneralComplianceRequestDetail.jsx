@@ -200,7 +200,7 @@ export default function GeneralComplianceRequestDetail() {
   if (!hubLoading && !moduleOn) {
     return (
       <section>
-        <p className="muted">General Compliance module is off for this hub.</p>
+        <p className="muted">Generic Content Pre Approval module is off for this hub.</p>
       </section>
     )
   }

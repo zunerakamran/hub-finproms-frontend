@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { anyWebsiteModuleOn, websiteModuleOffMessage } from '../utils/websiteCompliance'
 
 function ModuleOff() {
   return (
@@ -19,10 +20,7 @@ function ModuleOff() {
         <div>
           <p className="eyebrow">Website Compliance</p>
           <h1>Website Compliance</h1>
-          <p className="muted">
-            Website Compliance is not enabled for this hub. Ask Power Admin to enable Website Compliance
-            under Modules.
-          </p>
+          <p className="muted">{websiteModuleOffMessage()}</p>
         </div>
       </div>
     </section>
@@ -130,7 +128,7 @@ function CardGrid({ cards }) {
 export default function WebsiteComplianceHome() {
   const { user } = useAuth()
   const { can, loading: hubLoading } = useHub()
-  const moduleOn = can('module_website_compliance')
+  const moduleOn = anyWebsiteModuleOn(can)
   const role = String(user?.role || '')
 
   const editorCards = EDITOR_CARDS.filter((card) => {

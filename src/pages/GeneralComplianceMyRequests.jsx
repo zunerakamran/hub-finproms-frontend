@@ -53,8 +53,8 @@ export default function GeneralComplianceMyRequests() {
             <p className="eyebrow">General Compliance</p>
             <h1>My requests</h1>
             <p className="muted">
-              General Compliance is not enabled for this hub. Ask Power Admin to turn on the module
-              under Functionalities → Modules.
+              Generic Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it
+              under Modules.
             </p>
           </div>
         </div>

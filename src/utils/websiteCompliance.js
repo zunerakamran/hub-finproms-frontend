@@ -50,6 +50,29 @@ export function formatWcDate(value) {
   }
 }
 
+/** Hub module gates for Website Template Library vs Content Pre Approval. */
+export function websiteTemplateLibraryOn(can) {
+  return Boolean(can?.('module_website_template_library'))
+}
+
+export function websiteContentPreApprovalOn(can) {
+  return Boolean(can?.('module_website_compliance'))
+}
+
+export function anyWebsiteModuleOn(can) {
+  return websiteTemplateLibraryOn(can) || websiteContentPreApprovalOn(can)
+}
+
+export function websiteModuleOffMessage({ templateLibrary = false, contentPreApproval = false } = {}) {
+  if (templateLibrary && !contentPreApproval) {
+    return 'Website Template Library is not enabled for this hub. Ask Power Admin to enable it under Modules.'
+  }
+  if (contentPreApproval && !templateLibrary) {
+    return 'Website Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it under Modules.'
+  }
+  return 'Website modules are not enabled for this hub. Ask Power Admin to enable Website Template Library and/or Website Content Pre Approval under Modules.'
+}
+
 export function wcSectionTitle(cr) {
   if (Array.isArray(cr?.section_edits) && cr.section_edits.length) {
     const names = cr.section_edits

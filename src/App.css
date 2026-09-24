@@ -2760,6 +2760,17 @@ label {
   box-sizing: border-box;
 }
 
+.checklist-item.is-inactive {
+  opacity: 0.55;
+  filter: grayscale(0.15);
+  background: color-mix(in srgb, var(--panel) 85%, var(--line));
+  cursor: not-allowed;
+}
+
+.checklist-item.is-inactive input {
+  cursor: not-allowed;
+}
+
 .checklist-item input {
   width: auto;
   margin-top: 0.2rem;

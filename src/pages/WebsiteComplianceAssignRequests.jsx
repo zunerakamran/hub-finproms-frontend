@@ -16,7 +16,7 @@ export default function WebsiteComplianceAssignRequests() {
             <p className="eyebrow">Website Compliance</p>
             <h1>Assign requests</h1>
             <p className="muted">
-              Website Compliance is not enabled for this hub. Ask Power Admin to enable Website Compliance
+              Website Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it
               under Modules.
             </p>
           </div>

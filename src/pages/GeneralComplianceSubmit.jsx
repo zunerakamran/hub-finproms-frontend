@@ -58,7 +58,7 @@ export default function GeneralComplianceSubmit() {
             <h1>New request</h1>
             <p className="muted">
               {!moduleOn
-                ? 'General Compliance module is off for this hub.'
+                ? 'Generic Content Pre Approval module is off for this hub.'
                 : 'You do not have permission to submit general compliance requests.'}
             </p>
           </div>

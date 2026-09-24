@@ -117,7 +117,7 @@ export default function WebsiteComplianceRequestDetail() {
   if (!hubLoading && !moduleOn) {
     return (
       <section>
-        <p className="muted">Website Compliance module is off for this hub.</p>
+        <p className="muted">Website Content Pre Approval module is off for this hub.</p>
       </section>
     )
   }

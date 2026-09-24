@@ -5,6 +5,7 @@ const GROUP_ORDER = ['behaviour']
 /**
  * Render hub Functionalities checklist for Power Admin.
  * Modules are managed separately under Modules (dashboard_manage_modules).
+ * Items with inactive/locked (e.g. Social Media Template Library off) stay blurred.
  */
 export default function ChecklistGroupedForm({ items, flags, setFlags, onSubmit, saving, submitLabel }) {
   const labelByKey = Object.fromEntries((items || []).map((item) => [item.key, item.label]))
@@ -41,28 +42,45 @@ export default function ChecklistGroupedForm({ items, flags, setFlags, onSubmit,
             managed under Capabilities.
           </p>
           <div className="checklist-grid">
-            {section.items.map((item) => (
-              <label key={item.key} className="checklist-item">
-                <input
-                  type="checkbox"
-                  checked={Boolean(flags[item.key])}
-                  onChange={(e) =>
-                    setFlags((prev) =>
-                      toggleChecklistFlag(prev, item.key, e.target.checked, item.exclusive_with)
-                    )
-                  }
-                />
-                <span>
-                  <strong>{item.label}</strong>
-                  <small className="muted">{item.description}</small>
-                  {item.exclusive_with && (
-                    <small className="muted exclusive-hint">
-                      Opposite of {labelByKey[item.exclusive_with] || item.exclusive_with}
-                    </small>
-                  )}
-                </span>
-              </label>
-            ))}
+            {section.items.map((item) => {
+              const inactive = Boolean(item.inactive || item.locked)
+              const tip = item.locked
+                ? 'This option is locked for this hub.'
+                : item.inactive && item.requires_module
+                  ? `Requires ${item.requires_module.replace(/^module_/, '').replace(/_/g, ' ')} module — enable it under Modules.`
+                  : undefined
+              return (
+                <label
+                  key={item.key}
+                  className={`checklist-item${inactive ? ' is-inactive' : ''}`}
+                  title={tip}
+                >
+                  <input
+                    type="checkbox"
+                    checked={inactive ? false : Boolean(flags[item.key])}
+                    disabled={inactive}
+                    onChange={(e) =>
+                      setFlags((prev) =>
+                        toggleChecklistFlag(prev, item.key, e.target.checked, item.exclusive_with)
+                      )
+                    }
+                  />
+                  <span>
+                    <strong>
+                      {item.label}
+                      {item.locked ? ' (locked)' : item.inactive ? ' (module off)' : ''}
+                    </strong>
+                    <small className="muted">{item.description}</small>
+                    {item.exclusive_with && !inactive && (
+                      <small className="muted exclusive-hint">
+                        Opposite of {labelByKey[item.exclusive_with] || item.exclusive_with}
+                      </small>
+                    )}
+                    {tip && <small className="muted exclusive-hint">{tip}</small>}
+                  </span>
+                </label>
+              )
+            })}
           </div>
         </div>
       ))}

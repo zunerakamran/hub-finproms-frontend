@@ -4,6 +4,17 @@ import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
+function lockedHint(item) {
+  if (!item.locked) return null
+  if (item.locked_reason === 'shared_hub') {
+    return 'Locked off on the shared hub. Always enabled on white-labelled hubs.'
+  }
+  if (item.locked_reason === 'white_label_hub') {
+    return 'Always enabled on white-labelled hubs (cannot be turned off).'
+  }
+  return 'This module cannot be toggled for this hub.'
+}
+
 export default function PowerAdminModules() {
   const { isPowerAdmin } = useAuth()
   const { actingHubId, actingHub, hub, isActingOnWhiteLabel, refreshHub, can, loading: hubLoading } =
@@ -62,8 +73,14 @@ export default function PowerAdminModules() {
     setError('')
     setMessage('')
     try {
+      // Omit locked modules from the payload — backend enforces type locks.
+      const payload = {}
+      for (const row of modules) {
+        if (row.locked) continue
+        payload[row.key] = Boolean(flags[row.key])
+      }
       const data = await api.updateHubModules(
-        { hub_id: selectedId, modules: flags },
+        { hub_id: selectedId, modules: payload },
         { asPowerAdmin }
       )
       const rows = data.modules || []
@@ -132,33 +149,44 @@ export default function PowerAdminModules() {
           <div className="checklist-section" id="modules">
             <h2>Modules</h2>
             <p className="muted checklist-section-hint">
-              Social Media Compliance, General Compliance, and Website Compliance
-              are available. Enable a module here, then grant related capabilities
-              on the Capabilities matrix.
+              Six product modules: White Label Hub, Social Media Template Library, Social Media Pre
+              Approval, Website Template Library, Website Content Pre Approval, and Generic Content
+              Pre Approval. Enable a module here, then grant related capabilities on the Capabilities
+              matrix. Turning off Social Media Template Library also disables related functionalities
+              (one-off purchase, receive content from shared).
             </p>
             <div className="checklist-grid">
-              {modules.map((item) => (
-                <label key={item.key} className="checklist-item">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(flags[item.key])}
-                    disabled={!item.available}
-                    onChange={(e) =>
-                      setFlags((prev) => ({
-                        ...prev,
-                        [item.key]: e.target.checked,
-                      }))
-                    }
-                  />
-                  <span>
-                    <strong>
-                      {item.label}
-                      {!item.available ? ' (coming soon)' : ''}
-                    </strong>
-                    <small className="muted">{item.description}</small>
-                  </span>
-                </label>
-              ))}
+              {modules.map((item) => {
+                const isLocked = Boolean(item.locked) || !item.available
+                const hint = lockedHint(item)
+                return (
+                  <label
+                    key={item.key}
+                    className={`checklist-item${isLocked || !item.available ? ' is-inactive' : ''}`}
+                    title={hint || undefined}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={Boolean(flags[item.key])}
+                      disabled={isLocked}
+                      onChange={(e) =>
+                        setFlags((prev) => ({
+                          ...prev,
+                          [item.key]: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span>
+                      <strong>
+                        {item.label}
+                        {item.locked ? ' (locked)' : !item.available ? ' (coming soon)' : ''}
+                      </strong>
+                      <small className="muted">{item.description}</small>
+                      {hint && <small className="muted exclusive-hint">{hint}</small>}
+                    </span>
+                  </label>
+                )
+              })}
             </div>
           </div>
 

@@ -117,9 +117,9 @@ export const DASHBOARD_GROUPS = {
   content: 'SM Template',
   hub: 'Hub',
   advisors: 'Advisors & billing',
-  smc: 'Social Media Compliance',
-  gc: 'General Compliance',
-  wc: 'Website Compliance',
+  smc: 'Social Media Pre Approval',
+  gc: 'Generic Content Pre Approval',
+  wc: 'Website',
   platform: 'Platform',
 }
 
@@ -304,7 +304,7 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/modules',
     label: 'Modules',
     title: 'Modules',
-    description: 'Enable Social Media, General, and Website Compliance modules for the current hub.',
+    description: 'Enable product modules (White Label, template libraries, and pre-approval workflows) for the current hub.',
     capability: 'dashboard_manage_modules',
     group: 'hub',
   },
@@ -365,17 +365,17 @@ export const DASHBOARD_LINKS = [
     group: 'advisors',
   },
 
-  // —— Social Media Compliance ——
+  // —— Social Media Pre Approval ——
   {
     kind: 'section',
-    label: 'Social Media Compliance',
+    label: 'Social Media Pre Approval',
     anyOf: SMC_NAV_ANY,
   },
   {
     to: '/my-dashboard/social-media-compliance',
     label: 'My requests',
     title: 'My requests',
-    description: 'View and track social media compliance requests you submitted.',
+    description: 'View and track social media pre-approval requests you submitted.',
     anyOf: ['smc_view_own_requests', 'smc_submit_request'],
     end: true,
     group: 'smc',
@@ -384,7 +384,7 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/social-media-compliance/new',
     label: 'New request',
     title: 'New request',
-    description: 'Submit a purchased post for social media compliance review.',
+    description: 'Submit a purchased post for social media pre-approval review.',
     capability: 'smc_submit_request',
     group: 'smc',
   },
@@ -392,7 +392,7 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/social-media-compliance/queue',
     label: 'All requests',
     title: 'All requests',
-    description: 'Assign and review social media compliance requests for this hub.',
+    description: 'Assign and review social media pre-approval requests for this hub.',
     anyOf: ['smc_view_all_requests', 'smc_assign_requests', 'smc_review_requests', 'smc_change_request_status'],
     group: 'smc',
   },
@@ -400,22 +400,22 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/social-media-compliance/reports',
     label: 'Reports',
     title: 'Reports',
-    description: 'Social media compliance reports, CSV export, and charts.',
+    description: 'Social media pre-approval reports, CSV export, and charts.',
     capability: 'smc_view_reports',
     group: 'smc',
   },
 
-  // —— General Compliance ——
+  // —— Generic Content Pre Approval ——
   {
     kind: 'section',
-    label: 'General Compliance',
+    label: 'Generic Content Pre Approval',
     anyOf: GC_NAV_ANY,
   },
   {
     to: '/my-dashboard/general-compliance',
     label: 'My requests',
     title: 'My requests',
-    description: 'View and track general compliance requests you submitted.',
+    description: 'View and track generic content pre-approval requests you submitted.',
     anyOf: ['gc_view_own_requests', 'gc_submit_request'],
     end: true,
     group: 'gc',
@@ -424,7 +424,7 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/general-compliance/new',
     label: 'New request',
     title: 'New request',
-    description: 'Submit a description and file attachments for general compliance review.',
+    description: 'Submit a description and file attachments for generic content pre-approval.',
     capability: 'gc_submit_request',
     group: 'gc',
   },
@@ -432,7 +432,7 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/general-compliance/queue',
     label: 'All requests',
     title: 'All requests',
-    description: 'Assign and review general compliance requests for this hub.',
+    description: 'Assign and review generic content pre-approval requests for this hub.',
     anyOf: ['gc_view_all_requests', 'gc_assign_requests', 'gc_review_requests', 'gc_change_request_status'],
     group: 'gc',
   },
@@ -440,15 +440,15 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/general-compliance/reports',
     label: 'Reports',
     title: 'Reports',
-    description: 'General compliance reports, CSV export, and charts.',
+    description: 'Generic content pre-approval reports, CSV export, and charts.',
     capability: 'gc_view_reports',
     group: 'gc',
   },
 
-  // —— Website Compliance ——
+  // —— Website (template library + content pre-approval) ——
   {
     kind: 'section',
-    label: 'Website Compliance',
+    label: 'Website',
     anyOf: WC_NAV_ANY,
   },
   {
@@ -548,7 +548,7 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/website-compliance/reports',
     label: 'Reports',
     title: 'Reports',
-    description: 'Website Compliance summary for templates, deployments, and change requests.',
+    description: 'Website summary for templates, deployments, and content change requests.',
     capability: 'wc_view_platform_report',
     group: 'wc',
   },

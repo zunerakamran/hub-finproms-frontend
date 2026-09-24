@@ -71,7 +71,7 @@ export default function WebsiteCompliancePublishLive() {
             <p className="eyebrow">Website Compliance</p>
             <h1>Publish live content</h1>
             <p className="muted">
-              Website Compliance is not enabled for this hub. Enable it under Modules.
+              Website Content Pre Approval is not enabled for this hub. Enable it under Modules.
             </p>
           </div>
         </div>

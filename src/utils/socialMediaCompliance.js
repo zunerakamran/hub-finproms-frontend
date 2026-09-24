@@ -1,4 +1,4 @@
-/** Social Media Compliance shared helpers */
+/** Social Media / compliance shared helpers */
 
 export const SMC_STATUSES = [
   'Pending',
@@ -30,10 +30,10 @@ export function inactiveReasonLabel(reason) {
       return 'Public only'
     case 'private_only':
       return 'Private only'
+    case 'module_social_media_template_library_off':
     case 'module_social_media_compliance_off':
-      return 'Module off'
     case 'module_general_compliance_off':
-      return 'Module off'
+    case 'module_website_template_library_off':
     case 'module_website_compliance_off':
       return 'Module off'
     default:
@@ -47,12 +47,16 @@ export function inactiveReasonHint(reason) {
       return 'Inactive while the hub is white-labelled. Turn on Shared subscribe to use this.'
     case 'private_only':
       return 'Inactive while the hub is shared. Turn on White-labelled invite-only to use this.'
+    case 'module_social_media_template_library_off':
+      return 'Inactive while Social Media Template Library is off. Enable it under Modules.'
     case 'module_social_media_compliance_off':
-      return 'Inactive while Social Media Compliance module is off. Enable it under Functionalities → Modules.'
+      return 'Inactive while Social Media Pre Approval is off. Enable it under Modules.'
     case 'module_general_compliance_off':
-      return 'Inactive while General Compliance module is off. Enable it under Functionalities → Modules.'
+      return 'Inactive while Generic Content Pre Approval is off. Enable it under Modules.'
+    case 'module_website_template_library_off':
+      return 'Inactive while Website Template Library is off. Enable it under Modules.'
     case 'module_website_compliance_off':
-      return 'Inactive while Website Compliance module is off. Enable it under Functionalities → Modules.'
+      return 'Inactive while Website Content Pre Approval is off. Enable it under Modules.'
     default:
       return 'This capability is currently inactive for this hub.'
   }
@@ -64,12 +68,16 @@ export function inactiveReasonTitle(reason) {
       return 'Shared hub only — inactive while this hub is white-labelled'
     case 'private_only':
       return 'White-labelled hub only — inactive while this hub is shared'
+    case 'module_social_media_template_library_off':
+      return 'Requires Social Media Template Library — enable it under Modules'
     case 'module_social_media_compliance_off':
-      return 'Requires Social Media Compliance module — enable it on the hub checklist'
+      return 'Requires Social Media Pre Approval Workflow — enable it under Modules'
     case 'module_general_compliance_off':
-      return 'Requires General Compliance module — enable it on the hub checklist'
+      return 'Requires Generic Content Pre Approval Workflow — enable it under Modules'
+    case 'module_website_template_library_off':
+      return 'Requires Website Template Library — enable it under Modules'
     case 'module_website_compliance_off':
-      return 'Requires Website Compliance module — enable it on the hub checklist'
+      return 'Requires Website Content Pre Approval Workflow — enable it under Modules'
     default:
       return 'Inactive for this hub'
   }

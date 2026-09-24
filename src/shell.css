@@ -516,13 +516,26 @@ h2,
 }
 
 .dash-nav__section {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   margin: 1rem 0 0.2rem;
   padding: 0.3rem 0.75rem 0.2rem;
-  color: color-mix(in srgb, var(--brand) 40%, #98a2b3);
-  font-size: 0.66rem;
+  color: #c2410c;
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dash-nav__section::before,
+.dash-nav__section::after {
+  content: '';
+  flex: 1 1 0;
+  height: 1px;
+  min-width: 0.4rem;
+  background: #c2410c;
 }
 
 .dash-nav__section:first-child {

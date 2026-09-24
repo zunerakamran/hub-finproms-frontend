@@ -2176,19 +2176,31 @@ label {
 }
 
 .admin-sidebar .admin-nav-section {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   margin: 0.95rem 0 0.2rem;
   padding: 0.55rem 0.75rem 0.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--sidebar-muted);
-  font-size: 0.66rem;
+  border-top: 0;
+  color: #c2410c;
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-sidebar .admin-nav-section::before,
+.admin-sidebar .admin-nav-section::after {
+  content: '';
+  flex: 1 1 0;
+  height: 1px;
+  min-width: 0.4rem;
+  background: #c2410c;
 }
 
 .admin-sidebar .admin-nav-section:first-child {
   margin-top: 0.15rem;
-  border-top: 0;
 }
 
 .admin-sidebar .admin-subnav a {

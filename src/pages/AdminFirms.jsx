@@ -113,11 +113,11 @@ export default function AdminFirms({ shell = 'client-admin' }) {
       <div className="page-head">
         <div>
           <p className="eyebrow">Hub</p>
-          <h1>{editingId ? (isEditingCentral ? 'Edit Central / Network' : 'Edit firm') : 'Firms'}</h1>
+          <h1>{editingId ? (isEditingCentral ? 'Edit Central / Network' : 'Edit Firm') : 'Firms'}</h1>
           <p className="muted">
             {isActingOnWhiteLabel
-              ? `Managing firms on ${actingHub?.name}. Switch hubs from the top bar.`
-              : 'Manage firms and who may review, approve, and see reports for each firm’s compliance requests. Public registration does not ask for a firm.'}
+              ? `Managing Firms on ${actingHub?.name}. Switch hubs from the top bar.`
+              : 'Manage Firms and who may review, approve, and see reports for each Firm’s compliance requests. Public registration does not ask for a Firm.'}
           </p>
         </div>
       </div>
@@ -132,14 +132,14 @@ export default function AdminFirms({ shell = 'client-admin' }) {
             required
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder={isEditingCentral ? 'Enter Central / Network name' : 'Enter firm name'}
+            placeholder={isEditingCentral ? 'Enter Central / Network name' : 'Enter Firm name'}
           />
         </label>
 
         <fieldset style={{ border: '1px solid var(--border, #ddd)', borderRadius: 8, padding: '1rem', marginTop: '1rem' }}>
-          <legend style={{ padding: '0 0.35rem' }}>Compliance visibility</legend>
+          <legend style={{ padding: '0 0.35rem' }}>Compliance check authority</legend>
           <p className="muted" style={{ marginTop: 0 }}>
-            Choose who can review, approve, and see reports for requests submitted by users of this firm.
+            Choose who can review, approve, and see reports for requests submitted by users of this Firm.
           </p>
           <label className="checkbox">
             <input
@@ -147,7 +147,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
               checked={form.compliance_visible_to_own}
               onChange={(e) => setForm((f) => ({ ...f, compliance_visible_to_own: e.target.checked }))}
             />
-            Own firm
+            Within the Firm
           </label>
           <label className="checkbox">
             <input
@@ -157,10 +157,10 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                 setForm((f) => ({ ...f, compliance_visible_to_central: e.target.checked }))
               }
             />
-            Central / Network firm
+            Central / Network's
           </label>
           <label>
-            Another firm
+            Another Firm's
             <select
               value={form.compliance_visible_to_firm_id}
               onChange={(e) =>
@@ -184,10 +184,10 @@ export default function AdminFirms({ shell = 'client-admin' }) {
               : editingId
                 ? isEditingCentral
                   ? 'Update Central / Network'
-                  : 'Update firm'
+                  : 'Update Firm'
                 : isActingOnWhiteLabel
-                  ? `Add firm on ${actingHub?.name || 'hub'}`
-                  : 'Add firm'}
+                  ? `Add Firm on ${actingHub?.name || 'hub'}`
+                  : 'Add Firm'}
           </button>
           {editingId && (
             <button type="button" className="btn ghost" onClick={resetForm}>
@@ -198,22 +198,22 @@ export default function AdminFirms({ shell = 'client-admin' }) {
       </form>
 
       <h2 className="section-title">
-        {isActingOnWhiteLabel ? `Firms on ${actingHub?.name}` : 'Existing firms'}
+        {isActingOnWhiteLabel ? `Firms on ${actingHub?.name}` : 'Existing Firms'}
       </h2>
       {loading ? (
         <div className="state">Loading...</div>
       ) : firms.length === 0 ? (
         <div className="empty-state">
-          <h2>No firms yet</h2>
-          <p className="muted">Add a firm above. The Central / Network firm is created automatically.</p>
+          <h2>No Firms yet</h2>
+          <p className="muted">Add a Firm above. The Central / Network Firm is created automatically.</p>
         </div>
       ) : (
         <div className="admin-list">
           {firms.map((firm) => {
             const vis = firm.compliance_visibility || {}
             const bits = []
-            if (vis.visible_to_own) bits.push('own')
-            if (vis.visible_to_central) bits.push('central/network')
+            if (vis.visible_to_own) bits.push('Within the Firm')
+            if (vis.visible_to_central) bits.push("Central / Network's")
             if (vis.visible_to_firm?.name) bits.push(vis.visible_to_firm.name)
             return (
               <div key={firm.id} className="admin-row">
@@ -226,7 +226,9 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                   </strong>
                   <div className="muted" style={{ fontSize: '0.9em' }}>
                     {firm.users_count || 0} user{(firm.users_count || 0) === 1 ? '' : 's'}
-                    {bits.length ? ` · Visible to: ${bits.join(', ')}` : ' · No compliance visibility set'}
+                    {bits.length
+                      ? ` · Check authority: ${bits.join(', ')}`
+                      : ' · No compliance check authority set'}
                   </div>
                 </div>
                 <div className="actions">
@@ -237,7 +239,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                     <button
                       className="btn danger"
                       onClick={async () => {
-                        if (!window.confirm(`Delete firm “${firm.name}”?`)) return
+                        if (!window.confirm(`Delete Firm “${firm.name}”?`)) return
                         try {
                           await api.deleteFirm(firm.id, apiOpts)
                           if (editingId === firm.id) resetForm()

@@ -230,9 +230,11 @@ export default function PowerAdminHubs() {
                     <span className={`badge ${hub.is_active ? 'ok' : ''}`}>
                       {hub.is_active ? 'Active' : 'Inactive'}
                     </span>
-                    <span className={`badge ${hub.deploy?.ready ? 'ok' : 'warn'}`}>
-                      {hub.deploy?.ready ? 'Wiring ready' : 'Needs wiring'}
-                    </span>
+                    {hub.type !== 'shared' ? (
+                      <span className={`badge ${hub.deploy?.ready ? 'ok' : 'warn'}`}>
+                        {hub.deploy?.ready ? 'Wiring ready' : 'Needs wiring'}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
                 <p className="muted">

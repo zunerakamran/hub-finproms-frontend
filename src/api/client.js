@@ -142,7 +142,12 @@ export const api = {
   deleteTag: (id, options = {}) =>
     request(`${adminBase(options)}/tags/${id}`, { method: 'DELETE' }),
 
-  listFirms: (options = {}) => request(`${adminBase(options)}/firms`),
+  listFirms: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/firms${query ? `?${query}` : ''}`)
+  },
   createFirm: (payload, options = {}) =>
     request(`${adminBase(options)}/firms`, { method: 'POST', body: JSON.stringify(payload) }),
   updateFirm: (id, payload, options = {}) =>

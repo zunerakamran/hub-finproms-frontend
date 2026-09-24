@@ -1083,6 +1083,53 @@ h2,
   color: var(--brand-dark);
 }
 
+.bundle-card {
+  overflow: hidden;
+}
+
+.bundle-card__media {
+  width: calc(100% + 2.4rem);
+  margin: -1.2rem -1.2rem 0.85rem;
+  aspect-ratio: 16 / 9;
+  background: color-mix(in srgb, var(--brand) 8%, #eef2f0);
+  overflow: hidden;
+}
+
+.bundle-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bundle-card__placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--brand-dark) 55%, #64748b);
+}
+
+.bundle-detail__image {
+  max-width: 42rem;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--brand) 14%, var(--line));
+  background: #fff;
+  margin-bottom: 1rem;
+}
+
+.bundle-detail__image img {
+  display: block;
+  width: 100%;
+  max-height: 22rem;
+  object-fit: cover;
+}
+
 /* Buttons / forms lean on brand */
 .btn.primary {
   background: var(--brand) !important;

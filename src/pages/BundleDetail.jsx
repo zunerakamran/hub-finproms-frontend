@@ -158,6 +158,12 @@ export default function BundleDetail() {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
+      {bundle.image_url ? (
+        <div className="bundle-detail__image">
+          <img src={bundle.image_url} alt="" />
+        </div>
+      ) : null}
+
       {bundle.description && <p className="muted">{bundle.description}</p>}
 
       <div className="actions" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>

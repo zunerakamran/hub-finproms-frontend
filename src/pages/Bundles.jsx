@@ -79,9 +79,18 @@ export default function Bundles() {
             <Link
               key={bundle.id}
               to={`/bundles/${bundle.id}`}
-              className="tool-card"
+              className="tool-card bundle-card"
               style={{ '--card-i': index }}
             >
+              <div className="bundle-card__media">
+                {bundle.image_url ? (
+                  <img src={bundle.image_url} alt="" />
+                ) : (
+                  <span className="bundle-card__placeholder" aria-hidden="true">
+                    Bundle
+                  </span>
+                )}
+              </div>
               <span className="tool-card__index">
                 {bundle.posts_count ?? 0} items
               </span>

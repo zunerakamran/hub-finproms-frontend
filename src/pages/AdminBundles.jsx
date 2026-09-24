@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -10,6 +10,7 @@ const emptyForm = {
   credits_cost: 20,
   is_active: true,
   post_ids: [],
+  image: null,
 }
 
 const emptyNewPost = {
@@ -37,6 +38,8 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   const [newPosts, setNewPosts] = useState([])
   const [draftPost, setDraftPost] = useState(emptyNewPost)
   const [editingId, setEditingId] = useState(null)
+  const [existingImageUrl, setExistingImageUrl] = useState('')
+  const [removeImage, setRemoveImage] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -78,8 +81,30 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     setEditingId(null)
     setForm(emptyForm)
     setNewPosts([])
+    setExistingImageUrl('')
+    setRemoveImage(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actingHubId])
+
+  const imagePreviewUrl = useMemo(() => {
+    if (form.image) return URL.createObjectURL(form.image)
+    if (!removeImage) return existingImageUrl || ''
+    return ''
+  }, [form.image, existingImageUrl, removeImage])
+
+  useEffect(() => {
+    if (!form.image || !imagePreviewUrl) return undefined
+    return () => URL.revokeObjectURL(imagePreviewUrl)
+  }, [form.image, imagePreviewUrl])
+
+  const resetForm = () => {
+    setEditingId(null)
+    setForm(emptyForm)
+    setNewPosts([])
+    setDraftPost(emptyNewPost)
+    setExistingImageUrl('')
+    setRemoveImage(false)
+  }
 
   const toggleExistingPost = (postId) => {
     setForm((prev) => {
@@ -126,6 +151,12 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     fd.append('credits_cost', String(form.credits_cost))
     fd.append('is_active', form.is_active ? '1' : '0')
     fd.append('post_ids', JSON.stringify(form.post_ids))
+    if (form.image) {
+      fd.append('image', form.image)
+    }
+    if (removeImage && !form.image) {
+      fd.append('remove_image', '1')
+    }
 
     if (!isActingOnWhiteLabel) {
       newPosts.forEach((post, index) => {
@@ -170,9 +201,11 @@ export default function AdminBundles({ shell = 'client-admin' }) {
       setNewPosts([])
       setDraftPost(emptyNewPost)
       setEditingId(null)
+      setExistingImageUrl('')
+      setRemoveImage(false)
       await load()
     } catch (err) {
-      setError(err.data?.errors?.post_ids?.[0] || err.message)
+      setError(err.data?.errors?.image?.[0] || err.data?.errors?.post_ids?.[0] || err.message)
     } finally {
       setSaving(false)
     }
@@ -190,7 +223,10 @@ export default function AdminBundles({ shell = 'client-admin' }) {
           credits_cost: bundle.credits_cost || 20,
           is_active: bundle.is_active !== false,
           post_ids: [],
+          image: null,
         })
+        setExistingImageUrl(bundle.image_url || '')
+        setRemoveImage(false)
         setNewPosts([])
         window.scrollTo({ top: 0, behavior: 'smooth' })
         return
@@ -204,7 +240,10 @@ export default function AdminBundles({ shell = 'client-admin' }) {
         credits_cost: full.credits_cost || 20,
         is_active: full.is_active !== false,
         post_ids: (full.posts || []).map((p) => p.id),
+        image: null,
       })
+      setExistingImageUrl(full.image_url || '')
+      setRemoveImage(false)
       setNewPosts([])
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
@@ -279,6 +318,34 @@ export default function AdminBundles({ shell = 'client-admin' }) {
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </label>
+
+        <label>
+          Bundle image
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={(e) => {
+              setForm({ ...form, image: e.target.files?.[0] || null })
+              setRemoveImage(false)
+            }}
+          />
+          <span className="field-hint">JPG, PNG, GIF or WebP. Max 5MB. Shown on the bundles listing.</span>
+        </label>
+        {imagePreviewUrl ? (
+          <div className="plan-image-preview">
+            <img src={imagePreviewUrl} alt="Bundle preview" />
+          </div>
+        ) : null}
+        {existingImageUrl && !form.image ? (
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={removeImage}
+              onChange={(e) => setRemoveImage(e.target.checked)}
+            />
+            Remove current image
+          </label>
+        ) : null}
 
         <label className="checkbox">
           <input
@@ -418,11 +485,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
             <button
               type="button"
               className="btn ghost"
-              onClick={() => {
-                setEditingId(null)
-                setForm(emptyForm)
-                setNewPosts([])
-              }}
+              onClick={resetForm}
             >
               Cancel edit
             </button>
@@ -438,8 +501,15 @@ export default function AdminBundles({ shell = 'client-admin' }) {
       ) : (
         <div className="admin-list">
           {bundles.map((bundle) => (
-            <div key={bundle.id} className="admin-row">
-              <div>
+            <div key={bundle.id} className="admin-row admin-bundle-row">
+              <div className="admin-thumb-wrap">
+                {bundle.image_url ? (
+                  <img className="admin-thumb" src={bundle.image_url} alt="" />
+                ) : (
+                  <span className="admin-thumb fallback">Bundle</span>
+                )}
+              </div>
+              <div className="admin-bundle-row__meta">
                 <strong>{bundle.title}</strong>
                 <p className="muted">
                   {bundle.posts_count ?? bundle.posts?.length ?? 0} posts · {bundle.credits_cost}{' '}

@@ -126,7 +126,6 @@ export default function BundleDetail() {
   const unlimited =
     user?.has_unlimited_credits ||
     (can('unlimited_credits') && (user?.is_advisor || isActingAsAdvisor))
-  const hasCredits = unlimited || (user?.credits ?? 0) >= (bundle.credits_cost ?? 0)
   const oneOffEnabled = oneOffPurchase || can('one_off_purchase')
   const stripeMethod = paymentMethods.find((m) => m.id === 'stripe') || {
     id: 'stripe',
@@ -167,81 +166,83 @@ export default function BundleDetail() {
         {error && <div className="alert">{error}</div>}
         {message && <div className="alert success">{message}</div>}
 
-        <div className="actions" style={{ marginTop: '0.75rem', flexWrap: 'wrap' }}>
-          {bundle.is_purchased ? (
-            <span className="badge ok">Purchased — all posts unlocked</span>
-          ) : canBuy ? (
-            <>
-              {hasCredits && (
+        {bundle.is_purchased ? (
+          <div className="unlock-box">
+            <p className="badge ok">Purchased — all posts unlocked</p>
+          </div>
+        ) : canBuy ? (
+          <div className="unlock-box">
+            <p>
+              Buy this bundle for {bundle.credits_cost} credits (£{bundle.credits_cost}).
+              {oneOffEnabled ? ' No subscription required.' : ''}
+            </p>
+            <p className="muted">
+              Your balance:{' '}
+              {unlimited ? 'Unlimited' : `${user?.credits ?? 0} credits`}
+            </p>
+            <div className="actions">
+              <button
+                className="btn primary"
+                onClick={purchaseWithCredits}
+                disabled={
+                  buying ||
+                  Boolean(checkoutKey) ||
+                  (!unlimited && Number(user?.credits ?? 0) < Number(bundle.credits_cost ?? 0))
+                }
+              >
+                {buying ? 'Purchasing...' : `Buy with credits (${bundle.credits_cost})`}
+              </button>
+              {can('member_view_plans') && (
+                <Link to="/subscriptions" className="btn ghost">
+                  Get more credits
+                </Link>
+              )}
+            </div>
+            {oneOffEnabled && (
+              <div className="plan-actions" style={{ marginTop: '0.75rem' }}>
+                <p className="muted">Or pay directly with an enabled payment method:</p>
                 <button
-                  className="btn primary"
-                  disabled={buying || checkoutKey}
-                  onClick={purchaseWithCredits}
+                  className="btn primary full"
+                  onClick={() => purchaseWithPayment('stripe')}
+                  disabled={!stripeMethod.available || Boolean(checkoutKey)}
+                  title={stripeMethod.unavailable_reason || undefined}
                 >
-                  {buying ? 'Purchasing...' : `Buy with credits (${bundle.credits_cost})`}
+                  {checkoutKey === 'stripe'
+                    ? 'Redirecting to Stripe...'
+                    : stripeMethod.available
+                      ? 'Pay with Stripe'
+                      : 'Stripe unavailable'}
                 </button>
-              )}
-              {oneOffEnabled && (
-                <>
-                  <button
-                    className="btn primary"
-                    disabled={!stripeMethod.available || Boolean(checkoutKey)}
-                    onClick={() => purchaseWithPayment('stripe')}
-                    title={stripeMethod.unavailable_reason || undefined}
-                  >
-                    {checkoutKey === 'stripe'
-                      ? 'Redirecting to Stripe...'
-                      : stripeMethod.available
-                        ? 'Pay with Stripe'
-                        : 'Stripe unavailable'}
-                  </button>
-                  <button
-                    className="btn ghost"
-                    disabled={!bankMethod.available || Boolean(checkoutKey)}
-                    onClick={() => purchaseWithPayment('bank_transfer')}
-                    title={bankMethod.unavailable_reason || undefined}
-                  >
-                    {checkoutKey === 'bank_transfer'
-                      ? 'Completing test payment...'
-                      : bankMethod.available
-                        ? 'Pay by bank transfer'
-                        : 'Bank transfer unavailable'}
-                  </button>
-                </>
-              )}
-              {!hasCredits && !oneOffEnabled && (
-                <p className="muted">
-                  Insufficient credits.
-                  {can('member_view_plans') && (
-                    <>
-                      {' '}
-                      <Link to="/subscriptions">Get a plan</Link>
-                    </>
-                  )}
-                </p>
-              )}
-            </>
-          ) : !user ? (
+                <button
+                  className="btn ghost full"
+                  onClick={() => purchaseWithPayment('bank_transfer')}
+                  disabled={!bankMethod.available || Boolean(checkoutKey)}
+                  title={bankMethod.unavailable_reason || undefined}
+                  style={{ marginTop: '0.5rem' }}
+                >
+                  {checkoutKey === 'bank_transfer'
+                    ? 'Completing test payment...'
+                    : bankMethod.available
+                      ? 'Pay by bank transfer'
+                      : 'Bank transfer unavailable'}
+                </button>
+                {!stripeMethod.available && stripeMethod.unavailable_reason && (
+                  <p className="field-hint">{stripeMethod.unavailable_reason}</p>
+                )}
+                {!bankMethod.available && bankMethod.unavailable_reason && (
+                  <p className="field-hint">{bankMethod.unavailable_reason}</p>
+                )}
+              </div>
+            )}
+          </div>
+        ) : !user ? (
+          <div className="unlock-box">
+            <p className="muted">Sign in to purchase this bundle with credits.</p>
             <Link to="/login" className="btn primary">
               Sign in to purchase
             </Link>
-          ) : null}
-        </div>
-
-        {canBuy && oneOffEnabled && (
-          <div style={{ marginTop: '0.75rem' }}>
-            <p className="muted">
-              No subscription required — pay with credits or an enabled payment method (1 credit =
-              £1).
-            </p>
-            {!stripeMethod.available && stripeMethod.unavailable_reason && (
-              <p className="field-hint">{stripeMethod.unavailable_reason}</p>
-            )}
-            {!bankMethod.available && bankMethod.unavailable_reason && (
-              <p className="field-hint">{bankMethod.unavailable_reason}</p>
-            )}
           </div>
-        )}
+        ) : null}
       </div>
 
       <h2 className="section-title">Included posts</h2>

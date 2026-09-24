@@ -91,15 +91,17 @@ export default function Bundles() {
                   </span>
                 )}
               </div>
-              <span className="tool-card__index">
-                {bundle.posts_count ?? 0} items
-              </span>
-              <h2>{bundle.title}</h2>
-              <p className="bundle-card__desc">{bundle.description || 'No description.'}</p>
-              <div className="tool-card__meta">
-                <strong>{bundle.credits_cost} credits</strong>
-                {bundle.is_purchased && <span className="badge ok">Owned</span>}
-                {!user && <span className="badge">Sign in to buy</span>}
+              <div className="bundle-card__body">
+                <span className="tool-card__index">
+                  {bundle.posts_count ?? 0} items
+                </span>
+                <h2>{bundle.title}</h2>
+                <p className="bundle-card__desc">{bundle.description || 'No description.'}</p>
+                <div className="tool-card__meta">
+                  <strong>{bundle.credits_cost} credits</strong>
+                  {bundle.is_purchased && <span className="badge ok">Owned</span>}
+                  {!user && <span className="badge">Sign in to buy</span>}
+                </div>
               </div>
             </Link>
           ))}

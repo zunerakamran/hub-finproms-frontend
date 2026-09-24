@@ -140,102 +140,109 @@ export default function BundleDetail() {
   }
 
   return (
-    <section>
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">Bundle</p>
-          <h1>{bundle.title}</h1>
-          <p className="muted">
-            {bundle.posts_count ?? bundle.posts?.length ?? 0} posts · {bundle.credits_cost} credits
-            (£{bundle.credits_cost})
-          </p>
+    <section className="detail">
+      <Link to="/bundles" className="back">
+        ← Back to bundles
+      </Link>
+
+      <div className="detail-panel">
+        {bundle.image_url ? (
+          <div className="detail-cover">
+            <img src={bundle.image_url} alt={bundle.title} />
+          </div>
+        ) : null}
+
+        <div className="post-meta">
+          <span>Bundle</span>
+          <span>{bundle.posts_count ?? bundle.posts?.length ?? 0} posts</span>
+          <span>
+            {bundle.credits_cost} credits · £{bundle.credits_cost}
+          </span>
+          {bundle.is_purchased ? <span className="badge ok">Owned</span> : null}
         </div>
-        <Link to="/bundles" className="btn ghost">
-          All bundles
-        </Link>
-      </div>
 
-      {error && <div className="alert">{error}</div>}
-      {message && <div className="alert success">{message}</div>}
+        <h1>{bundle.title}</h1>
+        <p>{bundle.description || 'No description provided.'}</p>
 
-      {bundle.image_url ? (
-        <div className="bundle-detail__image">
-          <img src={bundle.image_url} alt="" />
-        </div>
-      ) : null}
+        {error && <div className="alert">{error}</div>}
+        {message && <div className="alert success">{message}</div>}
 
-      {bundle.description && <p className="muted">{bundle.description}</p>}
-
-      <div className="actions" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        {bundle.is_purchased ? (
-          <span className="badge">Purchased — all posts unlocked</span>
-        ) : canBuy ? (
-          <>
-            {hasCredits && (
-              <button className="btn primary" disabled={buying || checkoutKey} onClick={purchaseWithCredits}>
-                {buying ? 'Purchasing...' : `Buy with credits (${bundle.credits_cost})`}
-              </button>
-            )}
-            {oneOffEnabled && (
-              <>
+        <div className="actions" style={{ marginTop: '0.75rem', flexWrap: 'wrap' }}>
+          {bundle.is_purchased ? (
+            <span className="badge ok">Purchased — all posts unlocked</span>
+          ) : canBuy ? (
+            <>
+              {hasCredits && (
                 <button
                   className="btn primary"
-                  disabled={!stripeMethod.available || Boolean(checkoutKey)}
-                  onClick={() => purchaseWithPayment('stripe')}
-                  title={stripeMethod.unavailable_reason || undefined}
+                  disabled={buying || checkoutKey}
+                  onClick={purchaseWithCredits}
                 >
-                  {checkoutKey === 'stripe'
-                    ? 'Redirecting to Stripe...'
-                    : stripeMethod.available
-                      ? 'Pay with Stripe'
-                      : 'Stripe unavailable'}
+                  {buying ? 'Purchasing...' : `Buy with credits (${bundle.credits_cost})`}
                 </button>
-                <button
-                  className="btn ghost"
-                  disabled={!bankMethod.available || Boolean(checkoutKey)}
-                  onClick={() => purchaseWithPayment('bank_transfer')}
-                  title={bankMethod.unavailable_reason || undefined}
-                >
-                  {checkoutKey === 'bank_transfer'
-                    ? 'Completing test payment...'
-                    : bankMethod.available
-                      ? 'Pay by bank transfer'
-                      : 'Bank transfer unavailable'}
-                </button>
-              </>
-            )}
-            {!hasCredits && !oneOffEnabled && (
-              <p className="muted">
-                Insufficient credits.
-                {can('member_view_plans') && (
-                  <>
-                    {' '}
-                    <Link to="/subscriptions">Get a plan</Link>
-                  </>
-                )}
-              </p>
-            )}
-          </>
-        ) : !user ? (
-          <Link to="/login" className="btn primary">
-            Sign in to purchase
-          </Link>
-        ) : null}
-      </div>
-
-      {canBuy && oneOffEnabled && (
-        <div style={{ marginTop: '-0.75rem', marginBottom: '1.5rem' }}>
-          <p className="muted">
-            No subscription required — pay with credits or an enabled payment method (1 credit = £1).
-          </p>
-          {!stripeMethod.available && stripeMethod.unavailable_reason && (
-            <p className="field-hint">{stripeMethod.unavailable_reason}</p>
-          )}
-          {!bankMethod.available && bankMethod.unavailable_reason && (
-            <p className="field-hint">{bankMethod.unavailable_reason}</p>
-          )}
+              )}
+              {oneOffEnabled && (
+                <>
+                  <button
+                    className="btn primary"
+                    disabled={!stripeMethod.available || Boolean(checkoutKey)}
+                    onClick={() => purchaseWithPayment('stripe')}
+                    title={stripeMethod.unavailable_reason || undefined}
+                  >
+                    {checkoutKey === 'stripe'
+                      ? 'Redirecting to Stripe...'
+                      : stripeMethod.available
+                        ? 'Pay with Stripe'
+                        : 'Stripe unavailable'}
+                  </button>
+                  <button
+                    className="btn ghost"
+                    disabled={!bankMethod.available || Boolean(checkoutKey)}
+                    onClick={() => purchaseWithPayment('bank_transfer')}
+                    title={bankMethod.unavailable_reason || undefined}
+                  >
+                    {checkoutKey === 'bank_transfer'
+                      ? 'Completing test payment...'
+                      : bankMethod.available
+                        ? 'Pay by bank transfer'
+                        : 'Bank transfer unavailable'}
+                  </button>
+                </>
+              )}
+              {!hasCredits && !oneOffEnabled && (
+                <p className="muted">
+                  Insufficient credits.
+                  {can('member_view_plans') && (
+                    <>
+                      {' '}
+                      <Link to="/subscriptions">Get a plan</Link>
+                    </>
+                  )}
+                </p>
+              )}
+            </>
+          ) : !user ? (
+            <Link to="/login" className="btn primary">
+              Sign in to purchase
+            </Link>
+          ) : null}
         </div>
-      )}
+
+        {canBuy && oneOffEnabled && (
+          <div style={{ marginTop: '0.75rem' }}>
+            <p className="muted">
+              No subscription required — pay with credits or an enabled payment method (1 credit =
+              £1).
+            </p>
+            {!stripeMethod.available && stripeMethod.unavailable_reason && (
+              <p className="field-hint">{stripeMethod.unavailable_reason}</p>
+            )}
+            {!bankMethod.available && bankMethod.unavailable_reason && (
+              <p className="field-hint">{bankMethod.unavailable_reason}</p>
+            )}
+          </div>
+        )}
+      </div>
 
       <h2 className="section-title">Included posts</h2>
       <div className="bundle-included">

@@ -257,16 +257,6 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       {canImport && (
       <form className="admin-form advisor-import-form" onSubmit={onImport}>
         <h2>Upload users</h2>
-        <p className="muted">
-          Download the Excel template first. Columns: <code>name</code>, <code>email</code>, optional{' '}
-          <code>password</code>, <code>role</code>, and <code>firm</code>. Role and firm are dropdowns —
-          only hub roles (excluding Power Admin / FinProms Admin) and existing firms are allowed. If
-          password is blank, a temporary password is generated (shown once after import
-          {billingEnabled ? ' / payment' : ''}). Upload <strong>.xlsx</strong> only.
-          {billingEnabled
-            ? ' Choosing a payment method and clicking Pay now creates the accounts.'
-            : ''}
-        </p>
         <label>
           Excel file (.xlsx)
           <input

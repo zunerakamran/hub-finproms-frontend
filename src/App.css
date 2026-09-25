@@ -2989,7 +2989,8 @@ label {
 .advisor-import-form,
 .import-result,
 .advisor-list-block {
-  max-width: 900px;
+  max-width: none;
+  width: 100%;
   margin-bottom: 1.5rem;
 }
 

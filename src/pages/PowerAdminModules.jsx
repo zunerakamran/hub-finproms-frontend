@@ -1,18 +1,48 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
+/** Children that must turn off when a parent module is turned off. */
+const MODULE_CHILDREN = {
+  module_social_media_template_library: ['module_social_media_compliance'],
+  module_website_template_library: ['module_website_compliance'],
+}
+
 function lockedHint(item) {
   if (!item.locked) return null
   if (item.locked_reason === 'shared_hub') {
-    return 'Locked off on the shared hub. Always enabled on white-labelled hubs.'
+    return 'Always enabled on the shared hub (cannot be turned off). Other modules depend on this.'
   }
   if (item.locked_reason === 'white_label_hub') {
-    return 'Always enabled on white-labelled hubs (cannot be turned off).'
+    return 'Always enabled on white-labelled hubs (cannot be turned off). Other modules depend on this.'
   }
   return 'This module cannot be toggled for this hub.'
+}
+
+function dependencyHint(item, labelByKey) {
+  if (!item.depends_on?.length) return null
+  const names = item.depends_on.map((k) => labelByKey[k] || k).join(' + ')
+  return `Requires: ${names}`
+}
+
+function cascadeFlags(prev, key, checked) {
+  const next = { ...prev, [key]: checked }
+  if (!checked) {
+    const queue = [...(MODULE_CHILDREN[key] || [])]
+    while (queue.length) {
+      const child = queue.shift()
+      next[child] = false
+      for (const grand of MODULE_CHILDREN[child] || []) queue.push(grand)
+    }
+  }
+  return next
+}
+
+function dependenciesMet(item, flags) {
+  if (!item.depends_on?.length) return true
+  return item.depends_on.every((dep) => Boolean(flags[dep]))
 }
 
 export default function PowerAdminModules() {
@@ -31,6 +61,12 @@ export default function PowerAdminModules() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+
+  const labelByKey = useMemo(() => {
+    const map = {}
+    for (const row of modules) map[row.key] = row.label
+    return map
+  }, [modules])
 
   useEffect(() => {
     if (hubLoading || !selectedId || !enabled) {
@@ -73,11 +109,11 @@ export default function PowerAdminModules() {
     setError('')
     setMessage('')
     try {
-      // Omit locked modules from the payload — backend enforces type locks.
+      // Omit locked modules from the payload — backend enforces type locks + deps.
       const payload = {}
       for (const row of modules) {
         if (row.locked) continue
-        payload[row.key] = Boolean(flags[row.key])
+        payload[row.key] = Boolean(flags[row.key]) && dependenciesMet(row, flags)
       }
       const data = await api.updateHubModules(
         { hub_id: selectedId, modules: payload },
@@ -149,37 +185,36 @@ export default function PowerAdminModules() {
           <div className="checklist-section" id="modules">
             <h2>Modules</h2>
             <p className="muted checklist-section-hint">
-              Six product modules: White Label Hub, Social Media Template Library, Social Media Pre
-              Approval, Website Template Library, Website Content Pre Approval, and Generic Content
-              Pre Approval. Enable a module here, then grant related capabilities on the Capabilities
-              matrix. Turning off Social Media Template Library also disables related functionalities
-              (one-off purchase, receive content from shared).
+              Module 1 is the hub base ({isActingOnWhiteLabel ? 'White Label Hub' : 'Shared Hub'}) and
+              is always on. Other modules are gated by dependencies: Social Media Pre Approval needs
+              the Social Media Template Library; Website Content Pre Approval needs the Website
+              Template Library. Turning a parent off cascades to its dependents.
             </p>
             <div className="checklist-grid">
               {modules.map((item) => {
+                const depsOk = dependenciesMet(item, flags)
                 const isLocked = Boolean(item.locked) || !item.available
-                const hint = lockedHint(item)
+                const disabled = isLocked || !depsOk
+                const hint = lockedHint(item) || (!depsOk ? dependencyHint(item, labelByKey) : null)
+                const checked = Boolean(flags[item.key]) && depsOk
                 return (
                   <label
                     key={item.key}
-                    className={`checklist-item${isLocked || !item.available ? ' is-inactive' : ''}`}
+                    className={`checklist-item${disabled ? ' is-inactive' : ''}`}
                     title={hint || undefined}
                   >
                     <input
                       type="checkbox"
-                      checked={Boolean(flags[item.key])}
-                      disabled={isLocked}
+                      checked={checked}
+                      disabled={disabled}
                       onChange={(e) =>
-                        setFlags((prev) => ({
-                          ...prev,
-                          [item.key]: e.target.checked,
-                        }))
+                        setFlags((prev) => cascadeFlags(prev, item.key, e.target.checked))
                       }
                     />
                     <span>
                       <strong>
                         {item.label}
-                        {item.locked ? ' (locked)' : !item.available ? ' (coming soon)' : ''}
+                        {item.locked ? ' (locked)' : !depsOk ? ' (requires parent)' : !item.available ? ' (coming soon)' : ''}
                       </strong>
                       <small className="muted">{item.description}</small>
                       {hint && <small className="muted exclusive-hint">{hint}</small>}

@@ -448,6 +448,9 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
               {request.logo_url && (
                 <span className="text-[10px] text-gray-500 font-medium">Logo attached</span>
               )}
+              {request.white_logo_url && (
+                <span className="text-[10px] text-gray-500 font-medium">White logo attached</span>
+              )}
               {request.favicon_url && (
                 <span className="text-[10px] text-gray-500 font-medium">Favicon attached</span>
               )}
@@ -1249,10 +1252,13 @@ export default function AdvisorDashboard({
   const [selectedTemplateName, setSelectedTemplateName] = useState('template4')
   const [domainName, setDomainName] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
+  const [whiteLogoUrl, setWhiteLogoUrl] = useState('')
   const [faviconUrl, setFaviconUrl] = useState('')
   const [logoPreview, setLogoPreview] = useState('')
+  const [whiteLogoPreview, setWhiteLogoPreview] = useState('')
   const [faviconPreview, setFaviconPreview] = useState('')
   const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingWhiteLogo, setUploadingWhiteLogo] = useState(false)
   const [uploadingFavicon, setUploadingFavicon] = useState(false)
   const [primaryColor, setPrimaryColor] = useState(sitePrimaryDefault)
   const [secondaryColor, setSecondaryColor] = useState(siteSecondaryDefault)
@@ -2005,12 +2011,15 @@ export default function AdvisorDashboard({
 
   const uploadBrandingAsset = async (file, kind) => {
     if (!file) return
-    const setUploading = kind === 'logo' ? setUploadingLogo : setUploadingFavicon
-    const setUrl = kind === 'logo' ? setLogoUrl : setFaviconUrl
-    const setPreview = kind === 'logo' ? setLogoPreview : setFaviconPreview
-    setUploading(true)
+    const setters = {
+      logo: { setUploading: setUploadingLogo, setUrl: setLogoUrl, setPreview: setLogoPreview },
+      white_logo: { setUploading: setUploadingWhiteLogo, setUrl: setWhiteLogoUrl, setPreview: setWhiteLogoPreview },
+      favicon: { setUploading: setUploadingFavicon, setUrl: setFaviconUrl, setPreview: setFaviconPreview },
+    }
+    const active = setters[kind] || setters.logo
+    active.setUploading(true)
     setError('')
-    setPreview(URL.createObjectURL(file))
+    active.setPreview(URL.createObjectURL(file))
     try {
       const formData = new FormData()
       formData.append('image', file)
@@ -2018,17 +2027,17 @@ export default function AdvisorDashboard({
       const uploadedUrl = storedUploadPath(res.data)
       if (!uploadedUrl) {
         setError('Upload succeeded but no image path was returned.')
-        setPreview('')
-        setUrl('')
+        active.setPreview('')
+        active.setUrl('')
         return
       }
-      setUrl(uploadedUrl)
+      active.setUrl(uploadedUrl)
     } catch (err) {
-      setPreview('')
-      setUrl('')
-      setError(err.response?.data?.message || `Failed to upload ${kind}.`)
+      active.setPreview('')
+      active.setUrl('')
+      setError(err.response?.data?.message || `Failed to upload ${kind.replace('_', ' ')}.`)
     } finally {
-      setUploading(false)
+      active.setUploading(false)
     }
   }
 
@@ -2042,6 +2051,7 @@ export default function AdvisorDashboard({
         template_name: selectedTemplateName,
         domain_name: domainName,
         logo_url: logoUrl || undefined,
+        white_logo_url: whiteLogoUrl || undefined,
         favicon_url: faviconUrl || undefined,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
@@ -2051,8 +2061,10 @@ export default function AdvisorDashboard({
       setShowTemplateModal(false)
       setDomainName('')
       setLogoUrl('')
+      setWhiteLogoUrl('')
       setFaviconUrl('')
       setLogoPreview('')
+      setWhiteLogoPreview('')
       setFaviconPreview('')
       setActiveTab('deployments')
       fetchTemplateRequests()
@@ -5211,10 +5223,11 @@ export default function AdvisorDashboard({
                                 cpanelDomain={activeDeployment?.cpanel_domain || null}
                                 templateRequestId={activeDeployment?.id || null}
                                 showSlideControls={false}
-                                branding={{
+                                  branding={{
                                   primary_color: activeDeployment?.primary_color || null,
                                   secondary_color: activeDeployment?.secondary_color || null,
                                   logo_url: activeDeployment?.logo_url || null,
+                                  white_logo_url: activeDeployment?.white_logo_url || null,
                                   favicon_url: activeDeployment?.favicon_url || null,
                                   site_url: activeDeployment?.cpanel_domain || null,
                                   template_name: activeDeployment?.template_name || null,
@@ -5369,7 +5382,51 @@ export default function AdvisorDashboard({
                           Remove
                         </button>
                       )}
-                      <p className="text-[11px] text-gray-500">Used in the live site header/footer after cPanel deploy.</p>
+                      <p className="text-[11px] text-gray-500">Used on light backgrounds (header bar).</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClass}>White Logo <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <div className="flex items-start gap-3">
+                    <div className="w-14 h-14 rounded-xl border border-gray-700 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
+                      {(whiteLogoPreview || whiteLogoUrl) ? (
+                        <img
+                          src={whiteLogoPreview || absoluteAssetUrl(whiteLogoUrl)}
+                          alt=""
+                          className="w-full h-full object-contain p-1"
+                        />
+                      ) : (
+                        <FaImage className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition">
+                        <FaUpload className="w-3 h-3 text-[var(--brand)]" />
+                        {uploadingWhiteLogo ? 'Uploading…' : 'Upload white logo'}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                          className="hidden"
+                          disabled={uploadingWhiteLogo}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) uploadBrandingAsset(file, 'white_logo')
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                      {whiteLogoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
+                          className="block text-[11px] font-semibold text-rose-600 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      )}
+                      <p className="text-[11px] text-gray-500">Used on dark backgrounds (nav, footer).</p>
                     </div>
                   </div>
                 </div>
@@ -5467,7 +5524,7 @@ export default function AdvisorDashboard({
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingTemplate || uploadingLogo || uploadingFavicon}
+                  disabled={isSubmittingTemplate || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
                   className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
                 >
                   <FaRocket className="w-3.5 h-3.5" />

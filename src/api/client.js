@@ -805,6 +805,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  websiteComplianceUpdateTemplateRequestBranding: (id, body) =>
+    request(`/website-compliance/template-requests/${id}/branding`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
   websiteComplianceRejectTemplateRequest: (id, body = {}) =>
     request(`/website-compliance/template-requests/${id}/reject`, {
       method: 'POST',

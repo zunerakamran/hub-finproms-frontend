@@ -8,7 +8,9 @@ import {
   FaEdit,
   FaEyeSlash,
   FaGlobe,
+  FaImage,
   FaLayerGroup,
+  FaPalette,
   FaPen,
   FaPlus,
   FaRocket,
@@ -18,8 +20,10 @@ import {
   FaTimes,
   FaTimesCircle,
   FaTrash,
+  FaUpload,
 } from 'react-icons/fa'
 import { useHub } from '../../context/HubContext'
+import { websiteComplianceAssetUrl } from '../../api/client'
 import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
 import { sectionDisplayName } from '../utils/sectionDisplay'
 import TemplateScrollPreview from './TemplateScrollPreview'
@@ -75,6 +79,79 @@ function StatusBadge({ status }) {
 const fieldLabelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
 const fieldInputClass =
   'w-full text-sm p-2.5 border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition'
+
+function storedUploadPath(data) {
+  const path = data?.relative_url || data?.url || ''
+  if (!path || /^data:/i.test(path)) return ''
+  const name = String(path).split('/').pop().split('?')[0]
+  if (!name) return ''
+  if (path.includes('/website-compliance/uploaded-images') || path.includes('/uploaded-images') || path.includes('/uploads/')) {
+    return `/website-compliance/uploaded-images/${name}`
+  }
+  return path.startsWith('/') ? path : `/website-compliance/uploaded-images/${name}`
+}
+
+function BrandingUploadField({
+  label,
+  accept,
+  hint,
+  value,
+  previewUrl,
+  uploading,
+  onUpload,
+  onClear,
+  darkPreview = false,
+}) {
+  const displaySrc = previewUrl || (value ? websiteComplianceAssetUrl(value) : '')
+
+  return (
+    <div>
+      <label className="block text-xs font-bold text-gray-700 mb-1.5">
+        {label} <span className="text-gray-400 font-normal">(optional)</span>
+      </label>
+      <div className="flex items-start gap-3">
+        <div
+          className={`w-14 h-14 rounded-xl border overflow-hidden shrink-0 flex items-center justify-center ${
+            darkPreview ? 'border-gray-700 bg-slate-900' : 'border-gray-200 bg-gray-50'
+          }`}
+        >
+          {displaySrc ? (
+            <img src={displaySrc} alt="" className="w-full h-full object-contain p-1" />
+          ) : (
+            <FaImage className={`w-5 h-5 ${darkPreview ? 'text-gray-500' : 'text-gray-300'}`} aria-hidden="true" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition">
+            <FaUpload className="w-3 h-3 text-[var(--brand)]" />
+            {uploading ? 'Uploading…' : 'Upload file'}
+            <input
+              type="file"
+              accept={accept}
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) onUpload(file)
+                e.target.value = ''
+              }}
+            />
+          </label>
+          {value && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="block text-[11px] font-semibold text-rose-600 hover:underline"
+            >
+              Remove
+            </button>
+          )}
+          {hint && <p className="text-[11px] text-gray-500">{hint}</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' }) {
   return createPortal(
@@ -148,6 +225,7 @@ export default function WebsiteComplianceTemplatesPanel() {
   )
 
   const [selectedRequest, setSelectedRequest] = useState(null)
+  const [brandingOnlyRequest, setBrandingOnlyRequest] = useState(null)
   const [cpanelDomain, setCpanelDomain] = useState('')
   const [cpanelDbHost, setCpanelDbHost] = useState('localhost')
   const [cpanelDbName, setCpanelDbName] = useState('')
@@ -155,6 +233,18 @@ export default function WebsiteComplianceTemplatesPanel() {
   const [cpanelDbPass, setCpanelDbPass] = useState('')
   const [cpanelApiKey, setCpanelApiKey] = useState('')
   const [isDeploying, setIsDeploying] = useState(false)
+  const [logoUrl, setLogoUrl] = useState('')
+  const [whiteLogoUrl, setWhiteLogoUrl] = useState('')
+  const [faviconUrl, setFaviconUrl] = useState('')
+  const [logoPreview, setLogoPreview] = useState('')
+  const [whiteLogoPreview, setWhiteLogoPreview] = useState('')
+  const [faviconPreview, setFaviconPreview] = useState('')
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingWhiteLogo, setUploadingWhiteLogo] = useState(false)
+  const [uploadingFavicon, setUploadingFavicon] = useState(false)
+  const [primaryColor, setPrimaryColor] = useState('#0B1B3D')
+  const [secondaryColor, setSecondaryColor] = useState('#C8102E')
+  const [isSavingBranding, setIsSavingBranding] = useState(false)
 
   const [sectionManageRequest, setSectionManageRequest] = useState(null)
   const [deploymentSections, setDeploymentSections] = useState([])
@@ -273,7 +363,54 @@ export default function WebsiteComplianceTemplatesPanel() {
     }
   }
 
+  const fillBrandingFromRequest = (req) => {
+    setLogoUrl(req?.logo_url || '')
+    setWhiteLogoUrl(req?.white_logo_url || '')
+    setFaviconUrl(req?.favicon_url || '')
+    setLogoPreview('')
+    setWhiteLogoPreview('')
+    setFaviconPreview('')
+    setPrimaryColor(req?.primary_color || '#0B1B3D')
+    setSecondaryColor(req?.secondary_color || '#C8102E')
+  }
+
+  const uploadBrandingAsset = async (file, kind) => {
+    if (!file) return
+    const setters = {
+      logo: { setUploading: setUploadingLogo, setUrl: setLogoUrl, setPreview: setLogoPreview },
+      white_logo: { setUploading: setUploadingWhiteLogo, setUrl: setWhiteLogoUrl, setPreview: setWhiteLogoPreview },
+      favicon: { setUploading: setUploadingFavicon, setUrl: setFaviconUrl, setPreview: setFaviconPreview },
+    }
+    const active = setters[kind] || setters.logo
+    active.setUploading(true)
+    setError('')
+    active.setPreview(URL.createObjectURL(file))
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      const res = await api.post('upload-image', formData)
+      const uploadedUrl = storedUploadPath(res.data)
+      if (!uploadedUrl) throw new Error('Upload succeeded but no path was returned.')
+      active.setUrl(uploadedUrl)
+    } catch (err) {
+      active.setPreview('')
+      active.setUrl('')
+      setError(err.response?.data?.message || err.message || `Failed to upload ${kind.replace('_', ' ')}.`)
+    } finally {
+      active.setUploading(false)
+    }
+  }
+
+  const brandingPayload = () => ({
+    logo_url: logoUrl.trim() || null,
+    white_logo_url: whiteLogoUrl.trim() || null,
+    favicon_url: faviconUrl.trim() || null,
+    primary_color: primaryColor,
+    secondary_color: secondaryColor,
+  })
+
   const openDeployModal = (req) => {
+    setBrandingOnlyRequest(null)
     setSelectedRequest(req)
     setCpanelDomain(resolveAdvisorSiteUrl(req))
     setCpanelDbHost(req.cpanel_db_host || 'localhost')
@@ -281,6 +418,13 @@ export default function WebsiteComplianceTemplatesPanel() {
     setCpanelDbUser(req.cpanel_db_user || '')
     setCpanelDbPass(req.cpanel_db_pass || '')
     setCpanelApiKey(req.cpanel_api_key || '')
+    fillBrandingFromRequest(req)
+  }
+
+  const openBrandingModal = (req) => {
+    setSelectedRequest(null)
+    setBrandingOnlyRequest(req)
+    fillBrandingFromRequest(req)
   }
 
   const handleDeploySubmit = async (e) => {
@@ -297,10 +441,11 @@ export default function WebsiteComplianceTemplatesPanel() {
         cpanel_db_user: cpanelDbUser,
         cpanel_db_pass: cpanelDbPass,
         cpanel_api_key: cpanelApiKey,
+        ...brandingPayload(),
       })
       setMessage(
         selectedRequest.status === 'deployed'
-          ? `Deployment settings updated for ${cpanelDomain}.`
+          ? `Deployment settings and branding updated for ${cpanelDomain}.`
           : `Template deployed to ${cpanelDomain}.`
       )
       setSelectedRequest(null)
@@ -311,6 +456,104 @@ export default function WebsiteComplianceTemplatesPanel() {
       setIsDeploying(false)
     }
   }
+
+  const handleBrandingSubmit = async (e) => {
+    e.preventDefault()
+    if (!brandingOnlyRequest) return
+    setIsSavingBranding(true)
+    setMessage('')
+    setError('')
+    try {
+      const res = await api.put(`/template-requests/${brandingOnlyRequest.id}/branding`, brandingPayload())
+      setMessage(res.data?.message || 'Branding updated successfully.')
+      setBrandingOnlyRequest(null)
+      fetchData(true)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update branding.')
+    } finally {
+      setIsSavingBranding(false)
+    }
+  }
+
+  const brandingFields = (
+    <div className="space-y-4 rounded-xl border border-gray-100 bg-slate-50/80 p-4">
+      <div>
+        <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">Site branding</p>
+        <p className="text-[11px] text-gray-500 mt-0.5">
+          Logo, white logo, favicon, and colour scheme for this advisor site.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <BrandingUploadField
+          label="Site Logo"
+          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+          hint="Used on light backgrounds."
+          value={logoUrl}
+          previewUrl={logoPreview}
+          uploading={uploadingLogo}
+          onUpload={(file) => uploadBrandingAsset(file, 'logo')}
+          onClear={() => { setLogoUrl(''); setLogoPreview('') }}
+        />
+        <BrandingUploadField
+          label="White Logo"
+          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+          hint="Used on dark backgrounds (nav, footer)."
+          value={whiteLogoUrl}
+          previewUrl={whiteLogoPreview}
+          uploading={uploadingWhiteLogo}
+          onUpload={(file) => uploadBrandingAsset(file, 'white_logo')}
+          onClear={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
+          darkPreview
+        />
+        <BrandingUploadField
+          label="Favicon"
+          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
+          hint="Browser tab icon."
+          value={faviconUrl}
+          previewUrl={faviconPreview}
+          uploading={uploadingFavicon}
+          onUpload={(file) => uploadBrandingAsset(file, 'favicon')}
+          onClear={() => { setFaviconUrl(''); setFaviconPreview('') }}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={fieldLabelClass}>Primary Color</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              className="w-10 h-10 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
+            />
+            <input
+              type="text"
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
+            />
+          </div>
+        </div>
+        <div>
+          <label className={fieldLabelClass}>Secondary Color</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={secondaryColor}
+              onChange={(e) => setSecondaryColor(e.target.value)}
+              className="w-10 h-10 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
+            />
+            <input
+              type="text"
+              value={secondaryColor}
+              onChange={(e) => setSecondaryColor(e.target.value)}
+              className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   const openSectionManageModal = async (req) => {
     setSectionManageRequest(req)
@@ -595,21 +838,32 @@ export default function WebsiteComplianceTemplatesPanel() {
                             </button>
                           )}
                           {canDeployWebsites && (
-                            <button
-                              type="button"
-                              onClick={() => openDeployModal(req)}
-                              className="inline-flex items-center gap-1.5 bg-[var(--brand-dark)] text-white text-xs font-bold px-3 py-2 rounded-lg"
-                            >
-                              {req.status === 'deployed' ? (
-                                <>
-                                  <FaCog className="w-3 h-3" /> Update
-                                </>
-                              ) : (
-                                <>
-                                  <FaRocket className="w-3 h-3" /> Deploy
-                                </>
+                            <>
+                              {req.status === 'deployed' && (
+                                <button
+                                  type="button"
+                                  onClick={() => openBrandingModal(req)}
+                                  className="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-[var(--brand-dark)] text-xs font-bold px-3 py-2 rounded-lg hover:bg-gray-50"
+                                >
+                                  <FaPalette className="w-3 h-3" /> Branding
+                                </button>
                               )}
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => openDeployModal(req)}
+                                className="inline-flex items-center gap-1.5 bg-[var(--brand-dark)] text-white text-xs font-bold px-3 py-2 rounded-lg"
+                              >
+                                {req.status === 'deployed' ? (
+                                  <>
+                                    <FaCog className="w-3 h-3" /> Update
+                                  </>
+                                ) : (
+                                  <>
+                                    <FaRocket className="w-3 h-3" /> Deploy
+                                  </>
+                                )}
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -735,8 +989,14 @@ export default function WebsiteComplianceTemplatesPanel() {
       )}
 
       {selectedRequest && (
-        <ModalShell title="Deploy to cPanel" subtitle={requestRequesterName(selectedRequest)} onClose={() => setSelectedRequest(null)} maxWidth="max-w-xl">
+        <ModalShell
+          title={selectedRequest.status === 'deployed' ? 'Update deployment' : 'Deploy to cPanel'}
+          subtitle={requestRequesterName(selectedRequest)}
+          onClose={() => setSelectedRequest(null)}
+          maxWidth="max-w-2xl"
+        >
           <form onSubmit={handleDeploySubmit} className="space-y-5">
+            {brandingFields}
             <div>
               <label className={fieldLabelClass} htmlFor="wc-deploy-domain">
                 Site URL / domain
@@ -818,10 +1078,42 @@ export default function WebsiteComplianceTemplatesPanel() {
               </button>
               <button
                 type="submit"
-                disabled={isDeploying}
+                disabled={isDeploying || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
               >
-                {isDeploying ? 'Deploying…' : 'Deploy'}
+                {isDeploying
+                  ? (selectedRequest.status === 'deployed' ? 'Updating…' : 'Deploying…')
+                  : (selectedRequest.status === 'deployed' ? 'Save & sync' : 'Deploy')}
+              </button>
+            </div>
+          </form>
+        </ModalShell>
+      )}
+
+      {brandingOnlyRequest && (
+        <ModalShell
+          title="Update site branding"
+          subtitle={brandingOnlyRequest.domain_name || brandingOnlyRequest.domain || requestRequesterName(brandingOnlyRequest)}
+          onClose={() => setBrandingOnlyRequest(null)}
+          maxWidth="max-w-2xl"
+        >
+          <form onSubmit={handleBrandingSubmit} className="space-y-5">
+            {brandingFields}
+            <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setBrandingOnlyRequest(null)}
+                className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingBranding || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
+              >
+                <FaPalette className="w-3.5 h-3.5" />
+                {isSavingBranding ? 'Saving…' : 'Save branding'}
               </button>
             </div>
           </form>

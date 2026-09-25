@@ -11,17 +11,21 @@ function normalizeName(name) {
   return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
-/** Only real colours — never invent hub/showcase defaults. */
+/** Pass through real branding — never invent hub/showcase colour defaults. */
 function normalizeBranding(branding) {
   if (!branding || typeof branding !== 'object') return null
   const primary = branding.primary_color || branding.primaryColor || null
   const secondary = branding.secondary_color || branding.secondaryColor || null
-  if (!primary && !secondary) return null
+  const logo = branding.logo_url || branding.logoUrl || null
+  const whiteLogo = branding.white_logo_url || branding.whiteLogoUrl || null
+  const favicon = branding.favicon_url || branding.faviconUrl || null
+  if (!primary && !secondary && !logo && !whiteLogo && !favicon) return null
   return {
     primary_color: primary || null,
     secondary_color: secondary || null,
-    logo_url: null,
-    favicon_url: null,
+    logo_url: logo || null,
+    white_logo_url: whiteLogo || null,
+    favicon_url: favicon || null,
   }
 }
 
@@ -153,8 +157,9 @@ export default function SectionIframePreview({
         setLiveBranding({
           primary_color: primary,
           secondary_color: secondary,
-          logo_url: null,
-          favicon_url: null,
+          logo_url: payload.logo_url || null,
+          white_logo_url: payload.white_logo_url || null,
+          favicon_url: payload.favicon_url || null,
         })
       })
       .catch(() => {

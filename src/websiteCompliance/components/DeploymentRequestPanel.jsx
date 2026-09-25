@@ -144,6 +144,7 @@ function BrandingUploadField({
   uploading,
   onUpload,
   onClear,
+  darkPreview = false,
 }) {
   const displaySrc = previewUrl || (value ? websiteComplianceAssetUrl(value) : '')
 
@@ -153,11 +154,13 @@ function BrandingUploadField({
         {label} <span className="text-gray-400 font-normal">(optional)</span>
       </label>
       <div className="flex items-start gap-3">
-        <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+        <div className={`w-14 h-14 rounded-xl border overflow-hidden shrink-0 flex items-center justify-center ${
+          darkPreview ? 'border-gray-700 bg-slate-900' : 'border-gray-200 bg-gray-50'
+        }`}>
           {displaySrc ? (
             <img src={displaySrc} alt="" className="w-full h-full object-contain p-1" />
           ) : (
-            <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
+            <FaImage className={`w-5 h-5 ${darkPreview ? 'text-gray-500' : 'text-gray-300'}`} aria-hidden="true" />
           )}
         </div>
         <div className="min-w-0 flex-1 space-y-2">
@@ -201,10 +204,13 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
   const [templateName, setTemplateName] = useState('template4')
   const [domainName, setDomainName] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
+  const [whiteLogoUrl, setWhiteLogoUrl] = useState('')
   const [faviconUrl, setFaviconUrl] = useState('')
   const [logoPreview, setLogoPreview] = useState('')
+  const [whiteLogoPreview, setWhiteLogoPreview] = useState('')
   const [faviconPreview, setFaviconPreview] = useState('')
   const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingWhiteLogo, setUploadingWhiteLogo] = useState(false)
   const [uploadingFavicon, setUploadingFavicon] = useState(false)
   const [primaryColor, setPrimaryColor] = useState(hubPrimary)
   const [secondaryColor, setSecondaryColor] = useState(hubSecondary)
@@ -225,25 +231,28 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
     : TEMPLATES
 
   const uploadAsset = async (file, kind) => {
-    const setUploading = kind === 'logo' ? setUploadingLogo : setUploadingFavicon
-    const setUrl = kind === 'logo' ? setLogoUrl : setFaviconUrl
-    const setPreview = kind === 'logo' ? setLogoPreview : setFaviconPreview
-    setUploading(true)
+    const setters = {
+      logo: { setUploading: setUploadingLogo, setUrl: setLogoUrl, setPreview: setLogoPreview },
+      white_logo: { setUploading: setUploadingWhiteLogo, setUrl: setWhiteLogoUrl, setPreview: setWhiteLogoPreview },
+      favicon: { setUploading: setUploadingFavicon, setUrl: setFaviconUrl, setPreview: setFaviconPreview },
+    }
+    const active = setters[kind] || setters.logo
+    active.setUploading(true)
     setError('')
-    setPreview(URL.createObjectURL(file))
+    active.setPreview(URL.createObjectURL(file))
     try {
       const formData = new FormData()
       formData.append('image', file)
       const res = await api.post('upload-image', formData)
       const uploadedUrl = storedUploadPath(res.data)
       if (!uploadedUrl) throw new Error('Upload succeeded but no path was returned.')
-      setUrl(uploadedUrl)
+      active.setUrl(uploadedUrl)
     } catch (err) {
-      setPreview('')
-      setUrl('')
-      setError(err.response?.data?.message || err.message || `Failed to upload ${kind}.`)
+      active.setPreview('')
+      active.setUrl('')
+      setError(err.response?.data?.message || err.message || `Failed to upload ${kind.replace('_', ' ')}.`)
     } finally {
-      setUploading(false)
+      active.setUploading(false)
     }
   }
 
@@ -261,6 +270,7 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
         template_name: templateName,
         domain_name: domainName.trim(),
         logo_url: logoUrl.trim() || undefined,
+        white_logo_url: whiteLogoUrl.trim() || undefined,
         favicon_url: faviconUrl.trim() || undefined,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
@@ -328,12 +338,23 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
           <BrandingUploadField
             label="Site Logo"
             accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-            hint="Shown in the site header and footer after deploy."
+            hint="Used on light backgrounds (header bar)."
             value={logoUrl}
             previewUrl={logoPreview}
             uploading={uploadingLogo}
             onUpload={(file) => uploadAsset(file, 'logo')}
             onClear={() => { setLogoUrl(''); setLogoPreview('') }}
+          />
+          <BrandingUploadField
+            label="White Logo"
+            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+            hint="Used on dark backgrounds (nav bar, footer)."
+            value={whiteLogoUrl}
+            previewUrl={whiteLogoPreview}
+            uploading={uploadingWhiteLogo}
+            onUpload={(file) => uploadAsset(file, 'white_logo')}
+            onClear={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
+            darkPreview
           />
           <BrandingUploadField
             label="Favicon"
@@ -423,7 +444,7 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
           </button>
           <button
             type="submit"
-            disabled={submitting || uploadingLogo || uploadingFavicon}
+            disabled={submitting || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
             className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
           >
             <FaRocket className="w-3.5 h-3.5" />

@@ -163,6 +163,7 @@ export function mergePreviewContentWithBranding(contentPreview, brandingPreview)
     primary_color: brandingPreview.primary_color ?? contentPreview.primary_color ?? null,
     secondary_color: brandingPreview.secondary_color ?? contentPreview.secondary_color ?? null,
     logo_url: brandingPreview.logo_url ?? contentPreview.logo_url ?? null,
+    white_logo_url: brandingPreview.white_logo_url ?? contentPreview.white_logo_url ?? null,
     favicon_url: brandingPreview.favicon_url ?? contentPreview.favicon_url ?? null,
     template_request_id: brandingPreview.template_request_id ?? contentPreview.template_request_id ?? null,
     advisor_id: brandingPreview.advisor_id ?? contentPreview.advisor_id ?? null,

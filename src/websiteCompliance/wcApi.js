@@ -159,6 +159,9 @@ async function put(path, body, _config = {}) {
     if (/^template-requests\/\d+\/sections$/.test(p)) {
       return wrap(await hubApi.websiteComplianceUpdateTemplateRequestSections(p.split('/')[1], body))
     }
+    if (/^template-requests\/\d+\/branding$/.test(p)) {
+      return wrap(await hubApi.websiteComplianceUpdateTemplateRequestBranding(p.split('/')[1], body))
+    }
     throw new Error(`WC API PUT not mapped: ${path}`)
   } catch (err) {
     rethrow(err)

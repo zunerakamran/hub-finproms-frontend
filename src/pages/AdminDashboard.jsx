@@ -48,7 +48,7 @@ const sections = [
   {
     to: '/client-admin/advisors',
     title: 'Advisors',
-    description: 'Import advisors from Excel/CSV and/or discontinue advisor access.',
+    description: 'Import users from Excel and/or discontinue advisor access.',
     anyOf: ['advisor_excel_import', 'advisor_discontinue'],
   },
   {

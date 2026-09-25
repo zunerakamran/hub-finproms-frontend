@@ -90,7 +90,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       const token = localStorage.getItem('token')
       const response = await fetch(api.advisorTemplateUrl(apiOpts), {
         headers: {
-          Accept: 'text/csv',
+          Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       })
@@ -102,7 +102,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'advisor-import-template.csv'
+      a.download = 'advisor-import-template.xlsx'
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
@@ -113,7 +113,12 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const onImport = async (e) => {
     e.preventDefault()
     if (!file) {
-      setError('Choose a CSV or Excel file to import.')
+      setError('Choose an Excel (.xlsx) file to import.')
+      return
+    }
+    const name = (file.name || '').toLowerCase()
+    if (!name.endsWith('.xlsx')) {
+      setError('Only Excel (.xlsx) files are supported. Download the template and fill it in.')
       return
     }
     setUploading(true)
@@ -219,8 +224,8 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           <p className="muted">
             {canImport
               ? billingEnabled
-                ? 'Upload a CSV or Excel sheet. New advisors are created only after you click Pay now.'
-                : 'Upload a CSV or Excel sheet of advisors. Imported advisors are marked subscribed with unlimited credits.'
+                ? 'Upload an Excel sheet. New advisors are created only after you click Pay now.'
+                : 'Upload an Excel sheet of users. Imported advisors are marked subscribed with unlimited credits.'
               : 'Manage imported advisors for this white-labelled hub.'}
             {canImport && billingEnabled
               ? ' The client admin pays rate × advisors per import batch (card is saved for auto-renew).'
@@ -240,7 +245,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           )}
           {canImport && (
             <button type="button" className="btn ghost" onClick={downloadTemplate}>
-              Download CSV template
+              Download Excel template
             </button>
           )}
         </div>
@@ -251,21 +256,22 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
 
       {canImport && (
       <form className="admin-form advisor-import-form" onSubmit={onImport}>
-        <h2>Upload advisors</h2>
+        <h2>Upload users</h2>
         <p className="muted">
-          Columns: <code>name</code>, <code>email</code>, optional <code>password</code>,{' '}
-          <code>firm</code> (required — must match an existing firm name). If password is blank, a
-          temporary password is generated (shown once after you pay). You can upload{' '}
-          <strong>.csv</strong> or <strong>.xlsx</strong>.
+          Download the Excel template first. Columns: <code>name</code>, <code>email</code>, optional{' '}
+          <code>password</code>, <code>role</code>, and <code>firm</code>. Role and firm are dropdowns —
+          only hub roles (excluding Power Admin / FinProms Admin) and existing firms are allowed. If
+          password is blank, a temporary password is generated (shown once after import
+          {billingEnabled ? ' / payment' : ''}). Upload <strong>.xlsx</strong> only.
           {billingEnabled
-            ? ' Choosing a payment method and clicking Pay now creates the advisor accounts.'
+            ? ' Choosing a payment method and clicking Pay now creates the accounts.'
             : ''}
         </p>
         <label>
-          Excel / CSV file
+          Excel file (.xlsx)
           <input
             type="file"
-            accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
         </label>
@@ -403,11 +409,13 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
 
           {result.awaiting_payment && (result.preview?.created || []).length > 0 && (
             <div className="import-block">
-              <h3>Advisors to create (after Pay now)</h3>
+              <h3>Users to create (after Pay now)</h3>
               <ul className="muted">
                 {result.preview.created.map((row) => (
                   <li key={row.email}>
                     {row.name} ({row.email})
+                    {row.role ? ` · ${row.role}` : ''}
+                    {row.firm ? ` · ${row.firm}` : ''}
                   </li>
                 ))}
               </ul>
@@ -416,13 +424,15 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
 
           {!result.awaiting_payment && (result.created || []).length > 0 && (
             <div className="import-block">
-              <h3>New advisors (save temporary passwords now)</h3>
+              <h3>New users (save temporary passwords now)</h3>
               <div className="table-wrap">
                 <table className="admin-table">
                   <thead>
                     <tr>
                       <th>Name</th>
                       <th>Email</th>
+                      <th>Role</th>
+                      <th>Firm</th>
                       <th>Temporary password</th>
                     </tr>
                   </thead>
@@ -431,6 +441,8 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
                       <tr key={row.email}>
                         <td>{row.name}</td>
                         <td>{row.email}</td>
+                        <td>{row.role || '—'}</td>
+                        <td>{row.firm || '—'}</td>
                         <td>
                           <code>{row.temporary_password || '—'}</code>
                         </td>

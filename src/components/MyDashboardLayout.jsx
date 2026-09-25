@@ -61,6 +61,16 @@ export default function MyDashboardLayout() {
     const link = findActiveDashboardLink(location.pathname)
     if (!link) return
 
+    // Nested routes (e.g. /social-media-compliance/42) can resolve to a parent nav
+    // item whose caps are narrower than HubCapabilityRoute on the detail page.
+    // Only enforce nav visibility on the link's own path (or explicit alsoMatch).
+    const onLinkPath =
+      location.pathname === link.to ||
+      (link.alsoMatch || []).some(
+        (prefix) => location.pathname === prefix || location.pathname.startsWith(prefix)
+      )
+    if (!onLinkPath) return
+
     const stillVisible = isDashboardLinkVisible(link, {
       can,
       canPower,

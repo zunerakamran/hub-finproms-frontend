@@ -489,6 +489,9 @@ export const DASHBOARD_LINKS = [
     description: 'See your submitted content changes and version history.',
     anyOf: ['wc_submit_change_requests', 'wc_edit_sections'],
     exceptRoles: ['power_admin', 'finproms_admin'],
+    // Detail URLs (/my-requests/:id) are opened from queue/history too — do not
+    // treat them as this nav item (reviewers / Power Admin would get redirected).
+    end: true,
     group: 'wc',
   },
   {
@@ -671,7 +674,14 @@ export function findActiveDashboardLink(pathname) {
     .map((link) => {
       let score = 0
       if (pathname.startsWith(`${link.to}/`)) {
-        score = link.to.length
+        const rest = pathname.slice(link.to.length + 1)
+        // `end: true` mirrors NavLink `end` — do not claim nested detail routes
+        // like /social-media-compliance/42 as "My requests".
+        if (link.end && /^\d+(\/|$)/.test(rest)) {
+          score = 0
+        } else {
+          score = link.to.length
+        }
       }
       for (const prefix of link.alsoMatch || []) {
         if (pathname === prefix || pathname.startsWith(prefix)) {

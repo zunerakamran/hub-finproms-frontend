@@ -117,9 +117,9 @@ export const DASHBOARD_GROUPS = {
   content: 'SM Template',
   hub: 'Hub',
   advisors: 'Advisors & billing',
-  smc: 'Social Media Pre Approval',
-  gc: 'Generic Content Pre Approval',
-  wc: 'Website',
+  smc: 'Social Media Compliance',
+  gc: 'General Compliance',
+  wc: 'Website Compliance',
   platform: 'Platform',
 }
 
@@ -365,10 +365,10 @@ export const DASHBOARD_LINKS = [
     group: 'advisors',
   },
 
-  // —— Social Media Pre Approval ——
+  // —— Social Media Compliance ——
   {
     kind: 'section',
-    label: 'Social Media Pre Approval',
+    label: 'Social Media Compliance',
     anyOf: SMC_NAV_ANY,
   },
   {
@@ -405,10 +405,10 @@ export const DASHBOARD_LINKS = [
     group: 'smc',
   },
 
-  // —— Generic Content Pre Approval ——
+  // —— General Compliance ——
   {
     kind: 'section',
-    label: 'Generic Content Pre Approval',
+    label: 'General Compliance',
     anyOf: GC_NAV_ANY,
   },
   {
@@ -445,10 +445,10 @@ export const DASHBOARD_LINKS = [
     group: 'gc',
   },
 
-  // —— Website (template library + content pre-approval) ——
+  // —— Website Compliance ——
   {
     kind: 'section',
-    label: 'Website',
+    label: 'Website Compliance',
     anyOf: WC_NAV_ANY,
   },
   {

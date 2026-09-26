@@ -57,7 +57,10 @@ function DataGridPagination({ page, totalPages, totalItems, pageSize, onPageChan
 
 function columnStyle(col) {
   const style = {}
-  if (col.width) style.width = col.width
+  // Percentage widths fight content-based sizing — ignore them.
+  if (col.width && !String(col.width).trim().endsWith('%')) {
+    style.width = col.width
+  }
   if (col.minWidth) style.minWidth = col.minWidth
   if (col.maxWidth) style.maxWidth = col.maxWidth
   return Object.keys(style).length ? style : undefined
@@ -164,7 +167,7 @@ export default function DataGrid({
   rowLinkState,
   actions,
   actionsLabel = 'Actions',
-  actionsWidth = '9%',
+  actionsWidth,
   actionsMinWidth,
   className = '',
 }) {
@@ -177,6 +180,7 @@ export default function DataGrid({
           filterable: false,
           sortable: false,
           truncate: false,
+          wrap: false,
           render: (row) => actions(row),
           className: 'data-grid__actions',
           width: actionsWidth,
@@ -294,8 +298,14 @@ export default function DataGrid({
                       const content =
                         typeof col.render === 'function' ? col.render(row) : row?.[col.key] ?? '—'
                       const isActions = col.key === 'actions'
-                      const truncate = col.truncate !== false && !isActions
-                      const cellClass = [col.className, truncate ? 'data-grid__cell--truncate' : '']
+                      const truncate = Boolean(col.truncate) && !isActions
+                      const wrap = Boolean(col.wrap) && !isActions && !truncate
+                      const cellClass = [
+                        col.className,
+                        truncate ? 'data-grid__cell--truncate' : '',
+                        wrap ? 'data-grid__cell--wrap' : '',
+                        !truncate && !wrap && !isActions ? 'data-grid__cell--fit' : '',
+                      ]
                         .filter(Boolean)
                         .join(' ')
 
@@ -318,7 +328,7 @@ export default function DataGrid({
                             >
                               <span className="data-grid__cell-text">{content}</span>
                             </Link>
-                          ) : truncate ? (
+                          ) : truncate || wrap ? (
                             <span
                               className="data-grid__cell-text"
                               title={

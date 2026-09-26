@@ -3504,10 +3504,10 @@ label {
 /* Shared dashboard / compliance data grid */
 .data-grid {
   --dg-border: color-mix(in srgb, var(--brand) 12%, #e2e8f0);
-  --dg-header: color-mix(in srgb, var(--brand) 6%, #f8fafc);
-  --dg-filter: color-mix(in srgb, var(--brand) 4%, #ffffff);
-  --dg-row-hover: color-mix(in srgb, var(--brand) 6%, #ffffff);
-  --dg-row-stripe: color-mix(in srgb, var(--brand) 2.5%, #ffffff);
+  --dg-header: color-mix(in srgb, var(--brand) 7%, #f8fafc);
+  --dg-filter: color-mix(in srgb, var(--brand) 3.5%, #ffffff);
+  --dg-row-hover: color-mix(in srgb, var(--brand) 7%, #ffffff);
+  --dg-row-stripe: color-mix(in srgb, var(--brand) 2%, #ffffff);
   --dg-text: #1e293b;
   --dg-muted: #64748b;
   display: flex;
@@ -3525,13 +3525,14 @@ label {
   border: 0;
   margin: 0;
   border-radius: 0;
-  overflow-x: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .data-grid__table {
-  width: 100%;
-  min-width: 0;
-  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.875rem;
@@ -3539,14 +3540,17 @@ label {
 
 .data-grid__table th,
 .data-grid__table td {
-  padding: 0.65rem 0.7rem;
+  padding: 0.7rem 0.85rem;
   vertical-align: middle;
-  overflow: hidden;
+  width: auto;
   border-bottom: 1px solid color-mix(in srgb, var(--dg-border) 70%, transparent);
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .data-grid__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: var(--dg-header);
   color: var(--brand-dark, #0a3f30);
   font-size: 0.72rem;
@@ -3570,13 +3574,12 @@ label {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  max-width: 100%;
+  max-width: none;
 }
 
 .data-grid__th-label {
   line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .data-grid__sort-btn {
@@ -3642,21 +3645,25 @@ label {
 .data-grid__sort-btn.is-desc .data-grid__sort-icon::before { opacity: 0.2; }
 
 .data-grid__filters th {
-  padding: 0.4rem 0.7rem 0.6rem;
+  position: sticky;
+  top: 2.35rem;
+  z-index: 2;
+  padding: 0.45rem 0.85rem 0.65rem;
   text-transform: none;
   letter-spacing: 0;
   font-weight: 500;
   vertical-align: middle;
   background: var(--dg-filter);
   border-bottom: 1px solid var(--dg-border);
+  white-space: nowrap;
 }
 
 .data-grid__filter-input {
   width: 100%;
-  min-width: 0;
-  max-width: 100%;
+  min-width: 5.5rem;
+  max-width: 16rem;
   box-sizing: border-box;
-  padding: 0.35rem 0.5rem;
+  padding: 0.4rem 0.55rem;
   border: 1px solid var(--dg-border);
   border-radius: 8px;
   font-size: 0.75rem;
@@ -3681,13 +3688,15 @@ label {
 
 .data-grid__filter-spacer {
   display: block;
-  min-height: 1.65rem;
+  min-height: 1.75rem;
+  min-width: 4rem;
 }
 
 .data-grid__empty-cell {
   text-align: center !important;
   padding: 1.75rem 1rem !important;
   color: var(--dg-muted);
+  white-space: normal !important;
 }
 
 .data-grid__empty-cell .btn {
@@ -3706,26 +3715,45 @@ label {
   cursor: pointer;
 }
 
+.data-grid__cell--fit {
+  white-space: nowrap;
+  width: 1%;
+}
+
 .data-grid__cell-link {
-  display: block;
+  display: inline-block;
   color: inherit;
   text-decoration: none;
-  min-width: 0;
   max-width: 100%;
 }
 
-.data-grid__cell--truncate,
-.data-grid__cell--truncate .data-grid__cell-link,
 .data-grid__cell-text {
-  min-width: 0;
+  display: inline-block;
   max-width: 100%;
 }
 
+.data-grid__cell--truncate {
+  max-width: 18rem;
+  white-space: nowrap;
+}
+
+.data-grid__cell--truncate .data-grid__cell-link,
 .data-grid__cell--truncate .data-grid__cell-text {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 18rem;
+}
+
+.data-grid__cell--wrap {
+  white-space: normal;
+  max-width: 22rem;
+  line-height: 1.35;
+}
+
+.data-grid__cell--wrap .data-grid__cell-text {
+  white-space: normal;
 }
 
 .data-grid__date {
@@ -3733,7 +3761,7 @@ label {
   flex-direction: column;
   gap: 0.1rem;
   line-height: 1.2;
-  min-width: 0;
+  white-space: nowrap;
 }
 
 .data-grid__date-day {
@@ -3751,9 +3779,6 @@ label {
 .data-grid__date-secondary {
   font-size: 0.65rem;
   color: var(--dg-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .data-grid__date--empty {
@@ -3764,13 +3789,14 @@ label {
 .data-grid__actions {
   width: 1%;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .data-grid__actions .actions,
 .data-grid__actions {
   display: inline-flex;
   flex-wrap: nowrap;
-  gap: 0.3rem;
+  gap: 0.35rem;
   align-items: center;
   justify-content: flex-start;
 }
@@ -3864,11 +3890,11 @@ label {
 }
 
 .data-grid__inline-select {
-  max-width: 118px;
-  min-width: 0;
-  width: 118px;
+  max-width: none;
+  min-width: 7rem;
+  width: auto;
   height: 1.9rem;
-  padding: 0 0.4rem;
+  padding: 0 0.5rem;
   border: 1px solid var(--dg-border);
   border-radius: 8px;
   background: #fff;
@@ -3893,7 +3919,7 @@ label {
   gap: 0.75rem;
   align-items: center;
   justify-content: space-between;
-  padding: 0.7rem 0.9rem;
+  padding: 0.75rem 1rem;
   border-top: 1px solid var(--dg-border);
   background: var(--dg-header);
 }
@@ -3917,12 +3943,9 @@ label {
 }
 
 @media (max-width: 900px) {
-  .data-grid__wrap {
-    overflow-x: auto;
-  }
-
-  .data-grid__table {
-    min-width: 760px;
+  .data-grid__filter-input {
+    min-width: 4.5rem;
+    max-width: 12rem;
   }
 }
 

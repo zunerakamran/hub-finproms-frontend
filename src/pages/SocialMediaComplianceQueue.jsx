@@ -167,7 +167,7 @@ export default function SocialMediaComplianceQueue() {
     },
     {
       key: 'open',
-      label: 'Open',
+      label: 'Review',
       filterable: false,
       render: (row) => (
         <Link
@@ -175,7 +175,7 @@ export default function SocialMediaComplianceQueue() {
           to={`/my-dashboard/social-media-compliance/${row.id}`}
           state={{ from: 'queue' }}
         >
-          Open
+          Review
         </Link>
       ),
     },

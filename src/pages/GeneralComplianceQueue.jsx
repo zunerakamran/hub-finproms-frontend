@@ -160,7 +160,7 @@ export default function GeneralComplianceQueue() {
     },
     {
       key: 'open',
-      label: 'Open',
+      label: 'Review',
       filterable: false,
       render: (row) => (
         <Link
@@ -168,7 +168,7 @@ export default function GeneralComplianceQueue() {
           to={`/my-dashboard/general-compliance/${row.id}`}
           state={{ from: 'queue' }}
         >
-          Open
+          Review
         </Link>
       ),
     },

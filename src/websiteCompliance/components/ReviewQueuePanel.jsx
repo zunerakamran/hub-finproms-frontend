@@ -523,7 +523,7 @@ const RequestCard = memo(function RequestCard({
               state={{ from: 'history' }}
               className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-[var(--brand-dark)] hover:bg-gray-50 transition"
             >
-              Open request →
+              Review →
             </Link>
             {canPreview && (
               <button
@@ -612,7 +612,7 @@ const RequestCard = memo(function RequestCard({
             state={{ from: 'history' }}
             className="font-bold text-[var(--brand)] hover:underline"
           >
-            Open request
+            Review
           </Link>
         </div>
       )}

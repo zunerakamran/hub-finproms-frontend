@@ -23,7 +23,7 @@ import {
 import api from '../wcApi'
 import { useAuth } from '../../context/AuthContext'
 import { useHub } from '../../context/HubContext'
-import DataGrid, { DataGridIconBtn } from '../../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
 import { resolveAdvisorLiveSiteUrl } from '../utils/assetUrl'
 import { parseJson } from '../utils/parseJson'
 import {
@@ -1157,7 +1157,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'id',
       label: 'ID',
-      minWidth: 72,
+      width: '7%',
       render: (row) => `#${row.id}`,
       filterValue: (row) => String(row.id),
       sortValue: (row) => Number(row.id) || 0,
@@ -1165,7 +1165,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'section',
       label: 'Section',
-      minWidth: 160,
+      width: '18%',
       render: (row) => {
         const { type, names } = getRequestSections(row)
         return (
@@ -1185,7 +1185,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'editor',
       label: 'Editor',
-      minWidth: 130,
+      width: '14%',
       render: (row) =>
         row.attribution_label || row.on_behalf_by?.name ? (
           <OnBehalfAttribution row={row} ownerKey="editor" flush />
@@ -1199,7 +1199,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'status',
       label: 'Status',
-      minWidth: 120,
+      width: '12%',
       render: (row) => <StatusBadge status={row.status} scheduledAt={row.scheduled_at} />,
       filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
       truncate: false,
@@ -1207,22 +1207,23 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'approver',
       label: 'Approver',
-      minWidth: 120,
+      width: '13%',
       render: (row) => row.approver?.name || '—',
       filterValue: (row) => row.approver?.name || '',
     },
     {
       key: 'created_at',
       label: 'Submitted',
-      minWidth: 150,
-      render: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : '—'),
+      width: '12%',
+      render: (row) => <DataGridDate value={row.created_at} />,
       filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : ''),
       sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
+      truncate: false,
     },
     {
       key: 'version',
-      label: 'Version',
-      minWidth: 84,
+      label: 'Ver',
+      width: '7%',
       render: (row) => (row.current_version ? `v${row.current_version}` : '—'),
       filterValue: (row) => String(row.current_version || ''),
       sortValue: (row) => Number(row.current_version) || 0,
@@ -1256,7 +1257,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
             ? (canViewAll ? 'No history yet' : 'No reviews assigned to you yet')
             : 'No change requests found'
         }
-        actionsMinWidth={128}
+        actionsWidth="10%"
         actions={(row) => {
           const canPick = row.status === 'pending' && !row.approver_id
           const isAssignedToMe = Number(row.approver_id) === Number(user?.id)

@@ -20,7 +20,7 @@ import {
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
-import DataGrid, { DataGridIconBtn } from '../../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
 import { parseJson } from '../utils/parseJson'
 import {
   buildPreviewFromRequest,
@@ -723,7 +723,7 @@ export default function ChangeRequestAssignmentPanel({
     {
       key: 'id',
       label: 'ID',
-      minWidth: 72,
+      width: '7%',
       render: (row) => `#${row.id}`,
       filterValue: (row) => String(row.id),
       sortValue: (row) => Number(row.id) || 0,
@@ -731,14 +731,14 @@ export default function ChangeRequestAssignmentPanel({
     {
       key: 'section',
       label: 'Section',
-      minWidth: 160,
+      width: '18%',
       render: (row) => getSectionLabel(row),
       filterValue: (row) => getSectionLabel(row),
     },
     {
       key: 'editor',
       label: 'Editor',
-      minWidth: 130,
+      width: '15%',
       render: (row) =>
         row.attribution_label || row.on_behalf_by?.name ? (
           <OnBehalfAttribution row={row} ownerKey="editor" flush />
@@ -752,7 +752,7 @@ export default function ChangeRequestAssignmentPanel({
     {
       key: 'status',
       label: 'Status',
-      minWidth: 120,
+      width: '13%',
       render: (row) => <StatusBadge status={row.status} scheduledAt={row.scheduled_at} />,
       filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
       truncate: false,
@@ -760,17 +760,18 @@ export default function ChangeRequestAssignmentPanel({
     {
       key: 'approver',
       label: 'Approver',
-      minWidth: 120,
+      width: '14%',
       render: (row) => row.approver?.name || '—',
       filterValue: (row) => row.approver?.name || '',
     },
     {
       key: 'created_at',
       label: 'Submitted',
-      minWidth: 150,
-      render: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : '—'),
+      width: '13%',
+      render: (row) => <DataGridDate value={row.created_at} />,
       filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : ''),
       sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
+      truncate: false,
     },
   ], [complianceStatusLabel])
 
@@ -803,7 +804,7 @@ export default function ChangeRequestAssignmentPanel({
         loading={loading}
         pageSize={10}
         emptyMessage={emptyTitle}
-        actionsMinWidth={200}
+        actionsWidth="20%"
         actions={(row) => {
           const isPending = row.status === PENDING_STATUS
           const rowApprovers = reviewersForSubmitterFirm(approvers, row.editor?.firm)

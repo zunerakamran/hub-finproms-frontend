@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridDate } from '../components/DataGrid'
 import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import WcStatusBadge from '../components/WebsiteComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { formatWcDate, wcSectionTitle } from '../utils/websiteCompliance'
+import { wcSectionTitle } from '../utils/websiteCompliance'
 
 export default function WebsiteComplianceMyRequests() {
   const { user } = useAuth()
@@ -71,7 +71,7 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'id',
       label: '#',
-      minWidth: 72,
+      width: '8%',
       render: (row) => (
         <strong className={highlightId === row.id ? 'is-highlight' : undefined}>#{row.id}</strong>
       ),
@@ -80,8 +80,8 @@ export default function WebsiteComplianceMyRequests() {
     },
     {
       key: 'version',
-      label: 'Version',
-      minWidth: 84,
+      label: 'Ver',
+      width: '8%',
       render: (row) => `v${row.current_version || 1}`,
       filterValue: (row) => String(row.current_version || 1),
       sortValue: (row) => Number(row.current_version) || 1,
@@ -89,7 +89,7 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'description',
       label: 'Description',
-      minWidth: 200,
+      width: '36%',
       render: (row) => (
         <>
           <div>{wcSectionTitle(row)}</div>
@@ -103,24 +103,24 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'submitted',
       label: 'Submitted',
-      minWidth: 180,
+      width: '18%',
       render: (row) => (
-        <>
-          {formatWcDate(row.created_at)}
-          {row.approver?.name ? (
-            <small className="muted"> · Reviewer: {row.approver.name}</small>
-          ) : null}
-        </>
+        <DataGridDate
+          value={row.created_at}
+          secondary={row.approver?.name ? `Reviewer: ${row.approver.name}` : null}
+        />
       ),
       filterValue: (row) =>
-        [formatWcDate(row.created_at), row.approver?.name].filter(Boolean).join(' '),
+        [row.created_at ? new Date(row.created_at).toLocaleString() : '', row.approver?.name]
+          .filter(Boolean)
+          .join(' '),
       sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
       truncate: false,
     },
     {
       key: 'status',
       label: 'Status',
-      minWidth: 120,
+      width: '16%',
       render: (row) => <WcStatusBadge status={row.status} />,
       filterValue: (row) => row.status || '',
       truncate: false,

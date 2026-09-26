@@ -79,9 +79,36 @@ function SortButton({ active, direction, label, onClick }) {
 }
 
 /**
+ * Compact two-line date for grid cells: date on top, time below.
+ */
+export function DataGridDate({ value, withTime = true, secondary }) {
+  if (!value) return <span className="data-grid__date data-grid__date--empty">—</span>
+
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return <span className="data-grid__date data-grid__date--empty">—</span>
+  }
+
+  const day = date.toLocaleDateString(undefined, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+  const time = withTime
+    ? date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    : null
+
+  return (
+    <span className="data-grid__date" title={date.toLocaleString()}>
+      <span className="data-grid__date-day">{day}</span>
+      {time ? <span className="data-grid__date-time">{time}</span> : null}
+      {secondary ? <span className="data-grid__date-secondary">{secondary}</span> : null}
+    </span>
+  )
+}
+
+/**
  * Compact icon action for data-grid rows.
- * Use as <DataGridIconBtn icon={FaEye} label="View" onClick={...} />
- * or as={Link} to="..." for navigation.
  */
 export function DataGridIconBtn({
   icon: Icon,
@@ -124,12 +151,7 @@ export function DataGridIconBtn({
 }
 
 /**
- * Reusable data grid with per-column search, sorting, widths, and client-side pagination.
- *
- * columns: [{
- *   key, label, render?, filterValue?, sortValue?, filterable?, sortable?,
- *   width?, minWidth?, maxWidth?, className?, headerClassName?, truncate?
- * }]
+ * Reusable data grid with per-column search, sorting, and client-side pagination.
  */
 export default function DataGrid({
   columns = [],
@@ -142,8 +164,8 @@ export default function DataGrid({
   rowLinkState,
   actions,
   actionsLabel = 'Actions',
-  actionsWidth,
-  actionsMinWidth = 120,
+  actionsWidth = '9%',
+  actionsMinWidth,
   className = '',
 }) {
   const allColumns = actions
@@ -179,7 +201,7 @@ export default function DataGrid({
 
   return (
     <div className={`data-grid ${className}`.trim()}>
-      <div className="table-wrap data-grid__wrap">
+      <div className="data-grid__wrap">
         <table className="data-table data-grid__table">
           <colgroup>
             {allColumns.map((col) => (
@@ -194,7 +216,13 @@ export default function DataGrid({
                 return (
                   <th
                     key={col.key}
-                    className={col.headerClassName}
+                    className={[
+                      col.headerClassName,
+                      canSort ? 'data-grid__th--sortable' : '',
+                      isActive ? 'is-sorted' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
                     style={columnStyle(col)}
                     aria-sort={
                       isActive
@@ -282,7 +310,11 @@ export default function DataGrid({
                                   : rowLinkState
                               }
                               className="data-grid__cell-link"
-                              title={typeof content === 'string' || typeof content === 'number' ? String(content) : undefined}
+                              title={
+                                typeof content === 'string' || typeof content === 'number'
+                                  ? String(content)
+                                  : undefined
+                              }
                             >
                               <span className="data-grid__cell-text">{content}</span>
                             </Link>

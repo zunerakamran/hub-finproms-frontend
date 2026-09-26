@@ -15,7 +15,7 @@ import {
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
-import DataGrid, { DataGridIconBtn } from '../../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
 import { websiteComplianceAssetUrl } from '../../api/client'
 import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
 
@@ -619,21 +619,21 @@ export default function DeploymentRequestPanel() {
     {
       key: 'domain_name',
       label: 'Domain',
-      minWidth: 160,
+      width: '16%',
       render: (row) => row.domain_name || 'Unnamed Deployment',
       filterValue: (row) => row.domain_name || '',
     },
     {
       key: 'template_name',
       label: 'Template',
-      minWidth: 110,
+      width: '12%',
       render: (row) => row.template_name || '—',
       filterValue: (row) => row.template_name || '',
     },
     {
       key: 'status',
       label: 'Status',
-      minWidth: 110,
+      width: '11%',
       render: (row) => <StatusBadge status={row.status} />,
       filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
       truncate: false,
@@ -641,7 +641,7 @@ export default function DeploymentRequestPanel() {
     {
       key: 'requester',
       label: 'Requested by',
-      minWidth: 120,
+      width: '13%',
       render: (row) => {
         const requester = row.requested_by || row.requestedBy || row.advisor
         return requester?.name || '—'
@@ -654,7 +654,7 @@ export default function DeploymentRequestPanel() {
     {
       key: 'advisor',
       label: 'Content advisor',
-      minWidth: 130,
+      width: '14%',
       render: (row) => {
         const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
         const advisorOwned = isRequestedByAdvisor(row)
@@ -673,15 +673,16 @@ export default function DeploymentRequestPanel() {
     {
       key: 'created_at',
       label: 'Created',
-      minWidth: 110,
-      render: (row) => (row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'),
+      width: '11%',
+      render: (row) => <DataGridDate value={row.created_at} withTime={false} />,
       filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleDateString() : ''),
       sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
+      truncate: false,
     },
     {
       key: 'live_url',
       label: 'Live URL',
-      minWidth: 140,
+      width: '14%',
       render: (row) =>
         row.cpanel_domain ? (
           <a
@@ -766,7 +767,7 @@ export default function DeploymentRequestPanel() {
           loading={loading}
           pageSize={10}
           emptyMessage="No deployment requests yet"
-          actionsMinWidth={72}
+          actionsWidth="9%"
           actions={(row) => {
             const advisorOwned = isRequestedByAdvisor(row)
             const showAssignAdvisor = canAssignAdvisor && !advisorOwned

@@ -16,6 +16,17 @@ const emptyForm = {
   is_advisor: false,
 }
 
+const BASE_MODULE_LABELS = new Set(['Shared Hub', 'White Label Hub'])
+
+function formatUserModules(user) {
+  const mods = user?.modules
+  if (!mods) return '—'
+  if (mods.unrestricted) return 'All hub modules'
+  const labels = (mods.labels || []).filter((label) => !BASE_MODULE_LABELS.has(label))
+  if (labels.length === 0) return 'Base hub only'
+  return labels.join(', ')
+}
+
 export default function PowerAdminUsers() {
   const { canPower, user: me } = useAuth()
   const { roleLabels, actingHubId } = useHub()
@@ -360,6 +371,7 @@ export default function PowerAdminUsers() {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Firm</th>
+                <th>Modules</th>
                 <th>Credits</th>
                 <th>Actions</th>
               </tr>
@@ -371,6 +383,11 @@ export default function PowerAdminUsers() {
                   <td>{user.email}</td>
                   <td>{user.role_label || user.role}</td>
                   <td>{user.firm?.name || '—'}</td>
+                  <td>
+                    <span className="muted" style={{ fontSize: '0.9em' }}>
+                      {formatUserModules(user)}
+                    </span>
+                  </td>
                   <td>{user.has_unlimited_credits ? 'Unlimited' : user.credits}</td>
                   <td>
                     <div className="row" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>

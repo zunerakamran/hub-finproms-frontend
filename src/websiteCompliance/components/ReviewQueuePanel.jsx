@@ -1157,12 +1157,17 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'id',
       label: 'ID',
+      width: '7%',
+      minWidth: 64,
       render: (row) => `#${row.id}`,
       filterValue: (row) => String(row.id),
+      sortValue: (row) => Number(row.id) || 0,
     },
     {
       key: 'section',
       label: 'Section',
+      width: '18%',
+      minWidth: 140,
       render: (row) => {
         const { type, names } = getRequestSections(row)
         return (
@@ -1181,6 +1186,8 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'editor',
       label: 'Editor',
+      width: '14%',
+      minWidth: 120,
       render: (row) =>
         row.attribution_label || row.on_behalf_by?.name ? (
           <OnBehalfAttribution row={row} ownerKey="editor" flush />
@@ -1193,26 +1200,36 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'status',
       label: 'Status',
+      width: '12%',
+      minWidth: 110,
       render: (row) => <StatusBadge status={row.status} scheduledAt={row.scheduled_at} />,
       filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
     },
     {
       key: 'approver',
       label: 'Approver',
+      width: '13%',
+      minWidth: 110,
       render: (row) => row.approver?.name || '—',
       filterValue: (row) => row.approver?.name || '',
     },
     {
       key: 'created_at',
       label: 'Submitted',
+      width: '16%',
+      minWidth: 140,
       render: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : '—'),
       filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : ''),
+      sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
     },
     {
       key: 'version',
       label: 'Version',
+      width: '8%',
+      minWidth: 72,
       render: (row) => (row.current_version ? `v${row.current_version}` : '—'),
       filterValue: (row) => String(row.current_version || ''),
+      sortValue: (row) => Number(row.current_version) || 0,
     },
   ], [complianceStatusLabel])
 
@@ -1243,6 +1260,8 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
             ? (canViewAll ? 'No history yet' : 'No reviews assigned to you yet')
             : 'No change requests found'
         }
+        actionsWidth="12%"
+        actionsMinWidth={180}
         actions={(row) => {
           const canPick = row.status === 'pending' && !row.approver_id
           const isAssignedToMe = Number(row.approver_id) === Number(user?.id)
@@ -1257,7 +1276,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
                 state={{ from: variant === 'history' ? 'history' : 'queue' }}
                 className="btn ghost"
               >
-                Open
+                Review
               </Link>
               {canPick ? (
                 <button

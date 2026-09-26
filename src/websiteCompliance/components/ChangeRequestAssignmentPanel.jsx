@@ -723,18 +723,25 @@ export default function ChangeRequestAssignmentPanel({
     {
       key: 'id',
       label: 'ID',
+      width: '7%',
+      minWidth: 64,
       render: (row) => `#${row.id}`,
       filterValue: (row) => String(row.id),
+      sortValue: (row) => Number(row.id) || 0,
     },
     {
       key: 'section',
       label: 'Section',
+      width: '18%',
+      minWidth: 140,
       render: (row) => getSectionLabel(row),
       filterValue: (row) => getSectionLabel(row),
     },
     {
       key: 'editor',
       label: 'Editor',
+      width: '15%',
+      minWidth: 120,
       render: (row) =>
         row.attribution_label || row.on_behalf_by?.name ? (
           <OnBehalfAttribution row={row} ownerKey="editor" flush />
@@ -747,20 +754,27 @@ export default function ChangeRequestAssignmentPanel({
     {
       key: 'status',
       label: 'Status',
+      width: '12%',
+      minWidth: 110,
       render: (row) => <StatusBadge status={row.status} scheduledAt={row.scheduled_at} />,
       filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
     },
     {
       key: 'approver',
       label: 'Approver',
+      width: '14%',
+      minWidth: 110,
       render: (row) => row.approver?.name || '—',
       filterValue: (row) => row.approver?.name || '',
     },
     {
       key: 'created_at',
       label: 'Submitted',
+      width: '16%',
+      minWidth: 140,
       render: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : '—'),
       filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : ''),
+      sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
     },
   ], [complianceStatusLabel])
 
@@ -793,6 +807,8 @@ export default function ChangeRequestAssignmentPanel({
         loading={loading}
         pageSize={10}
         emptyMessage={emptyTitle}
+        actionsWidth="18%"
+        actionsMinWidth={220}
         actions={(row) => {
           const isPending = row.status === PENDING_STATUS
           const rowApprovers = reviewersForSubmitterFirm(approvers, row.editor?.firm)

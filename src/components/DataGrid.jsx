@@ -55,10 +55,36 @@ function DataGridPagination({ page, totalPages, totalItems, pageSize, onPageChan
   )
 }
 
+function columnStyle(col) {
+  const style = {}
+  if (col.width) style.width = col.width
+  if (col.minWidth) style.minWidth = col.minWidth
+  if (col.maxWidth) style.maxWidth = col.maxWidth
+  return Object.keys(style).length ? style : undefined
+}
+
+function SortButton({ active, direction, label, onClick }) {
+  const stateClass = active ? ` is-${direction}` : ''
+  return (
+    <button
+      type="button"
+      className={`data-grid__sort-btn${stateClass}`}
+      onClick={onClick}
+      aria-label={`Sort by ${label}${active ? `, currently ${direction}ending` : ''}`}
+      title={active ? `Sorted ${direction}ending — click to change` : `Sort by ${label}`}
+    >
+      <span className="data-grid__sort-icon" aria-hidden="true" />
+    </button>
+  )
+}
+
 /**
- * Reusable data grid with per-column search and client-side pagination.
+ * Reusable data grid with per-column search, sorting, widths, and client-side pagination.
  *
- * columns: [{ key, label, render?, filterValue?, filterable?, className?, headerClassName? }]
+ * columns: [{
+ *   key, label, render?, filterValue?, sortValue?, filterable?, sortable?,
+ *   width?, minWidth?, maxWidth?, className?, headerClassName?
+ * }]
  */
 export default function DataGrid({
   columns = [],
@@ -71,6 +97,8 @@ export default function DataGrid({
   rowLinkState,
   actions,
   actionsLabel = 'Actions',
+  actionsWidth,
+  actionsMinWidth = 140,
   className = '',
 }) {
   const allColumns = actions
@@ -80,12 +108,16 @@ export default function DataGrid({
           key: 'actions',
           label: actionsLabel,
           filterable: false,
+          sortable: false,
           render: (row) => actions(row),
           className: 'data-grid__actions',
+          width: actionsWidth ?? (columns.some((c) => c.width) ? '12%' : undefined),
+          minWidth: actionsMinWidth,
         },
       ]
     : columns
 
+  const hasColumnWidths = allColumns.some((col) => col.width || col.minWidth)
   const grid = useClientDataGrid(rows, allColumns, { pageSize })
 
   if (loading) {
@@ -99,18 +131,52 @@ export default function DataGrid({
   return (
     <div className={`data-grid ${className}`.trim()}>
       <div className="table-wrap data-grid__wrap">
-        <table className="data-table data-grid__table">
+        <table
+          className={`data-table data-grid__table${hasColumnWidths ? ' data-grid__table--fixed' : ''}`}
+        >
+          <colgroup>
+            {allColumns.map((col) => (
+              <col key={col.key} style={columnStyle(col)} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
-              {allColumns.map((col) => (
-                <th key={col.key} className={col.headerClassName}>
-                  {col.label}
-                </th>
-              ))}
+              {allColumns.map((col) => {
+                const canSort = col.sortable !== false && col.key !== 'actions'
+                const isActive = grid.sortKey === col.key
+                return (
+                  <th
+                    key={col.key}
+                    className={col.headerClassName}
+                    style={columnStyle(col)}
+                    aria-sort={
+                      isActive
+                        ? grid.sortDirection === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : canSort
+                          ? 'none'
+                          : undefined
+                    }
+                  >
+                    <div className="data-grid__th-inner">
+                      <span className="data-grid__th-label">{col.label}</span>
+                      {canSort ? (
+                        <SortButton
+                          active={isActive}
+                          direction={isActive ? grid.sortDirection : 'asc'}
+                          label={col.label}
+                          onClick={() => grid.toggleSort(col.key)}
+                        />
+                      ) : null}
+                    </div>
+                  </th>
+                )
+              })}
             </tr>
             <tr className="data-grid__filters">
               {allColumns.map((col) => (
-                <th key={`filter-${col.key}`}>
+                <th key={`filter-${col.key}`} style={columnStyle(col)}>
                   {col.filterable === false || col.key === 'actions' ? (
                     <span className="data-grid__filter-spacer" />
                   ) : (
@@ -154,7 +220,7 @@ export default function DataGrid({
                         typeof col.render === 'function' ? col.render(row) : row?.[col.key] ?? '—'
                       const isActions = col.key === 'actions'
                       return (
-                        <td key={col.key} className={col.className}>
+                        <td key={col.key} className={col.className} style={columnStyle(col)}>
                           {href && !isActions ? (
                             <Link
                               to={href}

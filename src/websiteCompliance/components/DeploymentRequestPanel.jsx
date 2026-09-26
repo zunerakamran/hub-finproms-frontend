@@ -619,24 +619,32 @@ export default function DeploymentRequestPanel() {
     {
       key: 'domain_name',
       label: 'Domain',
+      width: '16%',
+      minWidth: 140,
       render: (row) => row.domain_name || 'Unnamed Deployment',
       filterValue: (row) => row.domain_name || '',
     },
     {
       key: 'template_name',
       label: 'Template',
+      width: '12%',
+      minWidth: 100,
       render: (row) => row.template_name || '—',
       filterValue: (row) => row.template_name || '',
     },
     {
       key: 'status',
       label: 'Status',
+      width: '10%',
+      minWidth: 100,
       render: (row) => <StatusBadge status={row.status} />,
       filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
     },
     {
       key: 'requester',
       label: 'Requested by',
+      width: '12%',
+      minWidth: 110,
       render: (row) => {
         const requester = row.requested_by || row.requestedBy || row.advisor
         return requester?.name || '—'
@@ -649,6 +657,8 @@ export default function DeploymentRequestPanel() {
     {
       key: 'advisor',
       label: 'Content advisor',
+      width: '14%',
+      minWidth: 120,
       render: (row) => {
         const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
         const advisorOwned = isRequestedByAdvisor(row)
@@ -666,12 +676,17 @@ export default function DeploymentRequestPanel() {
     {
       key: 'created_at',
       label: 'Created',
+      width: '10%',
+      minWidth: 100,
       render: (row) => (row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'),
       filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleDateString() : ''),
+      sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
     },
     {
       key: 'live_url',
       label: 'Live URL',
+      width: '14%',
+      minWidth: 120,
       render: (row) =>
         row.cpanel_domain ? (
           <a

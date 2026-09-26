@@ -3516,6 +3516,103 @@ label {
   min-width: 720px;
 }
 
+.data-grid__table--fixed {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.data-grid__table--fixed th,
+.data-grid__table--fixed td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: top;
+}
+
+.data-grid__th-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.data-grid__th-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.data-grid__sort-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 6px;
+  background: #fff;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.data-grid__sort-btn:hover {
+  border-color: color-mix(in srgb, var(--brand, #0f5c45) 40%, transparent);
+  color: var(--brand, #0f5c45);
+  background: color-mix(in srgb, var(--brand, #0f5c45) 6%, #fff);
+}
+
+.data-grid__sort-btn.is-asc,
+.data-grid__sort-btn.is-desc {
+  border-color: var(--brand, #0f5c45);
+  color: var(--brand, #0f5c45);
+  background: color-mix(in srgb, var(--brand, #0f5c45) 10%, #fff);
+}
+
+.data-grid__sort-icon {
+  position: relative;
+  width: 0.55rem;
+  height: 0.85rem;
+}
+
+.data-grid__sort-icon::before,
+.data-grid__sort-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 0.28rem solid transparent;
+  border-right: 0.28rem solid transparent;
+  opacity: 0.35;
+}
+
+.data-grid__sort-icon::before {
+  top: 0;
+  border-bottom: 0.3rem solid currentColor;
+}
+
+.data-grid__sort-icon::after {
+  bottom: 0;
+  border-top: 0.3rem solid currentColor;
+}
+
+.data-grid__sort-btn.is-asc .data-grid__sort-icon::before {
+  opacity: 1;
+}
+
+.data-grid__sort-btn.is-asc .data-grid__sort-icon::after {
+  opacity: 0.2;
+}
+
+.data-grid__sort-btn.is-desc .data-grid__sort-icon::after {
+  opacity: 1;
+}
+
+.data-grid__sort-btn.is-desc .data-grid__sort-icon::before {
+  opacity: 0.2;
+}
+
 .data-grid__filters th {
   padding: 0.4rem 0.75rem 0.65rem;
   text-transform: none;

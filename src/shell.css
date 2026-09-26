@@ -1910,11 +1910,11 @@ h2,
 }
 
 .home-marquee__column--down .home-marquee__track {
-  animation: home-marquee-down 16s linear infinite;
+  animation: home-marquee-down 32s linear infinite;
 }
 
 .home-marquee__column--up .home-marquee__track {
-  animation: home-marquee-up 18s linear infinite;
+  animation: home-marquee-up 36s linear infinite;
 }
 
 .home-marquee__column:hover .home-marquee__track {

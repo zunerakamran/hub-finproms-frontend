@@ -155,7 +155,6 @@ export const DASHBOARD_LINKS = [
     title: 'Subscription',
     description: 'Your active plan and subscription history for this hub.',
     capability: 'general_show_subscription',
-    sharedOnly: true,
     group: 'account',
   },
   {

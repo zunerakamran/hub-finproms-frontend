@@ -86,7 +86,7 @@ export default function MyDashboard() {
         if (link.to === '/my-dashboard/subscription') {
           if (isWhiteLabelHub) {
             description =
-              'White-labelled hubs do not use subscription plans. Credits come from the hub allotment.'
+              'Private hub allotment from Subscriber credits settings, plus history with from/to dates.'
           } else {
             const planLabel = activePlan
               ? `${activePlan.name} · ${activePlan.credits} credits · ${formatMoney(activePlan.price)}`

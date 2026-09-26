@@ -3353,6 +3353,117 @@ label {
 .credits-amt--in { color: #1f7a4d; }
 .credits-amt--out { color: #b42318; }
 
+.subscription-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.subscription-page__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.subscription-card {
+  background: #fff;
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.1));
+  border-radius: 16px;
+  padding: 1.25rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.04);
+}
+
+.subscription-card--active {
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--brand, #0f5c45) 10%, #fff) 0%,
+      #fff 55%
+    );
+  border-color: color-mix(in srgb, var(--brand, #0f5c45) 22%, var(--line, #dce3df));
+}
+
+.subscription-card__eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #5a6a63);
+}
+
+.subscription-card h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.25;
+}
+
+.subscription-card__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.subscription-card__meta--stack {
+  grid-template-columns: 1fr;
+}
+
+.subscription-card__meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.subscription-card__meta strong {
+  font-size: 1rem;
+}
+
+.subscription-page__history h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.sub-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  background: #eef2f6;
+  color: #475569;
+}
+
+.sub-status--active {
+  background: color-mix(in srgb, #1f7a4d 14%, white);
+  color: #1f7a4d;
+}
+
+.sub-status--expired,
+.sub-status--cancelled,
+.sub-status--cancelledled {
+  background: color-mix(in srgb, #b42318 12%, white);
+  color: #b42318;
+}
+
+.sub-status--pending {
+  background: color-mix(in srgb, #b54708 14%, white);
+  color: #b54708;
+}
+
+@media (max-width: 900px) {
+  .subscription-page__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 960px) {
   .credits-report__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));

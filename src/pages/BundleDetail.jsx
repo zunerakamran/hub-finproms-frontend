@@ -13,6 +13,7 @@ export default function BundleDetail() {
   const [bundle, setBundle] = useState(null)
   const [paymentMethods, setPaymentMethods] = useState([])
   const [oneOffPurchase, setOneOffPurchase] = useState(false)
+  const [cashContentPurchase, setCashContentPurchase] = useState(false)
   const [loading, setLoading] = useState(true)
   const [buying, setBuying] = useState(false)
   const [checkoutKey, setCheckoutKey] = useState(null)
@@ -31,6 +32,7 @@ export default function BundleDetail() {
           ? Boolean(data.one_off_purchase)
           : can('one_off_purchase')
       )
+      setCashContentPurchase(Boolean(data.cash_content_purchase))
     } catch (err) {
       setError(err.message)
       setBundle(null)
@@ -128,6 +130,8 @@ export default function BundleDetail() {
     user?.has_unlimited_credits ||
     (can('unlimited_credits') && (user?.is_advisor || isActingAsAdvisor))
   const oneOffEnabled = oneOffPurchase || can('one_off_purchase')
+  // Shared hub only: credits + dashboard payment methods. White-labelled: credits only.
+  const cashEnabled = cashContentPurchase
   const stripeMethod = paymentMethods.find((m) => m.id === 'stripe') || {
     id: 'stripe',
     available: false,
@@ -200,7 +204,7 @@ export default function BundleDetail() {
                 </Link>
               )}
             </div>
-            {oneOffEnabled && (
+            {cashEnabled && (
               <div className="plan-actions" style={{ marginTop: '0.75rem' }}>
                 <p className="muted">Or pay directly with an enabled payment method:</p>
                 <button

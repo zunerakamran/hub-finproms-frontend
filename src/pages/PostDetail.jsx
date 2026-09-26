@@ -20,6 +20,7 @@ export default function PostDetail() {
   const [invoice, setInvoice] = useState(null)
   const [paymentMethods, setPaymentMethods] = useState([])
   const [oneOffPurchase, setOneOffPurchase] = useState(false)
+  const [cashContentPurchase, setCashContentPurchase] = useState(false)
 
   const canPurchase = can('member_purchase_content')
   const canDownload = can('member_download_content')
@@ -27,6 +28,8 @@ export default function PostDetail() {
     user?.has_unlimited_credits ||
     (can('unlimited_credits') && (user?.is_advisor || isActingAsAdvisor))
   const oneOffEnabled = oneOffPurchase || can('one_off_purchase')
+  // Shared hub only: credits + dashboard payment methods. White-labelled: credits only.
+  const cashEnabled = cashContentPurchase
   const stripeMethod = paymentMethods.find((m) => m.id === 'stripe') || {
     id: 'stripe',
     label: 'Card (Stripe)',
@@ -52,6 +55,7 @@ export default function PostDetail() {
           ? Boolean(data.one_off_purchase)
           : can('one_off_purchase')
       )
+      setCashContentPurchase(Boolean(data.cash_content_purchase))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -324,7 +328,7 @@ export default function PostDetail() {
                 </Link>
               )}
             </div>
-            {oneOffEnabled && (
+            {cashEnabled && (
               <div className="plan-actions" style={{ marginTop: '0.75rem' }}>
                 <p className="muted">Or pay directly with an enabled payment method:</p>
                 <button

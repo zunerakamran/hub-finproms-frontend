@@ -79,11 +79,56 @@ function SortButton({ active, direction, label, onClick }) {
 }
 
 /**
+ * Compact icon action for data-grid rows.
+ * Use as <DataGridIconBtn icon={FaEye} label="View" onClick={...} />
+ * or as={Link} to="..." for navigation.
+ */
+export function DataGridIconBtn({
+  icon: Icon,
+  label,
+  onClick,
+  disabled = false,
+  variant = 'ghost',
+  as: As = 'button',
+  className = '',
+  ...rest
+}) {
+  const classes = [
+    'data-grid__icon-btn',
+    `data-grid__icon-btn--${variant}`,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const shared = {
+    className: classes,
+    title: label,
+    'aria-label': label,
+    ...rest,
+  }
+
+  if (As === 'button') {
+    return (
+      <button type="button" onClick={onClick} disabled={disabled} {...shared}>
+        {Icon ? <Icon aria-hidden="true" /> : null}
+      </button>
+    )
+  }
+
+  return (
+    <As onClick={onClick} {...shared}>
+      {Icon ? <Icon aria-hidden="true" /> : null}
+    </As>
+  )
+}
+
+/**
  * Reusable data grid with per-column search, sorting, widths, and client-side pagination.
  *
  * columns: [{
  *   key, label, render?, filterValue?, sortValue?, filterable?, sortable?,
- *   width?, minWidth?, maxWidth?, className?, headerClassName?
+ *   width?, minWidth?, maxWidth?, className?, headerClassName?, truncate?
  * }]
  */
 export default function DataGrid({
@@ -98,7 +143,7 @@ export default function DataGrid({
   actions,
   actionsLabel = 'Actions',
   actionsWidth,
-  actionsMinWidth = 140,
+  actionsMinWidth = 120,
   className = '',
 }) {
   const allColumns = actions
@@ -109,15 +154,15 @@ export default function DataGrid({
           label: actionsLabel,
           filterable: false,
           sortable: false,
+          truncate: false,
           render: (row) => actions(row),
           className: 'data-grid__actions',
-          width: actionsWidth ?? (columns.some((c) => c.width) ? '12%' : undefined),
+          width: actionsWidth,
           minWidth: actionsMinWidth,
         },
       ]
     : columns
 
-  const hasColumnWidths = allColumns.some((col) => col.width || col.minWidth)
   const grid = useClientDataGrid(rows, allColumns, { pageSize })
 
   if (loading) {
@@ -125,15 +170,17 @@ export default function DataGrid({
   }
 
   if (!rows?.length) {
-    return <div className="empty-state"><p className="muted">{emptyMessage}</p></div>
+    return (
+      <div className="empty-state">
+        <p className="muted">{emptyMessage}</p>
+      </div>
+    )
   }
 
   return (
     <div className={`data-grid ${className}`.trim()}>
       <div className="table-wrap data-grid__wrap">
-        <table
-          className={`data-table data-grid__table${hasColumnWidths ? ' data-grid__table--fixed' : ''}`}
-        >
+        <table className="data-table data-grid__table">
           <colgroup>
             {allColumns.map((col) => (
               <col key={col.key} style={columnStyle(col)} />
@@ -183,7 +230,7 @@ export default function DataGrid({
                     <input
                       type="search"
                       className="data-grid__filter-input"
-                      placeholder={`Search ${col.label.toLowerCase()}…`}
+                      placeholder="Search…"
                       value={grid.filters[col.key] || ''}
                       onChange={(e) => grid.setFilter(col.key, e.target.value)}
                       aria-label={`Search ${col.label}`}
@@ -219,8 +266,13 @@ export default function DataGrid({
                       const content =
                         typeof col.render === 'function' ? col.render(row) : row?.[col.key] ?? '—'
                       const isActions = col.key === 'actions'
+                      const truncate = col.truncate !== false && !isActions
+                      const cellClass = [col.className, truncate ? 'data-grid__cell--truncate' : '']
+                        .filter(Boolean)
+                        .join(' ')
+
                       return (
-                        <td key={col.key} className={col.className} style={columnStyle(col)}>
+                        <td key={col.key} className={cellClass || undefined} style={columnStyle(col)}>
                           {href && !isActions ? (
                             <Link
                               to={href}
@@ -230,9 +282,21 @@ export default function DataGrid({
                                   : rowLinkState
                               }
                               className="data-grid__cell-link"
+                              title={typeof content === 'string' || typeof content === 'number' ? String(content) : undefined}
+                            >
+                              <span className="data-grid__cell-text">{content}</span>
+                            </Link>
+                          ) : truncate ? (
+                            <span
+                              className="data-grid__cell-text"
+                              title={
+                                typeof content === 'string' || typeof content === 'number'
+                                  ? String(content)
+                                  : undefined
+                              }
                             >
                               {content}
-                            </Link>
+                            </span>
                           ) : (
                             content
                           )}

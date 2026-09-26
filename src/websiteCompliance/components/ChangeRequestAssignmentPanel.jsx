@@ -20,7 +20,7 @@ import {
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
-import DataGrid from '../../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../../components/DataGrid'
 import { parseJson } from '../utils/parseJson'
 import {
   buildPreviewFromRequest,
@@ -723,8 +723,7 @@ export default function ChangeRequestAssignmentPanel({
     {
       key: 'id',
       label: 'ID',
-      width: '7%',
-      minWidth: 64,
+      minWidth: 72,
       render: (row) => `#${row.id}`,
       filterValue: (row) => String(row.id),
       sortValue: (row) => Number(row.id) || 0,
@@ -732,16 +731,14 @@ export default function ChangeRequestAssignmentPanel({
     {
       key: 'section',
       label: 'Section',
-      width: '18%',
-      minWidth: 140,
+      minWidth: 160,
       render: (row) => getSectionLabel(row),
       filterValue: (row) => getSectionLabel(row),
     },
     {
       key: 'editor',
       label: 'Editor',
-      width: '15%',
-      minWidth: 120,
+      minWidth: 130,
       render: (row) =>
         row.attribution_label || row.on_behalf_by?.name ? (
           <OnBehalfAttribution row={row} ownerKey="editor" flush />
@@ -750,28 +747,27 @@ export default function ChangeRequestAssignmentPanel({
         ),
       filterValue: (row) =>
         [row.editor?.name, row.on_behalf_by?.name, row.attribution_label].filter(Boolean).join(' '),
+      truncate: false,
     },
     {
       key: 'status',
       label: 'Status',
-      width: '12%',
-      minWidth: 110,
+      minWidth: 120,
       render: (row) => <StatusBadge status={row.status} scheduledAt={row.scheduled_at} />,
       filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
+      truncate: false,
     },
     {
       key: 'approver',
       label: 'Approver',
-      width: '14%',
-      minWidth: 110,
+      minWidth: 120,
       render: (row) => row.approver?.name || '—',
       filterValue: (row) => row.approver?.name || '',
     },
     {
       key: 'created_at',
       label: 'Submitted',
-      width: '16%',
-      minWidth: 140,
+      minWidth: 150,
       render: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : '—'),
       filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : ''),
       sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
@@ -807,8 +803,7 @@ export default function ChangeRequestAssignmentPanel({
         loading={loading}
         pageSize={10}
         emptyMessage={emptyTitle}
-        actionsWidth="18%"
-        actionsMinWidth={220}
+        actionsMinWidth={200}
         actions={(row) => {
           const isPending = row.status === PENDING_STATUS
           const rowApprovers = reviewersForSubmitterFirm(approvers, row.editor?.firm)
@@ -816,26 +811,29 @@ export default function ChangeRequestAssignmentPanel({
           const isSelected = selectedId === row.id
 
           return (
-            <div className="flex flex-col gap-2 min-w-[200px]">
+            <>
               {isPending && canAssign ? (
-                <div className="flex flex-wrap items-center gap-2">
+                <>
                   <select
                     value={selectedApproverId || ''}
                     onChange={(e) =>
                       setSelectedApprover((prev) => ({ ...prev, [row.id]: e.target.value }))
                     }
-                    className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white max-w-[180px]"
+                    className="data-grid__inline-select"
+                    aria-label={`Choose ${roleLabel('approver').toLowerCase()}`}
+                    title={`Choose ${roleLabel('approver').toLowerCase()}`}
                   >
-                    <option value="">Choose {roleLabel('approver').toLowerCase()}…</option>
+                    <option value="">Approver…</option>
                     {rowApprovers.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.name}
                       </option>
                     ))}
                   </select>
-                  <button
-                    type="button"
-                    className="btn primary"
+                  <DataGridIconBtn
+                    icon={FaUserCheck}
+                    label={assigningId === row.id ? 'Assigning…' : 'Assign'}
+                    variant="primary"
                     disabled={assigningId === row.id || !selectedApproverId}
                     onClick={() => {
                       if (!selectedApproverId) {
@@ -844,19 +842,16 @@ export default function ChangeRequestAssignmentPanel({
                       }
                       handleAssign(row.id, selectedApproverId)
                     }}
-                  >
-                    {assigningId === row.id ? 'Assigning…' : 'Assign'}
-                  </button>
-                </div>
+                  />
+                </>
               ) : null}
-              <button
-                type="button"
-                className="btn ghost"
+              <DataGridIconBtn
+                icon={isSelected ? FaEyeSlash : FaEye}
+                label={isSelected ? 'Hide details' : 'Details / Preview'}
+                variant={isSelected ? 'active' : 'ghost'}
                 onClick={() => setSelectedId(isSelected ? null : row.id)}
-              >
-                {isSelected ? 'Hide details' : 'Details / Preview'}
-              </button>
-            </div>
+              />
+            </>
           )
         }}
       />

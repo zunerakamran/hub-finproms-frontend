@@ -23,7 +23,7 @@ import {
 import api from '../wcApi'
 import { useAuth } from '../../context/AuthContext'
 import { useHub } from '../../context/HubContext'
-import DataGrid from '../../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../../components/DataGrid'
 import { resolveAdvisorLiveSiteUrl } from '../utils/assetUrl'
 import { parseJson } from '../utils/parseJson'
 import {
@@ -1157,8 +1157,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'id',
       label: 'ID',
-      width: '7%',
-      minWidth: 64,
+      minWidth: 72,
       render: (row) => `#${row.id}`,
       filterValue: (row) => String(row.id),
       sortValue: (row) => Number(row.id) || 0,
@@ -1166,8 +1165,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'section',
       label: 'Section',
-      width: '18%',
-      minWidth: 140,
+      minWidth: 160,
       render: (row) => {
         const { type, names } = getRequestSections(row)
         return (
@@ -1182,12 +1180,12 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
         )
       },
       filterValue: (row) => getSectionLabel(row),
+      truncate: false,
     },
     {
       key: 'editor',
       label: 'Editor',
-      width: '14%',
-      minWidth: 120,
+      minWidth: 130,
       render: (row) =>
         row.attribution_label || row.on_behalf_by?.name ? (
           <OnBehalfAttribution row={row} ownerKey="editor" flush />
@@ -1196,28 +1194,27 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
         ),
       filterValue: (row) =>
         [row.editor?.name, row.on_behalf_by?.name, row.attribution_label].filter(Boolean).join(' '),
+      truncate: false,
     },
     {
       key: 'status',
       label: 'Status',
-      width: '12%',
-      minWidth: 110,
+      minWidth: 120,
       render: (row) => <StatusBadge status={row.status} scheduledAt={row.scheduled_at} />,
       filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
+      truncate: false,
     },
     {
       key: 'approver',
       label: 'Approver',
-      width: '13%',
-      minWidth: 110,
+      minWidth: 120,
       render: (row) => row.approver?.name || '—',
       filterValue: (row) => row.approver?.name || '',
     },
     {
       key: 'created_at',
       label: 'Submitted',
-      width: '16%',
-      minWidth: 140,
+      minWidth: 150,
       render: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : '—'),
       filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : ''),
       sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
@@ -1225,8 +1222,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     {
       key: 'version',
       label: 'Version',
-      width: '8%',
-      minWidth: 72,
+      minWidth: 84,
       render: (row) => (row.current_version ? `v${row.current_version}` : '—'),
       filterValue: (row) => String(row.current_version || ''),
       sortValue: (row) => Number(row.current_version) || 0,
@@ -1260,8 +1256,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
             ? (canViewAll ? 'No history yet' : 'No reviews assigned to you yet')
             : 'No change requests found'
         }
-        actionsWidth="12%"
-        actionsMinWidth={180}
+        actionsMinWidth={128}
         actions={(row) => {
           const canPick = row.status === 'pending' && !row.approver_id
           const isAssignedToMe = Number(row.approver_id) === Number(user?.id)
@@ -1270,42 +1265,39 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
           const isSelected = selectedId === row.id
 
           return (
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
+            <>
+              <DataGridIconBtn
+                as={Link}
                 to={`/my-dashboard/website-compliance/my-requests/${row.id}`}
                 state={{ from: variant === 'history' ? 'history' : 'queue' }}
-                className="btn ghost"
-              >
-                Review
-              </Link>
+                icon={FaClipboardCheck}
+                label="Open review"
+              />
               {canPick ? (
-                <button
-                  type="button"
-                  className="btn primary"
+                <DataGridIconBtn
+                  icon={FaHandPointer}
+                  label={pickingId === row.id ? 'Picking…' : 'Pick it'}
+                  variant="primary"
                   disabled={pickingId === row.id}
                   onClick={() => handlePick(row)}
-                >
-                  {pickingId === row.id ? 'Picking…' : 'Pick it'}
-                </button>
+                />
               ) : null}
               {canReview ? (
-                <button
-                  type="button"
-                  className={`btn ${isSelected ? 'ghost' : 'primary'}`}
+                <DataGridIconBtn
+                  icon={isSelected ? FaEyeSlash : FaCheckCircle}
+                  label={isSelected ? 'Hide review' : 'Approve / Reject'}
+                  variant={isSelected ? 'active' : 'primary'}
                   onClick={() => setSelectedId(isSelected ? null : row.id)}
-                >
-                  {isSelected ? 'Hide review' : 'Approve / Reject'}
-                </button>
+                />
               ) : (
-                <button
-                  type="button"
-                  className="btn ghost"
+                <DataGridIconBtn
+                  icon={isSelected ? FaEyeSlash : FaEye}
+                  label={isSelected ? 'Hide details' : 'Details'}
+                  variant={isSelected ? 'active' : 'ghost'}
                   onClick={() => setSelectedId(isSelected ? null : row.id)}
-                >
-                  {isSelected ? 'Hide' : 'Details'}
-                </button>
+                />
               )}
-            </div>
+            </>
           )
         }}
       />

@@ -71,8 +71,7 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'id',
       label: '#',
-      width: '8%',
-      minWidth: 64,
+      minWidth: 72,
       render: (row) => (
         <strong className={highlightId === row.id ? 'is-highlight' : undefined}>#{row.id}</strong>
       ),
@@ -82,8 +81,7 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'version',
       label: 'Version',
-      width: '10%',
-      minWidth: 80,
+      minWidth: 84,
       render: (row) => `v${row.current_version || 1}`,
       filterValue: (row) => String(row.current_version || 1),
       sortValue: (row) => Number(row.current_version) || 1,
@@ -91,8 +89,7 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'description',
       label: 'Description',
-      width: '34%',
-      minWidth: 180,
+      minWidth: 200,
       render: (row) => (
         <>
           <div>{wcSectionTitle(row)}</div>
@@ -101,12 +98,12 @@ export default function WebsiteComplianceMyRequests() {
       ),
       filterValue: (row) =>
         [wcSectionTitle(row), row.attribution_label, row.on_behalf_by?.name].filter(Boolean).join(' '),
+      truncate: false,
     },
     {
       key: 'submitted',
       label: 'Submitted',
-      width: '28%',
-      minWidth: 160,
+      minWidth: 180,
       render: (row) => (
         <>
           {formatWcDate(row.created_at)}
@@ -118,14 +115,15 @@ export default function WebsiteComplianceMyRequests() {
       filterValue: (row) =>
         [formatWcDate(row.created_at), row.approver?.name].filter(Boolean).join(' '),
       sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
+      truncate: false,
     },
     {
       key: 'status',
       label: 'Status',
-      width: '20%',
       minWidth: 120,
       render: (row) => <WcStatusBadge status={row.status} />,
       filterValue: (row) => row.status || '',
+      truncate: false,
     },
   ]
 

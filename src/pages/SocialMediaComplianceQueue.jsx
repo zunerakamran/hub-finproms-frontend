@@ -202,7 +202,11 @@ export default function SocialMediaComplianceQueue() {
                   <td>
                     {row.image_url ? (
                       <a href={row.image_url} target="_blank" rel="noreferrer">
-                        <img src={row.image_url} alt="" className="smc-thumb-sm" />
+                        {/\.(mp4|mov|webm)(\?|$)/i.test(row.image_url) ? (
+                          <video src={row.image_url} className="smc-thumb-sm" muted />
+                        ) : (
+                          <img src={row.image_url} alt="" className="smc-thumb-sm" />
+                        )}
                       </a>
                     ) : (
                       '—'

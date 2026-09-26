@@ -39,6 +39,9 @@ export function SmcBarChart({ labels = [], data = [], title }) {
 }
 
 export function SmcVersionCard({ version, isLatest }) {
+  const mediaUrl = version.image_url
+  const isVideo = mediaUrl && /\.(mp4|mov|webm)(\?|$)/i.test(mediaUrl)
+
   return (
     <article className={`smc-version ${isLatest ? 'is-latest' : ''}`}>
       <header className="smc-version-head">
@@ -55,13 +58,17 @@ export function SmcVersionCard({ version, isLatest }) {
           <p className="smc-pre">{version.description || '—'}</p>
         </div>
         <div>
-          <p className="muted label">Image</p>
-          {version.image_url ? (
-            <a href={version.image_url} target="_blank" rel="noreferrer" className="smc-thumb-link">
-              <img src={version.image_url} alt={`Version ${version.version_number}`} className="smc-thumb" />
+          <p className="muted label">Attachment</p>
+          {mediaUrl ? (
+            <a href={mediaUrl} target="_blank" rel="noreferrer" className="smc-thumb-link">
+              {isVideo ? (
+                <video src={mediaUrl} className="smc-thumb" controls playsInline />
+              ) : (
+                <img src={mediaUrl} alt={`Version ${version.version_number}`} className="smc-thumb" />
+              )}
             </a>
           ) : (
-            <p className="muted">No image</p>
+            <p className="muted">No attachment</p>
           )}
         </div>
       </div>

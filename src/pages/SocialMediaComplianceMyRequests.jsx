@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import SmcStatusBadge from '../components/SocialMediaComplianceUI'
@@ -8,7 +8,6 @@ import { formatSmcDate } from '../utils/socialMediaCompliance'
 
 export default function SocialMediaComplianceMyRequests() {
   const { can, loading: hubLoading, effectiveAdvisorId } = useHub()
-  const [searchParams] = useSearchParams()
   const [items, setItems] = useState([])
   const [meta, setMeta] = useState(null)
   const [page, setPage] = useState(1)
@@ -18,7 +17,6 @@ export default function SocialMediaComplianceMyRequests() {
   const moduleOn = can('module_social_media_compliance')
   const canSubmit = can('smc_submit_request')
   const canView = can('smc_view_own_requests') || canSubmit
-  const highlightPost = searchParams.get('post_id')
 
   useEffect(() => {
     if (hubLoading || !moduleOn || !canView) {
@@ -72,14 +70,7 @@ export default function SocialMediaComplianceMyRequests() {
           <p className="muted">Track submissions, feedback, and version history.</p>
         </div>
         {canSubmit && (
-          <Link
-            className="btn primary"
-            to={
-              highlightPost
-                ? `/my-dashboard/social-media-compliance/new?post_id=${highlightPost}`
-                : '/my-dashboard/social-media-compliance/new'
-            }
-          >
+          <Link className="btn primary" to="/my-dashboard/social-media-compliance/new">
             Add new request
           </Link>
         )}
@@ -94,8 +85,8 @@ export default function SocialMediaComplianceMyRequests() {
           {canSubmit && (
             <>
               {' '}
-              Open a <Link to="/my-dashboard/purchases">purchased post</Link> and send it for social media compliance, or start a{' '}
-              <Link to="/my-dashboard/social-media-compliance/new">new request</Link>.
+              <Link to="/my-dashboard/social-media-compliance/new">Submit a new request</Link> with an
+              image or video.
             </>
           )}
         </p>
@@ -111,7 +102,7 @@ export default function SocialMediaComplianceMyRequests() {
               <div>
                 <strong>#{row.id}</strong>
                 <span className="muted"> v{row.current_version}</span>
-                <p>{row.post?.title || row.description?.slice(0, 100) || 'Social media compliance request'}</p>
+                <p>{row.description?.slice(0, 100) || row.post?.title || 'Social media compliance request'}</p>
                 <OnBehalfAttribution row={row} ownerKey="submitter" />
                 <small className="muted">{formatSmcDate(row.submission_date)}</small>
               </div>

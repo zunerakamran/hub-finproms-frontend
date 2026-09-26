@@ -1,70 +1,53 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
 import { useHub } from '../context/HubContext'
 
+function isVideoFile(file) {
+  if (!file) return false
+  if (file.type?.startsWith('video/')) return true
+  return /\.(mp4|mov|webm)$/i.test(file.name || '')
+}
+
 export default function SocialMediaComplianceSubmit() {
   const { can, loading: hubLoading } = useHub()
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const initialPostId = searchParams.get('post_id') || ''
 
-  const [purchases, setPurchases] = useState([])
-  const [postId, setPostId] = useState(initialPostId)
   const [description, setDescription] = useState('')
-  const [image, setImage] = useState(null)
+  const [attachment, setAttachment] = useState(null)
   const [preview, setPreview] = useState('')
+  const [previewIsVideo, setPreviewIsVideo] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [loadingPurchases, setLoadingPurchases] = useState(true)
 
   const moduleOn = can('module_social_media_compliance')
   const canSubmit = can('smc_submit_request')
 
-  useEffect(() => {
-    if (hubLoading || !canSubmit) {
-      setLoadingPurchases(false)
+  const onAttachment = (file) => {
+    setAttachment(file || null)
+    if (preview) URL.revokeObjectURL(preview)
+    if (!file) {
+      setPreview('')
+      setPreviewIsVideo(false)
       return
     }
-    let cancelled = false
-    setLoadingPurchases(true)
-    api
-      .myPurchases()
-      .then((data) => {
-        if (cancelled) return
-        setPurchases(data.data || [])
-      })
-      .catch(() => {
-        if (!cancelled) setPurchases([])
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingPurchases(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [hubLoading, canSubmit])
-
-  const onImage = (file) => {
-    setImage(file || null)
-    if (preview) URL.revokeObjectURL(preview)
-    setPreview(file ? URL.createObjectURL(file) : '')
+    setPreview(URL.createObjectURL(file))
+    setPreviewIsVideo(isVideoFile(file))
   }
 
   const submit = async (event) => {
     event.preventDefault()
-    if (!postId) {
-      setError('Select a purchased post.')
+    if (!attachment) {
+      setError('Please upload an image or video.')
       return
     }
     setSaving(true)
     setError('')
     try {
       const form = new FormData()
-      form.append('post_id', postId)
       form.append('description', description)
-      if (image) form.append('image', image)
+      form.append('attachment', attachment)
       const data = await api.socialMediaComplianceSubmit(form)
       navigate(`/my-dashboard/social-media-compliance/${data.data.id}`, {
         state: { from: 'submit' },
@@ -101,8 +84,7 @@ export default function SocialMediaComplianceSubmit() {
           <p className="eyebrow">Social Media Compliance</p>
           <h1>Submit for social media compliance</h1>
           <p className="muted">
-            Send a purchased post for review. You can attach an updated image or use the post
-            attachment.
+            Upload an image or video and describe the material for pre-approval review.
           </p>
           <ActingAdvisorBanner action="submissions" />
         </div>
@@ -115,27 +97,6 @@ export default function SocialMediaComplianceSubmit() {
 
       <form className="admin-form" onSubmit={submit}>
         <label>
-          Purchased post
-          <select
-            value={postId}
-            onChange={(e) => setPostId(e.target.value)}
-            required
-            disabled={loadingPurchases}
-          >
-            <option value="">Select a post…</option>
-            {purchases.map((p) => {
-              const id = p.post_id || p.post?.id
-              const title = p.post?.title || `Post #${id}`
-              return (
-                <option key={id} value={id}>
-                  {title}
-                </option>
-              )
-            })}
-          </select>
-        </label>
-
-        <label>
           Description
           <textarea
             rows={5}
@@ -147,16 +108,21 @@ export default function SocialMediaComplianceSubmit() {
         </label>
 
         <label>
-          Image (optional — defaults to post attachment)
+          Attachment (image or video)
           <input
             type="file"
-            accept="image/*"
-            onChange={(e) => onImage(e.target.files?.[0])}
+            accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+            required
+            onChange={(e) => onAttachment(e.target.files?.[0])}
           />
         </label>
         {preview && (
           <div className="smc-thumb-wrap">
-            <img src={preview} alt="Preview" className="smc-thumb" />
+            {previewIsVideo ? (
+              <video src={preview} className="smc-thumb" controls playsInline />
+            ) : (
+              <img src={preview} alt="Preview" className="smc-thumb" />
+            )}
           </div>
         )}
 

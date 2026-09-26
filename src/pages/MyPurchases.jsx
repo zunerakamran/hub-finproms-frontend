@@ -2,16 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import ReelPlayer from '../components/ReelPlayer'
-import { useHub } from '../context/HubContext'
 
 export default function MyPurchases() {
-  const { can } = useHub()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
-  const canCompliance =
-    can('module_social_media_compliance') && can('smc_submit_request')
 
   useEffect(() => {
     api
@@ -97,16 +92,6 @@ export default function MyPurchases() {
                     </div>
                   </div>
                 </Link>
-                {canCompliance && (
-                  <div className="smc-purchase-actions">
-                    <Link
-                      className="btn ghost"
-                      to={`/my-dashboard/social-media-compliance/new?post_id=${purchase.post_id}`}
-                    >
-                      Send for social media compliance
-                    </Link>
-                  </div>
-                )}
               </div>
             )
           })}

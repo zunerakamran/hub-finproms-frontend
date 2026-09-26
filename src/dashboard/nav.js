@@ -384,7 +384,7 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/social-media-compliance/new',
     label: 'New request',
     title: 'New request',
-    description: 'Submit a purchased post for social media pre-approval review.',
+    description: 'Submit an image or video for social media pre-approval review.',
     capability: 'smc_submit_request',
     group: 'smc',
   },

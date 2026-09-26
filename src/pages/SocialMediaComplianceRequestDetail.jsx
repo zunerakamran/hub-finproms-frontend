@@ -164,7 +164,7 @@ export default function SocialMediaComplianceRequestDetail() {
     try {
       const form = new FormData()
       form.append('description', resubDescription)
-      if (resubImage) form.append('image', resubImage)
+      if (resubImage) form.append('attachment', resubImage)
       const data = await api.socialMediaComplianceResubmit(id, form)
       setRow(data.data)
       setMessage('Resubmitted for review.')
@@ -182,7 +182,7 @@ export default function SocialMediaComplianceRequestDetail() {
     setMessage('')
     try {
       const form = new FormData()
-      if (withImage && confirmImage) form.append('image', confirmImage)
+      if (withImage && confirmImage) form.append('attachment', confirmImage)
       const data = await api.socialMediaComplianceConfirmFeedback(id, form)
       setRow(data.data)
       setMessage('Request confirmed as Approved.')
@@ -285,14 +285,14 @@ export default function SocialMediaComplianceRequestDetail() {
         <div className="admin-form smc-panel">
           <h2>Approved with feedback</h2>
           <p className="muted">
-            Confirm as approved, or upload a corrected image (also becomes Approved).
+            Confirm as approved, or upload a corrected image/video (also becomes Approved).
           </p>
           {row.feedback && <p className="smc-feedback">{row.feedback}</p>}
           <label>
-            Optional new image
+            Optional new attachment
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
               onChange={(e) => setConfirmImage(e.target.files?.[0] || null)}
             />
           </label>
@@ -322,10 +322,10 @@ export default function SocialMediaComplianceRequestDetail() {
             />
           </label>
           <label>
-            New image (optional)
+            New attachment (optional)
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
               onChange={(e) => setResubImage(e.target.files?.[0] || null)}
             />
           </label>

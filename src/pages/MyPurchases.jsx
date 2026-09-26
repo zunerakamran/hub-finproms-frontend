@@ -24,11 +24,6 @@ export default function MyPurchases() {
           <h1>My purchases</h1>
           <p className="muted">Posts you unlocked with credits.</p>
         </div>
-        {canCompliance && (
-          <Link className="btn ghost" to="/my-dashboard/social-media-compliance">
-            My requests
-          </Link>
-        )}
       </div>
       {error && <div className="alert">{error}</div>}
       {loading ? (

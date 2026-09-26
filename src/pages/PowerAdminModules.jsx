@@ -23,8 +23,13 @@ function lockedHint(item) {
 
 function dependencyHint(item, labelByKey) {
   if (!item.depends_on?.length) return null
-  const names = item.depends_on.map((k) => labelByKey[k] || k).join(' + ')
-  return `Requires: ${names}`
+  const names = item.depends_on.map((k) => labelByKey[k] || k)
+  if (names.length === 1) {
+    return `You can avail this module if you have ${names[0]}`
+  }
+  const last = names[names.length - 1]
+  const rest = names.slice(0, -1).join(', ')
+  return `You can avail this module if you have ${rest} and ${last}`
 }
 
 function cascadeFlags(prev, key, checked) {
@@ -159,7 +164,7 @@ export default function PowerAdminModules() {
           <p className="muted">
             Enable product modules for <strong>{selectedName}</strong>
             {isActingOnWhiteLabel ? ' (white-labelled)' : ' (shared)'}. Related Capabilities stay
-            blurred until a module is on. Who can open this screen is controlled by{' '}
+            unavailable until a module is on. Who can open this screen is controlled by{' '}
             <strong>Manage hub modules</strong> in the Capabilities matrix.
           </p>
         </div>
@@ -194,13 +199,18 @@ export default function PowerAdminModules() {
               {modules.map((item) => {
                 const depsOk = dependenciesMet(item, flags)
                 const isLocked = Boolean(item.locked) || !item.available
+                const depsBlocked = !isLocked && !depsOk
                 const disabled = isLocked || !depsOk
                 const hint = lockedHint(item) || (!depsOk ? dependencyHint(item, labelByKey) : null)
-                const checked = Boolean(flags[item.key]) && depsOk
+                // Locked base modules (Shared / White Label Hub) stay checked and editable=false,
+                // but are not dimmed/blurred.
+                const checked = isLocked
+                  ? Boolean(flags[item.key])
+                  : Boolean(flags[item.key]) && depsOk
                 return (
                   <label
                     key={item.key}
-                    className={`checklist-item${disabled ? ' is-inactive' : ''}`}
+                    className={`checklist-item${isLocked ? ' is-readonly' : ''}${depsBlocked ? ' is-inactive' : ''}`}
                     title={hint || undefined}
                   >
                     <input
@@ -214,7 +224,13 @@ export default function PowerAdminModules() {
                     <span>
                       <strong>
                         {item.label}
-                        {item.locked ? ' (locked)' : !depsOk ? ' (requires parent)' : !item.available ? ' (coming soon)' : ''}
+                        {item.locked
+                          ? ' (always on)'
+                          : !depsOk
+                            ? ' (requires parent)'
+                            : !item.available
+                              ? ' (coming soon)'
+                              : ''}
                       </strong>
                       <small className="muted">{item.description}</small>
                       {hint && <small className="muted exclusive-hint">{hint}</small>}

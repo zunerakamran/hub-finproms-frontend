@@ -2761,13 +2761,21 @@ label {
 }
 
 .checklist-item.is-inactive {
-  opacity: 0.55;
-  filter: grayscale(0.15);
-  background: color-mix(in srgb, var(--panel) 85%, var(--line));
+  background: color-mix(in srgb, var(--panel) 92%, var(--line));
   cursor: not-allowed;
 }
 
 .checklist-item.is-inactive input {
+  cursor: not-allowed;
+}
+
+.checklist-item.is-readonly {
+  cursor: not-allowed;
+  border-color: color-mix(in srgb, var(--brand, #0f5c45) 28%, var(--line));
+  background: color-mix(in srgb, var(--brand, #0f5c45) 6%, var(--panel));
+}
+
+.checklist-item.is-readonly input {
   cursor: not-allowed;
 }
 
@@ -2918,14 +2926,16 @@ label {
 }
 
 .capabilities-matrix tr.matrix-row-inactive {
-  opacity: 0.55;
-  filter: grayscale(0.35) blur(0.4px);
   background: rgba(148, 163, 184, 0.08);
 }
 
 .capabilities-matrix tr.matrix-row-inactive td {
   pointer-events: none;
   user-select: none;
+}
+
+.capabilities-matrix tr.matrix-row-inactive input[type='checkbox'] {
+  cursor: not-allowed;
 }
 
 .capabilities-matrix td.matrix-cell-inactive {

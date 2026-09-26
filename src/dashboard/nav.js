@@ -155,6 +155,7 @@ export const DASHBOARD_LINKS = [
     title: 'Subscription',
     description: 'Your active plan and subscription history for this hub.',
     capability: 'general_show_subscription',
+    sharedOnly: true,
     group: 'account',
   },
   {
@@ -607,9 +608,9 @@ export const DASHBOARD_LINKS = [
 
 export function isDashboardLinkVisible(
   link,
-  { can, canPower, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, userRole }
+  { can, canPower, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isWhiteLabelHub, userRole }
 ) {
-  if (link.sharedOnly && isActingOnWhiteLabel) return false
+  if (link.sharedOnly && (isActingOnWhiteLabel || isWhiteLabelHub)) return false
   if (Array.isArray(link.exceptRoles) && link.exceptRoles.length > 0) {
     const role = String(userRole || '')
     if (role && link.exceptRoles.includes(role)) return false

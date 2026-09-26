@@ -15,10 +15,14 @@ function formatMoney(amount, currency = 'gbp') {
 }
 
 export default function MySubscription() {
-  const { can } = useHub()
+  const { can, isActingOnWhiteLabel, hub, actingHub } = useHub()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const isWhiteLabel = Boolean(
+    isActingOnWhiteLabel || hub?.type === 'white_label' || actingHub?.is_white_label
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -40,6 +44,35 @@ export default function MySubscription() {
 
   if (loading) return <div className="state">Loading...</div>
   if (error) return <div className="alert">{error}</div>
+
+  if (isWhiteLabel) {
+    return (
+      <section>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Account</p>
+            <h1>Subscription</h1>
+            <p className="muted">
+              White-labelled hubs do not use subscription plans. Credits come from the hub&apos;s
+              subscriber allotment.
+            </p>
+          </div>
+          <Link to="/my-dashboard/credits" className="btn primary">
+            View credits report
+          </Link>
+        </div>
+        <div className="empty-state">
+          <p className="muted">
+            There are no plans to browse on this hub. See your credit balance and spend history
+            instead.
+          </p>
+          <Link to="/my-dashboard/credits" className="admin-dashboard-link">
+            Open credits report →
+          </Link>
+        </div>
+      </section>
+    )
+  }
 
   const activePlan = data?.subscription?.active_plan
   const subscriptions = data?.subscription?.subscriptions || []

@@ -67,6 +67,7 @@ export default function MyDashboard() {
           advisorBillingEnabled,
           canManagePaymentCard,
           isActingOnWhiteLabel,
+          isWhiteLabelHub,
           userRole: user?.role,
         })
       )
@@ -83,14 +84,19 @@ export default function MyDashboard() {
         }
 
         if (link.to === '/my-dashboard/subscription') {
-          const planLabel = activePlan
-            ? `${activePlan.name} · ${activePlan.credits} credits · ${formatMoney(activePlan.price)}`
-            : 'No active subscription yet.'
-          const history =
-            subscriptions.length > 0
-              ? ` ${subscriptions.length} subscription record${subscriptions.length === 1 ? '' : 's'} on file.`
-              : ''
-          description = `${planLabel}${history}`
+          if (isWhiteLabelHub) {
+            description =
+              'White-labelled hubs do not use subscription plans. Credits come from the hub allotment.'
+          } else {
+            const planLabel = activePlan
+              ? `${activePlan.name} · ${activePlan.credits} credits · ${formatMoney(activePlan.price)}`
+              : 'No active subscription yet.'
+            const history =
+              subscriptions.length > 0
+                ? ` ${subscriptions.length} subscription record${subscriptions.length === 1 ? '' : 's'} on file.`
+                : ''
+            description = `${planLabel}${history}`
+          }
         }
 
         if (link.to === '/my-dashboard/invoices' && invoices.length > 0) {

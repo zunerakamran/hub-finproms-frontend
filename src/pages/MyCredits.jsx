@@ -26,10 +26,18 @@ function signedCredits(row) {
 }
 
 export default function MyCredits() {
-  const { can, effectiveAdvisorId, actingAdvisor, roleLabel } = useHub()
+  const { can, effectiveAdvisorId, actingAdvisor, roleLabel, isActingOnWhiteLabel, hub, actingHub } =
+    useHub()
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const isWhiteLabel = Boolean(
+    report?.is_white_label ??
+      isActingOnWhiteLabel ??
+      hub?.type === 'white_label' ??
+      actingHub?.is_white_label
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -76,7 +84,11 @@ export default function MyCredits() {
         label: 'Flow',
         filterValue: (row) => (row.direction === 'in' ? 'Earned' : 'Spent'),
         render: (row) => (
-          <span className={row.direction === 'in' ? 'credits-flow credits-flow--in' : 'credits-flow credits-flow--out'}>
+          <span
+            className={
+              row.direction === 'in' ? 'credits-flow credits-flow--in' : 'credits-flow credits-flow--out'
+            }
+          >
             {row.direction === 'in' ? 'Earned' : 'Spent'}
           </span>
         ),
@@ -86,7 +98,11 @@ export default function MyCredits() {
         label: 'Credits',
         filterValue: (row) => signedCredits(row),
         render: (row) => (
-          <strong className={row.direction === 'in' ? 'credits-amt credits-amt--in' : 'credits-amt credits-amt--out'}>
+          <strong
+            className={
+              row.direction === 'in' ? 'credits-amt credits-amt--in' : 'credits-amt credits-amt--out'
+            }
+          >
             {signedCredits(row)}
           </strong>
         ),
@@ -105,7 +121,7 @@ export default function MyCredits() {
       },
       {
         key: 'earned',
-        label: 'Earned',
+        label: isWhiteLabel ? 'Granted' : 'Earned',
         filterValue: (row) => String(row.earned ?? 0),
         render: (row) => <span className="credits-amt credits-amt--in">+{row.earned ?? 0}</span>,
       },
@@ -135,19 +151,21 @@ export default function MyCredits() {
         filterValue: (row) => String(row.transactions ?? 0),
       },
     ],
-    []
+    [isWhiteLabel]
   )
 
   if (loading) return <div className="state">Loading credits report...</div>
   if (error) return <div className="alert">{error}</div>
   if (!report) return <div className="state">Credits report unavailable.</div>
 
-  const showPlans = can('member_view_plans')
+  const plansEnabled = report.plans_enabled !== false && !isWhiteLabel
+  const showPlansCta = plansEnabled && can('member_view_plans') && !report.has_unlimited_credits
   const unlimited = Boolean(report.has_unlimited_credits)
   const balanceLabel = unlimited ? 'Unlimited' : String(report.balance ?? 0)
   const advisorLabel = roleLabel('advisor') || 'Advisor'
   const ledger = report.ledger || []
   const daily = report.daily || []
+  const allotment = report.allotment
 
   return (
     <section className="credits-report">
@@ -158,10 +176,12 @@ export default function MyCredits() {
           <p className="muted">
             {actingAdvisor
               ? `Full credit activity for ${actingAdvisor.name} (${advisorLabel.toLowerCase()}) while you work on their behalf.`
-              : 'How many credits you received, what you spent them on, and what remains.'}
+              : isWhiteLabel
+                ? 'Your subscriber credit allotment, spends on unlocks, and remaining balance. White-labelled hubs do not use subscription plans.'
+                : 'How many credits you received, what you spent them on, and what remains.'}
           </p>
         </div>
-        {showPlans && !unlimited ? (
+        {showPlansCta ? (
           <Link to="/subscriptions" className="btn primary">
             Get more credits
           </Link>
@@ -178,11 +198,30 @@ export default function MyCredits() {
               : 'Credits available to unlock posts and bundles.'}
           </span>
         </div>
-        <div className="stat-card">
-          <span className="muted">Total earned</span>
-          <strong className="credits-amt credits-amt--in">+{report.total_earned ?? 0}</strong>
-          <span className="muted">From paid subscription plans on record.</span>
-        </div>
+
+        {isWhiteLabel ? (
+          <div className="stat-card">
+            <span className="muted">Subscriber allotment</span>
+            <strong className="credits-amt credits-amt--in">
+              {allotment?.unlimited
+                ? 'Unlimited'
+                : allotment?.credits != null
+                  ? allotment.credits
+                  : '—'}
+            </strong>
+            <span className="muted">
+              {allotment?.label ||
+                'Set by the hub under Subscriber credits (no plans on white-labelled hubs).'}
+            </span>
+          </div>
+        ) : (
+          <div className="stat-card">
+            <span className="muted">Total earned</span>
+            <strong className="credits-amt credits-amt--in">+{report.total_earned ?? 0}</strong>
+            <span className="muted">From paid subscription plans on record.</span>
+          </div>
+        )}
+
         <div className="stat-card">
           <span className="muted">Total spent</span>
           <strong className="credits-amt credits-amt--out">−{report.total_spent ?? 0}</strong>
@@ -202,7 +241,11 @@ export default function MyCredits() {
         <div className="page-head" style={{ marginBottom: '0.75rem' }}>
           <div>
             <h2>Transaction ledger</h2>
-            <p className="muted">Every credit grant and spend, with search on each column.</p>
+            <p className="muted">
+              {isWhiteLabel
+                ? 'Credit spends on unlocked content, with search on each column.'
+                : 'Every credit grant and spend, with search on each column.'}
+            </p>
           </div>
           <Link to="/" className="btn ghost">
             Browse catalog
@@ -211,7 +254,11 @@ export default function MyCredits() {
         <DataGrid
           columns={ledgerColumns}
           rows={ledger}
-          emptyMessage="No credit transactions yet. Buy a plan or unlock content to build this report."
+          emptyMessage={
+            isWhiteLabel
+              ? 'No credit spends yet. Unlock posts or bundles to build this report.'
+              : 'No credit transactions yet. Buy a plan or unlock content to build this report.'
+          }
           pageSize={12}
           getRowKey={(row) => row.id}
         />
@@ -221,7 +268,11 @@ export default function MyCredits() {
         <div className="page-head" style={{ marginBottom: '0.75rem' }}>
           <div>
             <h2>Daily summary</h2>
-            <p className="muted">Earned vs spent totals for each day with activity.</p>
+            <p className="muted">
+              {isWhiteLabel
+                ? 'Spend totals for each day with unlock activity.'
+                : 'Earned vs spent totals for each day with activity.'}
+            </p>
           </div>
         </div>
         <DataGrid

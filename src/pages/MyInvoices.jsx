@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import DataGrid from '../components/DataGrid'
+import { useHub } from '../context/HubContext'
 
 function formatMoney(amount, currency = 'gbp') {
   try {
@@ -21,9 +22,14 @@ function typeLabel(type) {
 }
 
 export default function MyInvoices() {
+  const { isActingOnWhiteLabel, hub, actingHub } = useHub()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const isWhiteLabel = Boolean(
+    isActingOnWhiteLabel || hub?.type === 'white_label' || actingHub?.is_white_label
+  )
 
   useEffect(() => {
     api
@@ -39,7 +45,11 @@ export default function MyInvoices() {
         <div>
           <p className="eyebrow">Account</p>
           <h1>My invoices</h1>
-          <p className="muted">Receipts for subscriptions and post purchases.</p>
+          <p className="muted">
+            {isWhiteLabel
+              ? 'Receipts for content purchases on this hub.'
+              : 'Receipts for subscriptions and post purchases.'}
+          </p>
         </div>
       </div>
 
@@ -47,8 +57,14 @@ export default function MyInvoices() {
 
       {!loading && items.length === 0 ? (
         <div className="state">
-          No invoices yet. <Link to="/subscriptions">Browse plans</Link> or{' '}
-          <Link to="/">buy a post</Link>.
+          No invoices yet.{' '}
+          {isWhiteLabel ? (
+            <Link to="/">Browse the catalog</Link>
+          ) : (
+            <>
+              <Link to="/subscriptions">Browse plans</Link> or <Link to="/">buy a post</Link>.
+            </>
+          )}
         </div>
       ) : (
         <DataGrid
@@ -87,6 +103,7 @@ export default function MyInvoices() {
           rows={items}
           loading={loading}
           emptyMessage="No invoices yet."
+          pageSize={10}
           getRowKey={(row) => row.id}
           rowLink={(row) => `/my-dashboard/invoices/${row.id}`}
         />

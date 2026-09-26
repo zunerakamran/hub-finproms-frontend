@@ -60,7 +60,7 @@ export default function PowerAdminUsers() {
       const data = await api.powerAdminUsers({
         role: roleFilter || undefined,
         page: 1,
-        per_page: 200,
+        per_page: 100,
       })
       setUsers(data.users || [])
       setRoles(data.roles || [])

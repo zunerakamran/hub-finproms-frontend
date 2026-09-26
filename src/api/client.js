@@ -103,6 +103,7 @@ export const api = {
     request('/subscriptions/confirm', { method: 'POST', body: JSON.stringify({ session_id: sessionId }) }),
   mySubscriptions: () => request('/my-subscriptions'),
   myDashboard: () => request('/my-dashboard'),
+  myCredits: () => request('/my-credits'),
   pendingBankTransfers: () => request(`${CLIENT_ADMIN}/bank-transfers/pending`),
   confirmBankTransfer: (id) =>
     request(`${CLIENT_ADMIN}/bank-transfers/${id}/confirm`, { method: 'POST' }),

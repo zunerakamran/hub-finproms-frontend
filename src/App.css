@@ -3314,6 +3314,57 @@ label {
   gap: 0.25rem;
 }
 .stat-card strong { font-size: 1.35rem; }
+
+.credits-report__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.credits-report__section {
+  margin-top: 1.75rem;
+}
+
+.credits-report__section h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.credits-flow {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.credits-flow--in {
+  background: color-mix(in srgb, #1f7a4d 14%, white);
+  color: #1f7a4d;
+}
+
+.credits-flow--out {
+  background: color-mix(in srgb, #b42318 12%, white);
+  color: #b42318;
+}
+
+.credits-amt--in { color: #1f7a4d; }
+.credits-amt--out { color: #b42318; }
+
+@media (max-width: 960px) {
+  .credits-report__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .credits-report__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
 .table-wrap { overflow-x: auto; }
 .data-table {
   width: 100%;

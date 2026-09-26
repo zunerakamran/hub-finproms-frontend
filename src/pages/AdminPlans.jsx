@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -439,54 +440,92 @@ export default function AdminPlans({ shell = 'client-admin' }) {
       </form>
 
       <h2 className="section-title">Existing plans</h2>
-      {loading ? (
-        <div className="state">Loading...</div>
-      ) : plans.length === 0 ? (
-        <div className="state">No plans yet. Add one above.</div>
-      ) : (
-        <div className="admin-list">
-          {plans.map((plan) => (
-            <div key={plan.id} className="admin-row">
-              {plan.image_url ? (
-                <img className="admin-thumb" src={plan.image_url} alt="" />
+      <DataGrid
+        columns={[
+          {
+            key: 'image',
+            label: '',
+            filterable: false,
+            render: (row) =>
+              row.image_url ? (
+                <img className="admin-thumb" src={row.image_url} alt="" />
               ) : (
                 <div className="admin-thumb plan-thumb-fallback" aria-hidden>
-                  {plan.name?.[0] || '?'}
+                  {row.name?.[0] || '?'}
                 </div>
-              )}
-              <div>
-                <strong>{plan.name}</strong>
-                <p className="muted">
-                  £{Number(plan.price).toFixed(2)} · {plan.credits} credits · {plan.duration_days}{' '}
-                  days · {plan.is_active ? 'Active' : 'Inactive'}
-                </p>
-                <p className="muted">
-                  Metrics:{' '}
-                  {[
-                    plan.show_reach !== false ? 'reach' : null,
-                    plan.show_views ? 'views' : null,
-                    plan.show_buys ? 'buys' : null,
-                  ]
-                    .filter(Boolean)
-                    .join(', ') || 'none'}
-                </p>
-                {plan.overview && <p className="muted plan-overview-snip">{plan.overview}</p>}
-                {formatLastUpdated(plan.last_updated) && (
-                  <p className="field-hint">Last updated: {formatLastUpdated(plan.last_updated)}</p>
-                )}
-              </div>
-              <div className="actions">
-                <button type="button" className="btn ghost" onClick={() => edit(plan)}>
-                  Edit
-                </button>
-                <button type="button" className="btn danger" onClick={() => remove(plan.id)}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+              ),
+          },
+          {
+            key: 'name',
+            label: 'Name',
+            filterValue: (row) => row.name,
+            render: (row) => <strong>{row.name}</strong>,
+          },
+          {
+            key: 'price',
+            label: 'Price',
+            filterValue: (row) => String(row.price),
+            render: (row) => `£${Number(row.price).toFixed(2)}`,
+          },
+          {
+            key: 'credits',
+            label: 'Credits',
+            filterValue: (row) => String(row.credits),
+          },
+          {
+            key: 'duration_days',
+            label: 'Duration',
+            filterValue: (row) => String(row.duration_days),
+            render: (row) => `${row.duration_days} days`,
+          },
+          {
+            key: 'is_active',
+            label: 'Status',
+            filterValue: (row) => (row.is_active ? 'Active' : 'Inactive'),
+            render: (row) => (row.is_active ? 'Active' : 'Inactive'),
+          },
+          {
+            key: 'metrics',
+            label: 'Metrics',
+            filterValue: (row) =>
+              [
+                row.show_reach !== false ? 'reach' : null,
+                row.show_views ? 'views' : null,
+                row.show_buys ? 'buys' : null,
+              ]
+                .filter(Boolean)
+                .join(', ') || 'none',
+            render: (row) =>
+              [
+                row.show_reach !== false ? 'reach' : null,
+                row.show_views ? 'views' : null,
+                row.show_buys ? 'buys' : null,
+              ]
+                .filter(Boolean)
+                .join(', ') || 'none',
+          },
+          {
+            key: 'last_updated',
+            label: 'Last updated',
+            filterValue: (row) => formatLastUpdated(row.last_updated) || '',
+            render: (row) => formatLastUpdated(row.last_updated) || '—',
+          },
+        ]}
+        rows={plans}
+        loading={loading}
+        emptyMessage="No plans yet. Add one above."
+        getRowKey={(row) => row.id}
+        actions={(row) => (
+          <div className="actions">
+            <button type="button" className="btn ghost" onClick={() => edit(row)}>
+              Edit
+            </button>
+            <button type="button" className="btn danger" onClick={() => remove(row.id)}>
+              Delete
+            </button>
+          </div>
+        )}
+      />
     </section>
   )
 }

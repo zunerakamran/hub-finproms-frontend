@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 
 export default function AdminEmailTemplates() {
   const [events, setEvents] = useState([])
@@ -63,29 +64,50 @@ export default function AdminEmailTemplates() {
         grouped.map(([group, items]) => (
           <div key={group} style={{ marginBottom: '1.5rem' }}>
             <h2 className="section-title">{group}</h2>
-            <div className="admin-list">
-              {items.map((event) => {
-                const audiences = Array.isArray(event.audiences) ? event.audiences : []
-                const customized = audiences.filter((a) => a.is_customized).length
-                return (
-                  <div key={event.key} className="admin-row">
-                    <div>
-                      <strong>{event.label}</strong>
-                      <p className="muted">{event.description}</p>
-                      <p className="muted" style={{ fontSize: '0.85em' }}>
+            <DataGrid
+              columns={[
+                {
+                  key: 'label',
+                  label: 'Event',
+                  filterValue: (row) => row.label,
+                  render: (row) => <strong>{row.label}</strong>,
+                },
+                {
+                  key: 'description',
+                  label: 'Description',
+                  filterValue: (row) => row.description,
+                },
+                {
+                  key: 'audiences',
+                  label: 'Audiences',
+                  filterValue: (row) => {
+                    const audiences = Array.isArray(row.audiences) ? row.audiences : []
+                    const customized = audiences.filter((a) => a.is_customized).length
+                    return `${audiences.map((a) => a.label).join(' · ')}${
+                      customized > 0 ? ` · ${customized} customized` : ''
+                    }`
+                  },
+                  render: (row) => {
+                    const audiences = Array.isArray(row.audiences) ? row.audiences : []
+                    const customized = audiences.filter((a) => a.is_customized).length
+                    return (
+                      <span className="muted" style={{ fontSize: '0.85em' }}>
                         {audiences.map((a) => a.label).join(' · ')}
                         {customized > 0 ? ` · ${customized} customized` : ''}
-                      </p>
-                    </div>
-                    <div className="actions">
-                      <Link className="btn ghost" to={`/my-dashboard/email-templates/${event.key}`}>
-                        Edit
-                      </Link>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                      </span>
+                    )
+                  },
+                },
+              ]}
+              rows={items}
+              emptyMessage="No events in this group."
+              getRowKey={(row) => row.key}
+              actions={(row) => (
+                <Link className="btn ghost" to={`/my-dashboard/email-templates/${row.key}`}>
+                  Edit
+                </Link>
+              )}
+            />
           </div>
         ))
       )}

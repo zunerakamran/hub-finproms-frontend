@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -271,6 +272,47 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     )
   })
 
+  const bundleColumns = useMemo(
+    () => [
+      {
+        key: 'title',
+        label: 'Title',
+        filterValue: (row) => row.title,
+        render: (row) => (
+          <div className="admin-post-grid-title">
+            <div className="admin-thumb-wrap">
+              {row.image_url ? (
+                <img className="admin-thumb" src={row.image_url} alt="" />
+              ) : (
+                <span className="admin-thumb fallback">Bundle</span>
+              )}
+            </div>
+            <span>{row.title}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'posts_count',
+        label: 'Posts',
+        filterValue: (row) => String(row.posts_count ?? row.posts?.length ?? 0),
+        render: (row) => row.posts_count ?? row.posts?.length ?? 0,
+      },
+      {
+        key: 'credits_cost',
+        label: 'Credits',
+        filterValue: (row) => String(row.credits_cost ?? 0),
+        render: (row) => row.credits_cost ?? 0,
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        filterValue: (row) => (row.is_active === false ? 'Inactive' : 'Active'),
+        render: (row) => (row.is_active === false ? 'Inactive' : 'Active'),
+      },
+    ],
+    []
+  )
+
   return (
     <section>
       <div className="page-head">
@@ -496,38 +538,40 @@ export default function AdminBundles({ shell = 'client-admin' }) {
       <h2 className="section-title">
         {isActingOnWhiteLabel ? `Bundles on ${actingHub?.name}` : 'Existing bundles'}
       </h2>
-      {loading ? (
-        <div className="state">Loading...</div>
-      ) : (
-        <div className="admin-list">
-          {bundles.map((bundle) => (
-            <div key={bundle.id} className="admin-row admin-bundle-row">
-              <div className="admin-thumb-wrap">
-                {bundle.image_url ? (
-                  <img className="admin-thumb" src={bundle.image_url} alt="" />
-                ) : (
-                  <span className="admin-thumb fallback">Bundle</span>
-                )}
-              </div>
-              <div className="admin-bundle-row__meta">
-                <strong>{bundle.title}</strong>
-                <p className="muted">
-                  {bundle.posts_count ?? bundle.posts?.length ?? 0} posts · {bundle.credits_cost}{' '}
-                  credits
-                </p>
-              </div>
-              <div className="actions">
-                <button className="btn ghost" onClick={() => edit(bundle)}>
-                  Edit
-                </button>
-                <button className="btn danger" onClick={() => remove(bundle.id)}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <DataGrid
+        columns={bundleColumns}
+        rows={bundles}
+        loading={loading}
+        emptyMessage="No bundles yet. Create a bundle above and it will show up here."
+        pageSize={10}
+        getRowKey={(row) => row.id}
+        actions={(row) => (
+          <div className="actions">
+            <button type="button" className="btn ghost" onClick={() => edit(row)}>
+              Edit
+            </button>
+            <button type="button" className="btn danger" onClick={() => remove(row.id)}>
+              Delete
+            </button>
+          </div>
+        )}
+      />
+      <style>{`
+        .admin-post-grid-title {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          min-width: 0;
+        }
+        .admin-post-grid-title .admin-thumb-wrap {
+          flex-shrink: 0;
+        }
+        .admin-post-grid-title > span {
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      `}</style>
     </section>
   )
 }

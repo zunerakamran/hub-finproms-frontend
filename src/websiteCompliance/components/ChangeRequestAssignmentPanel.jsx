@@ -13,7 +13,6 @@ import {
   FaLayerGroup,
   FaInbox,
   FaClipboardCheck,
-  FaSearch,
   FaSync,
   FaUserCheck,
   FaCommentDots,
@@ -21,6 +20,7 @@ import {
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
+import DataGrid from '../../components/DataGrid'
 import { parseJson } from '../utils/parseJson'
 import {
   buildPreviewFromRequest,
@@ -89,23 +89,15 @@ function getRequestSections(req) {
   return { type: 'unknown', names: [] }
 }
 
-function getRequestSearchText(req) {
+function getSectionLabel(req) {
   const { type, names } = getRequestSections(req)
-  const idText = `request ${req.id}`
-  if (type === 'single') return `${names[0]} ${idText}`
-  if (type === 'batch') return `${names.join(' ')} ${idText}`
-  // Fallback for search only: some requests may not include `section` / `section_edits`
-  // and instead store section data inside `proposed_content` (JSON). We avoid parsing
-  // during initial render for performance, but do it here when the user is searching.
-  try {
-    const parsed = JSON.parse(req.proposed_content)
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const derivedNames = parsed.map(p => p.section_name || 'Section')
-      return `${derivedNames.join(' ')} ${idText}`
-    }
-  } catch { /* ignore */ }
-
-  return `Change Request ${req.id}`
+  if (type === 'single') return names[0] || '—'
+  if (type === 'batch') {
+    const preview = names.slice(0, 3).join(', ')
+    const extra = names.length > 3 ? ` +${names.length - 3} more` : ''
+    return `${preview}${extra}` || '—'
+  }
+  return '—'
 }
 
 function RequestTitle({ req }) {
@@ -603,7 +595,7 @@ export default function ChangeRequestAssignmentPanel({
   onMessage: externalOnMessage,
   onError: externalOnError,
 }) {
-  const { can, roleLabel } = useHub()
+  const { can, roleLabel, complianceStatusLabel } = useHub()
   const canAssign = can('wc_assign_change_requests') && variant === 'pending'
 
   const [localMessage, setLocalMessage] = useState('')
@@ -612,6 +604,7 @@ export default function ChangeRequestAssignmentPanel({
   const [users, setUsers] = useState([])
   const [selectedApprover, setSelectedApprover] = useState({})
   const [assigningId, setAssigningId] = useState(null)
+  const [selectedId, setSelectedId] = useState(null)
   const previewSnapshotsRef = useRef({})
   const snapshotsLoadedRef = useRef(false)
   const [previewSnapshots, setPreviewSnapshots] = useState({})
@@ -625,7 +618,6 @@ export default function ChangeRequestAssignmentPanel({
   }, [])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [requestSearch, setRequestSearch] = useState('')
 
   const useLocalBanners = externalOnMessage == null && externalOnError == null
   const reportMessage = useCallback((msg) => {
@@ -688,19 +680,21 @@ export default function ChangeRequestAssignmentPanel({
   }, [loadAll])
 
   const filteredRequests = useMemo(() => {
-    const list = variant === 'history'
+    return variant === 'history'
       ? requests.filter(r => PREVIOUS_STATUSES.has(r.status))
       : requests.filter(r => r.status === PENDING_STATUS && !r.approver_id)
+  }, [requests, variant])
 
-    if (!requestSearch.trim()) return list
-    const q = requestSearch.trim().toLowerCase()
-    return list.filter(r => {
-      const searchText = getRequestSearchText(r).toLowerCase()
-      const editor = (r.editor?.name || '').toLowerCase()
-      const approver = (r.approver?.name || '').toLowerCase()
-      return searchText.includes(q) || editor.includes(q) || approver.includes(q) || String(r.id).includes(q)
-    })
-  }, [requests, variant, requestSearch])
+  const selectedReq = useMemo(
+    () => filteredRequests.find((r) => r.id === selectedId) || null,
+    [filteredRequests, selectedId]
+  )
+
+  useEffect(() => {
+    if (selectedId && !filteredRequests.some((r) => r.id === selectedId)) {
+      setSelectedId(null)
+    }
+  }, [filteredRequests, selectedId])
 
   const handleAssign = async (requestId, approverId) => {
     setAssigningId(requestId)
@@ -717,6 +711,7 @@ export default function ChangeRequestAssignmentPanel({
         delete next[requestId]
         return next
       })
+      if (selectedId === requestId) setSelectedId(null)
     } catch (err) {
       reportError(err.response?.data?.message || 'Failed to assign request.')
     } finally {
@@ -724,63 +719,52 @@ export default function ChangeRequestAssignmentPanel({
     }
   }
 
-  const renderRequestList = (list, emptyTitle, emptyHint) => {
-    if (loading) {
-      return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center text-gray-500">
-          <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
-          <p className="text-sm font-semibold">Loading requests…</p>
-        </div>
-      )
-    }
+  const columns = useMemo(() => [
+    {
+      key: 'id',
+      label: 'ID',
+      render: (row) => `#${row.id}`,
+      filterValue: (row) => String(row.id),
+    },
+    {
+      key: 'section',
+      label: 'Section',
+      render: (row) => getSectionLabel(row),
+      filterValue: (row) => getSectionLabel(row),
+    },
+    {
+      key: 'editor',
+      label: 'Editor',
+      render: (row) =>
+        row.attribution_label || row.on_behalf_by?.name ? (
+          <OnBehalfAttribution row={row} ownerKey="editor" flush />
+        ) : (
+          row.editor?.name || '—'
+        ),
+      filterValue: (row) =>
+        [row.editor?.name, row.on_behalf_by?.name, row.attribution_label].filter(Boolean).join(' '),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => <StatusBadge status={row.status} scheduledAt={row.scheduled_at} />,
+      filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
+    },
+    {
+      key: 'approver',
+      label: 'Approver',
+      render: (row) => row.approver?.name || '—',
+      filterValue: (row) => row.approver?.name || '',
+    },
+    {
+      key: 'created_at',
+      label: 'Submitted',
+      render: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : '—'),
+      filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : ''),
+    },
+  ], [complianceStatusLabel])
 
-    if (list.length === 0) {
-      const isSearching = requestSearch.trim().length > 0
-      return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
-            <FaInbox className="w-6 h-6 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-bold text-[var(--brand-dark)]">
-            {isSearching ? 'No matching requests' : emptyTitle}
-          </h3>
-          <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
-            {isSearching ? 'Try a different search term or clear the filter.' : emptyHint}
-          </p>
-          {isSearching && (
-            <button
-              type="button"
-              onClick={() => setRequestSearch('')}
-              className="mt-4 text-sm font-bold text-[var(--brand)] hover:underline"
-            >
-              Clear search
-            </button>
-          )}
-        </div>
-      )
-    }
-
-    return (
-      <div className="space-y-5">
-        {list.map(req => (
-          <AssignmentRequestCard
-            key={req.id}
-            req={req}
-            approvers={reviewersForSubmitterFirm(approvers, req.editor?.firm)}
-            selectedApproverId={selectedApprover[req.id]}
-            onSelectApprover={(id, approverId) => setSelectedApprover(prev => ({ ...prev, [id]: approverId }))}
-            onAssign={handleAssign}
-            assigning={assigningId}
-            canAssign={canAssign}
-            onMessage={reportMessage}
-            onError={reportError}
-            getCachedPreview={getCachedPreview}
-            cachePreview={cachePreview}
-          />
-        ))}
-      </div>
-    )
-  }
+  const emptyTitle = variant === 'history' ? 'No history yet' : 'No pending requests'
 
   return (
     <div>
@@ -791,18 +775,7 @@ export default function ChangeRequestAssignmentPanel({
         <AlertBanner type="error" message={localError} onDismiss={() => setLocalError('')} />
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <div className="wc-icon-field flex-1 sm:max-w-md">
-          <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
-          <input
-            type="search"
-            placeholder="Search by section, editor, approver, or ID…"
-            value={requestSearch}
-            onChange={e => setRequestSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition"
-          />
-        </div>
-
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 justify-end">
         <button
           type="button"
           onClick={() => loadAll(true)}
@@ -814,15 +787,83 @@ export default function ChangeRequestAssignmentPanel({
         </button>
       </div>
 
-      {renderRequestList(
-        filteredRequests,
-        variant === 'history' ? 'No history yet' : 'No pending requests',
-        variant === 'history'
-          ? 'Completed, rejected, and in-review requests will appear here.'
-          : canAssign
-            ? 'Incoming requests you can assign will appear here.'
-            : 'Pending change requests will appear here when available.'
-      )}
+      <DataGrid
+        columns={columns}
+        rows={filteredRequests}
+        loading={loading}
+        pageSize={10}
+        emptyMessage={emptyTitle}
+        actions={(row) => {
+          const isPending = row.status === PENDING_STATUS
+          const rowApprovers = reviewersForSubmitterFirm(approvers, row.editor?.firm)
+          const selectedApproverId = selectedApprover[row.id]
+          const isSelected = selectedId === row.id
+
+          return (
+            <div className="flex flex-col gap-2 min-w-[200px]">
+              {isPending && canAssign ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={selectedApproverId || ''}
+                    onChange={(e) =>
+                      setSelectedApprover((prev) => ({ ...prev, [row.id]: e.target.value }))
+                    }
+                    className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white max-w-[180px]"
+                  >
+                    <option value="">Choose {roleLabel('approver').toLowerCase()}…</option>
+                    {rowApprovers.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={assigningId === row.id || !selectedApproverId}
+                    onClick={() => {
+                      if (!selectedApproverId) {
+                        reportError(`Please select an ${roleLabel('approver').toLowerCase()} before assigning.`)
+                        return
+                      }
+                      handleAssign(row.id, selectedApproverId)
+                    }}
+                  >
+                    {assigningId === row.id ? 'Assigning…' : 'Assign'}
+                  </button>
+                </div>
+              ) : null}
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => setSelectedId(isSelected ? null : row.id)}
+              >
+                {isSelected ? 'Hide details' : 'Details / Preview'}
+              </button>
+            </div>
+          )
+        }}
+      />
+
+      {selectedReq ? (
+        <div className="mt-6">
+          <AssignmentRequestCard
+            req={selectedReq}
+            approvers={reviewersForSubmitterFirm(approvers, selectedReq.editor?.firm)}
+            selectedApproverId={selectedApprover[selectedReq.id]}
+            onSelectApprover={(id, approverId) =>
+              setSelectedApprover((prev) => ({ ...prev, [id]: approverId }))
+            }
+            onAssign={handleAssign}
+            assigning={assigningId}
+            canAssign={canAssign}
+            onMessage={reportMessage}
+            onError={reportError}
+            getCachedPreview={getCachedPreview}
+            cachePreview={cachePreview}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

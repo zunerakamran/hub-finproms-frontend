@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -69,35 +69,45 @@ export default function AdminAdvisorInvoices({ shell = 'client-admin' }) {
 
       {error && <div className="alert">{error}</div>}
 
-      {loading ? (
-        <div className="state">Loading...</div>
-      ) : items.length === 0 ? (
-        <div className="empty-state">
-          <p className="muted">No advisor billing invoices yet.</p>
-        </div>
-      ) : (
-        <div className="invoice-list">
-          {items.map((invoice) => (
-            <Link
-              to={`/my-dashboard/advisor-invoices/${invoice.id}`}
-              key={invoice.id}
-              className="invoice-row"
-            >
-              <div>
-                <strong>{invoice.invoice_number}</strong>
-                <p className="muted">{invoice.description}</p>
-              </div>
-              <div className="invoice-row-meta">
-                <span className="badge">Advisor billing</span>
-                <span>{formatMoney(invoice.amount, invoice.currency)}</span>
-                <span className="muted">
-                  {invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString() : '—'}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      <DataGrid
+        columns={[
+          {
+            key: 'invoice_number',
+            label: 'Invoice #',
+            render: (row) => <strong>{row.invoice_number}</strong>,
+          },
+          {
+            key: 'description',
+            label: 'Description',
+            filterValue: (row) => row.description,
+          },
+          {
+            key: 'type',
+            label: 'Type',
+            filterValue: () => 'Advisor billing',
+            render: () => <span className="badge">Advisor billing</span>,
+          },
+          {
+            key: 'amount',
+            label: 'Amount',
+            filterValue: (row) => String(row.amount),
+            render: (row) => formatMoney(row.amount, row.currency),
+          },
+          {
+            key: 'issued_at',
+            label: 'Issued',
+            filterValue: (row) =>
+              row.issued_at ? new Date(row.issued_at).toLocaleDateString() : '',
+            render: (row) =>
+              row.issued_at ? new Date(row.issued_at).toLocaleDateString() : '—',
+          },
+        ]}
+        rows={items}
+        loading={loading}
+        emptyMessage="No advisor billing invoices yet."
+        getRowKey={(row) => row.id}
+        rowLink={(row) => `/my-dashboard/advisor-invoices/${row.id}`}
+      />
     </section>
   )
 }

@@ -3329,6 +3329,109 @@ label {
 }
 .data-table th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
 
+/* Shared dashboard / compliance data grid */
+.data-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.data-grid__wrap {
+  border-radius: 12px 12px 0 0;
+}
+
+.data-grid__table {
+  min-width: 720px;
+}
+
+.data-grid__filters th {
+  padding: 0.4rem 0.75rem 0.65rem;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  vertical-align: middle;
+  background: color-mix(in srgb, var(--brand, #0f5c45) 4%, #fff);
+}
+
+.data-grid__filter-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.12));
+  border-radius: 8px;
+  font-size: 0.8rem;
+  background: #fff;
+}
+
+.data-grid__filter-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--brand, #0f5c45) 35%, transparent);
+  outline-offset: 0;
+  border-color: var(--brand, #0f5c45);
+}
+
+.data-grid__filter-spacer {
+  display: block;
+  min-height: 1.9rem;
+}
+
+.data-grid__empty-cell {
+  text-align: center !important;
+  padding: 1.5rem 1rem !important;
+}
+
+.data-grid__empty-cell .btn {
+  margin-left: 0.75rem;
+}
+
+.data-grid__cell-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.data-grid__row--link:hover td {
+  background: color-mix(in srgb, var(--brand, #0f5c45) 5%, #fff);
+}
+
+.data-grid__actions {
+  white-space: nowrap;
+}
+
+.data-grid__actions .actions,
+.data-grid__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.data-grid__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.08));
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  background: color-mix(in srgb, var(--brand, #0f5c45) 3%, #f8fafc);
+}
+
+.data-grid__pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.data-grid__page-btn.is-active {
+  background: var(--brand, #0f5c45);
+  color: #fff;
+  border-color: var(--brand, #0f5c45);
+}
+
 @media (max-width: 800px) {
   .smc-version-body,
   .smc-chart-row { grid-template-columns: 1fr; }

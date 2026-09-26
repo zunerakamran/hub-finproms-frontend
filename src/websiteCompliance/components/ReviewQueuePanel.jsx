@@ -9,7 +9,6 @@ import {
   FaEyeSlash,
   FaHandPointer,
   FaCalendarAlt,
-  FaSearch,
   FaSync,
   FaInbox,
   FaClipboardCheck,
@@ -24,6 +23,7 @@ import {
 import api from '../wcApi'
 import { useAuth } from '../../context/AuthContext'
 import { useHub } from '../../context/HubContext'
+import DataGrid from '../../components/DataGrid'
 import { resolveAdvisorLiveSiteUrl } from '../utils/assetUrl'
 import { parseJson } from '../utils/parseJson'
 import {
@@ -94,22 +94,15 @@ function getRequestSections(req) {
   return { type: 'unknown', names: [] }
 }
 
-function getRequestSearchText(req) {
+function getSectionLabel(req) {
   const { type, names } = getRequestSections(req)
-  const idText = `request ${req.id}`
-  if (type === 'single') return `${names[0]} ${idText}`
-  if (type === 'batch') return `${names.join(' ')} ${idText}`
-  // Fallback for search only: avoid parsing `proposed_content` during initial render
-  // so the list stays responsive for large history payloads.
-  try {
-    const parsed = JSON.parse(req.proposed_content)
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const derivedNames = parsed.map(p => p.section_name || 'Section')
-      return `${derivedNames.join(' ')} ${idText}`
-    }
-  } catch { /* ignore malformed content */ }
-
-  return `Change Request ${req.id}`
+  if (type === 'single') return names[0] || '—'
+  if (type === 'batch') {
+    const preview = names.slice(0, 3).join(', ')
+    const extra = names.length > 3 ? ` +${names.length - 3} more` : ''
+    return `${preview}${extra}` || '—'
+  }
+  return '—'
 }
 
 function RequestTitle({ req }) {
@@ -1042,7 +1035,7 @@ const RequestCard = memo(function RequestCard({
 
 export default function ReviewQueuePanel({ variant = 'active' } = {}) {
   const { user } = useAuth()
-  const { can } = useHub()
+  const { can, complianceStatusLabel } = useHub()
   // Hub-wide list when view-all or change-status is granted. Approver role must never
   // inherit hub-wide history from a stale matrix default — only requests they picked.
   const canChangeStatus = can('wc_change_request_status')
@@ -1063,7 +1056,8 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
   }, [])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [search, setSearch] = useState('')
+  const [selectedId, setSelectedId] = useState(null)
+  const [pickingId, setPickingId] = useState(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -1125,36 +1119,109 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
       })
     }
 
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      list = list.filter(r => {
-        const searchText = getRequestSearchText(r).toLowerCase()
-        const editor = (r.editor?.name || '').toLowerCase()
-        const approver = (r.approver?.name || '').toLowerCase()
-        return searchText.includes(q) || editor.includes(q) || approver.includes(q) || String(r.id).includes(q)
-      })
-    }
-
     return list
-  }, [requests, variant, search, canViewAll, user?.id])
+  }, [requests, variant, canViewAll, user?.id])
+
+  const selectedReq = useMemo(
+    () => filteredRequests.find((r) => r.id === selectedId) || null,
+    [filteredRequests, selectedId]
+  )
+
+  useEffect(() => {
+    if (selectedId && !filteredRequests.some((r) => r.id === selectedId)) {
+      setSelectedId(null)
+    }
+  }, [filteredRequests, selectedId])
+
+  const handlePick = useCallback(async (req) => {
+    setPickingId(req.id)
+    setError('')
+    setMessage('')
+    try {
+      await api.post(`/change-requests/${req.id}/assign`)
+      handleStatusChange(req.id, {
+        status: 'pending',
+        approver_id: user.id,
+        approver: user,
+      })
+      setSelectedId(req.id)
+      setMessage('Request picked up. You can now review and approve or reject.')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not pick up this request.')
+    } finally {
+      setPickingId(null)
+    }
+  }, [handleStatusChange, user])
+
+  const columns = useMemo(() => [
+    {
+      key: 'id',
+      label: 'ID',
+      render: (row) => `#${row.id}`,
+      filterValue: (row) => String(row.id),
+    },
+    {
+      key: 'section',
+      label: 'Section',
+      render: (row) => {
+        const { type, names } = getRequestSections(row)
+        return (
+          <span>
+            {getSectionLabel(row)}
+            {type === 'batch' ? (
+              <span className="muted" style={{ display: 'block', fontSize: 11 }}>
+                {names.length} sections
+              </span>
+            ) : null}
+          </span>
+        )
+      },
+      filterValue: (row) => getSectionLabel(row),
+    },
+    {
+      key: 'editor',
+      label: 'Editor',
+      render: (row) =>
+        row.attribution_label || row.on_behalf_by?.name ? (
+          <OnBehalfAttribution row={row} ownerKey="editor" flush />
+        ) : (
+          row.editor?.name || '—'
+        ),
+      filterValue: (row) =>
+        [row.editor?.name, row.on_behalf_by?.name, row.attribution_label].filter(Boolean).join(' '),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => <StatusBadge status={row.status} scheduledAt={row.scheduled_at} />,
+      filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
+    },
+    {
+      key: 'approver',
+      label: 'Approver',
+      render: (row) => row.approver?.name || '—',
+      filterValue: (row) => row.approver?.name || '',
+    },
+    {
+      key: 'created_at',
+      label: 'Submitted',
+      render: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : '—'),
+      filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleString() : ''),
+    },
+    {
+      key: 'version',
+      label: 'Version',
+      render: (row) => (row.current_version ? `v${row.current_version}` : '—'),
+      filterValue: (row) => String(row.current_version || ''),
+    },
+  ], [complianceStatusLabel])
 
   return (
     <div>
       {message && <AlertBanner type="success" message={message} onDismiss={() => setMessage('')} />}
       {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <div className="wc-icon-field flex-1 sm:max-w-md">
-          <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
-          <input
-            type="search"
-            placeholder="Search by section, editor, or ID…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition"
-          />
-        </div>
-
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 justify-end">
         <button
           type="button"
           onClick={() => fetchRequests(true)}
@@ -1166,59 +1233,90 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
         </button>
       </div>
 
-      {loading ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center text-gray-500">
-          <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
-          <p className="text-sm font-semibold">Loading change requests…</p>
-        </div>
-      ) : filteredRequests.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
-            <FaInbox className="w-6 h-6 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-bold text-[var(--brand-dark)]">
-            {search.trim()
-              ? 'No matching requests'
-              : variant === 'history'
-                ? (canViewAll ? 'No history yet' : 'No reviews assigned to you yet')
-                : 'No change requests found'}
-          </h3>
-          <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
-            {search.trim()
-              ? 'Try a different search term or clear the filter.'
-              : variant === 'history'
-                ? (canViewAll
-                  ? 'Approved, rejected, and feedback requests will appear here.'
-                  : 'Once you complete reviews assigned to you, they will appear here.')
-                : 'You\'re all caught up — no requests need review right now.'}
-          </p>
-          {search.trim() && (
+      <DataGrid
+        columns={columns}
+        rows={filteredRequests}
+        loading={loading}
+        pageSize={10}
+        emptyMessage={
+          variant === 'history'
+            ? (canViewAll ? 'No history yet' : 'No reviews assigned to you yet')
+            : 'No change requests found'
+        }
+        actions={(row) => {
+          const canPick = row.status === 'pending' && !row.approver_id
+          const isAssignedToMe = Number(row.approver_id) === Number(user?.id)
+          const canReview =
+            isAssignedToMe && (row.status === 'under_review' || row.status === 'pending')
+          const isSelected = selectedId === row.id
+
+          return (
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                to={`/my-dashboard/website-compliance/my-requests/${row.id}`}
+                state={{ from: variant === 'history' ? 'history' : 'queue' }}
+                className="btn ghost"
+              >
+                Open
+              </Link>
+              {canPick ? (
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={pickingId === row.id}
+                  onClick={() => handlePick(row)}
+                >
+                  {pickingId === row.id ? 'Picking…' : 'Pick it'}
+                </button>
+              ) : null}
+              {canReview ? (
+                <button
+                  type="button"
+                  className={`btn ${isSelected ? 'ghost' : 'primary'}`}
+                  onClick={() => setSelectedId(isSelected ? null : row.id)}
+                >
+                  {isSelected ? 'Hide review' : 'Approve / Reject'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => setSelectedId(isSelected ? null : row.id)}
+                >
+                  {isSelected ? 'Hide' : 'Details'}
+                </button>
+              )}
+            </div>
+          )
+        }}
+      />
+
+      {selectedReq ? (
+        <div className="mt-6 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-bold text-[var(--brand-dark)]">
+              Reviewing request #{selectedReq.id}
+            </h3>
             <button
               type="button"
-              onClick={() => setSearch('')}
-              className="mt-4 text-sm font-bold text-[var(--brand)] hover:underline"
+              className="btn ghost"
+              onClick={() => setSelectedId(null)}
             >
-              Clear search
+              Close
             </button>
-          )}
+          </div>
+          <RequestCard
+            req={selectedReq}
+            user={user}
+            onStatusChange={handleStatusChange}
+            onMessage={setMessage}
+            onError={setError}
+            getCachedPreview={getCachedPreview}
+            cachePreview={cachePreview}
+            canChangeStatus={canChangeStatus && variant !== 'history'}
+          />
         </div>
-      ) : (
-        <div className="space-y-5">
-          {filteredRequests.map(req => (
-            <RequestCard
-              key={req.id}
-              req={req}
-              user={user}
-              onStatusChange={handleStatusChange}
-              onMessage={setMessage}
-              onError={setError}
-              getCachedPreview={getCachedPreview}
-              cachePreview={cachePreview}
-              canChangeStatus={canChangeStatus && variant !== 'history'}
-            />
-          ))}
-        </div>
-      )}
+      ) : null}
     </div>
   )
 }

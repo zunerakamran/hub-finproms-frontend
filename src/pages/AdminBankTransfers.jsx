@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 
 /** TEMPORARY admin page — remove when BANK_TRANSFER_ENABLED is turned off. */
 export default function AdminBankTransfers() {
@@ -58,7 +59,7 @@ export default function AdminBankTransfers() {
     }
   }
 
-  const empty = subscriptions.length === 0 && contentCheckouts.length === 0
+  const empty = !loading && subscriptions.length === 0 && contentCheckouts.length === 0
 
   return (
     <section>
@@ -85,60 +86,111 @@ export default function AdminBankTransfers() {
           {subscriptions.length > 0 && (
             <>
               <h2 className="section-title">Subscription payments</h2>
-              <div className="admin-list">
-                {subscriptions.map((item) => (
-                  <div key={`sub-${item.id}`} className="admin-row">
-                    <div>
-                      <strong>{item.user?.name || 'User'}</strong>
-                      <p className="muted">{item.user?.email}</p>
-                      <p>
-                        {item.plan?.name} · £{Number(item.amount_paid).toFixed(2)} ·{' '}
-                        {item.credits_granted} credits
-                      </p>
-                      <p>
-                        Reference: <strong>{item.payment_reference}</strong>
-                      </p>
-                    </div>
-                    <button
-                      className="btn primary"
-                      disabled={confirmingKey === `sub-${item.id}`}
-                      onClick={() => confirmSubscription(item.id)}
-                    >
-                      {confirmingKey === `sub-${item.id}` ? 'Confirming...' : 'Mark paid'}
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <DataGrid
+                columns={[
+                  {
+                    key: 'user',
+                    label: 'User',
+                    filterValue: (row) =>
+                      `${row.user?.name || ''} ${row.user?.email || ''}`.trim(),
+                    render: (row) => (
+                      <>
+                        <strong>{row.user?.name || 'User'}</strong>
+                        <div className="muted">{row.user?.email}</div>
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'plan',
+                    label: 'Plan',
+                    filterValue: (row) => row.plan?.name || '',
+                    render: (row) => row.plan?.name || '—',
+                  },
+                  {
+                    key: 'amount_paid',
+                    label: 'Amount',
+                    filterValue: (row) => String(row.amount_paid),
+                    render: (row) => `£${Number(row.amount_paid).toFixed(2)}`,
+                  },
+                  {
+                    key: 'credits_granted',
+                    label: 'Credits',
+                    filterValue: (row) => String(row.credits_granted),
+                  },
+                  {
+                    key: 'payment_reference',
+                    label: 'Reference',
+                    filterValue: (row) => row.payment_reference,
+                    render: (row) => <strong>{row.payment_reference}</strong>,
+                  },
+                ]}
+                rows={subscriptions}
+                emptyMessage="No pending subscription transfers."
+                getRowKey={(row) => row.id}
+                actions={(row) => (
+                  <button
+                    className="btn primary"
+                    disabled={confirmingKey === `sub-${row.id}`}
+                    onClick={() => confirmSubscription(row.id)}
+                  >
+                    {confirmingKey === `sub-${row.id}` ? 'Confirming...' : 'Mark paid'}
+                  </button>
+                )}
+              />
             </>
           )}
 
           {contentCheckouts.length > 0 && (
             <>
               <h2 className="section-title">Content purchases</h2>
-              <div className="admin-list">
-                {contentCheckouts.map((item) => (
-                  <div key={`content-${item.id}`} className="admin-row">
-                    <div>
-                      <strong>{item.user?.name || 'User'}</strong>
-                      <p className="muted">{item.user?.email}</p>
-                      <p>
-                        {item.item_type} · {item.item_title || `#${item.item_id}`} · £
-                        {Number(item.amount).toFixed(2)}
-                      </p>
-                      <p>
-                        Reference: <strong>{item.payment_reference}</strong>
-                      </p>
-                    </div>
-                    <button
-                      className="btn primary"
-                      disabled={confirmingKey === `content-${item.id}`}
-                      onClick={() => confirmContent(item.id)}
-                    >
-                      {confirmingKey === `content-${item.id}` ? 'Confirming...' : 'Mark paid'}
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <DataGrid
+                columns={[
+                  {
+                    key: 'user',
+                    label: 'User',
+                    filterValue: (row) =>
+                      `${row.user?.name || ''} ${row.user?.email || ''}`.trim(),
+                    render: (row) => (
+                      <>
+                        <strong>{row.user?.name || 'User'}</strong>
+                        <div className="muted">{row.user?.email}</div>
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'item',
+                    label: 'Item',
+                    filterValue: (row) =>
+                      `${row.item_type || ''} ${row.item_title || row.item_id || ''}`.trim(),
+                    render: (row) =>
+                      `${row.item_type} · ${row.item_title || `#${row.item_id}`}`,
+                  },
+                  {
+                    key: 'amount',
+                    label: 'Amount',
+                    filterValue: (row) => String(row.amount),
+                    render: (row) => `£${Number(row.amount).toFixed(2)}`,
+                  },
+                  {
+                    key: 'payment_reference',
+                    label: 'Reference',
+                    filterValue: (row) => row.payment_reference,
+                    render: (row) => <strong>{row.payment_reference}</strong>,
+                  },
+                ]}
+                rows={contentCheckouts}
+                emptyMessage="No pending content transfers."
+                getRowKey={(row) => row.id}
+                actions={(row) => (
+                  <button
+                    className="btn primary"
+                    disabled={confirmingKey === `content-${row.id}`}
+                    onClick={() => confirmContent(row.id)}
+                  >
+                    {confirmingKey === `content-${row.id}` ? 'Confirming...' : 'Mark paid'}
+                  </button>
+                )}
+              />
             </>
           )}
         </>

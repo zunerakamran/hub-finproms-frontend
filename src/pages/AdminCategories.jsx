@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -116,44 +117,47 @@ export default function AdminCategories({ shell = 'client-admin' }) {
       <h2 className="section-title">
         {isActingOnWhiteLabel ? `Categories on ${actingHub?.name}` : 'Existing categories'}
       </h2>
-      {loading ? (
-        <div className="state">Loading...</div>
-      ) : (
-        <div className="admin-list">
-          {categories.map((category) => (
-            <div key={category.id} className="admin-row">
-              <div>
-                <strong>{category.name}</strong>
-              </div>
-              <div className="actions">
-                <button
-                  className="btn ghost"
-                  onClick={() => {
-                    setEditingId(category.id)
-                    setName(category.name)
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn danger"
-                  onClick={async () => {
-                    if (!window.confirm('Delete this category?')) return
-                    try {
-                      await api.deleteCategory(category.id, apiOpts)
-                      await load()
-                    } catch (err) {
-                      setError(err.message)
-                    }
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <DataGrid
+        columns={[
+          {
+            key: 'name',
+            label: 'Name',
+            filterValue: (row) => row.name,
+            render: (row) => <strong>{row.name}</strong>,
+          },
+        ]}
+        rows={categories}
+        loading={loading}
+        emptyMessage="No categories yet."
+        getRowKey={(row) => row.id}
+        actions={(row) => (
+          <div className="actions">
+            <button
+              className="btn ghost"
+              onClick={() => {
+                setEditingId(row.id)
+                setName(row.name)
+              }}
+            >
+              Edit
+            </button>
+            <button
+              className="btn danger"
+              onClick={async () => {
+                if (!window.confirm('Delete this category?')) return
+                try {
+                  await api.deleteCategory(row.id, apiOpts)
+                  await load()
+                } catch (err) {
+                  setError(err.message)
+                }
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        )}
+      />
     </section>
   )
 }

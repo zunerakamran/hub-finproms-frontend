@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import SmcStatusBadge, { SmcBarChart } from '../components/SocialMediaComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -92,6 +93,70 @@ export default function SocialMediaComplianceReports() {
       setExporting(false)
     }
   }
+
+  const reportColumns = [
+    {
+      key: 'id',
+      label: 'ID',
+      filterValue: (row) => String(row.id),
+    },
+    {
+      key: 'submitted_by',
+      label: 'Submitted by',
+      render: (row) => (
+        <>
+          {row.on_behalf_of ? (
+            <p className="attribution-highlight attribution-highlight--flush">{row.submitted_by}</p>
+          ) : (
+            row.submitted_by
+          )}
+          <br />
+          <small className="muted">{row.submitter_email}</small>
+        </>
+      ),
+      filterValue: (row) => [row.submitted_by, row.submitter_email].filter(Boolean).join(' '),
+    },
+    {
+      key: 'post',
+      label: 'Post',
+      render: (row) => row.post_title || row.post_id || '—',
+      filterValue: (row) => String(row.post_title || row.post_id || ''),
+    },
+    {
+      key: 'version',
+      label: 'Ver',
+      render: (row) => (
+        <>
+          v{row.current_version} / {row.version_count}
+        </>
+      ),
+      filterValue: (row) => `${row.current_version} ${row.version_count}`,
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => <SmcStatusBadge status={row.status} />,
+      filterValue: (row) => row.status || '',
+    },
+    {
+      key: 'assigned_to',
+      label: 'Assigned',
+      render: (row) => row.assigned_to || '—',
+      filterValue: (row) => row.assigned_to || '',
+    },
+    {
+      key: 'reviewed_by',
+      label: 'Reviewed by',
+      render: (row) => row.reviewed_by || '—',
+      filterValue: (row) => row.reviewed_by || '',
+    },
+    {
+      key: 'submission_date',
+      label: 'Submitted',
+      render: (row) => row.submission_date || '—',
+      filterValue: (row) => row.submission_date || '',
+    },
+  ]
 
   if (!hubLoading && !enabled) {
     return (
@@ -229,49 +294,13 @@ export default function SocialMediaComplianceReports() {
               </div>
             </div>
           )}
-          <div className="table-wrap" style={{ marginTop: 16 }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Submitted by</th>
-                  <th>Post</th>
-                  <th>Ver</th>
-                  <th>Status</th>
-                  <th>Assigned</th>
-                  <th>Reviewed by</th>
-                  <th>Submitted</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(report?.rows || []).map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.id}</td>
-                    <td>
-                      {row.on_behalf_of ? (
-                        <p className="attribution-highlight attribution-highlight--flush">
-                          {row.submitted_by}
-                        </p>
-                      ) : (
-                        row.submitted_by
-                      )}
-                      <br />
-                      <small className="muted">{row.submitter_email}</small>
-                    </td>
-                    <td>{row.post_title || row.post_id || '—'}</td>
-                    <td>
-                      v{row.current_version} / {row.version_count}
-                    </td>
-                    <td>
-                      <SmcStatusBadge status={row.status} />
-                    </td>
-                    <td>{row.assigned_to || '—'}</td>
-                    <td>{row.reviewed_by || '—'}</td>
-                    <td>{row.submission_date || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ marginTop: 16 }}>
+            <DataGrid
+              columns={reportColumns}
+              rows={report?.rows || []}
+              emptyMessage="No report rows for the current filters."
+              pageSize={10}
+            />
           </div>
         </>
       ) : tab === 'workload' ? (

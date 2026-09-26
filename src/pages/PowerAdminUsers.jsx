@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { DEFAULT_ROLE_LABELS } from '../utils/roleLabels'
@@ -40,8 +41,6 @@ export default function PowerAdminUsers() {
   const [users, setUsers] = useState([])
   const [roles, setRoles] = useState([])
   const [firms, setFirms] = useState([])
-  const [meta, setMeta] = useState(null)
-  const [q, setQ] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
@@ -50,7 +49,7 @@ export default function PowerAdminUsers() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  const load = async (page = 1) => {
+  const load = async () => {
     if (!allowed) {
       setLoading(false)
       return
@@ -59,15 +58,13 @@ export default function PowerAdminUsers() {
     setError('')
     try {
       const data = await api.powerAdminUsers({
-        q: q || undefined,
         role: roleFilter || undefined,
-        page,
-        per_page: 50,
+        page: 1,
+        per_page: 200,
       })
       setUsers(data.users || [])
       setRoles(data.roles || [])
       setFirms(data.firms || [])
-      setMeta(data.meta || null)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -78,7 +75,7 @@ export default function PowerAdminUsers() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowed, actingHubId])
+  }, [allowed, actingHubId, roleFilter])
 
   const resetForm = () => {
     setForm(emptyForm)
@@ -145,7 +142,7 @@ export default function PowerAdminUsers() {
         setMessage(data.message || 'User created.')
       }
       resetForm()
-      await load(meta?.current_page || 1)
+      await load()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -166,11 +163,48 @@ export default function PowerAdminUsers() {
       const data = await api.deletePowerAdminUser(user.id)
       setMessage(data.message || 'User deleted.')
       if (editingId === user.id) resetForm()
-      await load(meta?.current_page || 1)
+      await load()
     } catch (err) {
       setError(err.message)
     }
   }
+
+  const userColumns = useMemo(
+    () => [
+      { key: 'name', label: 'Name' },
+      { key: 'email', label: 'Email' },
+      {
+        key: 'role',
+        label: 'Role',
+        filterValue: (row) => row.role_label || row.role || '',
+        render: (row) => row.role_label || row.role,
+      },
+      {
+        key: 'firm',
+        label: 'Firm',
+        filterValue: (row) => row.firm?.name || '',
+        render: (row) => row.firm?.name || '—',
+      },
+      {
+        key: 'modules',
+        label: 'Modules',
+        filterValue: (row) => formatUserModules(row),
+        render: (row) => (
+          <span className="muted" style={{ fontSize: '0.9em' }}>
+            {formatUserModules(row)}
+          </span>
+        ),
+      },
+      {
+        key: 'credits',
+        label: 'Credits',
+        filterValue: (row) =>
+          row.has_unlimited_credits ? 'Unlimited' : String(row.credits ?? ''),
+        render: (row) => (row.has_unlimited_credits ? 'Unlimited' : row.credits),
+      },
+    ],
+    []
+  )
 
   if (!allowed) {
     return (
@@ -327,113 +361,44 @@ export default function PowerAdminUsers() {
       </form>
 
       <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
-        <form
-          className="row"
-          style={{ gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}
-          onSubmit={(e) => {
-            e.preventDefault()
-            load(1)
-          }}
-        >
-          <input
-            type="search"
-            placeholder="Search name or email"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-            <option value="">All roles</option>
-            {roles.map((role) => (
-              <option key={role.key} value={role.key}>
-                {role.label}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className="btn ghost">
-            Filter
-          </button>
-        </form>
+        <div className="row" style={{ gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <label>
+            Role
+            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+              <option value="">All roles</option>
+              {roles.map((role) => (
+                <option key={role.key} value={role.key}>
+                  {role.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
-      {loading ? (
-        <p className="muted">Loading users…</p>
-      ) : users.length === 0 ? (
-        <div className="empty-state">
-          <h2>No users found</h2>
-          <p className="muted">Try a different search, or create a user above.</p>
-        </div>
-      ) : (
-        <div className="table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Firm</th>
-                <th>Modules</th>
-                <th>Credits</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.role_label || user.role}</td>
-                  <td>{user.firm?.name || '—'}</td>
-                  <td>
-                    <span className="muted" style={{ fontSize: '0.9em' }}>
-                      {formatUserModules(user)}
-                    </span>
-                  </td>
-                  <td>{user.has_unlimited_credits ? 'Unlimited' : user.credits}</td>
-                  <td>
-                    <div className="row" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <button type="button" className="btn ghost" onClick={() => startEdit(user)}>
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn ghost"
-                        onClick={() => onDelete(user)}
-                        disabled={user.id === me?.id}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {meta && meta.last_page > 1 ? (
-        <div className="row" style={{ gap: '0.75rem', marginTop: '1rem', alignItems: 'center' }}>
-          <button
-            type="button"
-            className="btn ghost"
-            disabled={meta.current_page <= 1}
-            onClick={() => load(meta.current_page - 1)}
-          >
-            Previous
-          </button>
-          <span className="muted">
-            Page {meta.current_page} of {meta.last_page} ({meta.total} users)
-          </span>
-          <button
-            type="button"
-            className="btn ghost"
-            disabled={meta.current_page >= meta.last_page}
-            onClick={() => load(meta.current_page + 1)}
-          >
-            Next
-          </button>
-        </div>
-      ) : null}
+      <DataGrid
+        columns={userColumns}
+        rows={users}
+        loading={loading}
+        emptyMessage="No users found. Try a different role filter, or create a user above."
+        pageSize={10}
+        getRowKey={(row) => row.id}
+        actions={(user) => (
+          <div className="row" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button type="button" className="btn ghost" onClick={() => startEdit(user)}>
+              Edit
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => onDelete(user)}
+              disabled={user.id === me?.id}
+            >
+              Delete
+            </button>
+          </div>
+        )}
+      />
     </section>
   )
 }

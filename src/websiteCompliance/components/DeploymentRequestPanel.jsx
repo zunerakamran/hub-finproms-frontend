@@ -8,21 +8,14 @@ import {
   FaTimesCircle,
   FaTimes,
   FaSync,
-  FaSearch,
-  FaGlobe,
-  FaUser,
   FaUserCheck,
-  FaPalette,
-  FaEdit,
-  FaChevronDown,
-  FaChevronUp,
   FaExclamationTriangle,
-  FaServer,
   FaUpload,
   FaImage,
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
+import DataGrid from '../../components/DataGrid'
 import { websiteComplianceAssetUrl } from '../../api/client'
 import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
 
@@ -537,8 +530,6 @@ function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
   )
 }
 
-// ─── Single deployment request card ──────────────────────────────────────────
-
 function isRequestedByAdvisor(req) {
   const requester = req.requested_by || req.requestedBy
   if (requester?.role) {
@@ -548,196 +539,10 @@ function isRequestedByAdvisor(req) {
   return Boolean(req.advisor_id)
 }
 
-function DeploymentCard({ req, advisors, canAssignAdvisor, onAssignAdvisor }) {
-  const [expanded, setExpanded] = useState(false)
-  const assignedAdvisor = req.assigned_advisor || req.assignedAdvisor
-  const requestingAdvisor = req.advisor
-  const requester = req.requested_by || req.requestedBy || requestingAdvisor
-  const advisorOwned = isRequestedByAdvisor(req)
-  const contentAdvisor = assignedAdvisor || (advisorOwned ? requestingAdvisor : null)
-  const showAssignAdvisor = canAssignAdvisor && !advisorOwned
-
-  return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-      {/* Header */}
-      <div className="p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <FaGlobe className="w-4 h-4 text-[var(--brand-dark)] shrink-0" />
-              <h3 className="text-base sm:text-lg font-bold text-[var(--brand-dark)] truncate">
-                {req.domain_name || 'Unnamed Deployment'}
-              </h3>
-              <StatusBadge status={req.status} />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 mt-1">
-              <span className="inline-flex items-center gap-1.5">
-                <FaServer className="w-3 h-3 text-gray-400" />
-                Template: <strong className="text-gray-700">{req.template_name || '—'}</strong>
-              </span>
-              {requester && (
-                <span className="inline-flex items-center gap-1.5">
-                  <FaUser className="w-3 h-3 text-gray-400" />
-                  Requested by <strong className="text-gray-700">{requester.name}</strong>
-                </span>
-              )}
-              {contentAdvisor && (
-                <span className="inline-flex items-center gap-1.5">
-                  <FaUserCheck className="w-3 h-3 text-[var(--brand)]" />
-                  {advisorOwned && !assignedAdvisor
-                    ? <>Advisor&apos;s own website: <strong className="text-[var(--brand)]">{contentAdvisor.name}</strong></>
-                    : <>Assigned this website to: <strong className="text-[var(--brand)]">{contentAdvisor.name}</strong></>}
-                </span>
-              )}
-              {!contentAdvisor && (
-                <span className="inline-flex items-center gap-1.5 text-amber-600">
-                  <FaExclamationTriangle className="w-3 h-3" />
-                  No advisor assigned
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1.5">
-                <FaClock className="w-3 h-3 text-gray-400" />
-                {new Date(req.created_at).toLocaleDateString()}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {/* Assign / Reassign advisor — only for non-advisor-submitted requests */}
-            {showAssignAdvisor && (
-              <button
-                type="button"
-                onClick={() => onAssignAdvisor(req)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-[var(--brand-dark)] text-[var(--brand-dark)] hover:bg-[var(--brand-dark)] hover:text-white transition"
-              >
-                <FaUserCheck className="w-3 h-3" />
-                {assignedAdvisor ? 'Reassign Advisor' : 'Assign Advisor'}
-              </button>
-            )}
-
-            {/* Expand details */}
-            <button
-              type="button"
-              onClick={() => setExpanded(v => !v)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
-            >
-              {expanded ? <FaChevronUp className="w-3 h-3" /> : <FaChevronDown className="w-3 h-3" />}
-              {expanded ? 'Hide' : 'Details'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Expanded details */}
-      {expanded && (
-        <div className="border-t border-gray-100 px-5 sm:px-6 py-4 bg-slate-50 space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-            {req.primary_color && (
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded border border-gray-200 shrink-0" style={{ background: req.primary_color }} />
-                <div>
-                  <p className="text-gray-400 font-semibold">Primary</p>
-                  <p className="font-bold text-gray-700 font-mono">{req.primary_color}</p>
-                </div>
-              </div>
-            )}
-            {req.secondary_color && (
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded border border-gray-200 shrink-0" style={{ background: req.secondary_color }} />
-                <div>
-                  <p className="text-gray-400 font-semibold">Secondary</p>
-                  <p className="font-bold text-gray-700 font-mono">{req.secondary_color}</p>
-                </div>
-              </div>
-            )}
-            {req.request_type && (
-              <div>
-                <p className="text-gray-400 font-semibold">Type</p>
-                <p className="font-bold text-gray-700 capitalize">{req.request_type.replace(/_/g, ' ')}</p>
-              </div>
-            )}
-            {req.firm?.name && (
-              <div>
-                <p className="text-gray-400 font-semibold">Firm</p>
-                <p className="font-bold text-gray-700">{req.firm.name}</p>
-              </div>
-            )}
-            {req.cpanel_domain && (
-              <div className="col-span-2 sm:col-span-3">
-                <p className="text-gray-400 font-semibold">Live URL</p>
-                <a
-                  href={req.cpanel_domain.startsWith('http') ? req.cpanel_domain : `https://${req.cpanel_domain}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-[var(--brand)] hover:underline truncate block"
-                >
-                  {req.cpanel_domain}
-                </a>
-              </div>
-            )}
-          </div>
-
-          {req.status === 'deployed' && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800">
-              <div className="flex items-start gap-2">
-                <FaCheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600" />
-                <div>
-                  <p className="font-bold">Site is deployed and live.</p>
-                  {contentAdvisor
-                    ? <p className="mt-0.5">
-                        {advisorOwned && !assignedAdvisor
-                          ? <>This is <strong>{contentAdvisor.name}</strong>&apos;s own website. They can edit sections in their Advisor Dashboard.</>
-                          : <>This website is assigned to <strong>{contentAdvisor.name}</strong> (not their own site). They can edit sections in their Advisor Dashboard.</>}
-                        {' '}Content changes go through the standard approver review workflow.
-                      </p>
-                    : <p className="mt-0.5 text-amber-700">No advisor assigned — assign one so they can edit content.</p>
-                  }
-                </div>
-              </div>
-            </div>
-          )}
-
-          {req.status === 'pending' && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
-              <div className="flex items-start gap-2">
-                <FaClock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
-                <div>
-                  <p className="font-bold">Awaiting deployment by the platform administrator.</p>
-                  {contentAdvisor
-                    ? <p className="mt-0.5">
-                        {advisorOwned
-                          ? <>This is <strong>{contentAdvisor.name}</strong>&apos;s own website request — they will edit content once the site is deployed.</>
-                          : <>Assigned this website to <strong>{contentAdvisor.name}</strong> — they will edit content once the site goes live (this is not their own site).</>}
-                      </p>
-                    : <p className="mt-0.5">You can assign an advisor now so they are ready once the site goes live.</p>
-                  }
-                </div>
-              </div>
-            </div>
-          )}
-
-          {req.status === 'rejected' && req.rejection_reason && (
-            <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-800">
-              <div className="flex items-start gap-2">
-                <FaTimesCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-rose-500" />
-                <div>
-                  <span className="font-bold">Rejection reason: </span>
-                  {req.rejection_reason}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 export default function DeploymentRequestPanel() {
-  const { can } = useHub()
+  const { can, complianceStatusLabel } = useHub()
   const canRequest = can('wc_request_deployments') || can('wc_assign_website_templates')
   const canViewAll = can('wc_view_all_deployments')
   const canAssignAdvisor = can('wc_assign_website_templates')
@@ -749,7 +554,6 @@ export default function DeploymentRequestPanel() {
   const [refreshing, setRefreshing] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [search, setSearch] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [assignTarget, setAssignTarget] = useState(null)
 
@@ -798,18 +602,6 @@ export default function DeploymentRequestPanel() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const filteredRequests = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return requests
-    return requests.filter(r =>
-      (r.domain_name || '').toLowerCase().includes(q) ||
-      (r.template_name || '').toLowerCase().includes(q) ||
-      (r.status || '').toLowerCase().includes(q) ||
-      (r.advisor?.name || '').toLowerCase().includes(q) ||
-      (r.assigned_advisor?.name || r.assignedAdvisor?.name || '').toLowerCase().includes(q)
-    )
-  }, [requests, search])
-
   const handleCreated = (newRequest) => {
     setShowCreateModal(false)
     setRequests(prev => [newRequest, ...prev])
@@ -822,6 +614,80 @@ export default function DeploymentRequestPanel() {
     const advisorName = updatedRequest.assigned_advisor?.name || updatedRequest.assignedAdvisor?.name || 'Advisor'
     setMessage(`Assigned this website to ${advisorName}. They can edit its content once it is deployed (this is not their own site).`)
   }
+
+  const columns = useMemo(() => [
+    {
+      key: 'domain_name',
+      label: 'Domain',
+      render: (row) => row.domain_name || 'Unnamed Deployment',
+      filterValue: (row) => row.domain_name || '',
+    },
+    {
+      key: 'template_name',
+      label: 'Template',
+      render: (row) => row.template_name || '—',
+      filterValue: (row) => row.template_name || '',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => <StatusBadge status={row.status} />,
+      filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
+    },
+    {
+      key: 'requester',
+      label: 'Requested by',
+      render: (row) => {
+        const requester = row.requested_by || row.requestedBy || row.advisor
+        return requester?.name || '—'
+      },
+      filterValue: (row) => {
+        const requester = row.requested_by || row.requestedBy || row.advisor
+        return requester?.name || ''
+      },
+    },
+    {
+      key: 'advisor',
+      label: 'Content advisor',
+      render: (row) => {
+        const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+        const advisorOwned = isRequestedByAdvisor(row)
+        const contentAdvisor = assignedAdvisor || (advisorOwned ? row.advisor : null)
+        if (contentAdvisor) return contentAdvisor.name
+        return <span className="text-amber-600">Unassigned</span>
+      },
+      filterValue: (row) => {
+        const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+        const advisorOwned = isRequestedByAdvisor(row)
+        const contentAdvisor = assignedAdvisor || (advisorOwned ? row.advisor : null)
+        return contentAdvisor?.name || 'Unassigned'
+      },
+    },
+    {
+      key: 'created_at',
+      label: 'Created',
+      render: (row) => (row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'),
+      filterValue: (row) => (row.created_at ? new Date(row.created_at).toLocaleDateString() : ''),
+    },
+    {
+      key: 'live_url',
+      label: 'Live URL',
+      render: (row) =>
+        row.cpanel_domain ? (
+          <a
+            href={row.cpanel_domain.startsWith('http') ? row.cpanel_domain : `https://${row.cpanel_domain}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--brand)] hover:underline"
+          >
+            {row.cpanel_domain}
+          </a>
+        ) : (
+          '—'
+        ),
+      filterValue: (row) => row.cpanel_domain || '',
+    },
+  ], [complianceStatusLabel])
 
   return (
     <div>
@@ -860,52 +726,18 @@ export default function DeploymentRequestPanel() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <div className="wc-icon-field flex-1 sm:max-w-md">
-          <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
-          <input
-            type="search"
-            placeholder="Search by domain, template, advisor, status…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition"
-          />
-        </div>
-      </div>
-
-      {/* List */}
-      {loading ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center text-gray-500">
-          <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-[var(--brand)] border-t-transparent animate-spin" />
-          <p className="text-sm font-semibold">Loading deployment requests…</p>
-        </div>
-      ) : filteredRequests.length === 0 ? (
+      {!loading && requests.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center">
           <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
             <FaRocket className="w-6 h-6 text-gray-400" />
           </div>
-          <h3 className="text-lg font-bold text-[var(--brand-dark)]">
-            {search.trim() ? 'No matching deployments' : 'No deployment requests yet'}
-          </h3>
+          <h3 className="text-lg font-bold text-[var(--brand-dark)]">No deployment requests yet</h3>
           <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
-            {search.trim()
-              ? 'Try a different search term or clear the filter.'
-              : canRequest
-                ? 'Submit your first deployment request to get a new advisor showcase site set up.'
-                : 'Deployment requests will appear here when submitted.'
-            }
+            {canRequest
+              ? 'Submit your first deployment request to get a new advisor showcase site set up.'
+              : 'Deployment requests will appear here when submitted.'}
           </p>
-          {search.trim() && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              className="mt-4 text-sm font-bold text-[var(--brand)] hover:underline"
-            >
-              Clear search
-            </button>
-          )}
-          {!search.trim() && canRequest && (
+          {canRequest && (
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
@@ -917,17 +749,29 @@ export default function DeploymentRequestPanel() {
           )}
         </div>
       ) : (
-        <div className="space-y-5">
-          {filteredRequests.map(req => (
-            <DeploymentCard
-              key={req.id}
-              req={req}
-              advisors={advisors}
-              canAssignAdvisor={canAssignAdvisor}
-              onAssignAdvisor={setAssignTarget}
-            />
-          ))}
-        </div>
+        <DataGrid
+          columns={columns}
+          rows={requests}
+          loading={loading}
+          pageSize={10}
+          emptyMessage="No deployment requests yet"
+          actions={(row) => {
+            const advisorOwned = isRequestedByAdvisor(row)
+            const showAssignAdvisor = canAssignAdvisor && !advisorOwned
+            const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+            if (!showAssignAdvisor) return <span className="muted">—</span>
+            return (
+              <button
+                type="button"
+                onClick={() => setAssignTarget(row)}
+                className="btn ghost"
+              >
+                <FaUserCheck className="w-3 h-3" style={{ marginRight: 6 }} />
+                {assignedAdvisor ? 'Reassign' : 'Assign advisor'}
+              </button>
+            )
+          }}
+        />
       )}
 
       {/* Create modal */}

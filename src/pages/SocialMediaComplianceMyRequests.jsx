@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import SmcStatusBadge from '../components/SocialMediaComplianceUI'
 import { useHub } from '../context/HubContext'
@@ -9,8 +10,6 @@ import { formatSmcDate } from '../utils/socialMediaCompliance'
 export default function SocialMediaComplianceMyRequests() {
   const { can, loading: hubLoading, effectiveAdvisorId } = useHub()
   const [items, setItems] = useState([])
-  const [meta, setMeta] = useState(null)
-  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -27,11 +26,10 @@ export default function SocialMediaComplianceMyRequests() {
     setLoading(true)
     setError('')
     api
-      .socialMediaComplianceMine({ per_page: 20, page })
+      .socialMediaComplianceMine({ per_page: 100 })
       .then((data) => {
         if (cancelled) return
         setItems(data.data || [])
-        setMeta(data.meta || null)
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || 'Failed to load requests.')
@@ -42,7 +40,50 @@ export default function SocialMediaComplianceMyRequests() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, moduleOn, canView, page, effectiveAdvisorId])
+  }, [hubLoading, moduleOn, canView, effectiveAdvisorId])
+
+  const columns = [
+    {
+      key: 'id',
+      label: '#',
+      render: (row) => <strong>#{row.id}</strong>,
+      filterValue: (row) => String(row.id),
+    },
+    {
+      key: 'version',
+      label: 'Version',
+      render: (row) => `v${row.current_version}`,
+      filterValue: (row) => String(row.current_version ?? ''),
+    },
+    {
+      key: 'description',
+      label: 'Description',
+      render: (row) => (
+        <>
+          <div>
+            {row.description?.slice(0, 100) || row.post?.title || 'Social media compliance request'}
+          </div>
+          <OnBehalfAttribution row={row} ownerKey="submitter" />
+        </>
+      ),
+      filterValue: (row) =>
+        [row.description, row.post?.title, row.attribution_label, row.on_behalf_by?.name]
+          .filter(Boolean)
+          .join(' '),
+    },
+    {
+      key: 'submitted',
+      label: 'Submitted',
+      render: (row) => formatSmcDate(row.submission_date),
+      filterValue: (row) => formatSmcDate(row.submission_date) || '',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => <SmcStatusBadge status={row.status} />,
+      filterValue: (row) => row.status || '',
+    },
+  ]
 
   if (!hubLoading && !moduleOn) {
     return (
@@ -77,9 +118,7 @@ export default function SocialMediaComplianceMyRequests() {
       </div>
 
       {error && <div className="alert">{error}</div>}
-      {loading ? (
-        <div className="state">Loading...</div>
-      ) : items.length === 0 ? (
+      {!loading && items.length === 0 ? (
         <p className="muted">
           No social media compliance requests yet.
           {canSubmit && (
@@ -91,47 +130,15 @@ export default function SocialMediaComplianceMyRequests() {
           )}
         </p>
       ) : (
-        <div className="smc-list">
-          {items.map((row) => (
-            <Link
-              key={row.id}
-              to={`/my-dashboard/social-media-compliance/${row.id}`}
-              state={{ from: 'mine' }}
-              className="smc-list-item"
-            >
-              <div>
-                <strong>#{row.id}</strong>
-                <span className="muted"> v{row.current_version}</span>
-                <p>{row.description?.slice(0, 100) || row.post?.title || 'Social media compliance request'}</p>
-                <OnBehalfAttribution row={row} ownerKey="submitter" />
-                <small className="muted">{formatSmcDate(row.submission_date)}</small>
-              </div>
-              <SmcStatusBadge status={row.status} />
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {meta && meta.last_page > 1 && (
-        <div className="actions" style={{ marginTop: 16 }}>
-          <button
-            className="btn ghost"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Previous
-          </button>
-          <span className="muted">
-            Page {meta.current_page} of {meta.last_page}
-          </span>
-          <button
-            className="btn ghost"
-            disabled={page >= meta.last_page}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </button>
-        </div>
+        <DataGrid
+          columns={columns}
+          rows={items}
+          loading={loading}
+          emptyMessage="No social media compliance requests yet."
+          pageSize={10}
+          rowLink={(row) => `/my-dashboard/social-media-compliance/${row.id}`}
+          rowLinkState={{ from: 'mine' }}
+        />
       )}
     </section>
   )

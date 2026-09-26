@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import AdminPostThumb from '../components/AdminPostThumb'
+import DataGrid from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -170,6 +171,50 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     return [...tags, ...extras]
   })()
 
+  const postColumns = useMemo(
+    () => [
+      {
+        key: 'title',
+        label: 'Title',
+        filterValue: (row) => row.title,
+        render: (row) => (
+          <div className="admin-post-grid-title">
+            <AdminPostThumb post={row} />
+            <span>{row.title}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'type',
+        label: 'Type',
+        filterValue: (row) => (row.is_reel ? 'Reel' : row.type || 'Post'),
+        render: (row) => (row.is_reel ? 'Reel' : row.type || 'Post'),
+      },
+      {
+        key: 'category',
+        label: 'Category',
+        render: (row) => row.category || '—',
+      },
+      {
+        key: 'credits_cost',
+        label: 'Credits',
+        filterValue: (row) => String(row.credits_cost ?? 0),
+        render: (row) => row.credits_cost ?? 0,
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        filterValue: (row) => (row.is_active === false ? 'Inactive' : 'Active'),
+        render: (row) => (
+          <span className={`admin-status-pill ${row.is_active === false ? 'is-off' : 'is-on'}`}>
+            {row.is_active === false ? 'Inactive' : 'Active'}
+          </span>
+        ),
+      },
+    ],
+    []
+  )
+
   return (
     <section>
       <div className="page-head">
@@ -336,76 +381,40 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           </p>
         </div>
       </div>
-      {loading ? (
-        <div className="state">Loading posts…</div>
-      ) : posts.length === 0 ? (
-        <div className="state admin-posts-empty">
-          <strong>No posts yet</strong>
-          <p className="muted">Create a post or reel above and it will show up here.</p>
-        </div>
-      ) : (
-        <div className="admin-list admin-posts-list">
-          {posts.map((post) => {
-            const isReel = Boolean(post.is_reel)
-            const isEditing = editingId === post.id
-            const tags = Array.isArray(post.tags) ? post.tags.slice(0, 4) : []
-
-            return (
-              <article
-                key={post.id}
-                className={[
-                  'admin-row',
-                  'admin-post-row',
-                  isReel ? 'is-reel' : '',
-                  isEditing ? 'is-editing' : '',
-                  post.is_active === false ? 'is-inactive' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                <AdminPostThumb post={post} />
-                <div className="admin-post-row__meta">
-                  <div className="admin-post-row__title-line">
-                    <h3 className="admin-post-row__title">{post.title}</h3>
-                    <span className={`admin-status-pill ${post.is_active === false ? 'is-off' : 'is-on'}`}>
-                      {post.is_active === false ? 'Inactive' : 'Active'}
-                    </span>
-                  </div>
-                  <div className="admin-post-row__chips">
-                    <span className={`admin-type-chip ${isReel ? 'is-reel' : ''}`.trim()}>
-                      {isReel ? 'Reel' : post.type || 'Post'}
-                    </span>
-                    {post.category ? (
-                      <span className="admin-meta-chip">{post.category}</span>
-                    ) : null}
-                    <span className="admin-meta-chip">{post.credits_cost ?? 0} credits</span>
-                  </div>
-                  {tags.length > 0 ? (
-                    <div className="admin-post-row__tags">
-                      {tags.map((tag) => (
-                        <span key={tag}>{tag}</span>
-                      ))}
-                    </div>
-                  ) : null}
-                  <div className="admin-post-row__stats muted">
-                    <span>{Number(post.reach_count ?? 0)} reach</span>
-                    <span>{Number(post.views_count ?? 0)} views</span>
-                    <span>{Number(post.buy_count ?? 0)} buys</span>
-                  </div>
-                </div>
-                <div className="admin-post-row__actions actions">
-                  <button className="btn ghost" type="button" onClick={() => edit(post)}>
-                    {isEditing ? 'Editing…' : 'Edit'}
-                  </button>
-                  <button className="btn danger" type="button" onClick={() => remove(post.id)}>
-                    Delete
-                  </button>
-                </div>
-              </article>
-            )
-          })}
-        </div>
-      )}
+      <DataGrid
+        columns={postColumns}
+        rows={posts}
+        loading={loading}
+        emptyMessage="No posts yet. Create a post or reel above and it will show up here."
+        pageSize={10}
+        getRowKey={(row) => row.id}
+        actions={(row) => (
+          <div className="actions">
+            <button className="btn ghost" type="button" onClick={() => edit(row)}>
+              {editingId === row.id ? 'Editing…' : 'Edit'}
+            </button>
+            <button className="btn danger" type="button" onClick={() => remove(row.id)}>
+              Delete
+            </button>
+          </div>
+        )}
+      />
+      <style>{`
+        .admin-post-grid-title {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          min-width: 0;
+        }
+        .admin-post-grid-title .admin-thumb-wrap {
+          flex-shrink: 0;
+        }
+        .admin-post-grid-title > span {
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      `}</style>
     </section>
   )
 }

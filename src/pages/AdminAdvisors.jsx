@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -214,6 +215,21 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const pendingBilling =
     quote?.payment_required && quote?.billing && quote.billing.payment_status !== 'paid'
   const showPaymentPanel = Boolean(pendingBilling || (quote?.payment_required && quote?.error))
+
+  const advisorColumns = useMemo(
+    () => [
+      { key: 'name', label: 'Name' },
+      { key: 'email', label: 'Email' },
+      {
+        key: 'credits',
+        label: 'Credits',
+        filterValue: (row) =>
+          row.has_unlimited_credits ? 'Unlimited' : String(row.credits ?? ''),
+        render: (row) => (row.has_unlimited_credits ? 'Unlimited' : row.credits),
+      },
+    ],
+    []
+  )
 
   return (
     <section>
@@ -462,47 +478,28 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
 
       <div className="advisor-list-block">
         <h2>Current advisors</h2>
-        {loading ? (
-          <div className="state">Loading...</div>
-        ) : advisors.length === 0 ? (
-          <div className="empty-state">
-            <p className="muted">No advisors imported yet.</p>
-          </div>
-        ) : (
-          <div className="table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Credits</th>
-                  {canDiscontinue && <th>Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {advisors.map((advisor) => (
-                  <tr key={advisor.id}>
-                    <td>{advisor.name}</td>
-                    <td>{advisor.email}</td>
-                    <td>{advisor.has_unlimited_credits ? 'Unlimited' : advisor.credits}</td>
-                    {canDiscontinue && (
-                      <td>
-                        <button
-                          type="button"
-                          className="btn danger"
-                          disabled={discontinuingId === advisor.id}
-                          onClick={() => onDiscontinue(advisor)}
-                        >
-                          {discontinuingId === advisor.id ? 'Ending...' : 'Discontinue'}
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataGrid
+          columns={advisorColumns}
+          rows={advisors}
+          loading={loading}
+          emptyMessage="No advisors imported yet."
+          pageSize={10}
+          getRowKey={(row) => row.id}
+          actions={
+            canDiscontinue
+              ? (advisor) => (
+                  <button
+                    type="button"
+                    className="btn danger"
+                    disabled={discontinuingId === advisor.id}
+                    onClick={() => onDiscontinue(advisor)}
+                  >
+                    {discontinuingId === advisor.id ? 'Ending...' : 'Discontinue'}
+                  </button>
+                )
+              : undefined
+          }
+        />
       </div>
     </section>
   )

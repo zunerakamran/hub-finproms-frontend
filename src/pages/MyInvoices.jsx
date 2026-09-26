@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 
 function formatMoney(amount, currency = 'gbp') {
   try {
@@ -44,31 +45,51 @@ export default function MyInvoices() {
 
       {error && <div className="alert">{error}</div>}
 
-      {loading ? (
-        <div className="state">Loading...</div>
-      ) : items.length === 0 ? (
+      {!loading && items.length === 0 ? (
         <div className="state">
           No invoices yet. <Link to="/subscriptions">Browse plans</Link> or{' '}
           <Link to="/">buy a post</Link>.
         </div>
       ) : (
-        <div className="invoice-list">
-          {items.map((invoice) => (
-            <Link to={`/my-dashboard/invoices/${invoice.id}`} key={invoice.id} className="invoice-row">
-              <div>
-                <strong>{invoice.invoice_number}</strong>
-                <p className="muted">{invoice.description}</p>
-              </div>
-              <div className="invoice-row-meta">
-                <span className="badge">{typeLabel(invoice.type)}</span>
-                <span>{formatMoney(invoice.amount, invoice.currency)}</span>
-                <span className="muted">
-                  {new Date(invoice.issued_at).toLocaleDateString()}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <DataGrid
+          columns={[
+            {
+              key: 'invoice_number',
+              label: 'Invoice #',
+              render: (row) => <strong>{row.invoice_number}</strong>,
+            },
+            {
+              key: 'description',
+              label: 'Description',
+              filterValue: (row) => row.description,
+            },
+            {
+              key: 'type',
+              label: 'Type',
+              filterValue: (row) => typeLabel(row.type),
+              render: (row) => <span className="badge">{typeLabel(row.type)}</span>,
+            },
+            {
+              key: 'amount',
+              label: 'Amount',
+              filterValue: (row) => String(row.amount),
+              render: (row) => formatMoney(row.amount, row.currency),
+            },
+            {
+              key: 'issued_at',
+              label: 'Issued',
+              filterValue: (row) =>
+                row.issued_at ? new Date(row.issued_at).toLocaleDateString() : '',
+              render: (row) =>
+                row.issued_at ? new Date(row.issued_at).toLocaleDateString() : '—',
+            },
+          ]}
+          rows={items}
+          loading={loading}
+          emptyMessage="No invoices yet."
+          getRowKey={(row) => row.id}
+          rowLink={(row) => `/my-dashboard/invoices/${row.id}`}
+        />
       )}
     </section>
   )

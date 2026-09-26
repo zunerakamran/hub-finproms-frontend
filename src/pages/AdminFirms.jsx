@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -10,7 +11,7 @@ const emptyForm = {
   compliance_visible_to_firm_id: '',
 }
 
-const PER_PAGE = 25
+const PER_PAGE = 100
 
 function visibilityFromFirm(firm) {
   const vis = firm?.compliance_visibility || {}
@@ -22,6 +23,15 @@ function visibilityFromFirm(firm) {
   }
 }
 
+function checkAuthorityLabel(firm) {
+  const vis = firm?.compliance_visibility || {}
+  const bits = []
+  if (vis.visible_to_own) bits.push('Within the Firm')
+  if (vis.visible_to_central) bits.push("Central / Network's")
+  if (vis.visible_to_firm?.name) bits.push(vis.visible_to_firm.name)
+  return bits.length ? bits.join(', ') : 'No compliance check authority set'
+}
+
 export default function AdminFirms({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
   const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
@@ -31,8 +41,6 @@ export default function AdminFirms({ shell = 'client-admin' }) {
   const [firms, setFirms] = useState([])
   const [firmOptions, setFirmOptions] = useState([])
   const [centralFirmId, setCentralFirmId] = useState(null)
-  const [meta, setMeta] = useState(null)
-  const [q, setQ] = useState('')
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -46,14 +54,13 @@ export default function AdminFirms({ shell = 'client-admin' }) {
     [firmOptions, editingId]
   )
 
-  const load = async (page = 1, search = q) => {
+  const load = async () => {
     setLoading(true)
     setError('')
     try {
       const data = await api.listFirms(
         {
-          q: search || undefined,
-          page,
+          page: 1,
           per_page: PER_PAGE,
         },
         apiOpts
@@ -61,7 +68,6 @@ export default function AdminFirms({ shell = 'client-admin' }) {
       setFirms(data.firms || [])
       setFirmOptions(data.firm_options || data.firms || [])
       setCentralFirmId(data.central_firm_id ?? null)
-      setMeta(data.meta || null)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -70,11 +76,10 @@ export default function AdminFirms({ shell = 'client-admin' }) {
   }
 
   useEffect(() => {
-    setQ('')
     setShowForm(false)
     setEditingId(null)
     setForm(emptyForm)
-    load(1, '')
+    load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actingHubId])
 
@@ -121,18 +126,28 @@ export default function AdminFirms({ shell = 'client-admin' }) {
         const data = await api.updateFirm(editingId, payload, apiOpts)
         setMessage(data.message || 'Firm updated.')
         resetForm()
-        await load(meta?.current_page || 1)
+        await load()
       } else {
         const data = await api.createFirm(payload, apiOpts)
         setMessage(data.message || 'Firm created.')
         resetForm()
-        setQ('')
-        await load(1, '')
+        await load()
       }
     } catch (err) {
       setError(err.data?.errors?.name?.[0] || err.data?.message || err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const deleteFirm = async (firm) => {
+    if (!window.confirm(`Delete Firm “${firm.name}”?`)) return
+    try {
+      await api.deleteFirm(firm.id, apiOpts)
+      if (editingId === firm.id) resetForm()
+      await load()
+    } catch (err) {
+      setError(err.message)
     }
   }
 
@@ -253,126 +268,52 @@ export default function AdminFirms({ shell = 'client-admin' }) {
           </div>
         </form>
       ) : (
-        <>
-          <form
-            className="row"
-            style={{ gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1rem' }}
-            onSubmit={(e) => {
-              e.preventDefault()
-              load(1)
-            }}
-          >
-            <input
-              type="search"
-              placeholder="Search firms by name"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              style={{ minWidth: '14rem', flex: '1 1 14rem' }}
-            />
-            <button type="submit" className="btn ghost">
-              Search
-            </button>
-          </form>
-
-          {loading ? (
-            <div className="state">Loading...</div>
-          ) : firms.length === 0 ? (
-            <div className="empty-state">
-              <h2>{q ? 'No Firms match your search' : 'No Firms yet'}</h2>
-              <p className="muted">
-                {q
-                  ? 'Try a different search, or clear the search box.'
-                  : 'Add a Firm to get started. The Central / Network Firm is created automatically.'}
-              </p>
-            </div>
-          ) : (
-            <div className="admin-list">
-              {firms.map((firm) => {
-                const vis = firm.compliance_visibility || {}
-                const bits = []
-                if (vis.visible_to_own) bits.push('Within the Firm')
-                if (vis.visible_to_central) bits.push("Central / Network's")
-                if (vis.visible_to_firm?.name) bits.push(vis.visible_to_firm.name)
-                return (
-                  <div key={firm.id} className="admin-row">
-                    <div>
-                      <strong>
-                        {firm.name}
-                        {firm.is_central || firm.id === centralFirmId ? (
-                          <span className="muted"> · Central / Network</span>
-                        ) : null}
-                      </strong>
-                      <div className="muted" style={{ fontSize: '0.9em' }}>
-                        {firm.users_count || 0} user{(firm.users_count || 0) === 1 ? '' : 's'}
-                        {bits.length
-                          ? ` · Check authority: ${bits.join(', ')}`
-                          : ' · No compliance check authority set'}
-                      </div>
-                    </div>
-                    <div className="actions">
-                      <button type="button" className="btn ghost" onClick={() => startEdit(firm)}>
-                        Edit
-                      </button>
-                      {!firm.is_central && firm.id !== centralFirmId ? (
-                        <button
-                          type="button"
-                          className="btn danger"
-                          onClick={async () => {
-                            if (!window.confirm(`Delete Firm “${firm.name}”?`)) return
-                            try {
-                              await api.deleteFirm(firm.id, apiOpts)
-                              if (editingId === firm.id) resetForm()
-                              const nextPage =
-                                firms.length === 1 && meta?.current_page > 1
-                                  ? meta.current_page - 1
-                                  : meta?.current_page || 1
-                              await load(nextPage)
-                            } catch (err) {
-                              setError(err.message)
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                )
-              })}
+        <DataGrid
+          columns={[
+            {
+              key: 'name',
+              label: 'Name',
+              filterValue: (row) => row.name,
+              render: (row) => (
+                <strong>
+                  {row.name}
+                  {row.is_central || row.id === centralFirmId ? (
+                    <span className="muted"> · Central / Network</span>
+                  ) : null}
+                </strong>
+              ),
+            },
+            {
+              key: 'users_count',
+              label: 'Users',
+              filterValue: (row) => String(row.users_count || 0),
+              render: (row) =>
+                `${row.users_count || 0} user${(row.users_count || 0) === 1 ? '' : 's'}`,
+            },
+            {
+              key: 'check_authority',
+              label: 'Check authority',
+              filterValue: (row) => checkAuthorityLabel(row),
+              render: (row) => checkAuthorityLabel(row),
+            },
+          ]}
+          rows={firms}
+          loading={loading}
+          emptyMessage="No Firms yet. Add a Firm to get started. The Central / Network Firm is created automatically."
+          getRowKey={(row) => row.id}
+          actions={(row) => (
+            <div className="actions">
+              <button type="button" className="btn ghost" onClick={() => startEdit(row)}>
+                Edit
+              </button>
+              {!row.is_central && row.id !== centralFirmId ? (
+                <button type="button" className="btn danger" onClick={() => deleteFirm(row)}>
+                  Delete
+                </button>
+              ) : null}
             </div>
           )}
-
-          {meta && meta.last_page > 1 ? (
-            <div
-              className="row"
-              style={{ gap: '0.75rem', marginTop: '1rem', alignItems: 'center' }}
-            >
-              <button
-                type="button"
-                className="btn ghost"
-                disabled={meta.current_page <= 1 || loading}
-                onClick={() => load(meta.current_page - 1)}
-              >
-                Previous
-              </button>
-              <span className="muted">
-                Page {meta.current_page} of {meta.last_page} ({meta.total} firms)
-              </span>
-              <button
-                type="button"
-                className="btn ghost"
-                disabled={meta.current_page >= meta.last_page || loading}
-                onClick={() => load(meta.current_page + 1)}
-              >
-                Next
-              </button>
-            </div>
-          ) : meta?.total ? (
-            <p className="muted" style={{ marginTop: '1rem' }}>
-              {meta.total} firm{meta.total === 1 ? '' : 's'}
-            </p>
-          ) : null}
-        </>
+        />
       )}
     </section>
   )

@@ -12,6 +12,7 @@ import {
   FaUsers,
 } from 'react-icons/fa'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import { SmcBarChart } from '../components/SocialMediaComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -105,31 +106,6 @@ function formatWhen(value) {
   } catch {
     return String(value)
   }
-}
-
-function relativeWhen(value) {
-  if (!value) return ''
-  try {
-    const then = new Date(value).getTime()
-    const diff = Date.now() - then
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'Just now'
-    if (mins < 60) return `${mins}m ago`
-    const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    if (days < 14) return `${days}d ago`
-    return ''
-  } catch {
-    return ''
-  }
-}
-
-function initials(name, email) {
-  const source = (name || email || '?').trim()
-  const parts = source.split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-  return source.slice(0, 2).toUpperCase()
 }
 
 function statusTone(code) {
@@ -239,7 +215,6 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
   const [report, setReport] = useState(null)
   const [logs, setLogs] = useState([])
   const [meta, setMeta] = useState(null)
-  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -276,7 +251,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           const data = await api.activityLogReport(queryParams(), apiOpts)
           if (!cancelled) setReport(data.report || null)
         } else {
-          const data = await api.activityLogs({ ...queryParams(), per_page: 25, page }, apiOpts)
+          const data = await api.activityLogs({ ...queryParams(), per_page: 100, page: 1 }, apiOpts)
           if (!cancelled) {
             setLogs(data.data || [])
             setMeta(data.meta || null)
@@ -293,11 +268,10 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, enabled, tab, page, queryParams, asPowerAdmin])
+  }, [hubLoading, enabled, tab, queryParams, asPowerAdmin])
 
   const applyFilters = (event) => {
     event.preventDefault()
-    setPage(1)
     setPreset('custom')
     setApplied({ ...filters })
   }
@@ -308,7 +282,6 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     setFilters(next)
     setApplied(next)
     setPreset('30d')
-    setPage(1)
   }
 
   const applyPreset = (id) => {
@@ -317,7 +290,6 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     setPreset(id)
     setFilters(next)
     setApplied(next)
-    setPage(1)
   }
 
   const openPersonActivities = (row) => {
@@ -329,7 +301,6 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     }
     setFilters(next)
     setApplied(next)
-    setPage(1)
     setTab('logs')
   }
 
@@ -337,7 +308,6 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     const next = { ...filters, user_id: '' }
     setFilters(next)
     setApplied(next)
-    setPage(1)
   }
 
   const personFilterActive = applied.user_id !== '' && applied.user_id != null
@@ -376,6 +346,76 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     if (applied.to) return `until ${formatDayLabel(applied.to)}`
     return 'for all recorded time'
   }, [applied])
+
+  const logColumns = useMemo(
+    () => [
+      {
+        key: 'created_at',
+        label: 'When',
+        filterValue: (row) => formatWhen(row.created_at),
+        render: (row) => formatWhen(row.created_at),
+      },
+      {
+        key: 'action',
+        label: 'Action',
+        filterValue: (row) => `${friendlyAction(row.action)} ${row.action || ''}`,
+        render: (row) => (
+          <div>
+            <strong>{friendlyAction(row.action)}</strong>
+            <div>
+              <code className="activity-chip activity-chip--code">{row.action}</code>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'user',
+        label: 'User',
+        filterValue: (row) =>
+          [row.user_name, row.user_email, row.user_role].filter(Boolean).join(' '),
+        render: (row) => (
+          <div>
+            <div>
+              {row.user_name || 'Guest'}
+              {row.user_role ? ` · ${row.user_role}` : ''}
+            </div>
+            {row.user_email ? <span className="muted">{row.user_email}</span> : null}
+          </div>
+        ),
+      },
+      {
+        key: 'description',
+        label: 'Description',
+        filterValue: (row) => row.description || '',
+        render: (row) => row.description || '—',
+      },
+      {
+        key: 'path',
+        label: 'Request',
+        filterValue: (row) => [row.method, row.path].filter(Boolean).join(' '),
+        render: (row) =>
+          row.method || row.path ? (
+            <span className="activity-chip activity-chip--mono">
+              {[row.method, row.path].filter(Boolean).join(' ')}
+            </span>
+          ) : (
+            '—'
+          ),
+      },
+      {
+        key: 'status_code',
+        label: 'Status',
+        filterValue: (row) => String(row.status_code || ''),
+        render: (row) =>
+          row.status_code ? (
+            <span className={`badge ${statusTone(row.status_code)}`}>{row.status_code}</span>
+          ) : (
+            '—'
+          ),
+      },
+    ],
+    []
+  )
 
   if (!hubLoading && !enabled) {
     return (
@@ -419,10 +459,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
         <button
           type="button"
           className={`btn ghost ${tab === 'logs' ? 'active' : ''}`}
-          onClick={() => {
-            setTab('logs')
-            setPage(1)
-          }}
+          onClick={() => setTab('logs')}
         >
           <FaHistory aria-hidden /> Activity timeline
         </button>
@@ -690,18 +727,17 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
             </div>
           </div>
         )
-      ) : logs.length === 0 ? (
-        <div className="empty-state activity-empty">
-          <FaHistory aria-hidden />
-          <h2>No matching activity</h2>
-          <p className="muted">Try clearing filters or widening the date range.</p>
-        </div>
       ) : (
         <>
           <div className="activity-feed-meta">
             <p>
-              Showing <strong>{logs.length}</strong> of <strong>{meta?.total ?? logs.length}</strong>{' '}
-              events {periodLabel}
+              Showing loaded events {periodLabel}
+              {meta?.total != null ? (
+                <>
+                  {' '}
+                  (<strong>{logs.length}</strong> of <strong>{meta.total}</strong>)
+                </>
+              ) : null}
               {personFilterActive ? (
                 <>
                   {' '}
@@ -718,74 +754,14 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
             ) : null}
           </div>
 
-          <div className="activity-feed">
-            {logs.map((entry) => {
-              const whenRel = relativeWhen(entry.created_at)
-              const tone = statusTone(entry.status_code)
-              return (
-                <article key={entry.id} className="activity-feed-card">
-                  <div className="activity-feed-card__avatar" aria-hidden>
-                    {initials(entry.user_name, entry.user_email)}
-                  </div>
-                  <div className="activity-feed-card__body">
-                    <div className="activity-feed-card__top">
-                      <div>
-                        <h3>{friendlyAction(entry.action)}</h3>
-                        <p className="activity-feed-card__desc">
-                          {entry.description || 'No description provided.'}
-                        </p>
-                      </div>
-                      <div className="activity-feed-card__when">
-                        {whenRel ? <span className="activity-feed-card__rel">{whenRel}</span> : null}
-                        <span className="muted">{formatWhen(entry.created_at)}</span>
-                      </div>
-                    </div>
-                    <div className="activity-feed-card__meta">
-                      <span className="activity-chip">
-                        <FaUser aria-hidden />
-                        {entry.user_name || 'Guest'}
-                        {entry.user_role ? ` · ${entry.user_role}` : ''}
-                      </span>
-                      {entry.user_email ? <span className="activity-chip muted">{entry.user_email}</span> : null}
-                      {entry.method || entry.path ? (
-                        <span className="activity-chip activity-chip--mono">
-                          {[entry.method, entry.path].filter(Boolean).join(' ')}
-                        </span>
-                      ) : null}
-                      {entry.status_code ? (
-                        <span className={`badge ${tone}`}>{entry.status_code}</span>
-                      ) : null}
-                      <code className="activity-chip activity-chip--code">{entry.action}</code>
-                    </div>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-
-          {meta && meta.last_page > 1 ? (
-            <div className="activity-pagination">
-              <button
-                type="button"
-                className="btn ghost"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </button>
-              <span className="muted">
-                Page {meta.current_page} of {meta.last_page}
-              </span>
-              <button
-                type="button"
-                className="btn ghost"
-                disabled={page >= meta.last_page}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </button>
-            </div>
-          ) : null}
+          <DataGrid
+            columns={logColumns}
+            rows={logs}
+            loading={false}
+            emptyMessage="No matching activity. Try clearing filters or widening the date range."
+            pageSize={10}
+            getRowKey={(row) => row.id}
+          />
         </>
       )}
 

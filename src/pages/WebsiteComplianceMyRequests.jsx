@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
+import DataGrid from '../components/DataGrid'
 import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import WcStatusBadge from '../components/WebsiteComplianceUI'
 import { useAuth } from '../context/AuthContext'
@@ -66,6 +67,55 @@ export default function WebsiteComplianceMyRequests() {
     [items]
   )
 
+  const columns = [
+    {
+      key: 'id',
+      label: '#',
+      render: (row) => (
+        <strong className={highlightId === row.id ? 'is-highlight' : undefined}>#{row.id}</strong>
+      ),
+      filterValue: (row) => String(row.id),
+    },
+    {
+      key: 'version',
+      label: 'Version',
+      render: (row) => `v${row.current_version || 1}`,
+      filterValue: (row) => String(row.current_version || 1),
+    },
+    {
+      key: 'description',
+      label: 'Description',
+      render: (row) => (
+        <>
+          <div>{wcSectionTitle(row)}</div>
+          <OnBehalfAttribution row={row} ownerKey="editor" />
+        </>
+      ),
+      filterValue: (row) =>
+        [wcSectionTitle(row), row.attribution_label, row.on_behalf_by?.name].filter(Boolean).join(' '),
+    },
+    {
+      key: 'submitted',
+      label: 'Submitted',
+      render: (row) => (
+        <>
+          {formatWcDate(row.created_at)}
+          {row.approver?.name ? (
+            <small className="muted"> · Reviewer: {row.approver.name}</small>
+          ) : null}
+        </>
+      ),
+      filterValue: (row) =>
+        [formatWcDate(row.created_at), row.approver?.name].filter(Boolean).join(' '),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => <WcStatusBadge status={row.status} />,
+      filterValue: (row) => row.status || '',
+    },
+  ]
+
   if (!hubLoading && !moduleOn) {
     return (
       <section>
@@ -118,9 +168,7 @@ export default function WebsiteComplianceMyRequests() {
       </div>
 
       {error && <div className="alert">{error}</div>}
-      {loading ? (
-        <div className="state">Loading...</div>
-      ) : sorted.length === 0 ? (
+      {!loading && sorted.length === 0 ? (
         <p className="muted">
           No website compliance requests yet.
           {canSubmit && (
@@ -132,28 +180,15 @@ export default function WebsiteComplianceMyRequests() {
           )}
         </p>
       ) : (
-        <div className="wc-list">
-          {sorted.map((row) => (
-            <Link
-              key={row.id}
-              to={`/my-dashboard/website-compliance/my-requests/${row.id}`}
-              state={{ from: 'mine' }}
-              className={`wc-list-item${highlightId === row.id ? ' is-highlight' : ''}`}
-            >
-              <div>
-                <strong>#{row.id}</strong>
-                <span className="muted"> v{row.current_version || 1}</span>
-                <p>{wcSectionTitle(row)}</p>
-                <OnBehalfAttribution row={row} ownerKey="editor" />
-                <small className="muted">
-                  {formatWcDate(row.created_at)}
-                  {row.approver?.name ? ` · Reviewer: ${row.approver.name}` : ''}
-                </small>
-              </div>
-              <WcStatusBadge status={row.status} />
-            </Link>
-          ))}
-        </div>
+        <DataGrid
+          columns={columns}
+          rows={sorted}
+          loading={loading}
+          emptyMessage="No website compliance requests yet."
+          pageSize={10}
+          rowLink={(row) => `/my-dashboard/website-compliance/my-requests/${row.id}`}
+          rowLinkState={{ from: 'mine' }}
+        />
       )}
     </section>
   )

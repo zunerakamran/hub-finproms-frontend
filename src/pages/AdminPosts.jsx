@@ -12,6 +12,7 @@ const emptyForm = {
   category: '',
   tags: [],
   credits_cost: 10,
+  canva_link: '',
   is_active: true,
   attachment: null,
 }
@@ -76,6 +77,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     fd.append('category', form.category)
     fd.append('tags', JSON.stringify(form.tags))
     fd.append('credits_cost', String(form.credits_cost))
+    fd.append('canva_link', form.canva_link || '')
     fd.append('is_active', form.is_active ? '1' : '0')
     if (form.attachment) fd.append('attachment', form.attachment)
     return fd
@@ -127,6 +129,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
       category: post.category || '',
       tags: post.tags || [],
       credits_cost: post.credits_cost || 10,
+      canva_link: post.canva_link || '',
       is_active: post.is_active !== false,
       attachment: null,
     })
@@ -237,6 +240,18 @@ export default function AdminPosts({ shell = 'client-admin' }) {
               value={form.credits_cost}
               onChange={(e) => setForm({ ...form, credits_cost: e.target.value })}
             />
+          </label>
+          <label>
+            Canva link
+            <input
+              type="url"
+              placeholder="https://www.canva.com/design/..."
+              value={form.canva_link}
+              onChange={(e) => setForm({ ...form, canva_link: e.target.value })}
+            />
+            <span className="field-hint">
+              Optional. After purchase, buyers see an &quot;Edit with Canva&quot; button using this link.
+            </span>
           </label>
         </div>
         <fieldset className="tag-picker">

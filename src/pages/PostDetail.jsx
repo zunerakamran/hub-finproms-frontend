@@ -269,20 +269,32 @@ export default function PostDetail() {
         {unlocked ? (
           <div className="unlock-box">
             <p className="badge ok">Unlocked</p>
-            {canDownload && post.attachment_url ? (
-              <a
-                className="btn primary"
-                href={post.attachment_url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Download attachment ({post.attachment_name || 'file'})
-              </a>
-            ) : canDownload ? (
-              <p className="muted">No attachment uploaded for this post.</p>
-            ) : (
-              <p className="muted">Downloads are disabled for this hub by Power Admin.</p>
-            )}
+            <div className="actions">
+              {canDownload && post.attachment_url ? (
+                <a
+                  className="btn primary"
+                  href={post.attachment_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Download{post.attachment_name ? ` (${post.attachment_name})` : ''}
+                </a>
+              ) : canDownload ? (
+                <p className="muted">No attachment uploaded for this post.</p>
+              ) : (
+                <p className="muted">Downloads are disabled for this hub by Power Admin.</p>
+              )}
+              {post.canva_link && (
+                <a
+                  className="btn ghost"
+                  href={post.canva_link}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Edit with Canva
+                </a>
+              )}
+            </div>
             {post.is_purchased &&
               can('module_social_media_compliance') &&
               can('smc_submit_request') && (

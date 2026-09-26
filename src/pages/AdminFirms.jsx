@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -273,6 +274,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
             {
               key: 'name',
               label: 'Name',
+              grow: true,
               filterValue: (row) => row.name,
               render: (row) => (
                 <strong>
@@ -286,6 +288,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
             {
               key: 'users_count',
               label: 'Users',
+              fit: true,
               filterValue: (row) => String(row.users_count || 0),
               render: (row) =>
                 `${row.users_count || 0} user${(row.users_count || 0) === 1 ? '' : 's'}`,
@@ -293,6 +296,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
             {
               key: 'check_authority',
               label: 'Check authority',
+              grow: true,
               filterValue: (row) => checkAuthorityLabel(row),
               render: (row) => checkAuthorityLabel(row),
             },
@@ -302,16 +306,17 @@ export default function AdminFirms({ shell = 'client-admin' }) {
           emptyMessage="No Firms yet. Add a Firm to get started. The Central / Network Firm is created automatically."
           getRowKey={(row) => row.id}
           actions={(row) => (
-            <div className="actions">
-              <button type="button" className="btn ghost" onClick={() => startEdit(row)}>
-                Edit
-              </button>
+            <>
+              <DataGridIconBtn icon={FaEdit} label="Edit" onClick={() => startEdit(row)} />
               {!row.is_central && row.id !== centralFirmId ? (
-                <button type="button" className="btn danger" onClick={() => deleteFirm(row)}>
-                  Delete
-                </button>
+                <DataGridIconBtn
+                  icon={FaTrash}
+                  label="Delete"
+                  variant="danger"
+                  onClick={() => deleteFirm(row)}
+                />
               ) : null}
-            </div>
+            </>
           )}
         />
       )}

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { FaEye } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -74,32 +76,36 @@ export default function AdminAdvisorInvoices({ shell = 'client-admin' }) {
           {
             key: 'invoice_number',
             label: 'Invoice #',
+            fit: true,
             render: (row) => <strong>{row.invoice_number}</strong>,
           },
           {
             key: 'description',
             label: 'Description',
+            grow: true,
             filterValue: (row) => row.description,
           },
           {
             key: 'type',
             label: 'Type',
+            fit: true,
             filterValue: () => 'Advisor billing',
             render: () => <span className="badge">Advisor billing</span>,
           },
           {
             key: 'amount',
             label: 'Amount',
+            fit: true,
             filterValue: (row) => String(row.amount),
             render: (row) => formatMoney(row.amount, row.currency),
           },
           {
             key: 'issued_at',
             label: 'Issued',
+            date: true,
             filterValue: (row) =>
               row.issued_at ? new Date(row.issued_at).toLocaleDateString() : '',
-            render: (row) =>
-              row.issued_at ? new Date(row.issued_at).toLocaleDateString() : '—',
+            render: (row) => <DataGridDate value={row.issued_at} withTime={false} />,
           },
         ]}
         rows={items}
@@ -107,6 +113,14 @@ export default function AdminAdvisorInvoices({ shell = 'client-admin' }) {
         emptyMessage="No advisor billing invoices yet."
         getRowKey={(row) => row.id}
         rowLink={(row) => `/my-dashboard/advisor-invoices/${row.id}`}
+        actions={(row) => (
+          <DataGridIconBtn
+            icon={FaEye}
+            label="View"
+            as={Link}
+            to={`/my-dashboard/advisor-invoices/${row.id}`}
+          />
+        )}
       />
     </section>
   )

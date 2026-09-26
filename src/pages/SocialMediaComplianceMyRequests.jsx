@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FaEye } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import SmcStatusBadge from '../components/SocialMediaComplianceUI'
 import { useHub } from '../context/HubContext'
-import { formatSmcDate } from '../utils/socialMediaCompliance'
 
 export default function SocialMediaComplianceMyRequests() {
   const { can, loading: hubLoading, effectiveAdvisorId } = useHub()
@@ -46,18 +46,21 @@ export default function SocialMediaComplianceMyRequests() {
     {
       key: 'id',
       label: '#',
+      narrow: true,
       render: (row) => <strong>#{row.id}</strong>,
       filterValue: (row) => String(row.id),
     },
     {
       key: 'version',
-      label: 'Version',
+      label: 'Ver',
+      narrow: true,
       render: (row) => `v${row.current_version}`,
       filterValue: (row) => String(row.current_version ?? ''),
     },
     {
       key: 'description',
       label: 'Description',
+      grow: true,
       render: (row) => (
         <>
           <div>
@@ -70,16 +73,23 @@ export default function SocialMediaComplianceMyRequests() {
         [row.description, row.post?.title, row.attribution_label, row.on_behalf_by?.name]
           .filter(Boolean)
           .join(' '),
+      truncate: false,
     },
     {
       key: 'submitted',
       label: 'Submitted',
-      render: (row) => formatSmcDate(row.submission_date),
-      filterValue: (row) => formatSmcDate(row.submission_date) || '',
+      date: true,
+      render: (row) => <DataGridDate value={row.submission_date} />,
+      filterValue: (row) =>
+        row.submission_date ? new Date(row.submission_date).toLocaleString() : '',
+      sortValue: (row) =>
+        row.submission_date ? new Date(row.submission_date).getTime() : 0,
+      truncate: false,
     },
     {
       key: 'status',
       label: 'Status',
+      fit: true,
       render: (row) => <SmcStatusBadge status={row.status} />,
       filterValue: (row) => row.status || '',
     },
@@ -136,8 +146,15 @@ export default function SocialMediaComplianceMyRequests() {
           loading={loading}
           emptyMessage="No social media compliance requests yet."
           pageSize={10}
-          rowLink={(row) => `/my-dashboard/social-media-compliance/${row.id}`}
-          rowLinkState={{ from: 'mine' }}
+          actions={(row) => (
+            <DataGridIconBtn
+              icon={FaEye}
+              label="Open"
+              as={Link}
+              to={`/my-dashboard/social-media-compliance/${row.id}`}
+              state={{ from: 'mine' }}
+            />
+          )}
         />
       )}
     </section>

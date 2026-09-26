@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -122,12 +123,14 @@ export default function AdminTypes({ shell = 'client-admin' }) {
           {
             key: 'name',
             label: 'Name',
+            grow: true,
             filterValue: (row) => row.name,
             render: (row) => <strong>{row.name}</strong>,
           },
           {
             key: 'slug',
             label: 'Slug',
+            fit: true,
             filterValue: (row) => row.slug || '',
             render: (row) => row.slug || '—',
           },
@@ -137,19 +140,20 @@ export default function AdminTypes({ shell = 'client-admin' }) {
         emptyMessage="No types yet."
         getRowKey={(row) => row.id}
         actions={(row) => (
-          <div className="actions">
-            <button
-              className="btn ghost"
+          <>
+            <DataGridIconBtn
+              icon={FaEdit}
+              label="Edit"
               onClick={() => {
                 setEditingId(row.id)
                 setName(row.name)
                 setSlug(row.slug || '')
               }}
-            >
-              Edit
-            </button>
-            <button
-              className="btn danger"
+            />
+            <DataGridIconBtn
+              icon={FaTrash}
+              label="Delete"
+              variant="danger"
               onClick={async () => {
                 if (!window.confirm('Delete this type?')) return
                 try {
@@ -159,10 +163,8 @@ export default function AdminTypes({ shell = 'client-admin' }) {
                   setError(err.message)
                 }
               }}
-            >
-              Delete
-            </button>
-          </div>
+            />
+          </>
         )}
       />
     </section>

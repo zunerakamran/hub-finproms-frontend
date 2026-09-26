@@ -55,15 +55,119 @@ function DataGridPagination({ page, totalPages, totalItems, pageSize, onPageChan
   )
 }
 
-function columnStyle(col) {
-  const style = {}
-  // Percentage widths fight content-based sizing — ignore them.
-  if (col.width && !String(col.width).trim().endsWith('%')) {
-    style.width = col.width
+/**
+ * Resolve layout flags for a column.
+ *
+ * Column flags (optional overrides):
+ * - narrow  — ID / # / Ver strip (~3rem)
+ * - fit     — status / badges (~7rem)
+ * - date    — compact two-line dates (~5.75rem)
+ * - grow    — description / title; takes remaining space + truncates by default
+ *
+ * Auto rules:
+ * - key `id` or label `#` / `Ver` / key `version` → narrow
+ * - key `description`/`title`/`section`/… → grow (unless grow:false)
+ * - key includes `date`, or is `submitted` / `issued` (and not grow) → date
+ * - key `status` / `state` → fit
+ * - key `actions` → actions
+ */
+export function resolveColumnLayout(col = {}) {
+  const key = String(col.key ?? '').toLowerCase()
+  const label = String(col.label ?? '').trim()
+  const labelLower = label.toLowerCase()
+
+  if (key === 'actions') {
+    return {
+      kind: 'actions',
+      className: 'data-grid__col--actions',
+      truncate: false,
+    }
   }
-  if (col.minWidth) style.minWidth = col.minWidth
-  if (col.maxWidth) style.maxWidth = col.maxWidth
+
+  const isNarrow =
+    col.narrow === true ||
+    key === 'id' ||
+    label === '#' ||
+    key === 'version' ||
+    labelLower === 'ver'
+
+  const isGrow =
+    col.grow === true ||
+    (col.grow !== false &&
+      ['description', 'title', 'section', 'details', 'message', 'subject', 'body'].includes(key))
+
+  const isDate =
+    !isGrow &&
+    (col.date === true ||
+      key.includes('date') ||
+      key.endsWith('_at') ||
+      key === 'submitted' ||
+      key === 'issued' ||
+      /(^|_)(submitted|issued)(_|$)/.test(key))
+
+  const isFit =
+    !isGrow &&
+    !isNarrow &&
+    !isDate &&
+    (col.fit === true || key === 'status' || key === 'state')
+
+  let kind = 'default'
+  if (isNarrow) kind = 'narrow'
+  else if (isGrow) kind = 'grow'
+  else if (isDate) kind = 'date'
+  else if (isFit) kind = 'fit'
+
+  const truncate =
+    col.truncate === true || (kind === 'grow' && col.truncate !== false)
+
+  return {
+    kind,
+    className: kind !== 'default' ? `data-grid__col--${kind}` : '',
+    truncate,
+  }
+}
+
+/**
+ * Inline styles for col/th/td. Percentage widths are ignored so fixed layout
+ * can fit the container without forcing a horizontal scrollbar.
+ */
+function columnStyle(col, layout) {
+  const style = {}
+  const width = col.width != null ? String(col.width).trim() : ''
+  if (width && !width.endsWith('%')) {
+    style.width = width
+  }
+
+  if (layout?.kind === 'narrow') {
+    style.minWidth = col.minWidth && !String(col.minWidth).endsWith('%')
+      ? col.minWidth
+      : '2.5rem'
+  } else if (layout?.kind === 'actions') {
+    if (col.minWidth && !String(col.minWidth).endsWith('%')) {
+      style.minWidth = col.minWidth
+    }
+  }
+  // Do not apply consumer minWidth/maxWidth that would force horizontal scroll.
+
   return Object.keys(style).length ? style : undefined
+}
+
+function headerClassName(col, layout, extra = []) {
+  return [layout?.className, col.headerClassName, ...extra].filter(Boolean).join(' ')
+}
+
+function cellClassName(col, layout, { truncate, wrap, isActions }) {
+  return [
+    layout?.className,
+    col.className,
+    truncate ? 'data-grid__cell--truncate' : '',
+    wrap ? 'data-grid__cell--wrap' : '',
+    layout?.kind === 'fit' || (!truncate && !wrap && !isActions && layout?.kind !== 'grow')
+      ? 'data-grid__cell--fit'
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 function SortButton({ active, direction, label, onClick }) {
@@ -82,7 +186,7 @@ function SortButton({ active, direction, label, onClick }) {
 }
 
 /**
- * Compact two-line date for grid cells: date on top, time below.
+ * Compact two-line date for grid cells: day on top, time below (small text).
  */
 export function DataGridDate({ value, withTime = true, secondary }) {
   if (!value) return <span className="data-grid__date data-grid__date--empty">—</span>
@@ -112,6 +216,7 @@ export function DataGridDate({ value, withTime = true, secondary }) {
 
 /**
  * Compact icon action for data-grid rows.
+ * Supports polymorphic `as` (e.g. `as={Link}` with `to=`).
  */
 export function DataGridIconBtn({
   icon: Icon,
@@ -181,7 +286,9 @@ export default function DataGrid({
           sortable: false,
           truncate: false,
           wrap: false,
-          render: (row) => actions(row),
+          render: (row) => (
+            <span className="data-grid__actions-inner">{actions(row)}</span>
+          ),
           className: 'data-grid__actions',
           width: actionsWidth,
           minWidth: actionsMinWidth,
@@ -189,6 +296,7 @@ export default function DataGrid({
       ]
     : columns
 
+  const layouts = allColumns.map((col) => resolveColumnLayout(col))
   const grid = useClientDataGrid(rows, allColumns, { pageSize })
 
   if (loading) {
@@ -208,26 +316,28 @@ export default function DataGrid({
       <div className="data-grid__wrap">
         <table className="data-table data-grid__table">
           <colgroup>
-            {allColumns.map((col) => (
-              <col key={col.key} style={columnStyle(col)} />
+            {allColumns.map((col, i) => (
+              <col
+                key={col.key}
+                className={layouts[i].className || undefined}
+                style={columnStyle(col, layouts[i])}
+              />
             ))}
           </colgroup>
           <thead>
             <tr>
-              {allColumns.map((col) => {
+              {allColumns.map((col, i) => {
+                const layout = layouts[i]
                 const canSort = col.sortable !== false && col.key !== 'actions'
                 const isActive = grid.sortKey === col.key
                 return (
                   <th
                     key={col.key}
-                    className={[
-                      col.headerClassName,
+                    className={headerClassName(col, layout, [
                       canSort ? 'data-grid__th--sortable' : '',
                       isActive ? 'is-sorted' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    style={columnStyle(col)}
+                    ])}
+                    style={columnStyle(col, layout)}
                     aria-sort={
                       isActive
                         ? grid.sortDirection === 'asc'
@@ -254,22 +364,29 @@ export default function DataGrid({
               })}
             </tr>
             <tr className="data-grid__filters">
-              {allColumns.map((col) => (
-                <th key={`filter-${col.key}`} style={columnStyle(col)}>
-                  {col.filterable === false || col.key === 'actions' ? (
-                    <span className="data-grid__filter-spacer" />
-                  ) : (
-                    <input
-                      type="search"
-                      className="data-grid__filter-input"
-                      placeholder="Search…"
-                      value={grid.filters[col.key] || ''}
-                      onChange={(e) => grid.setFilter(col.key, e.target.value)}
-                      aria-label={`Search ${col.label}`}
-                    />
-                  )}
-                </th>
-              ))}
+              {allColumns.map((col, i) => {
+                const layout = layouts[i]
+                return (
+                  <th
+                    key={`filter-${col.key}`}
+                    className={layout.className || undefined}
+                    style={columnStyle(col, layout)}
+                  >
+                    {col.filterable === false || col.key === 'actions' ? (
+                      <span className="data-grid__filter-spacer" />
+                    ) : (
+                      <input
+                        type="search"
+                        className="data-grid__filter-input"
+                        placeholder="Search…"
+                        value={grid.filters[col.key] || ''}
+                        onChange={(e) => grid.setFilter(col.key, e.target.value)}
+                        aria-label={`Search ${col.label}`}
+                      />
+                    )}
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
@@ -294,23 +411,21 @@ export default function DataGrid({
                     key={key}
                     className={`data-grid__row${href ? ' data-grid__row--link' : ''}`}
                   >
-                    {allColumns.map((col) => {
+                    {allColumns.map((col, i) => {
+                      const layout = layouts[i]
                       const content =
                         typeof col.render === 'function' ? col.render(row) : row?.[col.key] ?? '—'
-                      const isActions = col.key === 'actions'
-                      const truncate = Boolean(col.truncate) && !isActions
+                      const isActions = layout.kind === 'actions' || col.key === 'actions'
+                      const truncate = layout.truncate && !isActions
                       const wrap = Boolean(col.wrap) && !isActions && !truncate
-                      const cellClass = [
-                        col.className,
-                        truncate ? 'data-grid__cell--truncate' : '',
-                        wrap ? 'data-grid__cell--wrap' : '',
-                        !truncate && !wrap && !isActions ? 'data-grid__cell--fit' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')
+                      const cellClass = cellClassName(col, layout, { truncate, wrap, isActions })
 
                       return (
-                        <td key={col.key} className={cellClass || undefined} style={columnStyle(col)}>
+                        <td
+                          key={col.key}
+                          className={cellClass || undefined}
+                          style={columnStyle(col, layout)}
+                        >
                           {href && !isActions ? (
                             <Link
                               to={href}

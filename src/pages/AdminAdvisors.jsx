@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FaBan } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -488,14 +489,13 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           actions={
             canDiscontinue
               ? (advisor) => (
-                  <button
-                    type="button"
-                    className="btn danger"
+                  <DataGridIconBtn
+                    icon={FaBan}
+                    label={discontinuingId === advisor.id ? 'Ending…' : 'Discontinue'}
+                    variant="danger"
                     disabled={discontinuingId === advisor.id}
                     onClick={() => onDiscontinue(advisor)}
-                  >
-                    {discontinuingId === advisor.id ? 'Ending...' : 'Discontinue'}
-                  </button>
+                  />
                 )
               : undefined
           }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FaEye } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import { useHub } from '../context/HubContext'
 
 function formatMoney(amount, currency = 'gbp') {
@@ -72,32 +73,36 @@ export default function MyInvoices() {
             {
               key: 'invoice_number',
               label: 'Invoice #',
+              fit: true,
               render: (row) => <strong>{row.invoice_number}</strong>,
             },
             {
               key: 'description',
               label: 'Description',
+              grow: true,
               filterValue: (row) => row.description,
             },
             {
               key: 'type',
               label: 'Type',
+              fit: true,
               filterValue: (row) => typeLabel(row.type),
               render: (row) => <span className="badge">{typeLabel(row.type)}</span>,
             },
             {
               key: 'amount',
               label: 'Amount',
+              fit: true,
               filterValue: (row) => String(row.amount),
               render: (row) => formatMoney(row.amount, row.currency),
             },
             {
               key: 'issued_at',
               label: 'Issued',
+              date: true,
               filterValue: (row) =>
                 row.issued_at ? new Date(row.issued_at).toLocaleDateString() : '',
-              render: (row) =>
-                row.issued_at ? new Date(row.issued_at).toLocaleDateString() : '—',
+              render: (row) => <DataGridDate value={row.issued_at} withTime={false} />,
             },
           ]}
           rows={items}
@@ -106,6 +111,14 @@ export default function MyInvoices() {
           pageSize={10}
           getRowKey={(row) => row.id}
           rowLink={(row) => `/my-dashboard/invoices/${row.id}`}
+          actions={(row) => (
+            <DataGridIconBtn
+              icon={FaEye}
+              label="View"
+              as={Link}
+              to={`/my-dashboard/invoices/${row.id}`}
+            />
+          )}
         />
       )}
     </section>

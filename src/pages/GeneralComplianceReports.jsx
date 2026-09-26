@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { FaEye } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import GcStatusBadge, { GcBarChart } from '../components/GeneralComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -98,6 +100,7 @@ export default function GeneralComplianceReports() {
     {
       key: 'id',
       label: 'ID',
+      narrow: true,
       filterValue: (row) => String(row.id),
     },
     {
@@ -125,6 +128,7 @@ export default function GeneralComplianceReports() {
     {
       key: 'version',
       label: 'Ver',
+      narrow: true,
       render: (row) => (
         <>
           v{row.current_version} / {row.version_count}
@@ -135,6 +139,7 @@ export default function GeneralComplianceReports() {
     {
       key: 'status',
       label: 'Status',
+      fit: true,
       render: (row) => <GcStatusBadge status={row.status} />,
       filterValue: (row) => row.status || '',
     },
@@ -151,10 +156,15 @@ export default function GeneralComplianceReports() {
       filterValue: (row) => row.reviewed_by || '',
     },
     {
-      key: 'submission_date',
+      key: 'submitted',
       label: 'Submitted',
-      render: (row) => row.submission_date || '—',
-      filterValue: (row) => row.submission_date || '',
+      date: true,
+      render: (row) => <DataGridDate value={row.submission_date} />,
+      filterValue: (row) =>
+        row.submission_date ? new Date(row.submission_date).toLocaleString() : '',
+      sortValue: (row) =>
+        row.submission_date ? new Date(row.submission_date).getTime() : 0,
+      truncate: false,
     },
   ]
 
@@ -300,6 +310,15 @@ export default function GeneralComplianceReports() {
               rows={report?.rows || []}
               emptyMessage="No report rows for the current filters."
               pageSize={10}
+              actions={(row) => (
+                <DataGridIconBtn
+                  icon={FaEye}
+                  label="Open"
+                  as={Link}
+                  to={`/my-dashboard/general-compliance/${row.id}`}
+                  state={{ from: 'reports' }}
+                />
+              )}
             />
           </div>
         </>

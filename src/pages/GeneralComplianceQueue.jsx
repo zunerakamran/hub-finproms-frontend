@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FaEye, FaUserPlus } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import GcStatusBadge from '../components/GeneralComplianceUI'
 import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { formatGcDate } from '../utils/generalCompliance'
 import { reviewersForSubmitterFirm } from '../utils/firmAssigneeFilter'
 
 export default function GeneralComplianceQueue() {
@@ -100,6 +100,7 @@ export default function GeneralComplianceQueue() {
     {
       key: 'id',
       label: '#',
+      narrow: true,
       render: (row) => <strong>{row.id}</strong>,
       filterValue: (row) => String(row.id),
     },
@@ -120,12 +121,14 @@ export default function GeneralComplianceQueue() {
     {
       key: 'version',
       label: 'Ver',
+      narrow: true,
       render: (row) => `v${row.current_version}`,
       filterValue: (row) => String(row.current_version ?? ''),
     },
     {
       key: 'description',
       label: 'Description',
+      grow: true,
       render: (row) => (row.description || '').slice(0, 80),
       filterValue: (row) => row.description || '',
     },
@@ -143,6 +146,7 @@ export default function GeneralComplianceQueue() {
     {
       key: 'status',
       label: 'Status',
+      fit: true,
       render: (row) => <GcStatusBadge status={row.status} />,
       filterValue: (row) => row.status || '',
     },
@@ -155,22 +159,13 @@ export default function GeneralComplianceQueue() {
     {
       key: 'submitted',
       label: 'Submitted',
-      render: (row) => formatGcDate(row.submission_date),
-      filterValue: (row) => formatGcDate(row.submission_date) || '',
-    },
-    {
-      key: 'open',
-      label: 'Review',
-      filterable: false,
-      render: (row) => (
-        <Link
-          className="btn ghost"
-          to={`/my-dashboard/general-compliance/${row.id}`}
-          state={{ from: 'queue' }}
-        >
-          Review
-        </Link>
-      ),
+      date: true,
+      render: (row) => <DataGridDate value={row.submission_date} />,
+      filterValue: (row) =>
+        row.submission_date ? new Date(row.submission_date).toLocaleString() : '',
+      sortValue: (row) =>
+        row.submission_date ? new Date(row.submission_date).getTime() : 0,
+      truncate: false,
     },
   ]
 
@@ -234,41 +229,51 @@ export default function GeneralComplianceQueue() {
         loading={loading}
         emptyMessage="No requests in this queue."
         pageSize={10}
-        actionsLabel="Assign"
-        actions={
-          canAssign || canSelfAssign
-            ? (row) =>
-                canAssign ? (
-                  <select
-                    key={`${row.id}-${row.assigned_to || ''}`}
-                    defaultValue={row.assigned_to || ''}
-                    disabled={assigning === row.id}
-                    onChange={(e) => assign(row.id, e.target.value)}
-                  >
-                    <option value="">— Unassigned —</option>
-                    {reviewersForSubmitterFirm(reviewers, row.submitter?.firm).map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                        {r.firm?.name ? ` (${r.firm.name})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                ) : !row.assigned_to ? (
-                  <button
-                    type="button"
-                    className="btn ghost"
-                    disabled={assigning === row.id}
-                    onClick={() => assignToMe(row.id)}
-                  >
-                    {assigning === row.id ? 'Assigning…' : 'Assign to me'}
-                  </button>
-                ) : Number(row.assigned_to) === Number(user?.id) ? (
-                  <span className="muted">You</span>
-                ) : (
-                  <span className="muted">—</span>
-                )
-            : undefined
-        }
+        actionsLabel="Actions"
+        actions={(row) => (
+          <>
+            <DataGridIconBtn
+              icon={FaEye}
+              label="Review"
+              as={Link}
+              to={`/my-dashboard/general-compliance/${row.id}`}
+              state={{ from: 'queue' }}
+            />
+            {canAssign ? (
+              <select
+                key={`${row.id}-${row.assigned_to || ''}`}
+                className="data-grid__inline-select"
+                defaultValue={row.assigned_to || ''}
+                disabled={assigning === row.id}
+                onChange={(e) => assign(row.id, e.target.value)}
+                aria-label="Assign reviewer"
+                title="Assign reviewer"
+              >
+                <option value="">— Unassigned —</option>
+                {reviewersForSubmitterFirm(reviewers, row.submitter?.firm).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                    {r.firm?.name ? ` (${r.firm.name})` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+            {canSelfAssign && !canAssign ? (
+              !row.assigned_to ? (
+                <DataGridIconBtn
+                  icon={FaUserPlus}
+                  label={assigning === row.id ? 'Assigning…' : 'Assign to me'}
+                  disabled={assigning === row.id}
+                  onClick={() => assignToMe(row.id)}
+                />
+              ) : Number(row.assigned_to) === Number(user?.id) ? (
+                <span className="muted">You</span>
+              ) : (
+                <span className="muted">—</span>
+              )
+            ) : null}
+          </>
+        )}
       />
     </section>
   )

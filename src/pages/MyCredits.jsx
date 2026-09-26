@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridDate } from '../components/DataGrid'
 import { useHub } from '../context/HubContext'
 
 function formatWhen(value) {
@@ -64,24 +64,28 @@ export default function MyCredits() {
       {
         key: 'occurred_at',
         label: 'Date',
+        date: true,
         filterValue: (row) => formatWhen(row.occurred_at),
-        render: (row) => formatWhen(row.occurred_at),
+        render: (row) => <DataGridDate value={row.occurred_at} />,
       },
       {
         key: 'type_label',
         label: 'Type',
+        fit: true,
         filterValue: (row) => row.type_label || row.type,
         render: (row) => <span className="badge">{row.type_label || row.type}</span>,
       },
       {
         key: 'description',
         label: 'Detail',
+        grow: true,
         filterValue: (row) => row.description || row.item_title || '',
         render: (row) => row.description || row.item_title || '—',
       },
       {
         key: 'direction',
         label: 'Flow',
+        fit: true,
         filterValue: (row) => (row.direction === 'in' ? 'Earned' : 'Spent'),
         render: (row) => (
           <span
@@ -96,6 +100,7 @@ export default function MyCredits() {
       {
         key: 'credits',
         label: 'Credits',
+        fit: true,
         filterValue: (row) => signedCredits(row),
         render: (row) => (
           <strong

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FaEye } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import GcStatusBadge from '../components/GeneralComplianceUI'
 import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import { useHub } from '../context/HubContext'
-import { formatGcDate } from '../utils/generalCompliance'
 
 export default function GeneralComplianceMyRequests() {
   const { can, loading: hubLoading, effectiveAdvisorId } = useHub()
@@ -46,18 +46,21 @@ export default function GeneralComplianceMyRequests() {
     {
       key: 'id',
       label: '#',
+      narrow: true,
       render: (row) => <strong>#{row.id}</strong>,
       filterValue: (row) => String(row.id),
     },
     {
       key: 'version',
-      label: 'Version',
+      label: 'Ver',
+      narrow: true,
       render: (row) => `v${row.current_version}`,
       filterValue: (row) => String(row.current_version ?? ''),
     },
     {
       key: 'description',
       label: 'Description',
+      grow: true,
       render: (row) => (
         <>
           <div>{row.description?.slice(0, 100) || 'General compliance request'}</div>
@@ -71,16 +74,23 @@ export default function GeneralComplianceMyRequests() {
       ),
       filterValue: (row) =>
         [row.description, row.attribution_label, row.on_behalf_by?.name].filter(Boolean).join(' '),
+      truncate: false,
     },
     {
       key: 'submitted',
       label: 'Submitted',
-      render: (row) => formatGcDate(row.submission_date),
-      filterValue: (row) => formatGcDate(row.submission_date) || '',
+      date: true,
+      render: (row) => <DataGridDate value={row.submission_date} />,
+      filterValue: (row) =>
+        row.submission_date ? new Date(row.submission_date).toLocaleString() : '',
+      sortValue: (row) =>
+        row.submission_date ? new Date(row.submission_date).getTime() : 0,
+      truncate: false,
     },
     {
       key: 'status',
       label: 'Status',
+      fit: true,
       render: (row) => <GcStatusBadge status={row.status} />,
       filterValue: (row) => row.status || '',
     },
@@ -136,8 +146,15 @@ export default function GeneralComplianceMyRequests() {
           loading={loading}
           emptyMessage="No general compliance requests yet."
           pageSize={10}
-          rowLink={(row) => `/my-dashboard/general-compliance/${row.id}`}
-          rowLinkState={{ from: 'mine' }}
+          actions={(row) => (
+            <DataGridIconBtn
+              icon={FaEye}
+              label="Open"
+              as={Link}
+              to={`/my-dashboard/general-compliance/${row.id}`}
+              state={{ from: 'mine' }}
+            />
+          )}
         />
       )}
     </section>

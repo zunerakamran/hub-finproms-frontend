@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -445,6 +446,7 @@ export default function AdminPlans({ shell = 'client-admin' }) {
           {
             key: 'image',
             label: '',
+            narrow: true,
             filterable: false,
             render: (row) =>
               row.image_url ? (
@@ -458,35 +460,41 @@ export default function AdminPlans({ shell = 'client-admin' }) {
           {
             key: 'name',
             label: 'Name',
+            grow: true,
             filterValue: (row) => row.name,
             render: (row) => <strong>{row.name}</strong>,
           },
           {
             key: 'price',
             label: 'Price',
+            fit: true,
             filterValue: (row) => String(row.price),
             render: (row) => `£${Number(row.price).toFixed(2)}`,
           },
           {
             key: 'credits',
             label: 'Credits',
+            fit: true,
             filterValue: (row) => String(row.credits),
           },
           {
             key: 'duration_days',
             label: 'Duration',
+            fit: true,
             filterValue: (row) => String(row.duration_days),
             render: (row) => `${row.duration_days} days`,
           },
           {
             key: 'is_active',
             label: 'Status',
+            fit: true,
             filterValue: (row) => (row.is_active ? 'Active' : 'Inactive'),
             render: (row) => (row.is_active ? 'Active' : 'Inactive'),
           },
           {
             key: 'metrics',
             label: 'Metrics',
+            fit: true,
             filterValue: (row) =>
               [
                 row.show_reach !== false ? 'reach' : null,
@@ -507,8 +515,9 @@ export default function AdminPlans({ shell = 'client-admin' }) {
           {
             key: 'last_updated',
             label: 'Last updated',
+            date: true,
             filterValue: (row) => formatLastUpdated(row.last_updated) || '',
-            render: (row) => formatLastUpdated(row.last_updated) || '—',
+            render: (row) => <DataGridDate value={row.last_updated} />,
           },
         ]}
         rows={plans}
@@ -516,14 +525,15 @@ export default function AdminPlans({ shell = 'client-admin' }) {
         emptyMessage="No plans yet. Add one above."
         getRowKey={(row) => row.id}
         actions={(row) => (
-          <div className="actions">
-            <button type="button" className="btn ghost" onClick={() => edit(row)}>
-              Edit
-            </button>
-            <button type="button" className="btn danger" onClick={() => remove(row.id)}>
-              Delete
-            </button>
-          </div>
+          <>
+            <DataGridIconBtn icon={FaEdit} label="Edit" onClick={() => edit(row)} />
+            <DataGridIconBtn
+              icon={FaTrash}
+              label="Delete"
+              variant="danger"
+              onClick={() => remove(row.id)}
+            />
+          </>
         )}
       />
     </section>

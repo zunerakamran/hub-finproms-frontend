@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
 import AdminPostThumb from '../components/AdminPostThumb'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -176,6 +177,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
       {
         key: 'title',
         label: 'Title',
+        grow: true,
         filterValue: (row) => row.title,
         render: (row) => (
           <div className="admin-post-grid-title">
@@ -187,23 +189,27 @@ export default function AdminPosts({ shell = 'client-admin' }) {
       {
         key: 'type',
         label: 'Type',
+        fit: true,
         filterValue: (row) => (row.is_reel ? 'Reel' : row.type || 'Post'),
         render: (row) => (row.is_reel ? 'Reel' : row.type || 'Post'),
       },
       {
         key: 'category',
         label: 'Category',
+        fit: true,
         render: (row) => row.category || '—',
       },
       {
         key: 'credits_cost',
         label: 'Credits',
+        fit: true,
         filterValue: (row) => String(row.credits_cost ?? 0),
         render: (row) => row.credits_cost ?? 0,
       },
       {
         key: 'status',
         label: 'Status',
+        fit: true,
         filterValue: (row) => (row.is_active === false ? 'Inactive' : 'Active'),
         render: (row) => (
           <span className={`admin-status-pill ${row.is_active === false ? 'is-off' : 'is-on'}`}>
@@ -389,14 +395,19 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         pageSize={10}
         getRowKey={(row) => row.id}
         actions={(row) => (
-          <div className="actions">
-            <button className="btn ghost" type="button" onClick={() => edit(row)}>
-              {editingId === row.id ? 'Editing…' : 'Edit'}
-            </button>
-            <button className="btn danger" type="button" onClick={() => remove(row.id)}>
-              Delete
-            </button>
-          </div>
+          <>
+            <DataGridIconBtn
+              icon={FaEdit}
+              label={editingId === row.id ? 'Editing…' : 'Edit'}
+              onClick={() => edit(row)}
+            />
+            <DataGridIconBtn
+              icon={FaTrash}
+              label="Delete"
+              variant="danger"
+              onClick={() => remove(row.id)}
+            />
+          </>
         )}
       />
       <style>{`

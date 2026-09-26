@@ -3510,9 +3510,14 @@ label {
   --dg-row-stripe: color-mix(in srgb, var(--brand) 2%, #ffffff);
   --dg-text: #1e293b;
   --dg-muted: #64748b;
+  --dg-narrow: 3rem;
+  --dg-fit: 7rem;
+  --dg-date: 5.75rem;
+  --dg-actions: 7rem;
   display: flex;
   flex-direction: column;
   gap: 0;
+  min-width: 0;
   background: var(--panel, #fff);
   border: 1px solid var(--dg-border);
   border-radius: 14px;
@@ -3525,24 +3530,46 @@ label {
   border: 0;
   margin: 0;
   border-radius: 0;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .data-grid__table {
-  width: max-content;
-  min-width: 100%;
-  table-layout: auto;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+}
+
+/* Column width roles (applied to col / th / td) */
+.data-grid__col--narrow {
+  width: var(--dg-narrow);
+}
+
+.data-grid__col--fit {
+  width: var(--dg-fit);
+}
+
+.data-grid__col--date {
+  width: var(--dg-date);
+}
+
+.data-grid__col--actions {
+  width: var(--dg-actions);
+}
+
+.data-grid__col--grow {
+  width: auto;
 }
 
 .data-grid__table th,
 .data-grid__table td {
-  padding: 0.7rem 0.85rem;
+  padding: 0.55rem 0.6rem;
   vertical-align: middle;
-  width: auto;
+  min-width: 0;
+  overflow: hidden;
   border-bottom: 1px solid color-mix(in srgb, var(--dg-border) 70%, transparent);
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -3553,12 +3580,21 @@ label {
   z-index: 2;
   background: var(--dg-header);
   color: var(--brand-dark, #0a3f30);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   border-bottom: 1px solid var(--dg-border);
+}
+
+.data-grid__table thead th.data-grid__col--narrow,
+.data-grid__table thead th.data-grid__col--date,
+.data-grid__table thead th.data-grid__col--actions {
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
 }
 
 .data-grid__th--sortable:hover {
@@ -3571,15 +3607,27 @@ label {
 }
 
 .data-grid__th-inner {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.35rem;
-  max-width: none;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .data-grid__th-label {
   line-height: 1.2;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.data-grid__col--narrow .data-grid__th-inner {
+  justify-content: center;
+}
+
+.data-grid__col--narrow .data-grid__th-label {
+  overflow: visible;
 }
 
 .data-grid__sort-btn {
@@ -3587,8 +3635,8 @@ label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.15rem;
+  height: 1.15rem;
   padding: 0;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -3646,9 +3694,9 @@ label {
 
 .data-grid__filters th {
   position: sticky;
-  top: 2.35rem;
+  top: 2.2rem;
   z-index: 2;
-  padding: 0.45rem 0.85rem 0.65rem;
+  padding: 0.4rem 0.5rem 0.55rem;
   text-transform: none;
   letter-spacing: 0;
   font-weight: 500;
@@ -3656,17 +3704,19 @@ label {
   background: var(--dg-filter);
   border-bottom: 1px solid var(--dg-border);
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .data-grid__filter-input {
+  display: block;
   width: 100%;
-  min-width: 5.5rem;
-  max-width: 16rem;
+  min-width: 0;
+  max-width: none;
   box-sizing: border-box;
-  padding: 0.4rem 0.55rem;
+  padding: 0.35rem 0.45rem;
   border: 1px solid var(--dg-border);
-  border-radius: 8px;
-  font-size: 0.75rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
   color: var(--dg-text);
   background: #fff;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -3686,10 +3736,16 @@ label {
   box-shadow: 0 0 0 3px var(--brand-glow, color-mix(in srgb, var(--brand) 22%, transparent));
 }
 
+.data-grid__col--narrow .data-grid__filter-input {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  text-align: center;
+}
+
 .data-grid__filter-spacer {
   display: block;
-  min-height: 1.75rem;
-  min-width: 4rem;
+  min-height: 1.6rem;
+  min-width: 0;
 }
 
 .data-grid__empty-cell {
@@ -3697,6 +3753,7 @@ label {
   padding: 1.75rem 1rem !important;
   color: var(--dg-muted);
   white-space: normal !important;
+  overflow: visible !important;
 }
 
 .data-grid__empty-cell .btn {
@@ -3715,100 +3772,152 @@ label {
   cursor: pointer;
 }
 
-.data-grid__cell--fit {
+/* Fit / status / badge cells — no awkward wrap */
+.data-grid__cell--fit,
+.data-grid__col--fit,
+.data-grid__col--narrow,
+.data-grid__col--date,
+.data-grid__col--actions {
   white-space: nowrap;
-  width: 1%;
+}
+
+.data-grid__col--narrow {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--dg-muted);
+}
+
+.data-grid__col--date {
+  vertical-align: middle;
 }
 
 .data-grid__cell-link {
-  display: inline-block;
+  display: block;
   color: inherit;
   text-decoration: none;
   max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .data-grid__cell-text {
-  display: inline-block;
+  display: block;
   max-width: 100%;
+  min-width: 0;
 }
 
-.data-grid__cell--truncate {
-  max-width: 18rem;
+/* Grow + truncate: ellipsis within remaining space (fixed layout) */
+th.data-grid__col--grow {
+  overflow: hidden;
+}
+
+/* max-width:0 lets the grow column claim leftover space under table-layout:fixed */
+td.data-grid__col--grow {
+  max-width: 0;
+  overflow: hidden;
+}
+
+td.data-grid__col--grow.data-grid__cell--truncate,
+td.data-grid__cell--truncate {
   white-space: nowrap;
 }
 
-.data-grid__cell--truncate .data-grid__cell-link,
-.data-grid__cell--truncate .data-grid__cell-text {
+td.data-grid__cell--truncate .data-grid__cell-link,
+td.data-grid__cell--truncate .data-grid__cell-text,
+td.data-grid__col--grow.data-grid__cell--truncate .data-grid__cell-link,
+td.data-grid__col--grow.data-grid__cell--truncate .data-grid__cell-text {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 18rem;
+  max-width: 100%;
+}
+
+td.data-grid__col--grow.data-grid__cell--wrap,
+td.data-grid__col--grow:not(.data-grid__cell--truncate) {
+  white-space: normal;
 }
 
 .data-grid__cell--wrap {
   white-space: normal;
-  max-width: 22rem;
   line-height: 1.35;
+  overflow: hidden;
+  max-width: none;
 }
 
 .data-grid__cell--wrap .data-grid__cell-text {
   white-space: normal;
+  overflow: hidden;
 }
 
+/* Compact two-line date */
 .data-grid__date {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-  line-height: 1.2;
+  align-items: flex-start;
+  gap: 0.05rem;
+  line-height: 1.15;
   white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .data-grid__date-day {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   color: var(--brand-dark, #0a3f30);
 }
 
 .data-grid__date-time {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 500;
   color: var(--dg-muted);
 }
 
 .data-grid__date-secondary {
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   color: var(--dg-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-grid__date--empty {
   color: #94a3b8;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
 }
 
-.data-grid__actions {
-  width: 1%;
+/* Actions icon strip */
+td.data-grid__col--actions,
+td.data-grid__actions {
   white-space: nowrap;
   vertical-align: middle;
+  overflow: visible;
+  text-align: right;
 }
 
-.data-grid__actions .actions,
-.data-grid__actions {
+.data-grid__actions-inner,
+.data-grid__actions .actions {
   display: inline-flex;
   flex-wrap: nowrap;
-  gap: 0.35rem;
+  gap: 0.3rem;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-end;
+  max-width: 100%;
 }
 
 .data-grid__icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 1.75rem;
+  height: 1.75rem;
   padding: 0;
-  border-radius: 8px;
+  flex: 0 0 auto;
+  border-radius: 7px;
   border: 1px solid color-mix(in srgb, var(--brand) 14%, #e2e8f0);
   background: #fff;
   color: #475569;
@@ -3824,18 +3933,18 @@ label {
 }
 
 .data-grid__icon-btn svg {
-  width: 0.8rem;
-  height: 0.8rem;
+  width: 0.75rem;
+  height: 0.75rem;
   flex-shrink: 0;
   transition: transform 0.16s ease;
 }
 
 .data-grid__icon-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--brand) 45%, transparent);
   color: var(--brand);
   background: color-mix(in srgb, var(--brand) 9%, #fff);
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--brand) 18%, transparent);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--brand) 16%, transparent);
 }
 
 .data-grid__icon-btn:hover:not(:disabled) svg {
@@ -3857,7 +3966,7 @@ label {
   color: #fff;
   background: var(--brand-dark, #0a3f30);
   border-color: var(--brand-dark, #0a3f30);
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--brand) 28%, transparent);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--brand) 26%, transparent);
 }
 
 .data-grid__icon-btn--ghost {
@@ -3873,7 +3982,7 @@ label {
   color: #991b1b;
   background: rgba(185, 28, 28, 0.08);
   border-color: rgba(185, 28, 28, 0.35);
-  box-shadow: 0 6px 14px rgba(185, 28, 28, 0.16);
+  box-shadow: 0 4px 10px rgba(185, 28, 28, 0.14);
 }
 
 .data-grid__icon-btn--active {
@@ -3890,15 +3999,15 @@ label {
 }
 
 .data-grid__inline-select {
-  max-width: none;
-  min-width: 7rem;
-  width: auto;
-  height: 1.9rem;
-  padding: 0 0.5rem;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  height: 1.75rem;
+  padding: 0 0.4rem;
   border: 1px solid var(--dg-border);
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--dg-text);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -3919,13 +4028,13 @@ label {
   gap: 0.75rem;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 0.85rem;
   border-top: 1px solid var(--dg-border);
   background: var(--dg-header);
 }
 
 .data-grid__count {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--dg-muted);
 }
 
@@ -3942,11 +4051,12 @@ label {
   border-color: var(--brand);
 }
 
-@media (max-width: 900px) {
-  .data-grid__filter-input {
-    min-width: 4.5rem;
-    max-width: 12rem;
-  }
+.data-grid--actions-wide {
+  --dg-actions: 8.5rem;
+}
+
+.data-grid--actions-narrow {
+  --dg-actions: 4.5rem;
 }
 
 @media (max-width: 800px) {

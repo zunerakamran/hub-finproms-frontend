@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridDate } from '../components/DataGrid'
 import { useHub } from '../context/HubContext'
 
 function formatMoney(amount, currency = 'gbp') {
@@ -121,14 +121,16 @@ export default function MySubscription() {
       {
         key: 'starts_at',
         label: 'From',
+        date: true,
         filterValue: (row) => formatDate(row.starts_at),
-        render: (row) => formatDate(row.starts_at),
+        render: (row) => <DataGridDate value={row.starts_at} withTime={false} />,
       },
       {
         key: 'ends_at',
         label: 'To',
+        date: true,
         filterValue: (row) => formatDate(row.ends_at),
-        render: (row) => formatDate(row.ends_at),
+        render: (row) => <DataGridDate value={row.ends_at} withTime={false} />,
       },
     ],
     [isPrivateHub]

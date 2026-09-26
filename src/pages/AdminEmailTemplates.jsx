@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FaEdit } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 
 export default function AdminEmailTemplates() {
   const [events, setEvents] = useState([])
@@ -69,17 +70,20 @@ export default function AdminEmailTemplates() {
                 {
                   key: 'label',
                   label: 'Event',
+                  grow: true,
                   filterValue: (row) => row.label,
                   render: (row) => <strong>{row.label}</strong>,
                 },
                 {
                   key: 'description',
                   label: 'Description',
+                  grow: true,
                   filterValue: (row) => row.description,
                 },
                 {
                   key: 'audiences',
                   label: 'Audiences',
+                  fit: true,
                   filterValue: (row) => {
                     const audiences = Array.isArray(row.audiences) ? row.audiences : []
                     const customized = audiences.filter((a) => a.is_customized).length
@@ -103,9 +107,12 @@ export default function AdminEmailTemplates() {
               emptyMessage="No events in this group."
               getRowKey={(row) => row.key}
               actions={(row) => (
-                <Link className="btn ghost" to={`/my-dashboard/email-templates/${row.key}`}>
-                  Edit
-                </Link>
+                <DataGridIconBtn
+                  icon={FaEdit}
+                  label="Edit"
+                  as={Link}
+                  to={`/my-dashboard/email-templates/${row.key}`}
+                />
               )}
             />
           </div>

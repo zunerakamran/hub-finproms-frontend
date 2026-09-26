@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -122,6 +123,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
           {
             key: 'name',
             label: 'Name',
+            grow: true,
             filterValue: (row) => row.name,
             render: (row) => <strong>{row.name}</strong>,
           },
@@ -131,18 +133,19 @@ export default function AdminCategories({ shell = 'client-admin' }) {
         emptyMessage="No categories yet."
         getRowKey={(row) => row.id}
         actions={(row) => (
-          <div className="actions">
-            <button
-              className="btn ghost"
+          <>
+            <DataGridIconBtn
+              icon={FaEdit}
+              label="Edit"
               onClick={() => {
                 setEditingId(row.id)
                 setName(row.name)
               }}
-            >
-              Edit
-            </button>
-            <button
-              className="btn danger"
+            />
+            <DataGridIconBtn
+              icon={FaTrash}
+              label="Delete"
+              variant="danger"
               onClick={async () => {
                 if (!window.confirm('Delete this category?')) return
                 try {
@@ -152,10 +155,8 @@ export default function AdminCategories({ shell = 'client-admin' }) {
                   setError(err.message)
                 }
               }}
-            >
-              Delete
-            </button>
-          </div>
+            />
+          </>
         )}
       />
     </section>

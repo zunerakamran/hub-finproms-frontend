@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { DEFAULT_ROLE_LABELS } from '../utils/roleLabels'
@@ -384,19 +385,16 @@ export default function PowerAdminUsers() {
         pageSize={10}
         getRowKey={(row) => row.id}
         actions={(user) => (
-          <div className="row" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button type="button" className="btn ghost" onClick={() => startEdit(user)}>
-              Edit
-            </button>
-            <button
-              type="button"
-              className="btn ghost"
+          <>
+            <DataGridIconBtn icon={FaEdit} label="Edit" onClick={() => startEdit(user)} />
+            <DataGridIconBtn
+              icon={FaTrash}
+              label="Delete"
+              variant="danger"
               onClick={() => onDelete(user)}
               disabled={user.id === me?.id}
-            >
-              Delete
-            </button>
-          </div>
+            />
+          </>
         )}
       />
     </section>

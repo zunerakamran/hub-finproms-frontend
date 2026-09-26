@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { FaEye } from 'react-icons/fa'
 import { api } from '../api/client'
 import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
-import DataGrid, { DataGridDate } from '../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import OnBehalfAttribution from '../components/OnBehalfAttribution'
 import WcStatusBadge from '../components/WebsiteComplianceUI'
 import { useAuth } from '../context/AuthContext'
@@ -71,7 +72,7 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'id',
       label: '#',
-      width: '8%',
+      narrow: true,
       render: (row) => (
         <strong className={highlightId === row.id ? 'is-highlight' : undefined}>#{row.id}</strong>
       ),
@@ -81,7 +82,7 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'version',
       label: 'Ver',
-      width: '8%',
+      narrow: true,
       render: (row) => `v${row.current_version || 1}`,
       filterValue: (row) => String(row.current_version || 1),
       sortValue: (row) => Number(row.current_version) || 1,
@@ -89,7 +90,7 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'description',
       label: 'Description',
-      width: '36%',
+      grow: true,
       render: (row) => (
         <>
           <div>{wcSectionTitle(row)}</div>
@@ -103,7 +104,7 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'submitted',
       label: 'Submitted',
-      width: '18%',
+      date: true,
       render: (row) => (
         <DataGridDate
           value={row.created_at}
@@ -120,7 +121,7 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'status',
       label: 'Status',
-      width: '16%',
+      fit: true,
       render: (row) => <WcStatusBadge status={row.status} />,
       filterValue: (row) => row.status || '',
       truncate: false,
@@ -197,8 +198,15 @@ export default function WebsiteComplianceMyRequests() {
           loading={loading}
           emptyMessage="No website compliance requests yet."
           pageSize={10}
-          rowLink={(row) => `/my-dashboard/website-compliance/my-requests/${row.id}`}
-          rowLinkState={{ from: 'mine' }}
+          actions={(row) => (
+            <DataGridIconBtn
+              icon={FaEye}
+              label="Open"
+              as={Link}
+              to={`/my-dashboard/website-compliance/my-requests/${row.id}`}
+              state={{ from: 'mine' }}
+            />
+          )}
         />
       )}
     </section>

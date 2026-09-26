@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -277,6 +278,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
       {
         key: 'title',
         label: 'Title',
+        grow: true,
         filterValue: (row) => row.title,
         render: (row) => (
           <div className="admin-post-grid-title">
@@ -294,18 +296,21 @@ export default function AdminBundles({ shell = 'client-admin' }) {
       {
         key: 'posts_count',
         label: 'Posts',
+        fit: true,
         filterValue: (row) => String(row.posts_count ?? row.posts?.length ?? 0),
         render: (row) => row.posts_count ?? row.posts?.length ?? 0,
       },
       {
         key: 'credits_cost',
         label: 'Credits',
+        fit: true,
         filterValue: (row) => String(row.credits_cost ?? 0),
         render: (row) => row.credits_cost ?? 0,
       },
       {
         key: 'status',
         label: 'Status',
+        fit: true,
         filterValue: (row) => (row.is_active === false ? 'Inactive' : 'Active'),
         render: (row) => (row.is_active === false ? 'Inactive' : 'Active'),
       },
@@ -546,14 +551,15 @@ export default function AdminBundles({ shell = 'client-admin' }) {
         pageSize={10}
         getRowKey={(row) => row.id}
         actions={(row) => (
-          <div className="actions">
-            <button type="button" className="btn ghost" onClick={() => edit(row)}>
-              Edit
-            </button>
-            <button type="button" className="btn danger" onClick={() => remove(row.id)}>
-              Delete
-            </button>
-          </div>
+          <>
+            <DataGridIconBtn icon={FaEdit} label="Edit" onClick={() => edit(row)} />
+            <DataGridIconBtn
+              icon={FaTrash}
+              label="Delete"
+              variant="danger"
+              onClick={() => remove(row.id)}
+            />
+          </>
         )}
       />
       <style>{`

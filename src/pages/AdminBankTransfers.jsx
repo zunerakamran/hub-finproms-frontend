@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { FaCheck } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 
 /** TEMPORARY admin page — remove when BANK_TRANSFER_ENABLED is turned off. */
 export default function AdminBankTransfers() {
@@ -128,13 +129,13 @@ export default function AdminBankTransfers() {
                 emptyMessage="No pending subscription transfers."
                 getRowKey={(row) => row.id}
                 actions={(row) => (
-                  <button
-                    className="btn primary"
+                  <DataGridIconBtn
+                    icon={FaCheck}
+                    label={confirmingKey === `sub-${row.id}` ? 'Confirming…' : 'Mark paid'}
+                    variant="primary"
                     disabled={confirmingKey === `sub-${row.id}`}
                     onClick={() => confirmSubscription(row.id)}
-                  >
-                    {confirmingKey === `sub-${row.id}` ? 'Confirming...' : 'Mark paid'}
-                  </button>
+                  />
                 )}
               />
             </>
@@ -182,13 +183,13 @@ export default function AdminBankTransfers() {
                 emptyMessage="No pending content transfers."
                 getRowKey={(row) => row.id}
                 actions={(row) => (
-                  <button
-                    className="btn primary"
+                  <DataGridIconBtn
+                    icon={FaCheck}
+                    label={confirmingKey === `content-${row.id}` ? 'Confirming…' : 'Mark paid'}
+                    variant="primary"
                     disabled={confirmingKey === `content-${row.id}`}
                     onClick={() => confirmContent(row.id)}
-                  >
-                    {confirmingKey === `content-${row.id}` ? 'Confirming...' : 'Mark paid'}
-                  </button>
+                  />
                 )}
               />
             </>

@@ -318,8 +318,8 @@ export const DASHBOARD_LINKS = [
   },
   {
     to: '/my-dashboard/advisors',
-    label: 'Advisors',
-    title: 'Advisors',
+    label: 'Import Users',
+    title: 'Import Users',
     description: 'Import and/or discontinue advisors for the current hub.',
     anyOf: ['advisor_excel_import', 'advisor_discontinue'],
     group: 'advisors',

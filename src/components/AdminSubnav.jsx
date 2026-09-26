@@ -10,7 +10,7 @@ const links = [
   { to: '/client-admin/tags', label: 'Tags', capability: 'dashboard_manage_tags' },
   { to: '/client-admin/firms', label: 'Firms', capability: 'dashboard_manage_firms' },
   { to: '/client-admin/plans', label: 'Subscriptions', capability: 'dashboard_manage_plans' },
-  { to: '/client-admin/advisors', label: 'Advisors', anyOf: ['advisor_excel_import', 'advisor_discontinue'] },
+  { to: '/client-admin/advisors', label: 'Import Users', anyOf: ['advisor_excel_import', 'advisor_discontinue'] },
   {
     to: '/client-admin/payment-card',
     label: 'Payment card',

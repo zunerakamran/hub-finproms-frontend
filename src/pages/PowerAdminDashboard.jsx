@@ -109,7 +109,7 @@ export default function PowerAdminDashboard() {
     },
     {
       to: '/power-admin/advisors',
-      title: 'Advisors',
+      title: 'Import Users',
       description: 'Import and/or discontinue advisors for the current hub (when enabled in Capabilities).',
       hubAnyOf: ['advisor_excel_import', 'advisor_discontinue'],
     },

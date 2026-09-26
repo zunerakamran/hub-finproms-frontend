@@ -199,7 +199,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         <div className="page-head">
           <div>
             <p className="eyebrow">{eyebrow}</p>
-            <h1>Advisors</h1>
+            <h1>Import Users</h1>
             <p className="muted">
               Advisor tools are disabled for your role on this hub. Enable
               &quot;Import advisors&quot; and/or &quot;Discontinue advisors&quot; under Power Admin →
@@ -220,7 +220,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       <div className="page-head">
         <div>
           <p className="eyebrow">{eyebrow}</p>
-          <h1>Advisors</h1>
+          <h1>Import Users</h1>
           <p className="muted">
             {canImport
               ? billingEnabled

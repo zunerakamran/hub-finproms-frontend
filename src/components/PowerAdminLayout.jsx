@@ -68,7 +68,7 @@ const links = [
   },
   {
     to: '/power-admin/advisors',
-    label: 'Advisors',
+    label: 'Import Users',
     hubAnyOf: ['advisor_excel_import', 'advisor_discontinue'],
   },
   {

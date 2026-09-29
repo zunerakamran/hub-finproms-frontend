@@ -282,6 +282,13 @@ export function HubProvider({ children }) {
       const isActingOnWhiteLabel = Boolean(
         switcher?.is_acting_on_white_label ?? actingHub?.is_white_label
       )
+      const isActingRemotely = Boolean(
+        switcher?.is_acting_remotely ??
+          (actingHub?.id != null && hub?.id != null && String(actingHub.id) !== String(hub.id))
+      )
+      const isControlPlane = Boolean(
+        hub?.is_control_plane || hub?.is_central || hub?.type === 'central'
+      )
       const actingAdvisorSwitcher = hub?.acting_advisor_switcher || null
       const actingAdvisor = actingAdvisorSwitcher?.acting_advisor || null
       const isAdvisorUser = user?.role === 'advisor' || Boolean(user?.is_advisor)
@@ -315,6 +322,9 @@ export function HubProvider({ children }) {
         actingHub,
         actingHubId: actingHub?.id ?? null,
         isActingOnWhiteLabel,
+        isActingRemotely,
+        isControlPlane,
+        isCentral: Boolean(hub?.is_central || hub?.type === 'central'),
         actingHubSwitching,
         canControlWhiteLabelHubs: Boolean(
           switcher?.enabled || can('dashboard_control_white_label_hubs')

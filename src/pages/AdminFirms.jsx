@@ -35,7 +35,7 @@ function checkAuthorityLabel(firm) {
 
 export default function AdminFirms({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
 
@@ -173,14 +173,14 @@ export default function AdminFirms({ shell = 'client-admin' }) {
               : 'Firms'}
           </h1>
           <p className="muted">
-            {isActingOnWhiteLabel
+            {isActingRemotely
               ? `Managing Firms on ${actingHub?.name}. Switch hubs from the top bar.`
               : 'Manage Firms and who may review, approve, and see reports for each Firm’s compliance requests. Public registration does not ask for a Firm.'}
           </p>
         </div>
         {!showForm ? (
           <button type="button" className="btn primary" onClick={startCreate}>
-            {isActingOnWhiteLabel ? `Add Firm on ${actingHub?.name || 'hub'}` : 'Add Firm'}
+            {isActingRemotely ? `Add Firm on ${actingHub?.name || 'hub'}` : 'Add Firm'}
           </button>
         ) : null}
       </div>
@@ -259,7 +259,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                   ? isEditingCentral
                     ? 'Update Central / Network'
                     : 'Update Firm'
-                  : isActingOnWhiteLabel
+                  : isActingRemotely
                     ? `Add Firm on ${actingHub?.name || 'hub'}`
                     : 'Add Firm'}
             </button>

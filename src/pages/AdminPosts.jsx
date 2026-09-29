@@ -46,7 +46,7 @@ function formatCategories(post) {
 
 export default function AdminPosts({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
 
@@ -66,7 +66,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     setLoading(true)
     setError('')
     try {
-      const [postsRes, typesRes, catsRes, tagsRes] = isActingOnWhiteLabel
+      const [postsRes, typesRes, catsRes, tagsRes] = isActingRemotely
         ? await Promise.all([
             api.hubContentPosts({ per_page: 50 }, apiOpts),
             api.hubContentTypes(apiOpts),
@@ -123,7 +123,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     try {
       if (editingId) {
         await api.updatePost(editingId, toFormData(), apiOpts)
-        setMessage(isActingOnWhiteLabel ? `Post updated on ${actingHub?.name}.` : 'Post updated.')
+        setMessage(isActingRemotely ? `Post updated on ${actingHub?.name}.` : 'Post updated.')
       } else {
         const data = await api.createPost(toFormData(), apiOpts)
         setMessage(data.message || 'Post created.')
@@ -259,7 +259,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           <p className="eyebrow">SM Template</p>
           <h1>{editingId ? 'Edit post' : 'Add social media post'}</h1>
           <p className="muted">
-            {isActingOnWhiteLabel
+            {isActingRemotely
               ? `Creating on ${actingHub?.name}'s database (use Control hub in the top bar to switch).`
               : 'Managing the shared hub catalog. Use Control hub in the top bar to work on a white-labelled hub.'}
           </p>
@@ -401,7 +401,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
               ? 'Saving...'
               : editingId
                 ? 'Update post'
-                : isActingOnWhiteLabel
+                : isActingRemotely
                   ? `Create on ${actingHub?.name || 'white-labelled'}`
                   : 'Create post'}
           </button>
@@ -423,7 +423,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
       <div className="admin-posts-head">
         <div>
           <h2 className="section-title">
-            {isActingOnWhiteLabel ? `Posts on ${actingHub?.name}` : 'Existing posts'}
+            {isActingRemotely ? `Posts on ${actingHub?.name}` : 'Existing posts'}
           </h2>
           <p className="muted admin-posts-head__sub">
             {loading

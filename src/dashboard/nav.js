@@ -23,7 +23,9 @@ export const GENERAL_DASHBOARD_ANY = [
  *   paCapability?: string,
  *   paAnyOf?: string[],
  *   billingOnly?: boolean,
- *   sharedOnly?: boolean,
+ *   sharedOnly?: boolean, // legacy — hide while acting on WL / on WL deploy
+ *   controlPlaneOnly?: boolean, // Platform tools: only on Central Hub Controller
+
  *   homeOnly?: boolean,
  *   exceptRoles?: string[],
  *   group?: string,
@@ -604,11 +606,12 @@ export const DASHBOARD_LINKS = [
     group: 'wc',
   },
 
-  // —— Platform (Power Admin) ——
+  // —— Platform (Power Admin — Central Hub Controller only) ——
   {
     kind: 'section',
     label: 'Platform',
     paAnyOf: PLATFORM_PA_ANY,
+    controlPlaneOnly: true,
   },
   {
     to: '/my-dashboard/payment-methods',
@@ -616,6 +619,7 @@ export const DASHBOARD_LINKS = [
     title: 'Payment methods',
     description: 'Enable or disable Stripe and bank transfer checkout for members.',
     paCapability: 'pa_manage_payment_methods',
+    controlPlaneOnly: true,
     group: 'platform',
   },
   {
@@ -624,14 +628,16 @@ export const DASHBOARD_LINKS = [
     title: 'Users & roles',
     description: 'Create users, update accounts, and assign roles across the platform.',
     paCapability: 'pa_manage_users_roles',
+    controlPlaneOnly: true,
     group: 'platform',
   },
   {
     to: '/my-dashboard/hubs',
-    label: 'White-labelled hubs',
-    title: 'White-labelled hubs',
-    description: 'Create and configure white-labelled hubs (branding, private access).',
+    label: 'Hubs',
+    title: 'Hubs',
+    description: 'Create and configure Shared and White-labelled hubs (registry, deploy wiring).',
     paCapability: 'pa_manage_hubs',
+    controlPlaneOnly: true,
     sharedOnly: true,
     group: 'platform',
   },
@@ -641,6 +647,7 @@ export const DASHBOARD_LINKS = [
     title: 'Functionalities',
     description: 'Per-hub Functionalities: access, credits, and content distribution.',
     paCapability: 'pa_manage_hub_checklists',
+    controlPlaneOnly: true,
     group: 'platform',
   },
   {
@@ -649,14 +656,16 @@ export const DASHBOARD_LINKS = [
     title: 'Capabilities',
     description: 'Role × capability matrix for members, hub admins, and Power Admin (per hub).',
     paCapability: 'pa_manage_power_capabilities',
+    controlPlaneOnly: true,
     group: 'platform',
   },
 ]
 
 export function isDashboardLinkVisible(
   link,
-  { can, canPower, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isWhiteLabelHub, userRole }
+  { can, canPower, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, userRole }
 ) {
+  if (link.controlPlaneOnly && !isControlPlane) return false
   if (link.sharedOnly && (isActingOnWhiteLabel || isWhiteLabelHub)) return false
   if (Array.isArray(link.exceptRoles) && link.exceptRoles.length > 0) {
     const role = String(userRole || '')

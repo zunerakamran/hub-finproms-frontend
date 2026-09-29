@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 
 const emptyForm = {
   name: '',
   slug: '',
+  type: 'white_label',
   frontend_url: '',
   api_url: '',
   deploy_notes: '',
@@ -13,6 +15,12 @@ const emptyForm = {
   db_database: '',
   db_username: '',
   db_password: '',
+}
+
+function hubTypeLabel(type) {
+  if (type === 'central') return 'Central'
+  if (type === 'shared') return 'Shared'
+  return 'White-labelled'
 }
 
 export default function PowerAdminHubs() {
@@ -50,6 +58,7 @@ export default function PowerAdminHubs() {
       const payload = {
         name: form.name.trim(),
         slug: form.slug.trim() || undefined,
+        type: form.type === 'shared' ? 'shared' : 'white_label',
         frontend_url: form.frontend_url.trim() || null,
         api_url: form.api_url.trim() || null,
         deploy_notes: form.deploy_notes.trim() || null,
@@ -77,15 +86,16 @@ export default function PowerAdminHubs() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Platform</p>
-          <h1>White-labelled hubs</h1>
+          <h1>Hubs</h1>
           <p className="muted">
-            Shared and white-labelled hubs share one codebase but each has its own database. Create a
-            hub record with frontend URL and DB credentials. Logo and colours are configured later in
-            that hub&apos;s Dashboard → Settings.
+            Central Hub Controller registry. You can create <strong>many Shared</strong> hubs and{' '}
+            <strong>many White-labelled</strong> hubs (same codebase, each with its own database and
+            slug). Record frontend URL + DB credentials so Central can control them remotely. Shared
+            hubs no longer host the control plane — that lives only here.
           </p>
         </div>
         <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'Cancel' : 'New white-labelled hub'}
+          {showForm ? 'Cancel' : 'New hub'}
         </button>
       </div>
 
@@ -94,14 +104,24 @@ export default function PowerAdminHubs() {
 
       {showForm && (
         <form className="admin-form hub-create-form" onSubmit={onCreate}>
-          <h2>Create white-labelled hub</h2>
+          <h2>Create hub</h2>
+          <label>
+            Hub type
+            <select
+              value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value })}
+            >
+              <option value="white_label">White-labelled</option>
+              <option value="shared">Shared</option>
+            </select>
+          </label>
           <label>
             Name
             <input
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="My Hub"
+              placeholder={form.type === 'shared' ? 'Shared Hub' : 'My Hub'}
             />
           </label>
           <label>
@@ -109,15 +129,17 @@ export default function PowerAdminHubs() {
             <input
               value={form.slug}
               onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              placeholder="my-hub"
+              placeholder={form.type === 'shared' ? 'shared-uk' : 'my-hub'}
             />
           </label>
           <p className="muted form-hint">
-            Logo and colour scheme are set later in that hub&apos;s{' '}
-            <strong>Dashboard → Settings</strong> — not when creating the hub record.
+            Each Shared / White-label hub needs a <strong>unique slug</strong> (HUB_SLUG on that
+            deploy). Examples: <code>shared</code>, <code>shared-uk</code>, <code>acme-advisors</code>.
+            For Shared content hubs whose slug is not <code>shared</code>, set{' '}
+            <code>HUB_TYPE=shared</code> in that hub&apos;s <code>.env</code>.
           </p>
           <label>
-            Frontend URL (white-labelled site)
+            Frontend URL
             <input
               type="url"
               value={form.frontend_url}
@@ -143,10 +165,11 @@ export default function PowerAdminHubs() {
               placeholder="Enter hosting notes, env checklist, etc."
             />
           </label>
-          <h3 style={{ margin: '0.5rem 0 0' }}>White-labelled database (own DB)</h3>
+          <h3 style={{ margin: '0.5rem 0 0' }}>Remote database (own DB)</h3>
           <p className="muted" style={{ marginTop: 0 }}>
-            Stored encrypted on the shared hub so content can be pushed into this hub&apos;s database.
-            The white-labelled server also uses these values in its own <code>.env</code>.
+            Stored encrypted on Central Hub so content can be managed in this hub&apos;s database.
+            The content hub server also uses these values in its own <code>.env</code>. Set{' '}
+            <code>HUB_IS_CONTROL_PLANE=false</code> on Shared content deploys.
           </p>
           <div className="form-row two">
             <label>
@@ -208,29 +231,36 @@ export default function PowerAdminHubs() {
       ) : hubs.length === 0 ? (
         <div className="empty-state">
           <h2>No hubs yet</h2>
-          <p className="muted">Create a white-labelled hub or seed the shared hub on the backend.</p>
+          <p className="muted">Create a Shared or White-labelled hub, or seed Central on the backend.</p>
         </div>
       ) : (
         <div className="hub-list">
           {hubs.map((hub) => {
             const enabledCount = (hub.checklist || []).filter((item) => item.enabled).length
+            const typeLabel = hubTypeLabel(hub.type)
             return (
               <article key={hub.id} className="hub-card">
                 <div className="hub-card-head">
                   <div>
-                    <h2>{hub.name}</h2>
+                    <h2>
+                      <Link to={`/my-dashboard/hubs/${hub.id}`}>{hub.name}</Link>
+                    </h2>
                     <p className="muted">
                       <code>{hub.slug}</code>
                     </p>
                   </div>
                   <div className="hub-card-badges">
-                    <span className={`badge ${hub.type === 'shared' ? 'ok' : ''}`}>
-                      {hub.type === 'shared' ? 'Shared' : 'White-labelled'}
+                    <span
+                      className={`badge ${
+                        hub.type === 'central' || hub.type === 'shared' ? 'ok' : ''
+                      }`}
+                    >
+                      {typeLabel}
                     </span>
                     <span className={`badge ${hub.is_active ? 'ok' : ''}`}>
                       {hub.is_active ? 'Active' : 'Inactive'}
                     </span>
-                    {hub.type !== 'shared' ? (
+                    {hub.type !== 'central' ? (
                       <span className={`badge ${hub.deploy?.ready ? 'ok' : 'warn'}`}>
                         {hub.deploy?.ready ? 'Wiring ready' : 'Needs wiring'}
                       </span>

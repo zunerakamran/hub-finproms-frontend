@@ -159,8 +159,12 @@ export default function PowerAdminHubDetail() {
           <h1>{hub.name}</h1>
           <p className="muted">
             Update deploy wiring and Functionalities for this{' '}
-            {hub.type === 'shared' ? 'shared' : 'white-labelled'} hub. Logo and colours are managed
-            in that hub&apos;s Dashboard → Settings.
+            {hub.type === 'central'
+              ? 'Central Hub Controller'
+              : hub.type === 'shared'
+                ? 'Shared'
+                : 'White-labelled'}{' '}
+            hub. Logo and colours are managed in that hub&apos;s Dashboard → Settings.
           </p>
           {hub.deploy?.status_label && (
             <p style={{ marginTop: '0.5rem' }}>
@@ -193,7 +197,7 @@ export default function PowerAdminHubDetail() {
           Slug
           <input
             required
-            disabled={hub.type === 'shared'}
+            disabled={hub.type === 'shared' || hub.type === 'central'}
             value={meta.slug}
             onChange={(e) => setMeta({ ...meta, slug: e.target.value })}
             placeholder="my-hub"
@@ -206,7 +210,7 @@ export default function PowerAdminHubDetail() {
             <em>My Dashboard → Settings</em> on this hub — they are not edited here.
           </p>
         </div>
-        {hub.type !== 'shared' && (
+        {hub.type !== 'shared' && hub.type !== 'central' && (
           <label className="toggle-row">
             <input
               type="checkbox"
@@ -226,8 +230,8 @@ export default function PowerAdminHubDetail() {
       <form className="admin-form hub-meta-form" style={{ marginTop: '1.25rem' }} onSubmit={onSaveMeta}>
         <h2>Deploy wiring</h2>
         <p className="muted">
-          Record where this hub is hosted and the credentials for its own database. Shared uses
-          these credentials later to push content into that white-labelled DB.
+          Record where this hub is hosted and the credentials for its own database. Central Hub
+          uses these credentials to control Shared and White-labelled hubs remotely.
         </p>
         <label>
           Frontend URL
@@ -257,13 +261,16 @@ export default function PowerAdminHubDetail() {
           />
         </label>
 
-        {hub.type !== 'shared' && (
+        {hub.type !== 'central' && (
           <>
-            <h3 style={{ margin: '0.75rem 0 0' }}>White-labelled database (own DB)</h3>
+            <h3 style={{ margin: '0.75rem 0 0' }}>Remote database (own DB)</h3>
             <p className="muted" style={{ marginTop: 0 }}>
               Password is stored encrypted and never shown again. Leave password blank to keep the
               current value.
               {hub.deploy?.database?.password_set ? ' Password is currently set.' : ' No password set yet.'}
+              {hub.type === 'shared'
+                ? ' Shared content hubs need remote DB wiring so Central can control them.'
+                : ''}
             </p>
             <div className="form-row two">
               <label>

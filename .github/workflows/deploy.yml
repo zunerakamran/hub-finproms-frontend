@@ -18,9 +18,10 @@ jobs:
           node-version: '20'
           cache: npm
 
-      - name: Install & Build (shared + myhub)
+      - name: Install & Build (central + shared + myhub)
         run: |
           npm ci
+          npm run build:central
           npm run build:shared
           npm run build:myhub
 
@@ -28,11 +29,28 @@ jobs:
       # The FTP account Directory must be the domain document root:
       #   /home/<USER>/public_html
       # NOT:
+      #   /home/<USER>/chc.fin-proms.com/ftpaccount
       #   /home/<USER>/sharedhub.fin-proms.com/ftpaccount
       #   /home/<USER>/myhub.fin-proms.com/ftpaccount
       # Fix in cPanel → FTP Accounts → Change Directory, then re-run this workflow.
       #
       # server-dir is ./ because the FTP user should already land IN public_html.
+
+      - name: Deploy central hub controller via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER_3 }}
+          username: ${{ secrets.FTP_USER_3 }}
+          password: ${{ secrets.FTP_PASS_3 }}
+          local-dir: ./dist-central/
+          server-dir: ./
+          exclude: |
+            **/api/**
+            **/.env
+            **/.env.*
+            **/storage/**
+            **/vendor/**
+
       - name: Deploy shared hub via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:

@@ -7,7 +7,7 @@ import { useHub } from '../context/HubContext'
 
 export default function AdminTags({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
 
@@ -23,7 +23,7 @@ export default function AdminTags({ shell = 'client-admin' }) {
     setLoading(true)
     setError('')
     try {
-      const data = isActingOnWhiteLabel
+      const data = isActingRemotely
         ? await api.hubContentTags(apiOpts)
         : await api.listTags()
       setTags(data.tags || [])
@@ -71,7 +71,7 @@ export default function AdminTags({ shell = 'client-admin' }) {
           <p className="eyebrow">SM Template</p>
           <h1>{editingId ? 'Edit tag' : 'Post tags'}</h1>
           <p className="muted">
-            {isActingOnWhiteLabel
+            {isActingRemotely
               ? `Managing tags on ${actingHub?.name}. Switch hubs from the top bar.`
               : 'Managing shared hub tags. Use Control hub in the top bar for a white-labelled hub.'}
           </p>
@@ -96,7 +96,7 @@ export default function AdminTags({ shell = 'client-admin' }) {
               ? 'Saving...'
               : editingId
                 ? 'Update tag'
-                : isActingOnWhiteLabel
+                : isActingRemotely
                   ? `Add tag on ${actingHub?.name || 'hub'}`
                   : 'Add tag'}
           </button>
@@ -116,7 +116,7 @@ export default function AdminTags({ shell = 'client-admin' }) {
       </form>
 
       <h2 className="section-title">
-        {isActingOnWhiteLabel ? `Tags on ${actingHub?.name}` : 'Existing tags'}
+        {isActingRemotely ? `Tags on ${actingHub?.name}` : 'Existing tags'}
       </h2>
       <DataGrid
         columns={[

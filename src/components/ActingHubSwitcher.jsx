@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
 /**
- * Shared-dashboard hub switcher (Control white labelled hubs).
- * Selecting a white-labelled hub scopes content tools to that hub’s database.
+ * Central Hub Controller switcher (Control hubs remotely).
+ * Selecting a Shared or White-labelled hub scopes content tools to that hub’s database.
  */
 export default function ActingHubSwitcher() {
   const { isPowerAdmin } = useAuth()
@@ -13,21 +13,23 @@ export default function ActingHubSwitcher() {
     hubSwitcher,
     canControlWhiteLabelHubs,
     setActingHub,
+    isActingRemotely,
     isActingOnWhiteLabel,
     actingHub,
     actingHubSwitching,
+    isControlPlane,
   } = useHub()
   const [error, setError] = useState('')
 
-  if (!canControlWhiteLabelHubs || hub?.type !== 'shared' || !hubSwitcher?.enabled) {
+  if (!canControlWhiteLabelHubs || !isControlPlane || !hubSwitcher?.enabled) {
     return null
   }
 
   const hubs = hubSwitcher.hubs || []
   const currentId = String(actingHub?.id || hubSwitcher.acting_hub?.id || hub?.id || '')
-  const managedName = isActingOnWhiteLabel
-    ? actingHub?.name || 'white-labelled hub'
-    : hub?.name || 'shared hub'
+  const managedName = isActingRemotely
+    ? actingHub?.name || (isActingOnWhiteLabel ? 'white-labelled hub' : 'shared hub')
+    : hub?.name || 'Central Hub'
 
   const onChange = async (e) => {
     const next = e.target.value
@@ -41,28 +43,27 @@ export default function ActingHubSwitcher() {
 
   return (
     <div className="acting-hub-switcher">
-      <select
-        className="acting-hub-switcher__select"
-        aria-label="Control hub"
-        value={currentId}
-        disabled={actingHubSwitching || hubs.length === 0}
-        onChange={onChange}
-      >
-        {hubs.map((h) => (
-          <option
-            key={h.id}
-            value={h.id}
-            disabled={h.type === 'white_label' && !h.eligible}
-          >
-            {h.label || `${h.name} (${h.type})`}
-          </option>
-        ))}
-      </select>
-      <p className="muted acting-hub-switcher__hint">
-        Managing <strong>{managedName}</strong> — posts / types / categories / tags / bundles save
-        to that hub&apos;s database.
-      </p>
-      {error ? <p className="acting-hub-switcher__error">{error}</p> : null}
+      <label className="acting-hub-switcher-label">
+        <span className="muted">Controlling</span>
+        <select
+          value={currentId}
+          onChange={onChange}
+          disabled={actingHubSwitching}
+          aria-label="Hub switcher"
+        >
+          {hubs.map((h) => (
+            <option key={h.id} value={String(h.id)} disabled={h.eligible === false}>
+              {h.label || h.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {isActingRemotely && (
+        <span className="acting-hub-pill" title={managedName}>
+          Controlling {managedName}
+        </span>
+      )}
+      {error && <span className="acting-hub-error">{error}</span>}
     </div>
   )
 }

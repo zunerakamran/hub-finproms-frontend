@@ -30,7 +30,7 @@ const emptyNewPost = {
 
 export default function AdminBundles({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
 
@@ -54,7 +54,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   const load = async () => {
     setLoading(true)
     try {
-      const [bundlesRes, postsRes, typesRes, catsRes, tagsRes] = isActingOnWhiteLabel
+      const [bundlesRes, postsRes, typesRes, catsRes, tagsRes] = isActingRemotely
         ? await Promise.all([
             api.hubContentBundles({ per_page: 50 }, apiOpts),
             api.hubContentPosts({ per_page: 100 }, apiOpts),
@@ -121,7 +121,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
   }
 
   const addDraftPost = () => {
-    if (isActingOnWhiteLabel) {
+    if (isActingRemotely) {
       setError(
         'While controlling a white-labelled hub, select existing posts from that hub (inline new posts are shared-hub only).'
       )
@@ -154,7 +154,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
       fd.append('remove_image', '1')
     }
 
-    if (!isActingOnWhiteLabel) {
+    if (!isActingRemotely) {
       newPosts.forEach((post, index) => {
         fd.append(`new_posts[${index}][title]`, post.title)
         fd.append(`new_posts[${index}][description]`, post.description || '')
@@ -173,10 +173,10 @@ export default function AdminBundles({ shell = 'client-admin' }) {
 
   const onSubmit = async (e) => {
     e.preventDefault()
-    if (form.post_ids.length === 0 && (isActingOnWhiteLabel || newPosts.length === 0)) {
+    if (form.post_ids.length === 0 && (isActingRemotely || newPosts.length === 0)) {
       setError(
-        isActingOnWhiteLabel
-          ? 'Select at least one post that already exists on this white-labelled hub.'
+        isActingRemotely
+          ? 'Select at least one post that already exists on this hub.'
           : 'Add at least one existing post or a new post to the bundle.'
       )
       return
@@ -188,7 +188,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     try {
       if (editingId) {
         await api.updateBundle(editingId, toFormData(), apiOpts)
-        setMessage(isActingOnWhiteLabel ? `Bundle updated on ${actingHub?.name}.` : 'Bundle updated.')
+        setMessage(isActingRemotely ? `Bundle updated on ${actingHub?.name}.` : 'Bundle updated.')
       } else {
         const data = await api.createBundle(toFormData(), apiOpts)
         setMessage(data.message || 'Bundle created.')
@@ -211,7 +211,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
     setError('')
     setMessage('')
     try {
-      if (isActingOnWhiteLabel) {
+      if (isActingRemotely) {
         setEditingId(bundle.id)
         setForm({
           title: bundle.title || '',
@@ -321,7 +321,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
           <p className="eyebrow">SM Template</p>
           <h1>{editingId ? 'Edit bundle' : 'Post bundles'}</h1>
           <p className="muted">
-            {isActingOnWhiteLabel
+            {isActingRemotely
               ? `Bundles on ${actingHub?.name} use that hub's posts only. Switch hubs from the top bar.`
               : 'Group posts into a bundle. Use Control hub in the top bar to manage a white-labelled hub.'}
           </p>
@@ -428,7 +428,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
           )}
         </fieldset>
 
-        {!isActingOnWhiteLabel && (
+        {!isActingRemotely && (
           <fieldset className="tag-picker">
             <legend>Or create new posts in this bundle</legend>
             <div className="form-grid">
@@ -514,7 +514,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
               ? 'Saving...'
               : editingId
                 ? 'Update bundle'
-                : isActingOnWhiteLabel
+                : isActingRemotely
                   ? `Create on ${actingHub?.name || 'hub'}`
                   : 'Create bundle'}
           </button>
@@ -531,7 +531,7 @@ export default function AdminBundles({ shell = 'client-admin' }) {
       </form>
 
       <h2 className="section-title">
-        {isActingOnWhiteLabel ? `Bundles on ${actingHub?.name}` : 'Existing bundles'}
+        {isActingRemotely ? `Bundles on ${actingHub?.name}` : 'Existing bundles'}
       </h2>
       <DataGrid
         columns={bundleColumns}

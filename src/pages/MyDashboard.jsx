@@ -25,7 +25,7 @@ const GROUP_ORDER = ['account', 'content', 'hub', 'advisors', 'smc', 'gc', 'wc',
 
 export default function MyDashboard() {
   const { user, canPower } = useAuth()
-  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, effectiveAdvisorId, actingAdvisor, actingHubId, actingHub } = useHub()
+  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isControlPlane, effectiveAdvisorId, actingAdvisor, actingHubId, actingHub } = useHub()
   const [data, setData] = useState(null)
   const [panelLoading, setPanelLoading] = useState(true)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
@@ -68,6 +68,7 @@ export default function MyDashboard() {
           canManagePaymentCard,
           isActingOnWhiteLabel,
           isWhiteLabelHub,
+          isControlPlane,
           userRole: user?.role,
         })
       )
@@ -120,7 +121,7 @@ export default function MyDashboard() {
       label: resolveDashboardGroupLabel(key, { isWhiteLabelHub }),
       cards: cards.filter((c) => c.group === key),
     })).filter((g) => g.cards.length > 0)
-  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, isWhiteLabelHub, actingAdvisor, user?.role])
+  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, actingAdvisor, user?.role])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
 

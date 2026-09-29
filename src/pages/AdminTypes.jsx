@@ -7,7 +7,7 @@ import { useHub } from '../context/HubContext'
 
 export default function AdminTypes({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
 
@@ -24,7 +24,7 @@ export default function AdminTypes({ shell = 'client-admin' }) {
     setLoading(true)
     setError('')
     try {
-      const data = isActingOnWhiteLabel
+      const data = isActingRemotely
         ? await api.hubContentTypes(apiOpts)
         : await api.listTypes()
       setTypes(data.types || [])
@@ -79,7 +79,7 @@ export default function AdminTypes({ shell = 'client-admin' }) {
           <p className="eyebrow">SM Template</p>
           <h1>{editingId ? 'Edit type' : 'Content types'}</h1>
           <p className="muted">
-            {isActingOnWhiteLabel
+            {isActingRemotely
               ? `Managing types on ${actingHub?.name}. Switch hubs from the top bar.`
               : 'Managing shared hub types. Use Control hub in the top bar for a white-labelled hub.'}
           </p>
@@ -103,7 +103,7 @@ export default function AdminTypes({ shell = 'client-admin' }) {
               ? 'Saving...'
               : editingId
                 ? 'Update type'
-                : isActingOnWhiteLabel
+                : isActingRemotely
                   ? `Add type on ${actingHub?.name || 'hub'}`
                   : 'Add type'}
           </button>
@@ -116,7 +116,7 @@ export default function AdminTypes({ shell = 'client-admin' }) {
       </form>
 
       <h2 className="section-title">
-        {isActingOnWhiteLabel ? `Types on ${actingHub?.name}` : 'Existing types'}
+        {isActingRemotely ? `Types on ${actingHub?.name}` : 'Existing types'}
       </h2>
       <DataGrid
         columns={[

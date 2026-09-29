@@ -7,7 +7,7 @@ import { useHub } from '../context/HubContext'
 
 export default function AdminCategories({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, actingHub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
 
@@ -23,7 +23,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
     setLoading(true)
     setError('')
     try {
-      const data = isActingOnWhiteLabel
+      const data = isActingRemotely
         ? await api.hubContentCategories(apiOpts)
         : await api.listCategories()
       setCategories(data.categories || [])
@@ -71,7 +71,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
           <p className="eyebrow">SM Template</p>
           <h1>{editingId ? 'Edit category' : 'Categories'}</h1>
           <p className="muted">
-            {isActingOnWhiteLabel
+            {isActingRemotely
               ? `Managing categories on ${actingHub?.name}. Switch hubs from the top bar.`
               : 'Managing shared hub categories. Use Control hub in the top bar for a white-labelled hub.'}
           </p>
@@ -96,7 +96,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
               ? 'Saving...'
               : editingId
                 ? 'Update category'
-                : isActingOnWhiteLabel
+                : isActingRemotely
                   ? `Add category on ${actingHub?.name || 'hub'}`
                   : 'Add category'}
           </button>
@@ -116,7 +116,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
       </form>
 
       <h2 className="section-title">
-        {isActingOnWhiteLabel ? `Categories on ${actingHub?.name}` : 'Existing categories'}
+        {isActingRemotely ? `Categories on ${actingHub?.name}` : 'Existing categories'}
       </h2>
       <DataGrid
         columns={[

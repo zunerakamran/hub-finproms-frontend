@@ -16,7 +16,7 @@ import { brandLogoUrl } from '../utils/brandLogo'
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, actingHub, actingHubId, actingHubSwitching, actingAdvisor, roleLabel } = useHub()
+  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, actingHub, actingHubId, actingHubSwitching, actingAdvisor, roleLabel } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
@@ -26,7 +26,7 @@ export default function MyDashboardLayout() {
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = brandLogoUrl(branding, { onDark: true })
   // Remount the white content panel when the controlled hub changes so page data reloads.
-  const contentKey = `${isActingOnWhiteLabel ? 'wl' : 'shared'}:${actingHubId ?? hub?.id ?? 'hub'}`
+  const contentKey = `${isActingRemotely ? (isActingOnWhiteLabel ? 'wl' : 'shared') : 'home'}:${actingHubId ?? hub?.id ?? 'hub'}`
   const isWhiteLabelHub = Boolean(
     isActingOnWhiteLabel || hub?.type === 'white_label' || actingHub?.is_white_label
   )
@@ -40,9 +40,10 @@ export default function MyDashboardLayout() {
         canManagePaymentCard,
         isActingOnWhiteLabel,
         isWhiteLabelHub,
+        isControlPlane,
         userRole: user?.role,
       }),
-    [advisorBillingEnabled, canManagePaymentCard, can, canPower, isActingOnWhiteLabel, isWhiteLabelHub, user?.role]
+    [advisorBillingEnabled, canManagePaymentCard, can, canPower, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, user?.role]
   )
 
   const activeLink = useMemo(
@@ -79,6 +80,7 @@ export default function MyDashboardLayout() {
       canManagePaymentCard,
       isActingOnWhiteLabel,
       isWhiteLabelHub,
+      isControlPlane,
       userRole: user?.role,
     })
 
@@ -94,6 +96,7 @@ export default function MyDashboardLayout() {
     canManagePaymentCard,
     isActingOnWhiteLabel,
     isWhiteLabelHub,
+    isControlPlane,
     actingHubId,
     user?.role,
     navigate,

@@ -6,6 +6,7 @@ import Home from '../pages/Home'
 
 /**
  * Shared hubs: home is public (no login).
+ * Central Hub Controller: no public catalog — send guests to login.
  * White-labelled hubs: home requires authentication (same as other member pages).
  */
 export default function HomeRoute() {
@@ -18,8 +19,9 @@ export default function HomeRoute() {
   }
 
   const isShared = hub?.type === 'shared'
+  const isCentral = hub?.type === 'central' || hub?.is_central
 
-  if (!isShared && !isAuthenticated) {
+  if ((isCentral || !isShared) && !isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 

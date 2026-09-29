@@ -7,16 +7,18 @@ export function buildDeployPreview(hub, meta) {
   const api = (meta?.api_url || '').trim()
   const notes = (meta?.deploy_notes || '').trim()
   const isActive = Boolean(meta?.is_active)
-  const isShared = hub?.type === 'shared'
+  const isCentral = hub?.type === 'central' || hub?.is_central
+  const needsRemoteDb = !isCentral // Shared + White-label need remote DB on Central registry
   const dbHost = (meta?.db_host || '').trim()
   const dbDatabase = (meta?.db_database || '').trim()
   const dbUsername = (meta?.db_username || '').trim()
   const dbPassword = (meta?.db_password || '').trim()
   const passwordSet = Boolean(hub?.deploy?.database?.password_set) || Boolean(dbPassword)
   const hasDb = Boolean(dbHost && dbDatabase && dbUsername && passwordSet)
-  const ready = isActive && Boolean(frontend) && (isShared || hasDb)
+  const ready = isActive && Boolean(frontend) && (!needsRemoteDb || hasDb)
   const driver = (meta?.db_driver || hub?.deploy?.database?.driver || 'mysql').trim() || 'mysql'
   const port = meta?.db_port ? String(meta.db_port).trim() : hub?.deploy?.database?.port || 3306
+  const typeLabel = hub?.type === 'shared' ? 'Shared' : hub?.type === 'central' ? 'Central' : 'White-labelled'
 
   return {
     ...(hub?.deploy || {}),
@@ -50,11 +52,11 @@ export function buildDeployPreview(hub, meta) {
       },
       {
         key: 'remote_db',
-        label: isShared
-          ? 'Shared hub uses its own .env database (not stored here)'
-          : 'White-labelled database credentials recorded (own DB)',
-        done: isShared || hasDb,
-        required: !isShared,
+        label: needsRemoteDb
+          ? 'Content hub database credentials recorded (own DB for remote control)'
+          : 'Central Hub Controller uses its own .env database (not stored here)',
+        done: needsRemoteDb ? hasDb : true,
+        required: needsRemoteDb,
       },
       {
         key: 'api_url',
@@ -64,15 +66,15 @@ export function buildDeployPreview(hub, meta) {
       },
       {
         key: 'hub_slug',
-        label: `White-labelled backend uses HUB_SLUG=${slug}`,
+        label: `${typeLabel} backend uses HUB_SLUG=${slug}`,
         done: true,
         required: true,
       },
       {
         key: 'own_db_env',
-        label: 'White-labelled .env points at its OWN database (not shared)',
+        label: 'Content hub .env points at its OWN database (not Central)',
         done: true,
-        required: !isShared,
+        required: needsRemoteDb,
       },
       {
         key: 'deploy_notes',
@@ -82,16 +84,19 @@ export function buildDeployPreview(hub, meta) {
       },
     ],
     env_snippet: [
-      '# White-labelled deploy — same codebase, OWN database (not the shared hub DB)',
+      `# ${typeLabel} deploy — same codebase, OWN database`,
       `HUB_SLUG=${slug}`,
+      hub?.type === 'shared' ? 'HUB_IS_CONTROL_PLANE=false' : null,
       frontend ? `FRONTEND_URL=${frontend.replace(/\/$/, '')}` : 'FRONTEND_URL=https://example.com',
       api ? `APP_URL=${api.replace(/\/$/, '')}` : 'APP_URL=https://api.example.com',
       `DB_CONNECTION=${driver}`,
       `DB_HOST=${dbHost || '127.0.0.1'}`,
       `DB_PORT=${port || 3306}`,
-      `DB_DATABASE=${dbDatabase || 'hub_white_label'}`,
+      `DB_DATABASE=${dbDatabase || 'hub_content'}`,
       `DB_USERNAME=${dbUsername || 'hub_user'}`,
       'DB_PASSWORD=********',
-    ].join('\n'),
+    ]
+      .filter(Boolean)
+      .join('\n'),
   }
 }

@@ -24,17 +24,42 @@ jobs:
           npm run build:central
           npm run build:shared
           npm run build:myhub
+          echo "CENTRAL_JS=$(basename "$(ls dist-central/assets/*.js | head -n 1)")" >> "$GITHUB_ENV"
+          echo "SHARED_JS=$(basename "$(ls dist-shared/assets/*.js | head -n 1)")" >> "$GITHUB_ENV"
+          echo "MYHUB_JS=$(basename "$(ls dist-myhub/assets/*.js | head -n 1)")" >> "$GITHUB_ENV"
+          echo "Built central JS: $(basename "$(ls dist-central/assets/*.js | head -n 1)")"
 
-      # CRITICAL (cPanel):
-      # The FTP account Directory must be the domain document root:
-      #   /home/<USER>/public_html
-      # NOT:
-      #   /home/<USER>/chc.fin-proms.com/ftpaccount
-      #   /home/<USER>/sharedhub.fin-proms.com/ftpaccount
-      #   /home/<USER>/myhub.fin-proms.com/ftpaccount
-      # Fix in cPanel → FTP Accounts → Change Directory, then re-run this workflow.
+      # ─────────────────────────────────────────────────────────────────
+      # CENTRAL FTP PATH (this is why CHC looked “deployed” but stayed old)
       #
-      # server-dir is ./ because the FTP user should already land IN public_html.
+      # FTP-Deploy sync can succeed while chc.fin-proms.com still serves an
+      # old bundle if the FTP account home is NOT the domain document root.
+      #
+      # cPanel check:
+      #   Domains → chc.fin-proms.com → Document Root  (e.g. …/public_html)
+      #   FTP Accounts → FTP_USER_3 → Directory must be THAT SAME folder
+      #
+      # If the FTP user lands in the account home (/home/<user>/) instead of
+      # public_html, set repo variable FTP_CENTRAL_SERVER_DIR=public_html/
+      # (default below). If the FTP user already lands IN public_html, set
+      # FTP_CENTRAL_SERVER_DIR=./  (or leave empty → ./).
+      # ─────────────────────────────────────────────────────────────────
+
+      - name: Resolve central FTP server-dir
+        id: central_dir
+        run: |
+          DIR="${{ vars.FTP_CENTRAL_SERVER_DIR }}"
+          if [ -z "$DIR" ]; then
+            # Default: FTP account home is often /home/<user>/, site is public_html/
+            DIR="public_html/"
+          fi
+          # Normalise trailing slash
+          case "$DIR" in
+            */) ;;
+            *) DIR="${DIR}/" ;;
+          esac
+          echo "server_dir=$DIR" >> "$GITHUB_OUTPUT"
+          echo "Central FTP server-dir: $DIR"
 
       - name: Deploy central hub controller via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -43,13 +68,40 @@ jobs:
           username: ${{ secrets.FTP_USER_3 }}
           password: ${{ secrets.FTP_PASS_3 }}
           local-dir: ./dist-central/
-          server-dir: ./
+          server-dir: ${{ steps.central_dir.outputs.server_dir }}
           exclude: |
             **/api/**
             **/.env
             **/.env.*
             **/storage/**
             **/vendor/**
+            **/.ftp-deploy-sync-state.json
+
+      - name: Verify central hub is serving the new build
+        run: |
+          set -e
+          LIVE_URL="https://chc.fin-proms.com/"
+          EXPECTED="${CENTRAL_JS}"
+          echo "Expecting live site to reference: /assets/${EXPECTED}"
+          HTML="$(curl -fsSL -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "$LIVE_URL?deploy_check=${GITHUB_SHA}")"
+          echo "$HTML" | head -n 30
+          if echo "$HTML" | grep -Fq "/assets/${EXPECTED}"; then
+            echo "✅ Central hub is serving the new build (${EXPECTED})"
+          else
+            echo "::error::Central FTP sync succeeded, but ${LIVE_URL} is NOT serving ${EXPECTED}."
+            echo "The FTP account is writing to a different folder than the domain document root."
+            echo ""
+            echo "Fix (pick one):"
+            echo "  1) cPanel → FTP Accounts → change Directory for FTP_USER_3 to the"
+            echo "     same path as Domains → chc.fin-proms.com → Document Root,"
+            echo "     then set repo variable FTP_CENTRAL_SERVER_DIR=./ and re-run."
+            echo "  2) Or set FTP_CENTRAL_SERVER_DIR to the relative path from the FTP"
+            echo "     login folder to that document root (e.g. public_html/)."
+            echo ""
+            echo "Live HTML currently references:"
+            echo "$HTML" | grep -oE '/assets/[^\" ]+' || true
+            exit 1
+          fi
 
       - name: Deploy shared hub via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

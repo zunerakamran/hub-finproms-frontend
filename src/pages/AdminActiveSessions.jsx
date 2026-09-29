@@ -2,10 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { FaSignOutAlt, FaSync } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
-import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { formatDateTime } from '../utils/dateFormat'
 
 export default function AdminActiveSessions({ shell = 'client-admin' }) {
   const navigate = useNavigate()
@@ -151,14 +150,15 @@ export default function AdminActiveSessions({ shell = 'client-admin' }) {
             {
               key: 'session_count',
               label: 'Sessions',
+              narrow: true,
               filterValue: (row) => String(row.session_count ?? 0),
             },
             {
               key: 'last_activity_at',
               label: 'Last activity',
+              date: true,
               filterValue: (row) => row.last_activity_at || '',
-              render: (row) =>
-                row.last_activity_at ? formatDateTime(row.last_activity_at) : '—',
+              render: (row) => <DataGridDate value={row.last_activity_at} />,
             },
           ]}
           rows={rows}

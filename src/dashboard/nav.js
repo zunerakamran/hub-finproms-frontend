@@ -136,11 +136,17 @@ export const DASHBOARD_GROUPS = {
 
 /**
  * Resolve a dashboard group / section label for the current hub context.
- * The "Hub" separator becomes Shared hub or White-labelled hub.
+ * The "Hub" separator becomes Central Hub / Shared hub / White-labelled hub.
  */
-export function resolveDashboardGroupLabel(groupOrLabel, { isWhiteLabelHub = false } = {}) {
+export function resolveDashboardGroupLabel(
+  groupOrLabel,
+  { isWhiteLabelHub = false, isControlPlane = false, isActingRemotely = false } = {}
+) {
   const key = groupOrLabel === 'Hub' ? 'hub' : groupOrLabel
   if (key === 'hub') {
+    if (isControlPlane && !isActingRemotely) return 'Central Hub'
+    if (isActingRemotely && isWhiteLabelHub) return 'White-labelled hub'
+    if (isActingRemotely) return 'Shared hub'
     return isWhiteLabelHub ? 'White-labelled hub' : 'Shared hub'
   }
   return DASHBOARD_GROUPS[key] || groupOrLabel

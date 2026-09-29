@@ -12,17 +12,18 @@ function resolveNavCatalogType(search) {
 
 export default function Layout() {
   const { user, logout, isAdvisor, isAuthenticated } = useAuth()
-  const { can, hub, hasDashboardAccess, branding, isActingAsAdvisor, registrationEnabled, isControlPlane } =
+  const { can, hub, hasDashboardAccess, branding, isActingAsAdvisor, registrationEnabled } =
     useHub()
   const location = useLocation()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = brandLogoUrl(branding, { onDark: false })
+  const canViewSitePages = can('member_view_site_pages')
   const showPlans =
-    !isControlPlane &&
+    canViewSitePages &&
     can('member_view_plans') &&
     (can('public_subscribe') || can('paid_credits'))
   const isHome = location.pathname === '/'
-  const showCatalog = !isControlPlane && isAuthenticated && can('member_browse_catalog')
+  const showCatalog = canViewSitePages && isAuthenticated && can('member_browse_catalog')
   const creditsLabel =
     user?.has_unlimited_credits ||
     (can('unlimited_credits') && (isAdvisor || isActingAsAdvisor))
@@ -33,7 +34,7 @@ export default function Layout() {
     <div className="site-shell">
       <header className="site-header">
         <div className="site-header__inner">
-          <NavLink to={isControlPlane ? '/my-dashboard' : '/'} className="site-brand">
+          <NavLink to={canViewSitePages ? '/' : '/my-dashboard'} className="site-brand">
             {logoUrl ? <img src={logoUrl} alt="" className="site-brand__logo" /> : (
               <span className="site-brand__mark" aria-hidden="true">
                 {String(brandName).charAt(0)}
@@ -43,7 +44,7 @@ export default function Layout() {
           </NavLink>
 
           <nav className="site-nav" aria-label="Main">
-            {!isControlPlane && (
+            {canViewSitePages && (
               <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : undefined)}>
                 Home
               </NavLink>
@@ -103,7 +104,7 @@ export default function Layout() {
           <div className="site-header__actions">
             {isAuthenticated ? (
               <>
-                {!isControlPlane && (
+                {canViewSitePages && (
                   <div className="site-credit-chip" title="Credit balance">
                     <span className="site-credit-chip__label">Credits</span>
                     <strong>{creditsLabel}</strong>
@@ -124,7 +125,7 @@ export default function Layout() {
                 <NavLink to="/login" className="btn ghost site-auth-btn">
                   Log in
                 </NavLink>
-                {registrationEnabled && !isControlPlane && (
+                {registrationEnabled && canViewSitePages && (
                   <NavLink to="/register" className="btn primary site-auth-btn">
                     Sign up
                   </NavLink>

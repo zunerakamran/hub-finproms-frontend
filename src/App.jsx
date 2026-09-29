@@ -116,7 +116,7 @@ export default function App() {
               <Route index element={<HomeRoute />} />
             </Route>
 
-            {/* Member catalog & plans — login always required */}
+            {/* Member catalog & plans — login + View website pages capability */}
             <Route
               element={
                 <ProtectedRoute>
@@ -124,15 +124,78 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              <Route path="posts" element={<Posts />} />
-              <Route path="posts/:id" element={<PostDetail />} />
-              <Route path="bundles" element={<Bundles />} />
-              <Route path="bundles/:id" element={<BundleDetail />} />
-              <Route path="subscriptions" element={<Subscriptions />} />
-              <Route path="subscriptions/success" element={<SubscriptionSuccess />} />
-              <Route path="subscriptions/bank-transfer" element={<BankTransferPending />} />
-              <Route path="purchases/success" element={<ContentPurchaseSuccess />} />
-              <Route path="subscriptions/:id" element={<SubscriptionDetail />} />
+              <Route
+                path="posts"
+                element={
+                  <HubCapabilityRoute capability="member_view_site_pages">
+                    <Posts />
+                  </HubCapabilityRoute>
+                }
+              />
+              <Route
+                path="posts/:id"
+                element={
+                  <HubCapabilityRoute capability="member_view_site_pages">
+                    <PostDetail />
+                  </HubCapabilityRoute>
+                }
+              />
+              <Route
+                path="bundles"
+                element={
+                  <HubCapabilityRoute capability="member_view_site_pages">
+                    <Bundles />
+                  </HubCapabilityRoute>
+                }
+              />
+              <Route
+                path="bundles/:id"
+                element={
+                  <HubCapabilityRoute capability="member_view_site_pages">
+                    <BundleDetail />
+                  </HubCapabilityRoute>
+                }
+              />
+              <Route
+                path="subscriptions"
+                element={
+                  <HubCapabilityRoute capability="member_view_site_pages">
+                    <Subscriptions />
+                  </HubCapabilityRoute>
+                }
+              />
+              <Route
+                path="subscriptions/success"
+                element={
+                  <HubCapabilityRoute capability="member_view_site_pages">
+                    <SubscriptionSuccess />
+                  </HubCapabilityRoute>
+                }
+              />
+              <Route
+                path="subscriptions/bank-transfer"
+                element={
+                  <HubCapabilityRoute capability="member_view_site_pages">
+                    <BankTransferPending />
+                  </HubCapabilityRoute>
+                }
+              />
+              <Route
+                path="purchases/success"
+                element={
+                  <HubCapabilityRoute capability="member_view_site_pages">
+                    <ContentPurchaseSuccess />
+                  </HubCapabilityRoute>
+                }
+              />
+              <Route
+                path="subscriptions/:id"
+                element={
+                  <HubCapabilityRoute capability="member_view_site_pages">
+                    <SubscriptionDetail />
+                  </HubCapabilityRoute>
+                }
+              />
             </Route>
 
             {/* Universal dashboard — tools from Capabilities matrix (+ Power Admin pa_* tools) */}

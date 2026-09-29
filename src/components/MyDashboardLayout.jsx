@@ -52,9 +52,14 @@ export default function MyDashboardLayout() {
     [location.pathname]
   )
   const isOverview = location.pathname === '/my-dashboard'
+  const groupLabelOpts = {
+    isWhiteLabelHub,
+    isControlPlane,
+    isActingRemotely,
+  }
   const sectionLabel = isOverview
     ? 'Dashboard'
-    : resolveDashboardGroupLabel(activeLink?.group || 'Dashboard', { isWhiteLabelHub })
+    : resolveDashboardGroupLabel(activeLink?.group || 'Dashboard', groupLabelOpts)
 
   // Leave pages that are unavailable for the selected hub (e.g. White-labelled hubs while controlling a WL tenant).
   useEffect(() => {
@@ -195,7 +200,7 @@ export default function MyDashboardLayout() {
                 className="dash-nav__section"
                 role="presentation"
               >
-                {resolveDashboardGroupLabel(link.label, { isWhiteLabelHub })}
+                {resolveDashboardGroupLabel(link.label, groupLabelOpts)}
               </p>
             ) : (
               <NavLink
@@ -213,7 +218,9 @@ export default function MyDashboardLayout() {
         </nav>
 
         <div className="dash-sidebar__footer">
-          <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
+          {can('member_view_site_pages') ? (
+            <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
+          ) : null}
           <div className="dash-user-row">
             <span className="dash-user-avatar" aria-hidden="true">
               {String(user?.name || 'U').charAt(0).toUpperCase()}
@@ -251,7 +258,9 @@ export default function MyDashboardLayout() {
             <ActingAdvisorSwitcher />
           </div>
           <div className="dash-topbar__links">
-            <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
+            {can('member_view_site_pages') ? (
+              <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
+            ) : null}
           </div>
         </header>
         <main

@@ -786,7 +786,14 @@ h2,
   gap: 1.1rem;
   width: 100%;
   max-width: 1180px;
+  min-width: 0;
   box-sizing: border-box;
+}
+
+/* Capabilities matrix needs the full content column width on smaller screens */
+.dash-content:has(.capabilities-matrix-page) {
+  max-width: none;
+  overflow-x: hidden;
 }
 
 .dash-content.is-hub-switching {

@@ -119,13 +119,17 @@ export default function MyDashboard() {
 
     return GROUP_ORDER.map((key) => ({
       key,
-      label: resolveDashboardGroupLabel(key, { isWhiteLabelHub }),
+      label: resolveDashboardGroupLabel(key, {
+        isWhiteLabelHub,
+        isControlPlane,
+        isActingRemotely,
+      }),
       cards: cards.filter((c) => c.group === key),
     })).filter((g) => g.cards.length > 0)
   }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, actingAdvisor, user?.role])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
-  const showBrowseCatalog = !(isControlPlane && !isActingRemotely)
+  const showBrowseCatalog = can('member_view_site_pages')
 
   return (
     <section className="dash-home">

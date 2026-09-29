@@ -197,9 +197,13 @@ export default function PowerAdminCapabilities() {
           <h1>User capabilities</h1>
           <p className="muted">
             Editing roles for <strong>{selectedHubName}</strong>
-            {isActingOnWhiteLabel ? ' (white-labelled)' : ' (shared)'}. Use{' '}
-            <strong>Control hub</strong> in the top bar to switch hubs. Hub Functionalities are
-            configured separately under Hub checklists.
+            {isActingOnWhiteLabel
+              ? ' (white-labelled)'
+              : hub?.type === 'central' || hub?.is_central || hub?.is_control_plane
+                ? ' (Central Hub)'
+                : ' (shared)'}
+            . Use <strong>Control hub</strong> in the top bar to switch hubs. Hub Functionalities
+            are configured separately under Hub checklists.
           </p>
         </div>
       </div>

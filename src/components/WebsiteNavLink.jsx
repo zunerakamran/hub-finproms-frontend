@@ -4,7 +4,7 @@ import { useHub } from '../context/HubContext'
 /**
  * Dashboard "Website" / "Back to website" link.
  * While controlling a white-labelled hub, open that hub's live site (frontend_url)
- * instead of the shared control-plane catalog.
+ * instead of this deploy's own public site.
  */
 export default function WebsiteNavLink({ children, className }) {
   const { isActingOnWhiteLabel, actingHub } = useHub()

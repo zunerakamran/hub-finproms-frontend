@@ -298,13 +298,13 @@ export function HubProvider({ children }) {
           ? Number(user.id)
           : null
 
-      // Central Hub Controller has no member website. Only show website chrome when
-      // the capability is on AND this is not the local control-plane shell.
-      // While remotely controlling a white-labelled hub, allow the external site link.
+      // Public/member website chrome follows member_view_site_pages.
+      // Default OFF on Central, but Power Admin can enable it in Capabilities.
+      // While remotely controlling a white-labelled hub, only expose the external
+      // site link for that WL frontend (not Central's own shell).
       const capabilityAllowsSitePages = can('member_view_site_pages')
       const canViewSitePages = (() => {
         if (!capabilityAllowsSitePages) return false
-        if (isControlPlane && !isActingRemotely) return false
         if (isControlPlane && isActingRemotely) return Boolean(isActingOnWhiteLabel)
         return true
       })()

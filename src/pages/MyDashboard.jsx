@@ -25,7 +25,7 @@ const GROUP_ORDER = ['account', 'content', 'hub', 'advisors', 'smc', 'gc', 'wc',
 
 export default function MyDashboard() {
   const { user, canPower } = useAuth()
-  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isControlPlane, effectiveAdvisorId, actingAdvisor, actingHubId, actingHub } = useHub()
+  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, effectiveAdvisorId, actingAdvisor, actingHubId, actingHub } = useHub()
   const [data, setData] = useState(null)
   const [panelLoading, setPanelLoading] = useState(true)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
@@ -69,6 +69,7 @@ export default function MyDashboard() {
           isActingOnWhiteLabel,
           isWhiteLabelHub,
           isControlPlane,
+          isActingRemotely,
           userRole: user?.role,
         })
       )
@@ -121,9 +122,10 @@ export default function MyDashboard() {
       label: resolveDashboardGroupLabel(key, { isWhiteLabelHub }),
       cards: cards.filter((c) => c.group === key),
     })).filter((g) => g.cards.length > 0)
-  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, actingAdvisor, user?.role])
+  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, actingAdvisor, user?.role])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
+  const showBrowseCatalog = !(isControlPlane && !isActingRemotely)
 
   return (
     <section className="dash-home">
@@ -132,17 +134,22 @@ export default function MyDashboard() {
           <p className="eyebrow">Welcome back</p>
           <h1>{user?.name ? `Hi, ${user.name.split(' ')[0]}` : 'Your tools'}</h1>
           <p className="muted">
-            {totalTools > 0
-              ? `${totalTools} tool${totalTools === 1 ? '' : 's'} enabled for your role on `
-              : 'No tools enabled yet on '}
-            <strong>{brandName}</strong>.
+            {isControlPlane && !isActingRemotely
+              ? 'Central Hub Controller — manage hubs, Functionalities, Capabilities, and remote control.'
+              : totalTools > 0
+                ? `${totalTools} tool${totalTools === 1 ? '' : 's'} enabled for your role on `
+                : 'No tools enabled yet on '}
+            {!(isControlPlane && !isActingRemotely) && <strong>{brandName}</strong>}
+            {isControlPlane && !isActingRemotely ? null : '.'}
           </p>
         </div>
-        <div className="dash-welcome__actions">
-          <Link to="/" className="btn ghost">
-            Browse catalog
-          </Link>
-        </div>
+        {showBrowseCatalog && (
+          <div className="dash-welcome__actions">
+            <Link to="/" className="btn ghost">
+              Browse catalog
+            </Link>
+          </div>
+        )}
       </div>
 
       {panelLoading ? (

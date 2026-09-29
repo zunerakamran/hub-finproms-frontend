@@ -12,15 +12,17 @@ function resolveNavCatalogType(search) {
 
 export default function Layout() {
   const { user, logout, isAdvisor, isAuthenticated } = useAuth()
-  const { can, hub, hasDashboardAccess, branding, isActingAsAdvisor, registrationEnabled } =
+  const { can, hub, hasDashboardAccess, branding, isActingAsAdvisor, registrationEnabled, isControlPlane } =
     useHub()
   const location = useLocation()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = brandLogoUrl(branding, { onDark: false })
   const showPlans =
-    can('member_view_plans') && (can('public_subscribe') || can('paid_credits'))
+    !isControlPlane &&
+    can('member_view_plans') &&
+    (can('public_subscribe') || can('paid_credits'))
   const isHome = location.pathname === '/'
-
+  const showCatalog = !isControlPlane && isAuthenticated && can('member_browse_catalog')
   const creditsLabel =
     user?.has_unlimited_credits ||
     (can('unlimited_credits') && (isAdvisor || isActingAsAdvisor))
@@ -31,7 +33,7 @@ export default function Layout() {
     <div className="site-shell">
       <header className="site-header">
         <div className="site-header__inner">
-          <NavLink to="/" className="site-brand">
+          <NavLink to={isControlPlane ? '/my-dashboard' : '/'} className="site-brand">
             {logoUrl ? <img src={logoUrl} alt="" className="site-brand__logo" /> : (
               <span className="site-brand__mark" aria-hidden="true">
                 {String(brandName).charAt(0)}
@@ -41,10 +43,12 @@ export default function Layout() {
           </NavLink>
 
           <nav className="site-nav" aria-label="Main">
-            <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : undefined)}>
-              Home
-            </NavLink>
-            {isAuthenticated && can('member_browse_catalog') && (
+            {!isControlPlane && (
+              <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : undefined)}>
+                Home
+              </NavLink>
+            )}
+            {showCatalog && (
               <NavLink
                 to="/posts?type=post"
                 className={() =>
@@ -57,7 +61,7 @@ export default function Layout() {
                 Posts
               </NavLink>
             )}
-            {isAuthenticated && can('member_browse_catalog') && (
+            {showCatalog && (
               <NavLink
                 to="/posts?type=reel"
                 className={() =>
@@ -70,7 +74,7 @@ export default function Layout() {
                 Reels
               </NavLink>
             )}
-            {isAuthenticated && can('member_browse_catalog') && (
+            {showCatalog && (
               <NavLink
                 to="/bundles"
                 className={({ isActive }) => (isActive ? 'is-active' : undefined)}
@@ -99,10 +103,12 @@ export default function Layout() {
           <div className="site-header__actions">
             {isAuthenticated ? (
               <>
-                <div className="site-credit-chip" title="Credit balance">
-                  <span className="site-credit-chip__label">Credits</span>
-                  <strong>{creditsLabel}</strong>
-                </div>
+                {!isControlPlane && (
+                  <div className="site-credit-chip" title="Credit balance">
+                    <span className="site-credit-chip__label">Credits</span>
+                    <strong>{creditsLabel}</strong>
+                  </div>
+                )}
                 <div className="site-user">
                   <span className="site-user__avatar" aria-hidden="true">
                     {String(user?.name || 'U').charAt(0).toUpperCase()}
@@ -118,7 +124,7 @@ export default function Layout() {
                 <NavLink to="/login" className="btn ghost site-auth-btn">
                   Log in
                 </NavLink>
-                {registrationEnabled && (
+                {registrationEnabled && !isControlPlane && (
                   <NavLink to="/register" className="btn primary site-auth-btn">
                     Sign up
                   </NavLink>

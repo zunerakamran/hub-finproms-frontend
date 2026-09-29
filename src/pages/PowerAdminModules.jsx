@@ -12,6 +12,9 @@ const MODULE_CHILDREN = {
 
 function lockedHint(item) {
   if (!item.locked) return null
+  if (item.locked_reason === 'central_hub') {
+    return 'Always enabled on Central Hub Controller (cannot be turned off). This instance is control plane only — no content catalog modules.'
+  }
   if (item.locked_reason === 'shared_hub') {
     return 'Always enabled on the shared hub (cannot be turned off). Other modules depend on this.'
   }
@@ -163,7 +166,12 @@ export default function PowerAdminModules() {
           <h1>Modules</h1>
           <p className="muted">
             Enable product modules for <strong>{selectedName}</strong>
-            {isActingOnWhiteLabel ? ' (white-labelled)' : ' (shared)'}. Related Capabilities stay
+            {isActingOnWhiteLabel
+              ? ' (white-labelled)'
+              : hub?.type === 'central' || hub?.is_central
+                ? ' (Central Hub Controller)'
+                : ' (shared)'}
+            . Related Capabilities stay
             unavailable until a module is on. Who can open this screen is controlled by{' '}
             <strong>Manage hub modules</strong> in the Capabilities matrix.
           </p>
@@ -190,10 +198,9 @@ export default function PowerAdminModules() {
           <div className="checklist-section" id="modules">
             <h2>Modules</h2>
             <p className="muted checklist-section-hint">
-              Module 1 is the hub base ({isActingOnWhiteLabel ? 'White Label Hub' : 'Shared Hub'}) and
-              is always on. Other modules are gated by dependencies: Social Media Pre Approval needs
-              the Social Media Template Library; Website Content Pre Approval needs the Website
-              Template Library. Turning a parent off cascades to its dependents.
+              {(hub?.type === 'central' || hub?.is_central) && !isActingOnWhiteLabel
+                ? 'Central Hub Controller is the locked base module for this control plane. Content product modules (posts library, compliance, websites) are managed on Shared / White-label hubs via the hub switcher.'
+                : `Module 1 is the hub base (${isActingOnWhiteLabel ? 'White Label Hub' : 'Shared Hub'}) and is always on. Other modules are gated by dependencies: Social Media Pre Approval needs the Social Media Template Library; Website Content Pre Approval needs the Website Template Library. Turning a parent off cascades to its dependents.`}
             </p>
             <div className="checklist-grid">
               {modules.map((item) => {

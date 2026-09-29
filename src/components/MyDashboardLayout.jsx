@@ -41,9 +41,10 @@ export default function MyDashboardLayout() {
         isActingOnWhiteLabel,
         isWhiteLabelHub,
         isControlPlane,
+        isActingRemotely,
         userRole: user?.role,
       }),
-    [advisorBillingEnabled, canManagePaymentCard, can, canPower, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, user?.role]
+    [advisorBillingEnabled, canManagePaymentCard, can, canPower, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, user?.role]
   )
 
   const activeLink = useMemo(
@@ -81,6 +82,7 @@ export default function MyDashboardLayout() {
       isActingOnWhiteLabel,
       isWhiteLabelHub,
       isControlPlane,
+      isActingRemotely,
       userRole: user?.role,
     })
 
@@ -97,6 +99,7 @@ export default function MyDashboardLayout() {
     isActingOnWhiteLabel,
     isWhiteLabelHub,
     isControlPlane,
+    isActingRemotely,
     actingHubId,
     user?.role,
     navigate,

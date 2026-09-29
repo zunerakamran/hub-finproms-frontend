@@ -663,8 +663,32 @@ export const DASHBOARD_LINKS = [
 
 export function isDashboardLinkVisible(
   link,
-  { can, canPower, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, userRole }
+  {
+    can,
+    canPower,
+    advisorBillingEnabled,
+    canManagePaymentCard,
+    isActingOnWhiteLabel,
+    isWhiteLabelHub,
+    isControlPlane,
+    isActingRemotely,
+    userRole,
+  }
 ) {
+  // On Central Hub itself (not remotely controlling another hub): Platform tools only.
+  if (isControlPlane && !isActingRemotely) {
+    const isPlatform =
+      link.controlPlaneOnly ||
+      link.group === 'platform' ||
+      Boolean(link.paCapability) ||
+      (Array.isArray(link.paAnyOf) && link.paAnyOf.length > 0) ||
+      (link.kind === 'section' && String(link.label || '').toLowerCase() === 'platform')
+    const isDashHome = link.to === '/my-dashboard' && link.end
+    if (!isPlatform && !isDashHome) {
+      return false
+    }
+  }
+
   if (link.controlPlaneOnly && !isControlPlane) return false
   if (link.sharedOnly && (isActingOnWhiteLabel || isWhiteLabelHub)) return false
   if (Array.isArray(link.exceptRoles) && link.exceptRoles.length > 0) {

@@ -5,9 +5,9 @@ import { useHub } from '../context/HubContext'
 import Home from '../pages/Home'
 
 /**
- * Shared hubs: home is public (no login).
- * Central Hub Controller: no public catalog — send guests to login.
- * White-labelled hubs: home requires authentication (same as other member pages).
+ * Shared hubs: home is public catalog (no login required for landing).
+ * Central Hub Controller: control plane only — guests → login, users → dashboard.
+ * White-labelled hubs: home requires authentication.
  */
 export default function HomeRoute() {
   const { isAuthenticated, loading: authLoading } = useAuth()
@@ -19,9 +19,16 @@ export default function HomeRoute() {
   }
 
   const isShared = hub?.type === 'shared'
-  const isCentral = hub?.type === 'central' || hub?.is_central
+  const isCentral = Boolean(hub?.is_central || hub?.type === 'central' || hub?.is_control_plane)
 
-  if ((isCentral || !isShared) && !isAuthenticated) {
+  if (isCentral) {
+    if (!isAuthenticated) {
+      return <Navigate to="/login" replace state={{ from: location }} />
+    }
+    return <Navigate to="/my-dashboard" replace />
+  }
+
+  if (!isShared && !isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 

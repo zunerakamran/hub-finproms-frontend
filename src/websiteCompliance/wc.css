@@ -1,0 +1,213 @@
+/* Scoped via tailwind.config.js `important: '.wc-app'`.
+   Avoid @tailwind base — it would reset the whole hub shell.
+   Neutralize hub App.css element rules that otherwise leak into WC,
+   while inheriting hub brand tokens, fonts, and surfaces. */
+@tailwind components;
+@tailwind utilities;
+
+.wc-app {
+  --wc-ink: var(--ink, #101828);
+  --wc-muted: var(--muted, #667085);
+  --wc-line: var(--line, #e4e7ec);
+  --wc-surface: var(--surface, #f4f6f8);
+  --wc-panel: var(--surface-2, var(--panel, #ffffff));
+  --wc-radius: var(--radius, 16px);
+  --wc-brand: var(--brand, #0f5c45);
+  --wc-brand-dark: var(--brand-dark, #0a3f30);
+  --wc-brand-soft: var(--brand-soft, color-mix(in srgb, var(--wc-brand) 14%, white));
+  --wc-brand-softer: var(--brand-softer, color-mix(in srgb, var(--wc-brand) 7%, white));
+  --wc-brand-glow: var(--brand-glow, color-mix(in srgb, var(--wc-brand) 22%, transparent));
+  font-family: var(--font-ui, 'Outfit', 'Manrope', 'Segoe UI', sans-serif);
+  color: var(--wc-ink);
+  line-height: 1.5;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wc-app *,
+.wc-app *::before,
+.wc-app *::after {
+  box-sizing: border-box;
+}
+
+/* Match hub display headings (shell.css / App.css). */
+.wc-app h1,
+.wc-app h2 {
+  font-family: var(--font-display, 'Fraunces', 'Source Serif 4', Georgia, serif);
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--wc-ink);
+}
+
+.wc-app h3,
+.wc-app h4 {
+  font-family: inherit;
+  letter-spacing: normal;
+  margin: 0;
+  color: var(--wc-brand-dark);
+}
+
+/* Hub App.css forces brand-colored links — keep WC links intentional. */
+.wc-app a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Hub App.css: label { display:grid; margin-bottom:0.85rem } breaks flex rows. */
+.wc-app label {
+  display: block;
+  margin: 0;
+  gap: 0;
+  font-weight: inherit;
+}
+
+/* Hub App.css: input/select/textarea { width:100%; padding; border } blows flex layouts.
+   Tailwind utilities (w-full, p-2.5, border, …) re-apply intended styles. */
+.wc-app input,
+.wc-app select,
+.wc-app textarea,
+.wc-app button {
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  box-shadow: none;
+}
+
+.wc-app button {
+  cursor: pointer;
+}
+
+.wc-app input[type='checkbox'],
+.wc-app input[type='radio'] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--wc-brand);
+}
+
+.wc-app input[type='color'] {
+  padding: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--wc-line);
+  border-radius: var(--radius-sm, 10px);
+  background: var(--wc-panel);
+  cursor: pointer;
+}
+
+/* Quill rich-text toolbar inside WC surfaces */
+.wc-app .rich-text-editor .ql-toolbar.ql-snow,
+.wc-app .rich-text-editor .ql-container.ql-snow {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+}
+.wc-app .rich-text-editor .ql-toolbar.ql-snow {
+  border-radius: 8px 8px 0 0;
+  background: #f8fafc;
+  padding: 6px 8px;
+}
+.wc-app .rich-text-editor .ql-container.ql-snow {
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+}
+.wc-app .rich-text-editor .ql-toolbar button {
+  width: 28px;
+  height: 28px;
+  padding: 3px 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.wc-app .rich-text-editor .ql-editor {
+  min-height: 96px;
+  padding: 10px 12px;
+}
+
+/* Hub shell canvas for embedded WC surfaces */
+.wc-app.wc-surface {
+  background:
+    radial-gradient(ellipse 70% 45% at 0% -8%, var(--wc-brand-glow), transparent 55%),
+    radial-gradient(ellipse 50% 35% at 100% 0%, color-mix(in srgb, var(--wc-brand-dark) 10%, transparent), transparent 50%),
+    linear-gradient(180deg, var(--wc-surface) 0%, color-mix(in srgb, var(--wc-brand) 2%, #eef1f3) 100%);
+  border: 1px solid var(--wc-line);
+  border-radius: var(--wc-radius);
+  box-shadow: var(--shadow, 0 1px 2px rgba(16, 24, 40, 0.05), 0 10px 28px rgba(16, 24, 40, 0.06));
+  padding: 1rem 1.1rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .wc-app.wc-surface {
+    padding: 1.25rem 1.5rem 1.75rem;
+  }
+}
+
+/* Modal portal root (must keep .wc-app so Tailwind important selector applies) */
+.wc-app.wc-portal-root {
+  position: relative;
+  z-index: 80;
+}
+
+/* React-icons / SVGs — hub shell + inline SVG baselines mis-align icons in flex rows. */
+.wc-app svg {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+/* Search / icon-prefixed inputs */
+.wc-app .wc-icon-field {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.wc-app .wc-icon-field__icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--wc-muted);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.wc-app .wc-icon-field > input {
+  display: block;
+  width: 100%;
+  /* Keep left padding for icon even if utility padding is reset by hub CSS. */
+  padding-left: 2.35rem !important;
+}
+
+/* Inline icon + label rows (badges, tabs, buttons) */
+.wc-app .inline-flex > svg,
+.wc-app button > svg,
+.wc-app a > svg,
+.wc-app span > svg {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Template hover-scroll preview shell */
+.wc-app .wc-template-preview {
+  isolation: isolate;
+  touch-action: manipulation;
+}
+
+.wc-app .wc-template-preview:focus-visible {
+  outline: 2px solid var(--wc-brand);
+  outline-offset: 2px;
+}
+
+.wc-app .wc-template-preview__scroller {
+  max-width: none;
+}

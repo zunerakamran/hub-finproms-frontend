@@ -1,0 +1,539 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { FaEdit, FaTrash } from 'react-icons/fa'
+import { api } from '../api/client'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
+import { useAuth } from '../context/AuthContext'
+import { useHub } from '../context/HubContext'
+import { formatDateTime } from '../utils/dateFormat'
+
+const emptyForm = {
+  name: '',
+  description: '',
+  overview: '',
+  features: '',
+  benefits: '',
+  price: '',
+  credits: '',
+  duration_days: 30,
+  is_active: true,
+  show_reach: true,
+  show_views: false,
+  show_buys: false,
+  image: null,
+}
+
+function linesToList(text) {
+  return String(text || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+function listToLines(list) {
+  if (!Array.isArray(list)) return ''
+  return list.join('\n')
+}
+
+function formatLastUpdated(value) {
+  if (!value) return null
+  const formatted = formatDateTime(value, '')
+  return formatted || null
+}
+
+function draftKey(shell) {
+  return `hub-finproms:admin-plans-draft:${shell}`
+}
+
+function readDraft(shell) {
+  try {
+    const raw = sessionStorage.getItem(draftKey(shell))
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeDraft(shell, payload) {
+  try {
+    sessionStorage.setItem(draftKey(shell), JSON.stringify(payload))
+  } catch {
+    // Ignore quota / private-mode failures.
+  }
+}
+
+function clearDraft(shell) {
+  try {
+    sessionStorage.removeItem(draftKey(shell))
+  } catch {
+    // ignore
+  }
+}
+
+export default function AdminPlans({ shell = 'client-admin' }) {
+  const { isPowerAdmin } = useAuth()
+  const { can, loading: hubLoading } = useHub()
+  const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
+  const enabled = can('dashboard_manage_plans')
+  const eyebrow = 'Hub'
+  const apiOpts = { asPowerAdmin }
+
+  const draft = useMemo(() => readDraft(shell), [shell])
+  const [plans, setPlans] = useState([])
+  const [form, setForm] = useState(() => ({
+    ...emptyForm,
+    ...(draft?.form || {}),
+    image: null,
+  }))
+  const [editingId, setEditingId] = useState(() => draft?.editingId ?? null)
+  const [existingImageUrl, setExistingImageUrl] = useState(() => draft?.existingImageUrl ?? null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const hasLoadedRef = useRef(false)
+
+  const imagePreviewUrl = useMemo(() => {
+    if (form.image) return URL.createObjectURL(form.image)
+    return existingImageUrl
+  }, [form.image, existingImageUrl])
+
+  useEffect(() => {
+    if (!form.image || !imagePreviewUrl) return undefined
+    return () => URL.revokeObjectURL(imagePreviewUrl)
+  }, [form.image, imagePreviewUrl])
+
+  // Persist in-progress form so leaving the page / remounting does not wipe fields.
+  useEffect(() => {
+    const isDirty =
+      editingId != null ||
+      Object.entries(form).some(([key, value]) => {
+        if (key === 'image') return false
+        return String(value ?? '') !== String(emptyForm[key] ?? '')
+      })
+
+    if (!isDirty) {
+      clearDraft(shell)
+      return
+    }
+
+    writeDraft(shell, {
+      editingId,
+      existingImageUrl,
+      form: {
+        name: form.name,
+        description: form.description,
+        overview: form.overview,
+        features: form.features,
+        benefits: form.benefits,
+        price: form.price,
+        credits: form.credits,
+        duration_days: form.duration_days,
+        is_active: form.is_active,
+        show_reach: form.show_reach,
+        show_views: form.show_views,
+        show_buys: form.show_buys,
+      },
+    })
+  }, [shell, form, editingId, existingImageUrl])
+
+  const load = async ({ silent = false } = {}) => {
+    if (!enabled) {
+      setLoading(false)
+      return
+    }
+    if (!silent) setLoading(true)
+    setError('')
+    try {
+      const data = await api.adminPlans(apiOpts)
+      setPlans(data.plans || [])
+      hasLoadedRef.current = true
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (hubLoading || !enabled) return
+    // Fetch once when the page becomes ready — do not re-fetch on hub re-renders.
+    if (hasLoadedRef.current) return
+    load({ silent: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hubLoading, enabled, asPowerAdmin])
+
+  const reset = () => {
+    setForm(emptyForm)
+    setEditingId(null)
+    setExistingImageUrl(null)
+    clearDraft(shell)
+  }
+
+  const toFormData = () => {
+    const fd = new FormData()
+    fd.append('name', form.name.trim())
+    fd.append('description', form.description.trim())
+    fd.append('overview', form.overview.trim())
+    fd.append('features', JSON.stringify(linesToList(form.features)))
+    fd.append('benefits', JSON.stringify(linesToList(form.benefits)))
+    fd.append('price', String(Number(form.price)))
+    fd.append('credits', String(Number(form.credits)))
+    fd.append('duration_days', String(Number(form.duration_days)))
+    fd.append('is_active', form.is_active ? '1' : '0')
+    fd.append('show_reach', form.show_reach ? '1' : '0')
+    fd.append('show_views', form.show_views ? '1' : '0')
+    fd.append('show_buys', form.show_buys ? '1' : '0')
+    if (form.image) fd.append('image', form.image)
+    return fd
+  }
+
+  const onSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const payload = toFormData()
+      if (editingId) {
+        await api.updatePlan(editingId, payload, apiOpts)
+        setMessage('Plan updated.')
+      } else {
+        await api.createPlan(payload, apiOpts)
+        setMessage('Plan created.')
+      }
+      reset()
+      await load({ silent: true })
+    } catch (err) {
+      const firstError =
+        err.data?.errors?.name?.[0] ||
+        err.data?.errors?.price?.[0] ||
+        err.data?.errors?.credits?.[0] ||
+        err.data?.errors?.duration_days?.[0] ||
+        err.data?.errors?.image?.[0] ||
+        err.data?.errors?.features?.[0] ||
+        err.data?.errors?.benefits?.[0] ||
+        err.message
+      setError(firstError)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const edit = (plan) => {
+    setEditingId(plan.id)
+    setExistingImageUrl(plan.image_url || null)
+    setForm({
+      name: plan.name || '',
+      description: plan.description || '',
+      overview: plan.overview || '',
+      features: listToLines(plan.features),
+      benefits: listToLines(plan.benefits),
+      price: String(plan.price ?? ''),
+      credits: String(plan.credits ?? ''),
+      duration_days: plan.duration_days || 30,
+      is_active: plan.is_active !== false,
+      show_reach: plan.show_reach !== false,
+      show_views: !!plan.show_views,
+      show_buys: !!plan.show_buys,
+      image: null,
+    })
+    setMessage('')
+    setError('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const remove = async (id) => {
+    if (!window.confirm('Delete this subscription plan?')) return
+    setError('')
+    setMessage('')
+    try {
+      await api.deletePlan(id, apiOpts)
+      setMessage('Plan deleted.')
+      if (editingId === id) reset()
+      await load({ silent: true })
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  if (!hubLoading && !enabled) {
+    return (
+      <section>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">{eyebrow}</p>
+            <h1>Subscriptions</h1>
+            <p className="muted">
+              Managing subscription plans is disabled for your role on this hub. Enable
+              &quot;Manage subscription plans&quot; under Power Admin → Capabilities.
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">{eyebrow}</p>
+          <h1>{editingId ? 'Edit plan' : 'Subscriptions'}</h1>
+          <p className="muted">
+            Create credit packages users can buy on the Subscriptions page. Control which post
+            metrics (reach, views, buys) each plan&apos;s subscribers can see.
+          </p>
+        </div>
+      </div>
+
+      <form className="admin-form" onSubmit={onSubmit}>
+        {error && <div className="alert">{error}</div>}
+        {message && <div className="alert success">{message}</div>}
+        <div className="form-grid">
+          <label>
+            Name
+            <input
+              required
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Basic, Standard, Premium..."
+            />
+          </label>
+          <label>
+            Price (GBP)
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              required
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+            />
+          </label>
+          <label>
+            Credits
+            <input
+              type="number"
+              min="1"
+              required
+              value={form.credits}
+              onChange={(e) => setForm({ ...form, credits: e.target.value })}
+            />
+          </label>
+          <label>
+            Duration (days)
+            <input
+              type="number"
+              min="1"
+              required
+              value={form.duration_days}
+              onChange={(e) => setForm({ ...form, duration_days: e.target.value })}
+            />
+          </label>
+        </div>
+        <label>
+          Description
+          <textarea
+            rows={2}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="Short summary shown with the plan..."
+          />
+        </label>
+        <label>
+          Overview
+          <textarea
+            rows={3}
+            value={form.overview}
+            onChange={(e) => setForm({ ...form, overview: e.target.value })}
+            placeholder="Longer overview of what this subscription offers..."
+          />
+        </label>
+        <div className="form-grid">
+          <label>
+            Features (one per line)
+            <textarea
+              rows={5}
+              value={form.features}
+              onChange={(e) => setForm({ ...form, features: e.target.value })}
+              placeholder={'90 credits per month\nAccess to shared FinProms library'}
+            />
+          </label>
+          <label>
+            Benefits (one per line)
+            <textarea
+              rows={5}
+              value={form.benefits}
+              onChange={(e) => setForm({ ...form, benefits: e.target.value })}
+              placeholder={'Affordable entry point\nPredictable monthly credits'}
+            />
+          </label>
+        </div>
+        <label>
+          Plan image
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })}
+          />
+          <span className="field-hint">JPG, PNG, GIF or WebP. Max 5MB.</span>
+        </label>
+        {(form.image || existingImageUrl) && (
+          <div className="plan-image-preview">
+            <img src={imagePreviewUrl} alt="Plan preview" />
+          </div>
+        )}
+        <fieldset className="plan-metrics-fieldset">
+          <legend>Subscriber content metrics</legend>
+          <p className="field-hint">
+            Choose which post metrics subscribers on this plan can see on listing and
+            detail pages. Typical defaults: Basic = reach only; Standard = reach + views;
+            Premium = reach + views + buys.
+          </p>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={form.show_reach}
+              onChange={(e) => setForm({ ...form, show_reach: e.target.checked })}
+            />
+            Show reach
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={form.show_views}
+              onChange={(e) => setForm({ ...form, show_views: e.target.checked })}
+            />
+            Show views
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={form.show_buys}
+              onChange={(e) => setForm({ ...form, show_buys: e.target.checked })}
+            />
+            Show buys
+          </label>
+        </fieldset>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={form.is_active}
+            onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+          />
+          Active (visible on public Subscriptions page)
+        </label>
+        <div className="actions">
+          <button type="submit" className="btn primary" disabled={saving}>
+            {saving ? 'Saving...' : editingId ? 'Update plan' : 'Add plan'}
+          </button>
+          {editingId && (
+            <button type="button" className="btn ghost" onClick={reset}>
+              Cancel edit
+            </button>
+          )}
+        </div>
+      </form>
+
+      <h2 className="section-title">Existing plans</h2>
+      <DataGrid
+        columns={[
+          {
+            key: 'image',
+            label: '',
+            narrow: true,
+            filterable: false,
+            render: (row) =>
+              row.image_url ? (
+                <img className="admin-thumb" src={row.image_url} alt="" />
+              ) : (
+                <div className="admin-thumb plan-thumb-fallback" aria-hidden>
+                  {row.name?.[0] || '?'}
+                </div>
+              ),
+          },
+          {
+            key: 'name',
+            label: 'Name',
+            grow: true,
+            filterValue: (row) => row.name,
+            render: (row) => <strong>{row.name}</strong>,
+          },
+          {
+            key: 'price',
+            label: 'Price',
+            fit: true,
+            filterValue: (row) => String(row.price),
+            render: (row) => `£${Number(row.price).toFixed(2)}`,
+          },
+          {
+            key: 'credits',
+            label: 'Credits',
+            fit: true,
+            filterValue: (row) => String(row.credits),
+          },
+          {
+            key: 'duration_days',
+            label: 'Duration',
+            fit: true,
+            filterValue: (row) => String(row.duration_days),
+            render: (row) => `${row.duration_days} days`,
+          },
+          {
+            key: 'is_active',
+            label: 'Status',
+            fit: true,
+            filterValue: (row) => (row.is_active ? 'Active' : 'Inactive'),
+            render: (row) => (row.is_active ? 'Active' : 'Inactive'),
+          },
+          {
+            key: 'metrics',
+            label: 'Metrics',
+            fit: true,
+            filterValue: (row) =>
+              [
+                row.show_reach !== false ? 'reach' : null,
+                row.show_views ? 'views' : null,
+                row.show_buys ? 'buys' : null,
+              ]
+                .filter(Boolean)
+                .join(', ') || 'none',
+            render: (row) =>
+              [
+                row.show_reach !== false ? 'reach' : null,
+                row.show_views ? 'views' : null,
+                row.show_buys ? 'buys' : null,
+              ]
+                .filter(Boolean)
+                .join(', ') || 'none',
+          },
+          {
+            key: 'last_updated',
+            label: 'Last updated',
+            date: true,
+            filterValue: (row) => formatLastUpdated(row.last_updated) || '',
+            render: (row) => <DataGridDate value={row.last_updated} />,
+          },
+        ]}
+        rows={plans}
+        loading={loading}
+        emptyMessage="No plans yet. Add one above."
+        getRowKey={(row) => row.id}
+        actions={(row) => (
+          <>
+            <DataGridIconBtn icon={FaEdit} label="Edit" onClick={() => edit(row)} />
+            <DataGridIconBtn
+              icon={FaTrash}
+              label="Delete"
+              variant="danger"
+              onClick={() => remove(row.id)}
+            />
+          </>
+        )}
+      />
+    </section>
+  )
+}

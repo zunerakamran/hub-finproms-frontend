@@ -1,0 +1,33 @@
+/**
+ * @param {{ attribution_label?: string|null, on_behalf_by?: {name?: string}|null, on_behalf_by_user_id?: number|null, submitter?: {name?: string}|null, editor?: {name?: string}|null, name?: string|null }} row
+ */
+export function hasOnBehalfAttribution(row) {
+  if (!row) return false
+  if (row.attribution_label) return true
+  if (row.on_behalf_by?.name) return true
+  if (row.on_behalf_by_user_id) return true
+  return false
+}
+
+/**
+ * Grid display name: admin-staff when they submitted on behalf, otherwise the owner.
+ * Full “submitted on behalf of” copy belongs on the detail page only.
+ * @param {object} row
+ * @param {'submitter'|'editor'} [ownerKey='submitter']
+ */
+export function gridActorName(row, ownerKey = 'submitter') {
+  return row?.on_behalf_by?.name || row?.[ownerKey]?.name || row?.name || '—'
+}
+
+/**
+ * @param {{ attribution_label?: string|null, on_behalf_by?: {name?: string}|null, submitter?: {name?: string}|null, editor?: {name?: string}|null, name?: string|null }} row
+ * @param {'submitter'|'editor'} [ownerKey='submitter']
+ */
+export function submissionAttributionText(row, ownerKey = 'submitter') {
+  if (row?.attribution_label) return row.attribution_label
+  const owner = row?.[ownerKey]?.name || row?.name || 'Unknown'
+  if (row?.on_behalf_by?.name) {
+    return `${row.on_behalf_by.name} submitted on behalf of ${owner}`
+  }
+  return `Submitted by ${owner}`
+}

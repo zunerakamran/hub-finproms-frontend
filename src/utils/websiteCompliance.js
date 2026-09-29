@@ -1,0 +1,100 @@
+/** Website Compliance shared helpers */
+
+import { formatDateTime } from './dateFormat'
+import {
+  DEFAULT_COMPLIANCE_STATUS_LABELS,
+  complianceStatusLabel,
+  normalizeComplianceStatusKey,
+} from './complianceStatusLabels'
+
+export const WC_STATUSES = [
+  'pending',
+  'under_review',
+  'scheduled',
+  'approved',
+  'rejected',
+  'approved_with_feedback',
+]
+
+/** Manager override options — matches SMC/GC order. */
+export const WC_CHANGE_STATUS_OPTIONS = [
+  'pending',
+  'approved',
+  'approved_with_feedback',
+  'rejected',
+]
+
+export function wcStatusLabel(status, hubOrLabels = null) {
+  if (hubOrLabels) {
+    return complianceStatusLabel(hubOrLabels, status)
+  }
+  const key = normalizeComplianceStatusKey(status)
+  return DEFAULT_COMPLIANCE_STATUS_LABELS[key] || status || 'Pending'
+}
+
+export function wcStatusClass(status) {
+  const s = String(status || 'pending').toLowerCase()
+  if (s.includes('approved_with') || s.includes('approved with')) return 'wc-status wc-status--awf'
+  if (s.includes('approved')) return 'wc-status wc-status--ok'
+  if (s.includes('reject')) return 'wc-status wc-status--bad'
+  if (s.includes('schedul')) return 'wc-status wc-status--scheduled'
+  if (s.includes('under_review') || s.includes('under review')) return 'wc-status wc-status--review'
+  return 'wc-status wc-status--pending'
+}
+
+export function formatWcDate(value) {
+  return formatDateTime(value)
+}
+
+/** Hub module gates for Website Template Library vs Content Pre Approval. */
+export function websiteTemplateLibraryOn(can) {
+  return Boolean(can?.('module_website_template_library'))
+}
+
+export function websiteContentPreApprovalOn(can) {
+  return Boolean(can?.('module_website_compliance'))
+}
+
+export function anyWebsiteModuleOn(can) {
+  return websiteTemplateLibraryOn(can) || websiteContentPreApprovalOn(can)
+}
+
+export function websiteModuleOffMessage({ templateLibrary = false, contentPreApproval = false } = {}) {
+  if (templateLibrary && !contentPreApproval) {
+    return 'Website Template Library is not enabled for this hub. Ask Power Admin to enable it under Modules.'
+  }
+  if (contentPreApproval && !templateLibrary) {
+    return 'Website Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it under Modules.'
+  }
+  return 'Website modules are not enabled for this hub. Ask Power Admin to enable Website Template Library and/or Website Content Pre Approval under Modules.'
+}
+
+export function wcSectionTitle(cr) {
+  if (Array.isArray(cr?.section_edits) && cr.section_edits.length) {
+    const names = cr.section_edits
+      .map((e) => e.section_name || e.display_name)
+      .filter(Boolean)
+    if (names.length) return names.join(', ')
+  }
+  return (
+    cr?.section?.display_name ||
+    cr?.section?.name ||
+    (cr?.section_id ? `Section #${cr.section_id}` : 'Website change')
+  )
+}
+
+export function wcVersionSectionNames(version) {
+  const edits = Array.isArray(version?.section_edits) ? version.section_edits : null
+  if (edits?.length) {
+    return edits.map((e) => e.section_name || e.display_name || `Section #${e.section_id}`)
+  }
+  try {
+    const parsed = JSON.parse(version?.proposed_content || '[]')
+    if (Array.isArray(parsed)) {
+      return parsed.map((e) => e.section_name || e.display_name || `Section #${e.section_id}`)
+    }
+  } catch {
+    /* ignore */
+  }
+  return []
+}

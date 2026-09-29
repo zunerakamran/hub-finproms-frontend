@@ -1,0 +1,64 @@
+# .github/workflows/deploy.yml
+name: Build & Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install & Build (shared + myhub)
+        run: |
+          npm ci
+          npm run build:shared
+          npm run build:myhub
+
+      # CRITICAL (cPanel):
+      # The FTP account Directory must be the domain document root:
+      #   /home/<USER>/public_html
+      # NOT:
+      #   /home/<USER>/sharedhub.fin-proms.com/ftpaccount
+      #   /home/<USER>/myhub.fin-proms.com/ftpaccount
+      # Fix in cPanel → FTP Accounts → Change Directory, then re-run this workflow.
+      #
+      # server-dir is ./ because the FTP user should already land IN public_html.
+      - name: Deploy shared hub via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER_1 }}
+          username: ${{ secrets.FTP_USER_1 }}
+          password: ${{ secrets.FTP_PASS_1 }}
+          local-dir: ./dist-shared/
+          server-dir: ./
+          exclude: |
+            **/api/**
+            **/.env
+            **/.env.*
+            **/storage/**
+            **/vendor/**
+
+      - name: Deploy white-label hub via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER_2 }}
+          username: ${{ secrets.FTP_USER_2 }}
+          password: ${{ secrets.FTP_PASS_2 }}
+          local-dir: ./dist-myhub/
+          server-dir: ./
+          exclude: |
+            **/api/**
+            **/.env
+            **/.env.*
+            **/storage/**
+            **/vendor/**

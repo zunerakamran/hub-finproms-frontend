@@ -1,0 +1,170 @@
+import { Link } from 'react-router-dom'
+import { useHub } from '../context/HubContext'
+
+const sections = [
+  {
+    to: '/client-admin/posts',
+    title: 'Posts & reels',
+    description: 'Create and edit social content, attachments, and credit costs.',
+    capability: 'dashboard_manage_posts',
+  },
+  {
+    to: '/client-admin/bundles',
+    title: 'Post bundles',
+    description: 'Group existing or new posts/reels into a bundle with description and total credits.',
+    capability: 'dashboard_manage_bundles',
+  },
+  {
+    to: '/client-admin/types',
+    title: 'Types',
+    description: 'Manage content types such as Post and Reel (separate from category).',
+    capability: 'dashboard_manage_types',
+  },
+  {
+    to: '/client-admin/categories',
+    title: 'Categories',
+    description: 'Manage topical categories (separate from type and tags).',
+    capability: 'dashboard_manage_categories',
+  },
+  {
+    to: '/client-admin/tags',
+    title: 'Tags',
+    description: 'Manage tags available when creating or editing content.',
+    capability: 'dashboard_manage_tags',
+  },
+  {
+    to: '/client-admin/firms',
+    title: 'Firms',
+    description:
+      'Manage firms, Central / Network, and compliance visibility (own, central, or another firm).',
+    capability: 'dashboard_manage_firms',
+  },
+  {
+    to: '/client-admin/plans',
+    title: 'Subscriptions',
+    description: 'Add and update credit packages users can purchase.',
+    capability: 'dashboard_manage_plans',
+  },
+  {
+    to: '/client-admin/advisors',
+    title: 'Import Users',
+    description: 'Import users from Excel and/or discontinue advisor access.',
+    anyOf: ['advisor_excel_import', 'advisor_discontinue'],
+  },
+  {
+    to: '/client-admin/payment-card',
+    title: 'Payment card',
+    description: 'Enter or update the card charged when importing advisors (Stripe).',
+    billingOnly: true,
+  },
+  {
+    to: '/client-admin/advisor-pricing',
+    title: 'Advisor billing rates / quotas',
+    description: 'Set rate-per-advisor tiers used for white-labelled hub billing (rate × advisors).',
+    capability: 'dashboard_manage_advisor_pricing',
+  },
+  {
+    to: '/client-admin/advisor-renewal',
+    title: 'Advisor auto-renew day',
+    description: 'Set the monthly day the client admin card is charged for advisor seats.',
+    capability: 'dashboard_manage_advisor_renewal',
+  },
+  {
+    to: '/client-admin/subscriber-credits',
+    title: 'Subscriber credits',
+    description: 'Set unlimited or fixed credits for Excel-imported white-labelled hub subscribers.',
+    capability: 'dashboard_manage_subscriber_credits',
+  },
+  {
+    to: '/client-admin/advisor-invoices',
+    title: 'Advisor billing invoices',
+    description: 'View invoices created for advisor subscriber billing.',
+    capability: 'dashboard_view_advisor_invoices',
+  },
+  {
+    to: '/client-admin/activity-logs',
+    title: 'Activity logs & report',
+    description: 'Audit trail of user activity and a summary report for this hub.',
+    capability: 'dashboard_view_activity_logs',
+  },
+  {
+    to: '/client-admin/active-sessions',
+    title: 'Active sessions',
+    description: 'See who is currently logged in and force-logout any user.',
+    capability: 'dashboard_manage_active_sessions',
+  },
+  {
+    to: '/client-admin/settings',
+    title: 'Settings',
+    description: 'Configure NEW banner duration and other hub options.',
+    capability: 'dashboard_manage_settings',
+  },
+  {
+    to: '/client-admin/role-display-names',
+    title: 'User role title',
+    description: 'Customize how role names appear across this hub’s UI.',
+    capability: 'dashboard_manage_role_display_names',
+  },
+  {
+    to: '/client-admin/compliance-status-display-names',
+    title: 'Workflows status title',
+    description: 'Customize Pending / Approved / Rejected wording across compliance modules.',
+    capability: 'dashboard_manage_compliance_status_display_names',
+  },
+  {
+    to: '/client-admin/email-templates',
+    title: 'Email templates',
+    description: 'Edit subject and body copy for user and admin transactional emails.',
+    capability: 'dashboard_manage_email_templates',
+  },
+  {
+    to: '/client-admin/bank-transfers',
+    title: 'Bank transfers',
+    description: 'Confirm pending bank payments and grant credits (temporary until Stripe).',
+    capability: 'dashboard_bank_transfers',
+  },
+]
+
+export default function AdminDashboard() {
+  const { can, canManagePaymentCard } = useHub()
+  const visible = sections.filter((section) => {
+    if (section.billingOnly) return canManagePaymentCard
+    if (Array.isArray(section.anyOf) && section.anyOf.length > 0) {
+      return section.anyOf.some((flag) => can(flag))
+    }
+    return can(section.capability)
+  })
+
+  return (
+    <section>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Hub</p>
+          <h1>Dashboard</h1>
+          <p className="muted">
+            Tools enabled for this hub by Power Admin. Restricted options stay hidden.
+          </p>
+        </div>
+      </div>
+
+      {visible.length === 0 ? (
+        <div className="empty-state">
+          <h2>No dashboard tools enabled</h2>
+          <p className="muted">
+            Power Admin has not enabled any hub-admin capabilities for this hub yet.
+          </p>
+        </div>
+      ) : (
+        <div className="admin-dashboard-grid">
+          {visible.map((section) => (
+            <Link key={section.to} to={section.to} className="admin-dashboard-card">
+              <h2>{section.title}</h2>
+              <p>{section.description}</p>
+              <span className="admin-dashboard-link">Open →</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}

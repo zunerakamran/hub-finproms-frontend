@@ -1,0 +1,819 @@
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
+import {
+  FaRocket,
+  FaPlus,
+  FaClock,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaTimes,
+  FaSync,
+  FaUserCheck,
+  FaExclamationTriangle,
+  FaUpload,
+  FaImage,
+} from 'react-icons/fa'
+import api from '../wcApi'
+import { useHub } from '../../context/HubContext'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
+import { websiteComplianceAssetUrl } from '../../api/client'
+import { formatDate } from '../../utils/dateFormat'
+import ComplianceStatusText from '../../components/ComplianceStatusText'
+import RequiredMark from '../../components/RequiredMark'
+import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
+
+// ─── Status badge ────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG = {
+  pending: {
+    label: 'Pending Deployment',
+    icon: FaClock,
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    dot: 'bg-amber-500',
+  },
+  deployed: {
+    label: 'Deployed',
+    icon: FaCheckCircle,
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    dot: 'bg-emerald-500',
+  },
+  rejected: {
+    label: 'Rejected',
+    icon: FaTimesCircle,
+    className: 'bg-rose-50 text-rose-700 border-rose-200',
+    dot: 'bg-rose-500',
+  },
+}
+
+function StatusBadge({ status, at }) {
+  const { complianceStatusLabel } = useHub()
+  const config = STATUS_CONFIG[status]
+  const badge = !config ? (
+    <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border bg-gray-50 text-gray-700 border-gray-200">
+      <ComplianceStatusText status={status} label={complianceStatusLabel(status)} />
+    </span>
+  ) : (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full border ${config.className}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dot}`} aria-hidden="true" />
+      <config.icon className="w-3 h-3 shrink-0" aria-hidden="true" />
+      <ComplianceStatusText status={status} label={complianceStatusLabel(status)} />
+    </span>
+  )
+  if (!at) return badge
+  return (
+    <span className="compliance-status-cell">
+      {badge}
+      <DataGridDate value={at} />
+    </span>
+  )
+}
+
+// ─── Alert banner ─────────────────────────────────────────────────────────────
+
+function AlertBanner({ type, message, onDismiss }) {
+  const isSuccess = type === 'success'
+  return (
+    <div
+      className={`${isSuccess
+        ? 'bg-emerald-50 border-emerald-500 text-emerald-800'
+        : 'bg-rose-50 border-rose-500 text-rose-800'
+        } border-l-4 p-4 mb-6 rounded-lg shadow-sm flex items-start justify-between gap-3 text-sm font-medium`}
+      role="alert"
+    >
+      <span className="flex-1">{message}</span>
+      <button type="button" onClick={onDismiss} className="shrink-0 p-1 rounded hover:bg-black/5 transition" aria-label="Dismiss">
+        <FaTimes className="w-4 h-4" />
+      </button>
+    </div>
+  )
+}
+
+// ─── Modal shell ──────────────────────────────────────────────────────────────
+
+function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' }) {
+  return createPortal(
+    <div className="wc-app wc-portal-root">
+      <div className="fixed inset-0 bg-[color-mix(in_srgb,var(--brand-dark)_60%,transparent)] backdrop-blur-sm flex items-center justify-center p-4 z-[80]">
+        <div
+          className={`bg-white rounded-2xl ${maxWidth} w-full shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto`}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="sticky top-0 bg-white z-10 flex items-start justify-between gap-4 p-6 border-b border-gray-100">
+            <div>
+              <h3 className="text-lg font-bold text-[var(--brand-dark)]">{title}</h3>
+              {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+            </div>
+            <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-400 hover:text-gray-700 shrink-0">
+              <FaTimes className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="p-6">{children}</div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+// ─── Create deployment request modal ─────────────────────────────────────────
+
+const TEMPLATES = [
+  { value: 'template4', label: 'Template 4 (Default)' },
+  { value: 'template1', label: 'Template 1' },
+  { value: 'template2', label: 'Template 2' },
+  { value: 'template3', label: 'Template 3' },
+]
+
+function storedUploadPath(data) {
+  const path = data?.relative_url || data?.url || ''
+  if (!path || /^data:/i.test(path)) return ''
+  const name = String(path).split('/').pop().split('?')[0]
+  if (!name) return ''
+  if (path.includes('/website-compliance/uploaded-images') || path.includes('/uploaded-images') || path.includes('/uploads/')) {
+    return `/website-compliance/uploaded-images/${name}`
+  }
+  return path.startsWith('/') ? path : `/website-compliance/uploaded-images/${name}`
+}
+
+function BrandingUploadField({
+  label,
+  accept,
+  hint,
+  value,
+  previewUrl,
+  uploading,
+  onUpload,
+  onClear,
+  darkPreview = false,
+}) {
+  const displaySrc = previewUrl || (value ? websiteComplianceAssetUrl(value) : '')
+
+  return (
+    <div>
+      <label className="block text-xs font-bold text-gray-700 mb-1.5">
+        {label} <span className="text-gray-400 font-normal">(optional)</span>
+      </label>
+      <div className="flex items-start gap-3">
+        <div className={`w-14 h-14 rounded-xl border overflow-hidden shrink-0 flex items-center justify-center ${
+          darkPreview ? 'border-gray-700 bg-slate-900' : 'border-gray-200 bg-gray-50'
+        }`}>
+          {displaySrc ? (
+            <img src={displaySrc} alt="" className="w-full h-full object-contain p-1" />
+          ) : (
+            <FaImage className={`w-5 h-5 ${darkPreview ? 'text-gray-500' : 'text-gray-300'}`} aria-hidden="true" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition">
+            <FaUpload className="w-3 h-3 text-[var(--brand)]" />
+            {uploading ? 'Uploading…' : 'Upload file'}
+            <input
+              type="file"
+              accept={accept}
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) onUpload(file)
+                e.target.value = ''
+              }}
+            />
+          </label>
+          {value && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="block text-[11px] font-semibold text-rose-600 hover:underline"
+            >
+              Remove
+            </button>
+          )}
+          {hint && <p className="text-[11px] text-gray-500">{hint}</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, onCreated }) {
+  const { branding, hub, actingHub } = useHub()
+  const previewBase = resolveHubPreviewBase({ hub, actingHub })
+  const domainPlaceholder = hubDomainPlaceholder(previewBase)
+  const hubPrimary = branding?.primary_color || branding?.color_scheme?.primary || '#0f5c45'
+  const hubSecondary = branding?.secondary_color || branding?.color_scheme?.secondary || '#0a3f30'
+  const [templateName, setTemplateName] = useState('template4')
+  const [domainName, setDomainName] = useState('')
+  const [logoUrl, setLogoUrl] = useState('')
+  const [whiteLogoUrl, setWhiteLogoUrl] = useState('')
+  const [faviconUrl, setFaviconUrl] = useState('')
+  const [logoPreview, setLogoPreview] = useState('')
+  const [whiteLogoPreview, setWhiteLogoPreview] = useState('')
+  const [faviconPreview, setFaviconPreview] = useState('')
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingWhiteLogo, setUploadingWhiteLogo] = useState(false)
+  const [uploadingFavicon, setUploadingFavicon] = useState(false)
+  const [primaryColor, setPrimaryColor] = useState(hubPrimary)
+  const [secondaryColor, setSecondaryColor] = useState(hubSecondary)
+  const [assignedAdvisorId, setAssignedAdvisorId] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [serverTemplates, setServerTemplates] = useState([])
+
+  useEffect(() => {
+    api.get('/templates').then(res => {
+      const list = Array.isArray(res.data) ? res.data : res.data.data || []
+      if (list.length) setServerTemplates(list)
+    }).catch(() => {})
+  }, [])
+
+  const templateOptions = serverTemplates.length
+    ? serverTemplates.map(t => ({ value: t.slug || t.name, label: t.name }))
+    : TEMPLATES
+
+  const uploadAsset = async (file, kind) => {
+    const setters = {
+      logo: { setUploading: setUploadingLogo, setUrl: setLogoUrl, setPreview: setLogoPreview },
+      white_logo: { setUploading: setUploadingWhiteLogo, setUrl: setWhiteLogoUrl, setPreview: setWhiteLogoPreview },
+      favicon: { setUploading: setUploadingFavicon, setUrl: setFaviconUrl, setPreview: setFaviconPreview },
+    }
+    const active = setters[kind] || setters.logo
+    active.setUploading(true)
+    setError('')
+    active.setPreview(URL.createObjectURL(file))
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      const res = await api.post('upload-image', formData)
+      const uploadedUrl = storedUploadPath(res.data)
+      if (!uploadedUrl) throw new Error('Upload succeeded but no path was returned.')
+      active.setUrl(uploadedUrl)
+    } catch (err) {
+      active.setPreview('')
+      active.setUrl('')
+      setError(err.response?.data?.message || err.message || `Failed to upload ${kind.replace('_', ' ')}.`)
+    } finally {
+      active.setUploading(false)
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!domainName.trim()) { setError('Domain name is required.'); return }
+    if (canAssignAdvisor && !assignedAdvisorId) {
+      setError('Assign an advisor for content editing before submitting.')
+      return
+    }
+    setSubmitting(true)
+    setError('')
+    try {
+      const payload = {
+        template_name: templateName,
+        domain_name: domainName.trim(),
+        logo_url: logoUrl.trim() || undefined,
+        white_logo_url: whiteLogoUrl.trim() || undefined,
+        favicon_url: faviconUrl.trim() || undefined,
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        request_type: 'advisor_website',
+      }
+      if (canAssignAdvisor && assignedAdvisorId) {
+        payload.assigned_advisor_id = Number(assignedAdvisorId)
+      }
+      const res = await api.post('/template-requests', payload)
+      onCreated(res.data)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to submit deployment request.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const labelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
+  const inputClass = 'w-full text-sm p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] outline-none transition'
+
+  return (
+    <ModalShell
+      title="Request New Deployment"
+      subtitle={
+        canAssignAdvisor
+          ? 'Submit a showcase site for deployment and assign an advisor who will edit its content after go-live.'
+          : 'Submit a new advisor showcase site for deployment.'
+      }
+      onClose={onClose}
+      maxWidth="max-w-xl"
+    >
+      {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Template */}
+        <div>
+          <label className={labelClass}>Template</label>
+          <select
+            value={templateName}
+            onChange={e => setTemplateName(e.target.value)}
+            className={inputClass}
+          >
+            {templateOptions.map(t => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Domain */}
+        <div>
+          <label className={labelClass}>
+            <RequiredMark>Domain Name</RequiredMark>
+          </label>
+          <input
+            type="text"
+            value={domainName}
+            onChange={e => setDomainName(e.target.value)}
+            placeholder={domainPlaceholder}
+            required
+            className={inputClass}
+          />
+          <p className="text-[11px] text-gray-500 mt-1">The target domain for this advisor's site.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <BrandingUploadField
+            label="Site Logo"
+            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+            hint="Used on light backgrounds (header bar)."
+            value={logoUrl}
+            previewUrl={logoPreview}
+            uploading={uploadingLogo}
+            onUpload={(file) => uploadAsset(file, 'logo')}
+            onClear={() => { setLogoUrl(''); setLogoPreview('') }}
+          />
+          <BrandingUploadField
+            label="White Logo"
+            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+            hint="Used on dark backgrounds (nav bar, footer)."
+            value={whiteLogoUrl}
+            previewUrl={whiteLogoPreview}
+            uploading={uploadingWhiteLogo}
+            onUpload={(file) => uploadAsset(file, 'white_logo')}
+            onClear={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
+            darkPreview
+          />
+          <BrandingUploadField
+            label="Favicon"
+            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
+            hint="Browser tab icon on the live advisor site."
+            value={faviconUrl}
+            previewUrl={faviconPreview}
+            uploading={uploadingFavicon}
+            onUpload={(file) => uploadAsset(file, 'favicon')}
+            onClear={() => { setFaviconUrl(''); setFaviconPreview('') }}
+          />
+        </div>
+
+        {/* Colors */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>Primary Color</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={primaryColor}
+                onChange={e => setPrimaryColor(e.target.value)}
+                className="w-10 h-10 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
+              />
+              <input
+                type="text"
+                value={primaryColor}
+                onChange={e => setPrimaryColor(e.target.value)}
+                className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
+              />
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>Secondary Color</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={secondaryColor}
+                onChange={e => setSecondaryColor(e.target.value)}
+                className="w-10 h-10 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
+              />
+              <input
+                type="text"
+                value={secondaryColor}
+                onChange={e => setSecondaryColor(e.target.value)}
+                className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Assign Advisor — managers with assign capability only; required */}
+        {canAssignAdvisor && (
+        <div>
+          <label className={labelClass}>
+            <RequiredMark>Assign Advisor for Content Editing</RequiredMark>
+          </label>
+          <select
+            value={assignedAdvisorId}
+            onChange={e => setAssignedAdvisorId(e.target.value)}
+            className={inputClass}
+            required
+          >
+            <option value="">— Select an advisor —</option>
+            {advisors.map(a => (
+              <option key={a.id} value={a.id}>
+                {a.name} ({a.email}){a.firm?.name ? ` — ${a.firm.name}` : ''}
+              </option>
+            ))}
+          </select>
+          {advisors.length === 0 && (
+            <p className="text-xs text-amber-700 mt-1">No advisor accounts were found. Create an advisor user first.</p>
+          )}
+          <p className="text-[11px] text-gray-500 mt-1">
+            Assigns this website to the advisor for editing (not their own site request). Hub sections are created only after Power Admin deploys the site.
+          </p>
+        </div>
+        )}
+
+        <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={submitting || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
+          >
+            <FaRocket className="w-3.5 h-3.5" />
+            {submitting ? 'Submitting…' : 'Submit Request'}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  )
+}
+
+// ─── Assign advisor modal (for existing request) ──────────────────────────────
+
+function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
+  const [advisorId, setAdvisorId] = useState(
+    String(request.assigned_advisor_id || request.advisor_id || '')
+  )
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!advisorId) { setError('Please select an advisor.'); return }
+    setSubmitting(true)
+    setError('')
+    try {
+      const res = await api.post(`/template-requests/${request.id}/assign-advisor`, {
+        assigned_advisor_id: Number(advisorId),
+      })
+      onAssigned(res.data)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to assign advisor.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <ModalShell
+      title="Assign Advisor for Editing"
+      subtitle={`Deployment: ${request.domain_name}`}
+      onClose={onClose}
+    >
+      {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">Select Advisor</label>
+          <select
+            value={advisorId}
+            onChange={e => setAdvisorId(e.target.value)}
+            className="w-full text-sm p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] outline-none"
+          >
+            <option value="">— Select an advisor —</option>
+            {advisors.map(a => (
+              <option key={a.id} value={a.id}>
+                {a.name} ({a.email}){a.firm?.name ? ` — ${a.firm.name}` : ''}
+              </option>
+            ))}
+          </select>
+          {advisors.length === 0 && (
+            <p className="text-xs text-amber-700 mt-1">No advisor accounts were found. Create an advisor user first.</p>
+          )}
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800">
+          <div className="flex items-start gap-2">
+            <FaExclamationTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
+            <p>
+              This assigns the website to the advisor for editing — it is <strong>not</strong> treated as the advisor&apos;s own website request.
+              They will see it marked as assigned in their <strong>Deployments</strong> tab. Edits still go through the standard change request → approver approval workflow.
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
+          <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={submitting || !advisorId}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
+          >
+            <FaUserCheck className="w-3.5 h-3.5" />
+            {submitting ? 'Assigning…' : 'Assign Advisor'}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  )
+}
+
+function isRequestedByAdvisor(req) {
+  const requester = req.requested_by || req.requestedBy
+  if (requester?.role) {
+    return requester.role === 'advisor' || requester.role === 'editor'
+  }
+  // Legacy rows: advisor-created requests set advisor_id to the submitting advisor
+  return Boolean(req.advisor_id)
+}
+
+// ─── Main panel ───────────────────────────────────────────────────────────────
+
+export default function DeploymentRequestPanel() {
+  const { can, complianceStatusLabel } = useHub()
+  const canRequest = can('wc_request_deployments') || can('wc_assign_website_templates')
+  const canViewAll = can('wc_view_all_deployments')
+  const canAssignAdvisor = can('wc_assign_website_templates')
+  const canAccess = canRequest || canViewAll
+
+  const [requests, setRequests] = useState([])
+  const [advisors, setAdvisors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [assignTarget, setAssignTarget] = useState(null)
+
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (!canAccess) {
+      setLoading(false)
+      return
+    }
+    if (isRefresh) setRefreshing(true)
+    else setLoading(true)
+    setError('')
+    try {
+      const reqRes = await api.get('/template-requests')
+      setRequests(Array.isArray(reqRes.data) ? reqRes.data : [])
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load deployment requests.')
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
+
+    if (!canAssignAdvisor) {
+      setAdvisors([])
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
+
+    try {
+      const usersRes = await api.get('/advisors')
+      const users = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data || []
+      setAdvisors(users.filter(u => u.role === 'advisor' || u.role === 'editor'))
+    } catch {
+      try {
+        const usersRes = await api.get('/users')
+        const users = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data || []
+        setAdvisors(users.filter(u => u.role === 'advisor' || u.role === 'editor'))
+      } catch {
+        setAdvisors([])
+      }
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [canAccess, canAssignAdvisor])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const handleCreated = (newRequest) => {
+    setShowCreateModal(false)
+    setRequests(prev => [newRequest, ...prev])
+    setMessage('Deployment request submitted successfully! The platform administrator will review and deploy the site.')
+  }
+
+  const handleAssigned = (updatedRequest) => {
+    setAssignTarget(null)
+    setRequests(prev => prev.map(r => r.id === updatedRequest.id ? updatedRequest : r))
+    const advisorName = updatedRequest.assigned_advisor?.name || updatedRequest.assignedAdvisor?.name || 'Advisor'
+    setMessage(`Assigned this website to ${advisorName}. They can edit its content once it is deployed (this is not their own site).`)
+  }
+
+  const columns = useMemo(() => [
+    {
+      key: 'domain_name',
+      label: 'Domain',
+      width: '16%',
+      render: (row) => row.domain_name || 'Unnamed Deployment',
+      filterValue: (row) => row.domain_name || '',
+    },
+    {
+      key: 'template_name',
+      label: 'Template',
+      width: '12%',
+      render: (row) => row.template_name || '—',
+      filterValue: (row) => row.template_name || '',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      width: '11%',
+      render: (row) => (
+        <StatusBadge status={row.status} at={row.deployed_at || row.updated_at || row.created_at} />
+      ),
+      filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
+      truncate: false,
+    },
+    {
+      key: 'requester',
+      label: 'Requested by',
+      width: '13%',
+      render: (row) => {
+        const requester = row.requested_by || row.requestedBy || row.advisor
+        return requester?.name || '—'
+      },
+      filterValue: (row) => {
+        const requester = row.requested_by || row.requestedBy || row.advisor
+        return requester?.name || ''
+      },
+    },
+    {
+      key: 'advisor',
+      label: 'Content advisor',
+      width: '14%',
+      render: (row) => {
+        const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+        const advisorOwned = isRequestedByAdvisor(row)
+        const contentAdvisor = assignedAdvisor || (advisorOwned ? row.advisor : null)
+        if (contentAdvisor) return contentAdvisor.name
+        return <span className="text-amber-600">Unassigned</span>
+      },
+      filterValue: (row) => {
+        const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+        const advisorOwned = isRequestedByAdvisor(row)
+        const contentAdvisor = assignedAdvisor || (advisorOwned ? row.advisor : null)
+        return contentAdvisor?.name || 'Unassigned'
+      },
+      truncate: false,
+    },
+    {
+      key: 'created_at',
+      label: 'Created',
+      width: '11%',
+      render: (row) => <DataGridDate value={row.created_at} withTime={false} />,
+      filterValue: (row) => formatDate(row.created_at, ''),
+      sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
+      truncate: false,
+    },
+    {
+      key: 'live_url',
+      label: 'Live URL',
+      width: '14%',
+      render: (row) =>
+        row.cpanel_domain ? (
+          <a
+            href={row.cpanel_domain.startsWith('http') ? row.cpanel_domain : `https://${row.cpanel_domain}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--brand)] hover:underline"
+          >
+            {row.cpanel_domain}
+          </a>
+        ) : (
+          '—'
+        ),
+      filterValue: (row) => row.cpanel_domain || '',
+      truncate: false,
+    },
+  ], [complianceStatusLabel])
+
+  return (
+    <div>
+      {message && <AlertBanner type="success" message={message} onDismiss={() => setMessage('')} />}
+      {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
+
+      {/* Header row */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-gray-500">
+            {canRequest
+              ? `Staff tools: request showcase sites for advisors, assign editors, and track deployment status. Advisors requesting their own site should use Request a site.`
+              : 'Browse all deployment requests across the platform.'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {canRequest && (
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 bg-[var(--brand)] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition shadow-sm"
+            >
+              <FaPlus className="w-3.5 h-3.5" />
+              Request Deployment
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => fetchData(true)}
+            disabled={refreshing || loading}
+            className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition shadow-sm disabled:opacity-60"
+          >
+            <FaSync className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {!loading && requests.length === 0 ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
+            <FaRocket className="w-6 h-6 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-bold text-[var(--brand-dark)]">No deployment requests yet</h3>
+          <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
+            {canRequest
+              ? 'Submit your first deployment request to get a new advisor showcase site set up.'
+              : 'Deployment requests will appear here when submitted.'}
+          </p>
+          {canRequest && (
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="mt-4 inline-flex items-center gap-2 bg-[var(--brand)] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition shadow-sm"
+            >
+              <FaPlus className="w-3.5 h-3.5" />
+              Request Deployment
+            </button>
+          )}
+        </div>
+      ) : (
+        <DataGrid
+          columns={columns}
+          rows={requests}
+          loading={loading}
+          pageSize={10}
+          emptyMessage="No deployment requests yet"
+          actionsWidth="9%"
+          actions={(row) => {
+            const advisorOwned = isRequestedByAdvisor(row)
+            const showAssignAdvisor = canAssignAdvisor && !advisorOwned
+            const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+            if (!showAssignAdvisor) return <span className="muted">—</span>
+            return (
+              <DataGridIconBtn
+                icon={FaUserCheck}
+                label={assignedAdvisor ? 'Reassign advisor' : 'Assign advisor'}
+                variant="primary"
+                onClick={() => setAssignTarget(row)}
+              />
+            )
+          }}
+        />
+      )}
+
+      {/* Create modal */}
+      {showCreateModal && canRequest && (
+        <CreateDeploymentModal
+          advisors={advisors}
+          canAssignAdvisor={canAssignAdvisor}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={handleCreated}
+        />
+      )}
+
+      {/* Assign advisor modal */}
+      {assignTarget && canAssignAdvisor && !isRequestedByAdvisor(assignTarget) && (
+        <AssignAdvisorModal
+          request={assignTarget}
+          advisors={advisors}
+          onClose={() => setAssignTarget(null)}
+          onAssigned={handleAssigned}
+        />
+      )}
+    </div>
+  )
+}

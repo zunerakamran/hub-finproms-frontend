@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Already the real file path — stop here (prevents rewrite loops / 500)
+  RewriteRule ^api/storage/app/public/ - [L]
+
+  # Map public asset URLs to the real disk folder under the Laravel app
+  RewriteRule ^storage/(.*)$ api/storage/app/public/$1 [L]
+  RewriteRule ^api/storage/(.*)$ api/storage/app/public/$1 [L]
+
+  # Laravel API
+  RewriteCond %{REQUEST_URI} ^/api
+  RewriteRule ^api(?:/(.*))?$ api/public/index.php [L,QSA]
+
+  # Frontend SPA — keep real files; send other routes to index.html
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>

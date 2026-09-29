@@ -15,7 +15,7 @@ export default function HubCapabilityRoute({
   children,
   fallback = '/my-dashboard',
 }) {
-  const { can, loading, hub, canManagePaymentCard } = useHub()
+  const { can, canViewSitePages, loading, hub, canManagePaymentCard } = useHub()
 
   if (loading && !hub) {
     return <PageLoader />
@@ -31,7 +31,12 @@ export default function HubCapabilityRoute({
       ? [capability]
       : []
 
-  const allowed = flags.length === 0 ? true : flags.some((flag) => can(flag))
+  const allowed =
+    flags.length === 0
+      ? true
+      : flags.some((flag) =>
+          flag === 'member_view_site_pages' ? canViewSitePages : can(flag)
+        )
 
   if (!allowed) {
     return <Navigate to={fallback} replace />

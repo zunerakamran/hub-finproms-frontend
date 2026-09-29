@@ -16,7 +16,7 @@ import { brandLogoUrl } from '../utils/brandLogo'
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, actingHub, actingHubId, actingHubSwitching, actingAdvisor, roleLabel } = useHub()
+  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, actingHub, actingHubId, actingHubSwitching, actingAdvisor, roleLabel, canViewSitePages } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
@@ -218,7 +218,7 @@ export default function MyDashboardLayout() {
         </nav>
 
         <div className="dash-sidebar__footer">
-          {can('member_view_site_pages') ? (
+          {canViewSitePages ? (
             <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
           ) : null}
           <div className="dash-user-row">
@@ -258,7 +258,7 @@ export default function MyDashboardLayout() {
             <ActingAdvisorSwitcher />
           </div>
           <div className="dash-topbar__links">
-            {can('member_view_site_pages') ? (
+            {canViewSitePages ? (
               <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
             ) : null}
           </div>

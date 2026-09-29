@@ -25,7 +25,7 @@ const GROUP_ORDER = ['account', 'content', 'hub', 'advisors', 'smc', 'gc', 'wc',
 
 export default function MyDashboard() {
   const { user, canPower } = useAuth()
-  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, effectiveAdvisorId, actingAdvisor, actingHubId, actingHub } = useHub()
+  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, effectiveAdvisorId, actingAdvisor, actingHubId, actingHub, canViewSitePages } = useHub()
   const [data, setData] = useState(null)
   const [panelLoading, setPanelLoading] = useState(true)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
@@ -129,7 +129,7 @@ export default function MyDashboard() {
   }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, actingAdvisor, user?.role])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
-  const showBrowseCatalog = can('member_view_site_pages')
+  const showBrowseCatalog = canViewSitePages
 
   return (
     <section className="dash-home">

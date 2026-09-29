@@ -12,12 +12,18 @@ function resolveNavCatalogType(search) {
 
 export default function Layout() {
   const { user, logout, isAdvisor, isAuthenticated } = useAuth()
-  const { can, hub, hasDashboardAccess, branding, isActingAsAdvisor, registrationEnabled } =
-    useHub()
+  const {
+    can,
+    hub,
+    hasDashboardAccess,
+    branding,
+    isActingAsAdvisor,
+    registrationEnabled,
+    canViewSitePages,
+  } = useHub()
   const location = useLocation()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = brandLogoUrl(branding, { onDark: false })
-  const canViewSitePages = can('member_view_site_pages')
   const showPlans =
     canViewSitePages &&
     can('member_view_plans') &&

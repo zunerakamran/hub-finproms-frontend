@@ -298,6 +298,17 @@ export function HubProvider({ children }) {
           ? Number(user.id)
           : null
 
+      // Central Hub Controller has no member website. Only show website chrome when
+      // the capability is on AND this is not the local control-plane shell.
+      // While remotely controlling a white-labelled hub, allow the external site link.
+      const capabilityAllowsSitePages = can('member_view_site_pages')
+      const canViewSitePages = (() => {
+        if (!capabilityAllowsSitePages) return false
+        if (isControlPlane && !isActingRemotely) return false
+        if (isControlPlane && isActingRemotely) return Boolean(isActingOnWhiteLabel)
+        return true
+      })()
+
       return {
         hub,
         // Only block the tree on the first hub fetch — not background refreshes.
@@ -305,6 +316,7 @@ export function HubProvider({ children }) {
         error,
         refreshHub,
         can,
+        canViewSitePages,
         roleLabels: roleLabelsMap(hub),
         roleLabel: (key) => resolveRoleLabel(hub, key),
         complianceStatusLabels: complianceStatusLabelsMap(hub),

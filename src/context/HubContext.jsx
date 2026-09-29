@@ -185,38 +185,47 @@ export function HubProvider({ children }) {
   )
 
   // Prefer explicit auth payload from API; fall back to checklist exclusivity.
-  // While acting on a white-labelled hub, use that hub's checklist for mode flags.
+  // While acting on a remote content hub (Shared or White-label), use that hub's checklist.
+  const actingRemotelyForChecklist = Boolean(
+    hub?.hub_switcher?.is_acting_remotely ||
+      (hub?.acting_hub?.id != null &&
+        hub?.id != null &&
+        String(hub.acting_hub.id) !== String(hub.id) &&
+        (hub?.acting_hub?.is_content_hub ||
+          hub?.acting_hub?.is_white_label ||
+          hub?.acting_hub?.is_shared ||
+          hub?.acting_hub?.type === 'shared' ||
+          hub?.acting_hub?.type === 'white_label'))
+  )
+
   const actingChecklist = useMemo(() => {
-    if (
-      hub?.acting_checklist &&
-      (hub?.hub_switcher?.is_acting_on_white_label || hub?.acting_hub?.is_white_label)
-    ) {
+    if (hub?.acting_checklist && actingRemotelyForChecklist) {
       return hub.acting_checklist
     }
     return hub?.checklist || {}
-  }, [hub])
+  }, [hub, actingRemotelyForChecklist])
 
   const registrationEnabled = useMemo(() => {
     if (
-      !(hub?.hub_switcher?.is_acting_on_white_label || hub?.acting_hub?.is_white_label) &&
+      !actingRemotelyForChecklist &&
       hub?.auth &&
       typeof hub.auth.registration_enabled === 'boolean'
     ) {
       return hub.auth.registration_enabled
     }
     return Boolean(actingChecklist.public_subscribe) && !Boolean(actingChecklist.private_invite_only)
-  }, [hub, actingChecklist])
+  }, [hub, actingChecklist, actingRemotelyForChecklist])
 
   const inviteOnly = useMemo(() => {
     if (
-      !(hub?.hub_switcher?.is_acting_on_white_label || hub?.acting_hub?.is_white_label) &&
+      !actingRemotelyForChecklist &&
       hub?.auth &&
       typeof hub.auth.invite_only === 'boolean'
     ) {
       return hub.auth.invite_only
     }
     return Boolean(actingChecklist.private_invite_only)
-  }, [hub, actingChecklist])
+  }, [hub, actingChecklist, actingRemotelyForChecklist])
 
   /** Advisor billing is on for this hub — not a capabilities-matrix flag. */
   const advisorBillingEnabled = useMemo(() => {
@@ -299,15 +308,8 @@ export function HubProvider({ children }) {
           : null
 
       // Public/member website chrome follows member_view_site_pages.
-      // Default OFF on Central, but Power Admin can enable it in Capabilities.
-      // While remotely controlling a white-labelled hub, only expose the external
-      // site link for that WL frontend (not Central's own shell).
-      const capabilityAllowsSitePages = can('member_view_site_pages')
-      const canViewSitePages = (() => {
-        if (!capabilityAllowsSitePages) return false
-        if (isControlPlane && isActingRemotely) return Boolean(isActingOnWhiteLabel)
-        return true
-      })()
+      // While remotely controlling a content hub, WebsiteNavLink opens that hub's URL.
+      const canViewSitePages = can('member_view_site_pages')
 
       return {
         hub,

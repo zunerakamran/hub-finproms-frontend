@@ -182,7 +182,7 @@ export default function MyDashboardLayout() {
           </button>
         </div>
 
-        {isActingOnWhiteLabel ? (
+        {isActingRemotely ? (
           <div className="dash-acting-pill">Controlling {actingHub?.name}</div>
         ) : null}
         {actingAdvisor ? (

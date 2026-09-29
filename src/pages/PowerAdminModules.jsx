@@ -55,7 +55,7 @@ function dependenciesMet(item, flags) {
 
 export default function PowerAdminModules() {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, actingHub, hub, isActingOnWhiteLabel, refreshHub, can, loading: hubLoading } =
+  const { actingHubId, actingHub, hub, isActingOnWhiteLabel, isActingRemotely, refreshHub, can, loading: hubLoading } =
     useHub()
 
   const selectedId = actingHubId || hub?.id || ''
@@ -166,8 +166,10 @@ export default function PowerAdminModules() {
           <h1>Modules</h1>
           <p className="muted">
             Enable product modules for <strong>{selectedName}</strong>
-            {isActingOnWhiteLabel
-              ? ' (white-labelled)'
+            {isActingRemotely
+              ? isActingOnWhiteLabel
+                ? ' (white-labelled)'
+                : ' (shared)'
               : hub?.type === 'central' || hub?.is_central
                 ? ' (Central Hub Controller)'
                 : ' (shared)'}
@@ -198,9 +200,9 @@ export default function PowerAdminModules() {
           <div className="checklist-section" id="modules">
             <h2>Modules</h2>
             <p className="muted checklist-section-hint">
-              {(hub?.type === 'central' || hub?.is_central) && !isActingOnWhiteLabel
+              {(hub?.type === 'central' || hub?.is_central) && !isActingRemotely
                 ? 'Central Hub Controller is the locked base module for this control plane. Content product modules (posts library, compliance, websites) are managed on Shared / White-label hubs via the hub switcher.'
-                : `Module 1 is the hub base (${isActingOnWhiteLabel ? 'White Label Hub' : 'Shared Hub'}) and is always on. Other modules are gated by dependencies: Social Media Pre Approval needs the Social Media Template Library; Website Content Pre Approval needs the Website Template Library. Turning a parent off cascades to its dependents.`}
+                : `Module 1 is the hub base (${isActingOnWhiteLabel || actingHub?.is_white_label ? 'White Label Hub' : 'Shared Hub'}) and is always on. Other modules are gated by dependencies: Social Media Pre Approval needs the Social Media Template Library; Website Content Pre Approval needs the Website Template Library. Turning a parent off cascades to its dependents.`}
             </p>
             <div className="checklist-grid">
               {modules.map((item) => {

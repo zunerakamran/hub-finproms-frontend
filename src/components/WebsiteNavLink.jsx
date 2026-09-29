@@ -3,14 +3,14 @@ import { useHub } from '../context/HubContext'
 
 /**
  * Dashboard "Website" / "Back to website" link.
- * While controlling a white-labelled hub, open that hub's live site (frontend_url)
- * instead of this deploy's own public site.
+ * While remotely controlling a Shared or White-labelled hub, open that hub's
+ * live site (frontend_url) instead of Central's own public site.
  */
 export default function WebsiteNavLink({ children, className }) {
-  const { isActingOnWhiteLabel, actingHub } = useHub()
+  const { isActingRemotely, actingHub } = useHub()
   const href = String(actingHub?.frontend_url || '').trim().replace(/\/$/, '')
 
-  if (isActingOnWhiteLabel && href) {
+  if (isActingRemotely && href) {
     return (
       <a href={href} className={className} rel="noreferrer">
         {children}

@@ -42,7 +42,7 @@ const GROUP_FALLBACK_LABELS = {
 
 export default function PowerAdminCapabilities() {
   const { canPower, setPowerCapabilities, refreshUser } = useAuth()
-  const { refreshHub, actingHubId, actingHub, hub, isActingOnWhiteLabel } = useHub()
+  const { refreshHub, actingHubId, actingHub, hub, isActingOnWhiteLabel, isActingRemotely } = useHub()
   const allowed = canPower('pa_manage_power_capabilities')
 
   const selectedHubId = actingHubId || hub?.id || ''
@@ -197,8 +197,10 @@ export default function PowerAdminCapabilities() {
           <h1>User capabilities</h1>
           <p className="muted">
             Editing roles for <strong>{selectedHubName}</strong>
-            {isActingOnWhiteLabel
-              ? ' (white-labelled)'
+            {isActingRemotely
+              ? isActingOnWhiteLabel
+                ? ' (white-labelled)'
+                : ' (shared)'
               : hub?.type === 'central' || hub?.is_central || hub?.is_control_plane
                 ? ' (Central Hub)'
                 : ' (shared)'}

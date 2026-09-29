@@ -6,7 +6,7 @@ import { useHub } from '../context/HubContext'
 import { checklistToMap } from '../utils/checklist'
 
 export default function PowerAdminChecklist() {
-  const { actingHubId, actingHub, hub, isActingOnWhiteLabel } = useHub()
+  const { actingHubId, actingHub, hub, isActingOnWhiteLabel, isActingRemotely } = useHub()
   const selectedId = actingHubId || hub?.id || ''
   const selectedName = actingHub?.name || hub?.name || 'this hub'
 
@@ -75,7 +75,16 @@ export default function PowerAdminChecklist() {
           <h1>Hub Functionalities</h1>
           <p className="muted">
             Editing Functionalities for <strong>{selectedName}</strong>
-            {isActingOnWhiteLabel ? ' (white-labelled)' : ' (shared)'}. Use{' '}
+            {isActingRemotely
+              ? isActingOnWhiteLabel
+                ? ' (white-labelled)'
+                : ' (shared)'
+              : hub?.type === 'central' || hub?.is_central || hub?.is_control_plane
+                ? ' (Central Hub)'
+                : hub?.type === 'white_label'
+                  ? ' (white-labelled)'
+                  : ' (shared)'}
+            . Use{' '}
             <strong>Control hub</strong> in the top bar to switch hubs. Enable product modules
             under <Link to="/my-dashboard/modules">Modules</Link>. User capabilities by role are
             managed under Capabilities.

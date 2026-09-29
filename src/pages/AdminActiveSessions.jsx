@@ -9,7 +9,7 @@ import { useHub } from '../context/HubContext'
 export default function AdminActiveSessions({ shell = 'client-admin' }) {
   const navigate = useNavigate()
   const { isPowerAdmin, user, logout } = useAuth()
-  const { can, loading: hubLoading, actingHub, isActingOnWhiteLabel, roleLabel } = useHub()
+  const { can, loading: hubLoading, actingHub, isActingRemotely, roleLabel } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('dashboard_manage_active_sessions')
   const apiOpts = { asPowerAdmin }
@@ -22,8 +22,8 @@ export default function AdminActiveSessions({ shell = 'client-admin' }) {
   const [message, setMessage] = useState('')
   const [loggingOutId, setLoggingOutId] = useState(null)
 
-  const targetName = isActingOnWhiteLabel
-    ? actingHub?.name || hubMeta?.name || 'selected white-labelled hub'
+  const targetName = isActingRemotely
+    ? actingHub?.name || hubMeta?.name || 'selected hub'
     : hubMeta?.name || 'this hub'
 
   const load = useCallback(async () => {
@@ -50,7 +50,7 @@ export default function AdminActiveSessions({ shell = 'client-admin' }) {
       return
     }
     load()
-  }, [hubLoading, enabled, load, actingHub?.id, isActingOnWhiteLabel])
+  }, [hubLoading, enabled, load, actingHub?.id, isActingRemotely])
 
   const forceLogout = async (row) => {
     const id = row.user?.id

@@ -472,7 +472,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           hideCreateForm
             ? isControlPlane && !isActingRemotely
               ? 'No local posts on Central. Create and distribute from Central library.'
-              : 'No posts on this hub yet. Content arrives when Central distributes archived library posts.'
+              : 'No posts on this hub yet. Content arrives when Central distributes library posts.'
             : 'No posts yet. Create a post or reel above and it will show up here.'
         }
         pageSize={10}

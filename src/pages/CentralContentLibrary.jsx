@@ -65,7 +65,8 @@ export default function CentralContentLibrary() {
     setError('')
     try {
       const params = {}
-      if (statusFilter === 'archived' || statusFilter === 'active') {
+      // Distribute needs the full library so ready vs archived lists stay accurate.
+      if (tab === 'library' && (statusFilter === 'archived' || statusFilter === 'active')) {
         params.status = statusFilter
       }
       const [postsRes, typesRes, catsRes, tagsRes, targetsRes] = await Promise.all([
@@ -108,7 +109,12 @@ export default function CentralContentLibrary() {
     if (!can('dashboard_central_content_library')) return
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, isActingRemotely, hub?.effective_capabilities?.dashboard_central_content_library])
+  }, [
+    statusFilter,
+    tab,
+    isActingRemotely,
+    hub?.effective_capabilities?.dashboard_central_content_library,
+  ])
 
   const archivedPosts = useMemo(
     () => posts.filter((post) => post.archived_at || post.is_archived),
@@ -206,19 +212,20 @@ export default function CentralContentLibrary() {
   const onArchive = async (post) => {
     const remarks = (archiveRemarks[post.id] || '').trim()
     if (!remarks) {
-      setError('Enter archive remarks before archiving.')
+      setError('Enter remarks before archiving (why this post is retired from distribute).')
       return
     }
     setError('')
     setMessage('')
     try {
       const data = await api.archiveCentralLibraryPost(post.id, remarks, apiOpts)
-      setMessage(data.message || 'Post archived.')
+      setMessage(data.message || 'Post archived (kept in library, no longer distributable).')
       setArchiveRemarks((prev) => {
         const next = { ...prev }
         delete next[post.id]
         return next
       })
+      setSelectedIds((prev) => prev.filter((id) => id !== post.id))
       await load()
     } catch (err) {
       setError(err.message)
@@ -240,7 +247,7 @@ export default function CentralContentLibrary() {
   const onDistribute = async (e) => {
     e.preventDefault()
     if (selectedIds.length === 0) {
-      setError('Select at least one archived post to distribute.')
+      setError('Select at least one ready (non-archived) post to distribute.')
       return
     }
     if (selectedHubIds.length === 0) {
@@ -310,8 +317,9 @@ export default function CentralContentLibrary() {
           <p className="eyebrow">Central</p>
           <h1>Content library</h1>
           <p className="muted">
-            Build posts in the Central database, archive them with remarks, then distribute copies
-            to Shared or White-labelled hubs. Target hubs must have matching{' '}
+            Build posts in the Central database, then distribute ready (non-archived) copies to
+            Shared or White-labelled hubs. Archive only retires a post from distribute — it stays
+            listed in the library. Target hubs must have matching{' '}
             <strong>Manual posts</strong> or <strong>AI posts</strong> in Functionalities.
           </p>
         </div>
@@ -426,7 +434,7 @@ export default function CentralContentLibrary() {
                               className="btn ghost"
                               onClick={() => setTab('distribute')}
                             >
-                              Archive / send
+                              Distribute
                             </button>
                           )}
                         </td>
@@ -616,76 +624,21 @@ export default function CentralContentLibrary() {
 
       {tab === 'distribute' && (
         <div className="library-distribute">
-          <div className="settings-block">
-            <h2>1. Archive with remarks</h2>
-            <p className="muted" style={{ marginTop: 0 }}>
-              Archive a ready post before distributing it. Remarks are required.
-            </p>
-            {livePosts.length === 0 ? (
-              <p className="muted">No ready posts to archive.</p>
-            ) : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Post</th>
-                      <th>Remarks</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {livePosts.map((post) => (
-                      <tr key={post.id}>
-                        <td>
-                          <strong>{post.title}</strong>
-                          <div className="muted" style={{ fontSize: '0.85em' }}>
-                            {post.creation_source || 'manual'}
-                          </div>
-                        </td>
-                        <td>
-                          <input
-                            value={archiveRemarks[post.id] || ''}
-                            onChange={(e) =>
-                              setArchiveRemarks((prev) => ({
-                                ...prev,
-                                [post.id]: e.target.value,
-                              }))
-                            }
-                            placeholder="Why this post is ready to distribute"
-                          />
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="btn ghost"
-                            onClick={() => onArchive(post)}
-                          >
-                            Archive
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
           <form className="settings-block" onSubmit={onDistribute}>
-            <h2>2. Distribute archived posts</h2>
+            <h2>1. Distribute ready posts</h2>
             <p className="muted" style={{ marginTop: 0 }}>
-              Copies selected archived posts into chosen hubs. Manual → Manual posts hubs; AI → AI
-              posts hubs.
+              Select non-archived library posts and target hubs. Manual → Manual posts hubs; AI → AI
+              posts hubs. Archived posts stay in the library but cannot be distributed.
             </p>
 
             <div className="library-distribute__columns">
               <div>
-                <h3>Archived posts</h3>
-                {archivedPosts.length === 0 ? (
-                  <p className="muted">Archive posts first.</p>
+                <h3>Ready posts</h3>
+                {livePosts.length === 0 ? (
+                  <p className="muted">No ready posts to distribute. Create posts in the library first.</p>
                 ) : (
                   <ul className="library-checklist">
-                    {archivedPosts.map((post) => (
+                    {livePosts.map((post) => (
                       <li key={post.id}>
                         <label className="checkbox-row">
                           <input
@@ -748,6 +701,68 @@ export default function CentralContentLibrary() {
               </button>
             </div>
           </form>
+
+          <div className="settings-block">
+            <h2>2. Archive (optional)</h2>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Retire a post from distribution with remarks. The post remains listed in the Central
+              library under Archived — it is not deleted or hidden.
+            </p>
+            {livePosts.length === 0 ? (
+              <p className="muted">No ready posts to archive.</p>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Post</th>
+                      <th>Remarks</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {livePosts.map((post) => (
+                      <tr key={post.id}>
+                        <td>
+                          <strong>{post.title}</strong>
+                          <div className="muted" style={{ fontSize: '0.85em' }}>
+                            {post.creation_source || 'manual'}
+                          </div>
+                        </td>
+                        <td>
+                          <input
+                            value={archiveRemarks[post.id] || ''}
+                            onChange={(e) =>
+                              setArchiveRemarks((prev) => ({
+                                ...prev,
+                                [post.id]: e.target.value,
+                              }))
+                            }
+                            placeholder="Why this post is retired from distribute"
+                          />
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            onClick={() => onArchive(post)}
+                          >
+                            Archive
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {archivedPosts.length > 0 && (
+              <p className="muted" style={{ marginTop: 12 }}>
+                {archivedPosts.length} archived post
+                {archivedPosts.length === 1 ? '' : 's'} remain visible under Library → Archived.
+              </p>
+            )}
+          </div>
         </div>
       )}
     </section>

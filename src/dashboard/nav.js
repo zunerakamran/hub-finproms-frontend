@@ -224,7 +224,7 @@ export const DASHBOARD_LINKS = [
     label: 'Central library',
     title: 'Central content library',
     description:
-      'Central only: create manual posts (single or Excel), archive with remarks, and distribute to hubs. AI generation under development.',
+          'Central only: create manual posts (single or Excel) and distribute ready posts to hubs. Archive retires a post from distribute (keeps it listed). AI generation under development.',
     capability: 'dashboard_central_content_library',
     controlPlaneOnly: true,
     hideWhenActingRemotely: true,

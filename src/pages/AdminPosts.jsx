@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FaEdit, FaTrash } from 'react-icons/fa'
+import { FaArchive, FaEdit, FaTrash, FaUndo } from 'react-icons/fa'
 import { api } from '../api/client'
 import AdminPostThumb from '../components/AdminPostThumb'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
@@ -55,13 +55,12 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     can,
   } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
-  // Create stays Central-library-owned (manage_posts off on hubs). Edit on Central only; delete everywhere.
+  const isCentralPosts = isControlPlane && !isActingRemotely
   const canManagePosts = can('dashboard_manage_posts')
   const canEditPosts =
-    isControlPlane &&
-    !isActingRemotely &&
-    (can('dashboard_view_posts') || can('dashboard_manage_posts'))
+    isCentralPosts && (can('dashboard_view_posts') || can('dashboard_manage_posts'))
   const canDeletePosts = can('dashboard_view_posts') || can('dashboard_manage_posts')
+  const canArchivePosts = isCentralPosts && can('dashboard_central_content_library')
   const hideCreateForm = !canManagePosts
   const apiOpts = { asPowerAdmin }
 
@@ -75,6 +74,12 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [sourceFilter, setSourceFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [search, setSearch] = useState('')
+  const [distributedOnly, setDistributedOnly] = useState(false)
+  const [archiveRemarks, setArchiveRemarks] = useState({})
   const formRef = useRef(null)
   const showPostForm = canManagePosts || (canEditPosts && Boolean(editingId))
 
@@ -84,13 +89,23 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     try {
       const [postsRes, typesRes, catsRes, tagsRes] = isActingRemotely
         ? await Promise.all([
-            api.hubContentPosts({ per_page: 50 }, apiOpts),
+            api.hubContentPosts({ per_page: 100 }, apiOpts),
             api.hubContentTypes(apiOpts),
             api.hubContentCategories(apiOpts),
             api.hubContentTags(apiOpts),
           ])
         : await Promise.all([
-            api.posts({ per_page: 50 }),
+            api.adminPosts(
+              {
+                per_page: 100,
+                ...(isCentralPosts && statusFilter !== 'all' ? { status: statusFilter } : {}),
+                ...(isCentralPosts && sourceFilter ? { source: sourceFilter } : {}),
+                ...(isCentralPosts && typeFilter ? { type: typeFilter } : {}),
+                ...(isCentralPosts && search.trim() ? { search: search.trim() } : {}),
+                ...(isCentralPosts && distributedOnly ? { distributed_only: true } : {}),
+              },
+              apiOpts
+            ),
             api.listTypes(),
             api.listCategories(),
             api.listTags(),
@@ -111,7 +126,16 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     setEditingId(null)
     setForm(emptyForm)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actingHubId])
+  }, [actingHubId, statusFilter, sourceFilter, typeFilter, distributedOnly])
+
+  useEffect(() => {
+    if (!isCentralPosts) return undefined
+    const handle = window.setTimeout(() => {
+      load()
+    }, 300)
+    return () => window.clearTimeout(handle)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
 
   const toFormData = () => {
     const fd = new FormData()
@@ -146,8 +170,11 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     setMessage('')
     try {
       if (editingId) {
-        await api.updatePost(editingId, toFormData(), apiOpts)
-        setMessage(isActingRemotely ? `Post updated on ${actingHub?.name}.` : 'Post updated.')
+        const data = await api.updatePost(editingId, toFormData(), apiOpts)
+        setMessage(
+          data.message ||
+            (isActingRemotely ? `Post updated on ${actingHub?.name}.` : 'Post updated.')
+        )
       } else {
         const data = await api.createPost(toFormData(), apiOpts)
         setMessage(data.message || 'Post created.')
@@ -197,6 +224,46 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     }
   }
 
+  const onArchive = async (post) => {
+    const remarks = (archiveRemarks[post.id] || '').trim()
+    if (!remarks) {
+      setError('Enter archive remarks before archiving.')
+      return
+    }
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.archiveCentralLibraryPost(post.id, remarks, apiOpts)
+      setMessage(data.message || 'Post archived.')
+      setArchiveRemarks((prev) => {
+        const next = { ...prev }
+        delete next[post.id]
+        return next
+      })
+      await load()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const onUnarchive = async (post) => {
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.unarchiveCentralLibraryPost(post.id, apiOpts)
+      setMessage(data.message || 'Post unarchived.')
+      await load()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const formatDistributedHubs = (post) => {
+    const hubs = Array.isArray(post.distributed_hubs) ? post.distributed_hubs : []
+    if (hubs.length === 0) return 'Not distributed'
+    return hubs.map((h) => h.hub_name).join(', ')
+  }
+
   const typeOptions =
     types.some((t) => t.name === form.type) || !form.type
       ? types
@@ -225,55 +292,136 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   })()
 
   const postColumns = useMemo(
-    () => [
-      {
-        key: 'title',
-        label: 'Title',
-        grow: true,
-        filterValue: (row) => row.title,
-        render: (row) => (
-          <div className="admin-post-grid-title">
-            <AdminPostThumb post={row} />
-            <span>{row.title}</span>
-          </div>
-        ),
-      },
-      {
-        key: 'type',
-        label: 'Type',
-        fit: true,
-        filterValue: (row) =>
-          row.is_reel || /^reels?$/i.test(String(row.type || '')) ? 'Reel' : row.type || 'Post',
-        render: (row) =>
-          row.is_reel || /^reels?$/i.test(String(row.type || '')) ? 'Reel' : row.type || 'Post',
-      },
-      {
-        key: 'categories',
-        label: 'Categories',
-        fit: true,
-        filterValue: (row) => formatCategories(row),
-        render: (row) => formatCategories(row),
-      },
-      {
-        key: 'credits_cost',
-        label: 'Credits',
-        fit: true,
-        filterValue: (row) => String(row.credits_cost ?? 0),
-        render: (row) => row.credits_cost ?? 0,
-      },
-      {
-        key: 'status',
-        label: 'Status',
-        fit: true,
-        filterValue: (row) => (row.is_active === false ? 'Inactive' : 'Active'),
-        render: (row) => (
-          <span className={`admin-status-pill ${row.is_active === false ? 'is-off' : 'is-on'}`}>
-            {row.is_active === false ? 'Inactive' : 'Active'}
-          </span>
-        ),
-      },
-    ],
-    []
+    () => {
+      const cols = [
+        {
+          key: 'title',
+          label: 'Title',
+          grow: true,
+          filterValue: (row) => row.title,
+          render: (row) => (
+            <div className="admin-post-grid-title">
+              <AdminPostThumb post={row} />
+              <span>{row.title}</span>
+            </div>
+          ),
+        },
+        {
+          key: 'type',
+          label: 'Type',
+          fit: true,
+          filterValue: (row) =>
+            row.is_reel || /^reels?$/i.test(String(row.type || '')) ? 'Reel' : row.type || 'Post',
+          render: (row) =>
+            row.is_reel || /^reels?$/i.test(String(row.type || '')) ? 'Reel' : row.type || 'Post',
+        },
+        {
+          key: 'categories',
+          label: 'Categories',
+          fit: true,
+          filterValue: (row) => formatCategories(row),
+          render: (row) => formatCategories(row),
+        },
+        {
+          key: 'credits_cost',
+          label: 'Credits',
+          fit: true,
+          filterValue: (row) => String(row.credits_cost ?? 0),
+          render: (row) => row.credits_cost ?? 0,
+        },
+      ]
+
+      if (isCentralPosts) {
+        cols.push(
+          {
+            key: 'creation_source',
+            label: 'Source',
+            fit: true,
+            filterValue: (row) => row.creation_source || 'manual',
+            render: (row) => (
+              <span className="admin-status-pill is-on">{row.creation_source || 'manual'}</span>
+            ),
+          },
+          {
+            key: 'library_status',
+            label: 'Library',
+            fit: true,
+            filterValue: (row) =>
+              row.archived_at || row.is_archived
+                ? `Archived ${row.archive_remarks || ''}`
+                : 'Ready',
+            render: (row) =>
+              row.archived_at || row.is_archived ? (
+                <span className="admin-status-pill is-off" title={row.archive_remarks || ''}>
+                  Archived
+                </span>
+              ) : (
+                <span className="admin-status-pill is-on">Ready</span>
+              ),
+          },
+          {
+            key: 'distributed_hubs',
+            label: 'Published on',
+            grow: true,
+            filterValue: (row) => formatDistributedHubs(row),
+            render: (row) => {
+              const hubs = Array.isArray(row.distributed_hubs) ? row.distributed_hubs : []
+              if (hubs.length === 0) {
+                return <span className="muted">Not distributed</span>
+              }
+              return (
+                <div className="admin-post-hubs">
+                  {hubs.map((hub) => (
+                    <span key={`${row.id}-${hub.hub_id}`} className="admin-status-pill is-on">
+                      {hub.hub_name}
+                    </span>
+                  ))}
+                </div>
+              )
+            },
+          }
+        )
+      } else {
+        cols.push({
+          key: 'status',
+          label: 'Status',
+          fit: true,
+          filterValue: (row) => (row.is_active === false ? 'Inactive' : 'Active'),
+          render: (row) => (
+            <span className={`admin-status-pill ${row.is_active === false ? 'is-off' : 'is-on'}`}>
+              {row.is_active === false ? 'Inactive' : 'Active'}
+            </span>
+          ),
+        })
+      }
+
+      if (canArchivePosts) {
+        cols.push({
+          key: 'archive_remarks_input',
+          label: 'Archive remarks',
+          grow: true,
+          filterable: false,
+          sortable: false,
+          render: (row) =>
+            row.archived_at || row.is_archived ? (
+              <span className="muted">{row.archive_remarks || '—'}</span>
+            ) : (
+              <input
+                className="data-grid__filter-input"
+                value={archiveRemarks[row.id] || ''}
+                onChange={(e) =>
+                  setArchiveRemarks((prev) => ({ ...prev, [row.id]: e.target.value }))
+                }
+                placeholder="Remarks to archive"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ),
+        })
+      }
+
+      return cols
+    },
+    [isCentralPosts, canArchivePosts, archiveRemarks]
   )
 
   return (
@@ -289,21 +437,88 @@ export default function AdminPosts({ shell = 'client-admin' }) {
                 : 'Add social media post'}
           </h1>
           <p className="muted">
-            {hideCreateForm
-              ? isControlPlane && !isActingRemotely
-                ? 'Create/distribute from Central library. You can edit local Central posts here, or delete posts on any hub.'
-                : 'New posts arrive from the Central content library. You can delete posts on this hub.'
-              : isActingRemotely
-                ? `Creating on ${actingHub?.name}'s database (use Control hub in the top bar to switch).`
-                : 'Managing this hub’s catalog. Use Control hub in the top bar to work on another hub.'}
+            {isCentralPosts
+              ? 'All Central library posts (ready and archived). Edit updates every hub this post was distributed to. Create and distribute from Central library.'
+              : hideCreateForm
+                ? 'New posts arrive from the Central content library. You can delete posts on this hub.'
+                : isActingRemotely
+                  ? `Creating on ${actingHub?.name}'s database (use Control hub in the top bar to switch).`
+                  : 'Managing this hub’s catalog. Use Control hub in the top bar to work on another hub.'}
           </p>
         </div>
-        {hideCreateForm && can('dashboard_central_content_library') && (
+        {can('dashboard_central_content_library') && (
           <Link to="/my-dashboard/central-library" className="btn primary">
             Open Central library
           </Link>
         )}
       </div>
+
+      {isCentralPosts && (
+        <div className="library-toolbar" style={{ marginBottom: '1rem' }}>
+          <div className="library-toolbar__filters">
+            <button
+              type="button"
+              className={`btn ghost${statusFilter === 'all' ? ' is-selected' : ''}`}
+              onClick={() => setStatusFilter('all')}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className={`btn ghost${statusFilter === 'active' ? ' is-selected' : ''}`}
+              onClick={() => setStatusFilter('active')}
+            >
+              Ready
+            </button>
+            <button
+              type="button"
+              className={`btn ghost${statusFilter === 'archived' ? ' is-selected' : ''}`}
+              onClick={() => setStatusFilter('archived')}
+            >
+              Archived
+            </button>
+            <button
+              type="button"
+              className={`btn ghost${distributedOnly ? ' is-selected' : ''}`}
+              onClick={() => setDistributedOnly((v) => !v)}
+            >
+              Distributed only
+            </button>
+          </div>
+          <div className="library-toolbar__filters">
+            <input
+              type="search"
+              className="data-grid__filter-input"
+              placeholder="Search title or description…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ minWidth: 220 }}
+            />
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              aria-label="Filter by type"
+            >
+              <option value="">All types</option>
+              {types.map((type) => (
+                <option key={type.id} value={type.name}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              aria-label="Filter by source"
+            >
+              <option value="">All sources</option>
+              <option value="manual">Manual</option>
+              <option value="import">Import</option>
+              <option value="ai">AI</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {showPostForm && (
       <form ref={formRef} className="admin-form" onSubmit={onSubmit}>
@@ -483,35 +698,52 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         rows={posts}
         loading={loading}
         emptyMessage={
-          hideCreateForm
-            ? isControlPlane && !isActingRemotely
-              ? 'No local posts on Central. Create and distribute from Central library.'
-              : 'No posts on this hub yet. Content arrives when Central distributes library posts.'
-            : 'No posts yet. Create a post or reel above and it will show up here.'
+          isCentralPosts
+            ? 'No Central posts match these filters. Create posts in the Central library.'
+            : hideCreateForm
+              ? 'No posts on this hub yet. Content arrives when Central distributes library posts.'
+              : 'No posts yet. Create a post or reel above and it will show up here.'
         }
         pageSize={10}
         getRowKey={(row) => row.id}
         actions={
-          canEditPosts || canDeletePosts
-            ? (row) => (
-                <>
-                  {canEditPosts && (
-                    <DataGridIconBtn
-                      icon={FaEdit}
-                      label={editingId === row.id ? 'Editing…' : 'Edit'}
-                      onClick={() => edit(row)}
-                    />
-                  )}
-                  {canDeletePosts && (
-                    <DataGridIconBtn
-                      icon={FaTrash}
-                      label="Delete"
-                      variant="danger"
-                      onClick={() => remove(row.id)}
-                    />
-                  )}
-                </>
-              )
+          canEditPosts || canDeletePosts || canArchivePosts
+            ? (row) => {
+                const archived = Boolean(row.archived_at || row.is_archived)
+                return (
+                  <>
+                    {canEditPosts && !archived && (
+                      <DataGridIconBtn
+                        icon={FaEdit}
+                        label={editingId === row.id ? 'Editing…' : 'Edit'}
+                        onClick={() => edit(row)}
+                      />
+                    )}
+                    {canArchivePosts &&
+                      (archived ? (
+                        <DataGridIconBtn
+                          icon={FaUndo}
+                          label="Unarchive"
+                          onClick={() => onUnarchive(row)}
+                        />
+                      ) : (
+                        <DataGridIconBtn
+                          icon={FaArchive}
+                          label="Archive"
+                          onClick={() => onArchive(row)}
+                        />
+                      ))}
+                    {canDeletePosts && (
+                      <DataGridIconBtn
+                        icon={FaTrash}
+                        label="Delete"
+                        variant="danger"
+                        onClick={() => remove(row.id)}
+                      />
+                    )}
+                  </>
+                )
+              }
             : null
         }
       />
@@ -529,6 +761,11 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           font-weight: 600;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+        .admin-post-hubs {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.35rem;
         }
       `}</style>
     </section>

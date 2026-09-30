@@ -197,6 +197,12 @@ export const api = {
   invoice: (id) => request(`/invoices/${id}`),
   createPost: (formData, options = {}) =>
     request(`${adminBase(options)}/posts`, { method: 'POST', body: formData }),
+  adminPosts: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '' && v !== false)
+    ).toString()
+    return request(`${adminBase(options)}/posts${query ? `?${query}` : ''}`)
+  },
   updatePost: (id, formData, options = {}) =>
     request(`${adminBase(options)}/posts/${id}`, { method: 'POST', body: formData }),
   deletePost: (id, options = {}) =>

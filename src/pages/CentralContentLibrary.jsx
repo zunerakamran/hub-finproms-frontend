@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import AdminPostThumb from '../components/AdminPostThumb'
 import MultiSelectField from '../components/MultiSelectField'
 import RequiredMark from '../components/RequiredMark'
 import RichTextEditor from '../components/RichTextEditor'
@@ -21,7 +20,6 @@ const emptyForm = {
 }
 
 const TABS = [
-  { id: 'library', label: 'Library' },
   { id: 'create', label: 'Create' },
   { id: 'ai', label: 'AI posts' },
   { id: 'distribute', label: 'Distribute' },
@@ -39,7 +37,7 @@ export default function CentralContentLibrary() {
   const { isActingRemotely, can, refreshHub, hub } = useHub()
   const apiOpts = { asPowerAdmin: isPowerAdmin }
 
-  const [tab, setTab] = useState('library')
+  const [tab, setTab] = useState('create')
   const [createMode, setCreateMode] = useState('one')
   const [posts, setPosts] = useState([])
   const [types, setTypes] = useState([])
@@ -47,7 +45,6 @@ export default function CentralContentLibrary() {
   const [tags, setTags] = useState([])
   const [targets, setTargets] = useState([])
   const [form, setForm] = useState(emptyForm)
-  const [statusFilter, setStatusFilter] = useState('all')
   const [selectedIds, setSelectedIds] = useState([])
   const [selectedHubIds, setSelectedHubIds] = useState([])
   const [archiveRemarks, setArchiveRemarks] = useState({})
@@ -64,13 +61,8 @@ export default function CentralContentLibrary() {
     setLoading(true)
     setError('')
     try {
-      const params = {}
-      // Distribute needs the full library so ready vs archived lists stay accurate.
-      if (tab === 'library' && (statusFilter === 'archived' || statusFilter === 'active')) {
-        params.status = statusFilter
-      }
       const [postsRes, typesRes, catsRes, tagsRes, targetsRes] = await Promise.all([
-        api.centralLibraryPosts({ per_page: 100, ...params }, apiOpts),
+        api.centralLibraryPosts({ per_page: 100 }, apiOpts),
         api.listTypes().catch(() => ({ types: [] })),
         api.listCategories().catch(() => ({ categories: [] })),
         api.listTags().catch(() => ({ tags: [] })),
@@ -109,12 +101,7 @@ export default function CentralContentLibrary() {
     if (!can('dashboard_central_content_library')) return
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    statusFilter,
-    tab,
-    isActingRemotely,
-    hub?.effective_capabilities?.dashboard_central_content_library,
-  ])
+  }, [tab, isActingRemotely, hub?.effective_capabilities?.dashboard_central_content_library])
 
   const archivedPosts = useMemo(
     () => posts.filter((post) => post.archived_at || post.is_archived),
@@ -152,7 +139,7 @@ export default function CentralContentLibrary() {
       const data = await api.createCentralLibraryPost(toFormData(), apiOpts)
       setMessage(data.message || 'Post created in Central library.')
       setForm(emptyForm)
-      setTab('library')
+      setTab('distribute')
       await load()
     } catch (err) {
       setError(err.message)
@@ -200,7 +187,7 @@ export default function CentralContentLibrary() {
       const data = await api.importCentralLibraryPosts(file, apiOpts)
       setMessage(data.message || 'Import finished.')
       setFile(null)
-      setTab('library')
+      setTab('distribute')
       await load()
     } catch (err) {
       setError(err.message)
@@ -329,15 +316,19 @@ export default function CentralContentLibrary() {
           <p className="eyebrow">Central</p>
           <h1>Content library</h1>
           <p className="muted">
-            Build posts in the Central database, then distribute ready (non-archived) copies to
-            Shared or White-labelled hubs. Archive (with remarks) retires a post from distribute;
-            Unarchive clears remarks and puts it back. Target hubs must have matching{' '}
-            <strong>Manual posts</strong> or <strong>AI posts</strong> in Functionalities.
+            Create posts here (one-by-one or Excel), then distribute ready copies to Shared /
+            White-labelled hubs. Browse, edit, archive, and see which hubs received each post on{' '}
+            <Link to="/my-dashboard/posts">Posts / reels</Link>.
           </p>
         </div>
-        <button type="button" className="btn primary" onClick={() => setTab('create')}>
-          New post
-        </button>
+        <div className="actions" style={{ gap: 8 }}>
+          <Link to="/my-dashboard/posts" className="btn ghost">
+            View all posts
+          </Link>
+          <button type="button" className="btn primary" onClick={() => setTab('create')}>
+            New post
+          </button>
+        </div>
       </div>
 
       {error && <div className="alert">{error}</div>}
@@ -357,116 +348,6 @@ export default function CentralContentLibrary() {
           </button>
         ))}
       </div>
-
-      {tab === 'library' && (
-        <div className="settings-block">
-          <div className="library-toolbar">
-            <h2 style={{ margin: 0 }}>Posts in Central</h2>
-            <div className="library-toolbar__filters">
-              <button
-                type="button"
-                className={`btn ghost${statusFilter === 'all' ? ' is-selected' : ''}`}
-                onClick={() => setStatusFilter('all')}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                className={`btn ghost${statusFilter === 'active' ? ' is-selected' : ''}`}
-                onClick={() => setStatusFilter('active')}
-              >
-                Ready
-              </button>
-              <button
-                type="button"
-                className={`btn ghost${statusFilter === 'archived' ? ' is-selected' : ''}`}
-                onClick={() => setStatusFilter('archived')}
-              >
-                Archived
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="state">Loading…</div>
-          ) : posts.length === 0 ? (
-            <div className="empty-state">
-              <h2>No posts yet</h2>
-              <p className="muted">Create a post or import from Excel to get started.</p>
-              <button type="button" className="btn primary" onClick={() => setTab('create')}>
-                Create post
-              </button>
-            </div>
-          ) : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th>Title</th>
-                    <th>Source</th>
-                    <th>Status</th>
-                    <th>Credits</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {posts.map((post) => {
-                    const archived = Boolean(post.archived_at || post.is_archived)
-                    return (
-                      <tr key={post.id}>
-                        <td>
-                          <AdminPostThumb post={post} />
-                        </td>
-                        <td>
-                          <strong>{post.title}</strong>
-                          <div className="muted" style={{ fontSize: '0.85em' }}>
-                            {post.type}
-                          </div>
-                        </td>
-                        <td>
-                          <span className="admin-status-pill is-on">
-                            {post.creation_source || 'manual'}
-                          </span>
-                        </td>
-                        <td>
-                          {archived ? (
-                            <span className="admin-status-pill is-off" title={post.archive_remarks || ''}>
-                              Archived
-                            </span>
-                          ) : (
-                            <span className="admin-status-pill is-on">Ready</span>
-                          )}
-                        </td>
-                        <td>{post.credits_cost}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          {archived ? (
-                            <button
-                              type="button"
-                              className="btn ghost"
-                              onClick={() => onUnarchive(post)}
-                            >
-                              Unarchive
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn ghost"
-                              onClick={() => setTab('distribute')}
-                            >
-                              Distribute / archive
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
 
       {tab === 'create' && (
         <div className="settings-block">

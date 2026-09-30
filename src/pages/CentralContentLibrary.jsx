@@ -497,18 +497,22 @@ export default function CentralContentLibrary() {
                 </label>
                 <label>
                   <RequiredMark>Type</RequiredMark>
-                  <select
+                  <input
+                    list="central-library-types"
                     value={form.type}
                     onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
+                    placeholder="Post, Reel, or a new type name"
                     required
-                  >
-                    <option value="">Select type</option>
+                  />
+                  <datalist id="central-library-types">
                     {types.map((type) => (
-                      <option key={type.id || type.name} value={type.name}>
-                        {type.name}
-                      </option>
+                      <option key={type.id || type.name} value={type.name} />
                     ))}
-                  </select>
+                  </datalist>
+                  <span className="field-hint">
+                    Pick an existing Central type or type a new name — it is saved to Central when
+                    you add the post. <Link to="/my-dashboard/types">Manage types</Link>
+                  </span>
                 </label>
                 <label>
                   <RequiredMark>Credits</RequiredMark>
@@ -537,9 +541,12 @@ export default function CentralContentLibrary() {
                     value={form.categories}
                     onChange={(next) => setForm((p) => ({ ...p, categories: next }))}
                     placeholder="Select a category to add…"
+                    allowCreate
+                    createPlaceholder="Or type a new category and press Enter…"
                     emptyHint={
                       <>
-                        No categories yet. <Link to="/my-dashboard/categories">Add categories</Link>.
+                        No categories yet — type a new name above, or{' '}
+                        <Link to="/my-dashboard/categories">manage categories</Link>.
                       </>
                     }
                   />
@@ -551,6 +558,14 @@ export default function CentralContentLibrary() {
                     value={form.tags}
                     onChange={(next) => setForm((p) => ({ ...p, tags: next }))}
                     placeholder="Select a tag to add…"
+                    allowCreate
+                    createPlaceholder="Or type a new tag and press Enter…"
+                    emptyHint={
+                      <>
+                        No tags yet — type a new name above, or{' '}
+                        <Link to="/my-dashboard/tags">manage tags</Link>.
+                      </>
+                    }
                   />
                 </div>
                 <label>

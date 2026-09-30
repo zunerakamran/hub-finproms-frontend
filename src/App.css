@@ -5594,3 +5594,15 @@ td.data-grid__actions {
   margin: 0.5rem 0 0.75rem;
 }
 
+
+.multi-select__create {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.multi-select__create input {
+  flex: 1;
+  min-width: 0;
+}

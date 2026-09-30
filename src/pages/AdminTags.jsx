@@ -7,7 +7,7 @@ import { useHub } from '../context/HubContext'
 
 export default function AdminTags({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub, isControlPlane } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
 
@@ -73,7 +73,9 @@ export default function AdminTags({ shell = 'client-admin' }) {
           <p className="muted">
             {isActingRemotely
               ? `Managing tags on ${actingHub?.name}. Switch hubs from the top bar.`
-              : 'Managing shared hub tags. Use Control hub in the top bar for a white-labelled hub.'}
+              : isControlPlane
+                ? 'Managing Central Hub tags used by the Central content library. On distribute, matching tag names are upserted into the target hub.'
+                : 'Managing shared hub tags. Use Control hub in the top bar for a white-labelled hub.'}
           </p>
         </div>
       </div>

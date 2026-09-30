@@ -7,7 +7,7 @@ import { useHub } from '../context/HubContext'
 
 export default function AdminCategories({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub, isControlPlane } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
 
@@ -73,7 +73,9 @@ export default function AdminCategories({ shell = 'client-admin' }) {
           <p className="muted">
             {isActingRemotely
               ? `Managing categories on ${actingHub?.name}. Switch hubs from the top bar.`
-              : 'Managing shared hub categories. Use Control hub in the top bar for a white-labelled hub.'}
+              : isControlPlane
+                ? 'Managing Central Hub categories used by the Central content library. On distribute, matching category names are upserted into the target hub.'
+                : 'Managing shared hub categories. Use Control hub in the top bar for a white-labelled hub.'}
           </p>
         </div>
       </div>

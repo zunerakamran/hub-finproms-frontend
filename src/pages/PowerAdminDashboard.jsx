@@ -47,8 +47,8 @@ export default function PowerAdminDashboard() {
     {
       to: '/power-admin/posts',
       title: 'Posts / reels',
-      description: 'Create and edit catalog posts and reels for the current hub.',
-      hubCapability: 'dashboard_manage_posts',
+      description: 'List posts/reels on the current hub. Create/edit only where Manage posts is enabled.',
+      hubAnyOf: ['dashboard_manage_posts', 'dashboard_view_posts'],
     },
     {
       to: '/power-admin/bundles',
@@ -59,20 +59,20 @@ export default function PowerAdminDashboard() {
     {
       to: '/power-admin/types',
       title: 'Content types',
-      description: 'Manage content types (post, reel, etc.) for the current hub.',
-      hubCapability: 'dashboard_manage_types',
+      description: 'List content types on the current hub. Create/edit only where Manage types is enabled.',
+      hubAnyOf: ['dashboard_manage_types', 'dashboard_view_types'],
     },
     {
       to: '/power-admin/categories',
       title: 'Categories',
-      description: 'Manage topical categories used to group catalog content.',
-      hubCapability: 'dashboard_manage_categories',
+      description: 'List categories on the current hub. Create/edit only where Manage categories is enabled.',
+      hubAnyOf: ['dashboard_manage_categories', 'dashboard_view_categories'],
     },
     {
       to: '/power-admin/tags',
       title: 'Tags',
-      description: 'Manage free-form tags for filtering posts and reels.',
-      hubCapability: 'dashboard_manage_tags',
+      description: 'List tags on the current hub. Create/edit only where Manage tags is enabled.',
+      hubAnyOf: ['dashboard_manage_tags', 'dashboard_view_tags'],
     },
     {
       to: '/power-admin/firms',

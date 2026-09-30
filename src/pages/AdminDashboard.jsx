@@ -5,8 +5,8 @@ const sections = [
   {
     to: '/client-admin/posts',
     title: 'Posts & reels',
-    description: 'Create and edit social content, attachments, and credit costs.',
-    capability: 'dashboard_manage_posts',
+    description: 'List hub posts/reels. Create/edit only where Manage posts is enabled.',
+    anyOf: ['dashboard_manage_posts', 'dashboard_view_posts'],
   },
   {
     to: '/client-admin/bundles',
@@ -17,20 +17,20 @@ const sections = [
   {
     to: '/client-admin/types',
     title: 'Types',
-    description: 'Manage content types such as Post and Reel (separate from category).',
-    capability: 'dashboard_manage_types',
+    description: 'List content types on this hub. Create/edit only where Manage types is enabled.',
+    anyOf: ['dashboard_manage_types', 'dashboard_view_types'],
   },
   {
     to: '/client-admin/categories',
     title: 'Categories',
-    description: 'Manage topical categories (separate from type and tags).',
-    capability: 'dashboard_manage_categories',
+    description: 'List categories on this hub. Create/edit only where Manage categories is enabled.',
+    anyOf: ['dashboard_manage_categories', 'dashboard_view_categories'],
   },
   {
     to: '/client-admin/tags',
     title: 'Tags',
-    description: 'Manage tags available when creating or editing content.',
-    capability: 'dashboard_manage_tags',
+    description: 'List tags on this hub. Create/edit only where Manage tags is enabled.',
+    anyOf: ['dashboard_manage_tags', 'dashboard_view_tags'],
   },
   {
     to: '/client-admin/firms',

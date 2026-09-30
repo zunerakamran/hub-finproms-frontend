@@ -81,7 +81,9 @@ export default function AdminTypes({ shell = 'client-admin' }) {
           <h1>{editingId ? 'Edit type' : 'Content types'}</h1>
           <p className="muted">
             {isActingRemotely
-              ? `Managing types on ${actingHub?.name}. Switch hubs from the top bar.`
+              ? canManage
+                ? `Managing types on ${actingHub?.name}. Switch hubs from the top bar.`
+                : `Listing types on ${actingHub?.name}. Create/edit is Central-only; types arrive with distributed posts.`
               : isControlPlane
                 ? canManage
                   ? 'Managing Central Hub types used by the Central content library. When you distribute a post, matching type names are upserted into the target hub.'

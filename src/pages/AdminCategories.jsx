@@ -73,7 +73,9 @@ export default function AdminCategories({ shell = 'client-admin' }) {
           <h1>{editingId ? 'Edit category' : 'Categories'}</h1>
           <p className="muted">
             {isActingRemotely
-              ? `Managing categories on ${actingHub?.name}. Switch hubs from the top bar.`
+              ? canManage
+                ? `Managing categories on ${actingHub?.name}. Switch hubs from the top bar.`
+                : `Listing categories on ${actingHub?.name}. Create/edit is Central-only; categories arrive with distributed posts.`
               : isControlPlane
                 ? canManage
                   ? 'Managing Central Hub categories used by the Central content library. On distribute, matching category names are upserted into the target hub.'

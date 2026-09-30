@@ -73,7 +73,9 @@ export default function AdminTags({ shell = 'client-admin' }) {
           <h1>{editingId ? 'Edit tag' : 'Post tags'}</h1>
           <p className="muted">
             {isActingRemotely
-              ? `Managing tags on ${actingHub?.name}. Switch hubs from the top bar.`
+              ? canManage
+                ? `Managing tags on ${actingHub?.name}. Switch hubs from the top bar.`
+                : `Listing tags on ${actingHub?.name}. Create/edit is Central-only; tags arrive with distributed posts.`
               : isControlPlane
                 ? canManage
                   ? 'Managing Central Hub tags used by the Central content library. On distribute, matching tag names are upserted into the target hub.'

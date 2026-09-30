@@ -31,7 +31,7 @@ const links = [
   {
     to: '/power-admin/posts',
     label: 'Posts / reels',
-    hubCapability: 'dashboard_manage_posts',
+    hubAnyOf: ['dashboard_manage_posts', 'dashboard_view_posts'],
   },
   {
     to: '/power-admin/bundles',
@@ -41,17 +41,17 @@ const links = [
   {
     to: '/power-admin/types',
     label: 'Types',
-    hubCapability: 'dashboard_manage_types',
+    hubAnyOf: ['dashboard_manage_types', 'dashboard_view_types'],
   },
   {
     to: '/power-admin/categories',
     label: 'Categories',
-    hubCapability: 'dashboard_manage_categories',
+    hubAnyOf: ['dashboard_manage_categories', 'dashboard_view_categories'],
   },
   {
     to: '/power-admin/tags',
     label: 'Tags',
-    hubCapability: 'dashboard_manage_tags',
+    hubAnyOf: ['dashboard_manage_tags', 'dashboard_view_tags'],
   },
   {
     to: '/power-admin/firms',

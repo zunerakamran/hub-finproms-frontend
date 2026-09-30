@@ -11,7 +11,6 @@ export default function AdminTypes({ shell = 'client-admin' }) {
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
   const canManage = can('dashboard_manage_types')
-  const canManage = can('dashboard_manage_types')
 
   const [types, setTypes] = useState([])
   const [name, setName] = useState('')

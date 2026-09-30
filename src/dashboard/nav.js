@@ -25,7 +25,7 @@ export const GENERAL_DASHBOARD_ANY = [
  *   billingOnly?: boolean,
  *   sharedOnly?: boolean, // legacy — hide while acting on WL / on WL deploy
  *   controlPlaneOnly?: boolean, // Platform tools: only on Central Hub Controller
-
+ *   hideWhenActingRemotely?: boolean, // Hide while Control hub switcher is on Shared/WL
  *   homeOnly?: boolean,
  *   exceptRoles?: string[],
  *   group?: string,
@@ -221,6 +221,8 @@ export const DASHBOARD_LINKS = [
     description:
       'Central only: create manual posts (single or Excel), archive with remarks, and distribute to hubs. AI generation under development.',
     capability: 'dashboard_central_content_library',
+    controlPlaneOnly: true,
+    hideWhenActingRemotely: true,
     group: 'content',
   },
   {
@@ -694,6 +696,7 @@ export function isDashboardLinkVisible(
   // Hub tools on Central follow the Capabilities matrix (same as Shared /
   // White-label). Platform-only links still require isControlPlane below.
   if (link.controlPlaneOnly && !isControlPlane) return false
+  if (link.hideWhenActingRemotely && isActingRemotely) return false
   if (link.sharedOnly && (isActingOnWhiteLabel || isWhiteLabelHub)) return false
   if (Array.isArray(link.exceptRoles) && link.exceptRoles.length > 0) {
     const role = String(userRole || '')

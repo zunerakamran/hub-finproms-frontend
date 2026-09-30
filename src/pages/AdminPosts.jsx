@@ -46,8 +46,17 @@ function formatCategories(post) {
 
 export default function AdminPosts({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub } = useHub()
+  const {
+    actingHubId,
+    isActingOnWhiteLabel,
+    isActingRemotely,
+    actingHub,
+    isControlPlane,
+    can,
+  } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
+  // Central home uses Central library for create/distribute — not this catalog form.
+  const hideCreateForm = Boolean(isControlPlane && !isActingRemotely)
   const apiOpts = { asPowerAdmin }
 
   const [posts, setPosts] = useState([])
@@ -257,15 +266,29 @@ export default function AdminPosts({ shell = 'client-admin' }) {
       <div className="page-head">
         <div>
           <p className="eyebrow">SM Template</p>
-          <h1>{editingId ? 'Edit post' : 'Add social media post'}</h1>
+          <h1>
+            {hideCreateForm
+              ? 'Posts / reels'
+              : editingId
+                ? 'Edit post'
+                : 'Add social media post'}
+          </h1>
           <p className="muted">
-            {isActingRemotely
-              ? `Creating on ${actingHub?.name}'s database (use Control hub in the top bar to switch).`
-              : 'Managing the shared hub catalog. Use Control hub in the top bar to work on a white-labelled hub.'}
+            {hideCreateForm
+              ? 'Central catalog create/distribute lives under Central library. This page lists local posts only.'
+              : isActingRemotely
+                ? `Creating on ${actingHub?.name}'s database (use Control hub in the top bar to switch).`
+                : 'Managing this hub’s catalog. Use Control hub in the top bar to work on another hub.'}
           </p>
         </div>
+        {hideCreateForm && can('dashboard_central_content_library') && (
+          <Link to="/my-dashboard/central-library" className="btn primary">
+            Open Central library
+          </Link>
+        )}
       </div>
 
+      {!hideCreateForm && (
       <form ref={formRef} className="admin-form" onSubmit={onSubmit}>
         {error && <div className="alert">{error}</div>}
         {message && <div className="alert success">{message}</div>}
@@ -419,6 +442,10 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           )}
         </div>
       </form>
+      )}
+
+      {hideCreateForm && error && <div className="alert">{error}</div>}
+      {hideCreateForm && message && <div className="alert success">{message}</div>}
 
       <div className="admin-posts-head">
         <div>
@@ -438,10 +465,15 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         columns={postColumns}
         rows={posts}
         loading={loading}
-        emptyMessage="No posts yet. Create a post or reel above and it will show up here."
+        emptyMessage={
+          hideCreateForm
+            ? 'No local posts on Central. Create and distribute from Central library.'
+            : 'No posts yet. Create a post or reel above and it will show up here.'
+        }
         pageSize={10}
         getRowKey={(row) => row.id}
-        actions={(row) => (
+        actions={(row) =>
+          hideCreateForm ? null : (
           <>
             <DataGridIconBtn
               icon={FaEdit}
@@ -455,7 +487,8 @@ export default function AdminPosts({ shell = 'client-admin' }) {
               onClick={() => remove(row.id)}
             />
           </>
-        )}
+          )
+        }
       />
       <style>{`
         .admin-post-grid-title {

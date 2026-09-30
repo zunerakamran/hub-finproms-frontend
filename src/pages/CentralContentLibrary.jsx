@@ -36,7 +36,7 @@ function normalizeNames(list) {
 
 export default function CentralContentLibrary() {
   const { isPowerAdmin } = useAuth()
-  const { isActingRemotely, can, refreshHub } = useHub()
+  const { isActingRemotely, can, refreshHub, hub } = useHub()
   const apiOpts = { asPowerAdmin: isPowerAdmin }
 
   const [tab, setTab] = useState('library')
@@ -88,17 +88,27 @@ export default function CentralContentLibrary() {
   }
 
   useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        await refreshHub({ silent: true })
+      } catch {
+        // Ignore — still attempt load with current caps.
+      }
+      if (cancelled) return
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     if (isActingRemotely) return
     if (!can('dashboard_central_content_library')) return
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, isActingRemotely])
-
-  useEffect(() => {
-    // Caps may have been seeded after login — refresh once on mount.
-    refreshHub({ silent: true }).catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [statusFilter, isActingRemotely, hub?.effective_capabilities?.dashboard_central_content_library])
 
   const archivedPosts = useMemo(
     () => posts.filter((post) => post.archived_at || post.is_archived),

@@ -275,13 +275,30 @@ export function HubProvider({ children }) {
       setActingHubSwitching(true)
       try {
         const data = await api.setActingHub(hubId, { asPowerAdmin })
-        await refreshHub({ silent: true })
+        const switcher = data?.hub_switcher
+        if (switcher) {
+          // Apply switcher payload directly — avoids a second heavy GET /hub.
+          setHub((prev) => {
+            if (!prev) return prev
+            return {
+              ...prev,
+              hub_switcher: switcher,
+              effective_capabilities: switcher.effective_capabilities,
+              acting_hub: switcher.acting_hub,
+              role_labels: switcher.role_labels ?? prev.role_labels,
+              compliance_status_labels:
+                switcher.compliance_status_labels ?? prev.compliance_status_labels,
+            }
+          })
+        } else {
+          await refreshHub({ silent: true })
+        }
         return data
       } finally {
         setActingHubSwitching(false)
       }
     },
-    [refreshHub]
+    [refreshHub, setHub]
   )
 
   const value = useMemo(

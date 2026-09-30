@@ -79,6 +79,7 @@ const ACCOUNT_ANY = [
 
 const CONTENT_ANY = [
   'dashboard_manage_posts',
+  'dashboard_central_content_library',
   'dashboard_manage_bundles',
   'dashboard_manage_types',
   'dashboard_manage_categories',
@@ -211,6 +212,15 @@ export const DASHBOARD_LINKS = [
     title: 'Posts / reels',
     description: 'Create and edit catalog posts and reels for the current hub.',
     capability: 'dashboard_manage_posts',
+    group: 'content',
+  },
+  {
+    to: '/my-dashboard/central-library',
+    label: 'Central library',
+    title: 'Central content library',
+    description:
+      'Central only: create manual posts (single or Excel), archive with remarks, and distribute to hubs. AI generation under development.',
+    capability: 'dashboard_central_content_library',
     group: 'content',
   },
   {

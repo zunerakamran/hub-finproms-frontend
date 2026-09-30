@@ -202,6 +202,42 @@ export const api = {
   deletePost: (id, options = {}) =>
     request(`${adminBase(options)}/posts/${id}`, { method: 'DELETE' }),
 
+  centralLibraryPosts: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/central-library/posts${query ? `?${query}` : ''}`)
+  },
+  createCentralLibraryPost: (formData, options = {}) =>
+    request(`${adminBase(options)}/central-library/posts`, { method: 'POST', body: formData }),
+  archiveCentralLibraryPost: (id, remarks, options = {}) =>
+    request(`${adminBase(options)}/central-library/posts/${id}/archive`, {
+      method: 'POST',
+      body: JSON.stringify({ remarks }),
+    }),
+  importCentralLibraryPosts: (file, options = {}) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request(`${adminBase(options)}/central-library/posts/import`, {
+      method: 'POST',
+      body: formData,
+    })
+  },
+  centralLibraryTemplateUrl: (options = {}) => {
+    const basePath = adminBase(options)
+    const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
+    return `${base}${basePath}/central-library/posts/template`
+  },
+  centralLibraryAi: (options = {}) =>
+    request(`${adminBase(options)}/central-library/ai`),
+  centralLibraryTargets: (options = {}) =>
+    request(`${adminBase(options)}/central-library/targets`),
+  distributeCentralLibraryPosts: (payload, options = {}) =>
+    request(`${adminBase(options)}/central-library/distribute`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
   contentPushTargets: (options = {}) =>
     request(`${adminBase(options)}/content-push/targets`),
   contentPushPosts: (params = {}, options = {}) => {
@@ -331,6 +367,10 @@ export const api = {
     request(`${CLIENT_ADMIN}/role-display-names/roles`, {
       method: 'POST',
       body: JSON.stringify(payload),
+    }),
+  removeHubRole: (role) =>
+    request(`${CLIENT_ADMIN}/role-display-names/roles/${encodeURIComponent(role)}`, {
+      method: 'DELETE',
     }),
   complianceStatusDisplayNames: () =>
     request(`${CLIENT_ADMIN}/compliance-status-display-names`),

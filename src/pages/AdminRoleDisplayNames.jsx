@@ -4,9 +4,9 @@ import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
 
 /**
- * Manage roles for the acting hub: add roles to the Capabilities matrix
- * and rename display titles. Gated by dashboard_manage_role_display_names
- * (“Manage roles”).
+ * Manage roles for the acting hub: list roles with user counts, add / delete
+ * roles on the Capabilities matrix, and rename display titles. Gated by
+ * dashboard_manage_role_display_names (“Manage roles”).
  */
 export default function AdminRoleDisplayNames() {
   const { refreshHub, actingHub, actingHubId, hub, isActingRemotely } = useHub()
@@ -18,6 +18,7 @@ export default function AdminRoleDisplayNames() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [addingRole, setAddingRole] = useState(false)
+  const [deletingRole, setDeletingRole] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [addMode, setAddMode] = useState('catalog')
@@ -117,6 +118,48 @@ export default function AdminRoleDisplayNames() {
     }
   }
 
+  const onDeleteRole = async (role) => {
+    const label = role.label || role.default_label || role.key
+    const users = Number(role.user_count) || 0
+    if (users > 0) {
+      setError(
+        `Cannot delete “${label}” while ${users} user${users === 1 ? '' : 's'} still have that role. Reassign them first.`
+      )
+      return
+    }
+    if (
+      !window.confirm(
+        `Remove “${label}” from ${hubName}? It will disappear from the Capabilities matrix for this hub.`
+      )
+    ) {
+      return
+    }
+    setDeletingRole(role.key)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.removeHubRole(role.key)
+      applyPayload(data)
+      await refreshHub({ silent: true })
+      setMessage(data.message || 'Role removed.')
+    } catch (err) {
+      setError(err.message || 'Failed to delete role.')
+    } finally {
+      setDeletingRole('')
+    }
+  }
+
+  const deleteDisabledReason = (role) => {
+    if (role.can_delete === false && (Number(role.user_count) || 0) > 0) {
+      const n = Number(role.user_count)
+      return `${n} user${n === 1 ? '' : 's'} still have this role`
+    }
+    if (role.can_delete === false) {
+      return 'This role cannot be removed from this hub'
+    }
+    return ''
+  }
+
   return (
     <section>
       <div className="page-head">
@@ -124,9 +167,9 @@ export default function AdminRoleDisplayNames() {
           <p className="eyebrow">Hub</p>
           <h1>Manage roles</h1>
           <p className="muted">
-            Add roles to the Capabilities matrix for <strong>{hubName}</strong>
-            {isActingRemotely ? ' (via Control hub)' : ''} and customize how those role names appear
-            in the UI. Capability checkboxes stay under{' '}
+            Add or remove roles on the Capabilities matrix for <strong>{hubName}</strong>
+            {isActingRemotely ? ' (via Control hub)' : ''}, see how many users hold each role, and
+            customize display names. Capability checkboxes stay under{' '}
             <Link to="/my-dashboard/capabilities">Capabilities</Link>.
           </p>
         </div>
@@ -139,6 +182,66 @@ export default function AdminRoleDisplayNames() {
         <div className="state">Loading...</div>
       ) : (
         <>
+          <div className="settings-block manage-roles-list">
+            <h2>Roles on this hub</h2>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Roles currently on <strong>{hubName}</strong>. Delete is blocked while any users still
+              hold that role.
+            </p>
+            {roles.length === 0 ? (
+              <div className="empty-state">
+                <h2>No roles on this hub yet</h2>
+                <p className="muted">Add a role below, or create users with roles first.</p>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Role</th>
+                      <th>Key</th>
+                      <th>Users</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roles.map((role) => {
+                      const reason = deleteDisabledReason(role)
+                      const busy = deletingRole === role.key
+                      return (
+                        <tr key={role.key}>
+                          <td>
+                            <strong>{role.label || role.default_label || role.key}</strong>
+                            {role.is_custom ? (
+                              <span className="muted" style={{ marginLeft: 8, fontSize: '0.85em' }}>
+                                custom
+                              </span>
+                            ) : null}
+                          </td>
+                          <td>
+                            <code>{role.key}</code>
+                          </td>
+                          <td>{Number(role.user_count) || 0}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              className="btn danger"
+                              disabled={busy || role.can_delete === false}
+                              title={reason || 'Remove role from this hub'}
+                              onClick={() => onDeleteRole(role)}
+                            >
+                              {busy ? 'Deleting…' : 'Delete'}
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           <form className="matrix-add-role" onSubmit={onAddRole}>
             <div className="matrix-add-role__head">
               <h2>Add role to this hub</h2>
@@ -247,7 +350,8 @@ export default function AdminRoleDisplayNames() {
                         className="muted"
                         style={{ display: 'block', fontSize: '0.85em', marginBottom: 4 }}
                       >
-                        Key: {role.key}
+                        Key: {role.key} · {Number(role.user_count) || 0} user
+                        {(Number(role.user_count) || 0) === 1 ? '' : 's'}
                       </span>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <input

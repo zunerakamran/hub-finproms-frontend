@@ -24,6 +24,7 @@ import AdminPaymentCard from './pages/AdminPaymentCard'
 import AdminPaymentCardSuccess from './pages/AdminPaymentCardSuccess'
 import AdminPlans from './pages/AdminPlans'
 import AdminPosts from './pages/AdminPosts'
+import CentralContentLibrary from './pages/CentralContentLibrary'
 import AdminSettings from './pages/AdminSettings'
 import AdminRoleDisplayNames from './pages/AdminRoleDisplayNames'
 import AdminComplianceStatusDisplayNames from './pages/AdminComplianceStatusDisplayNames'
@@ -256,6 +257,14 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_posts">
                       <AdminPosts />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="central-library"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_central_content_library">
+                      <CentralContentLibrary />
                     </HubCapabilityRoute>
                   }
                 />

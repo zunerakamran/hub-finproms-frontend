@@ -3078,6 +3078,65 @@ label {
   box-sizing: border-box;
 }
 
+.matrix-add-role {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-sizing: border-box;
+}
+
+.matrix-add-role__head h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.matrix-add-role__head .muted {
+  margin: 0;
+}
+
+.matrix-add-role__modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.matrix-add-role__modes label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.matrix-add-role__custom {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.85rem;
+}
+
+.matrix-add-role__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 600;
+  max-width: 28rem;
+}
+
+.matrix-add-role__field input,
+.matrix-add-role__field select {
+  font-weight: 400;
+}
+
+.matrix-role-hint {
+  display: block;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
 .matrix-search {
   display: flex;
   flex-direction: column;

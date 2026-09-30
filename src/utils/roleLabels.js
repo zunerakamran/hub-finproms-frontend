@@ -12,6 +12,7 @@ export const DEFAULT_ROLE_LABELS = {
 
 /**
  * Resolve a display label for a role key from hub.role_labels (or defaults).
+ * Custom / newly added roles come from hub.role_labels after the hub payload refresh.
  * @param {object|null|undefined} hub
  * @param {string} roleKey
  * @returns {string}
@@ -28,5 +29,6 @@ export function roleLabel(hub, roleKey) {
  * @returns {Record<string, string>}
  */
 export function roleLabelsMap(hub) {
+  // Hub labels are authoritative (includes custom roles). Defaults fill gaps only.
   return { ...DEFAULT_ROLE_LABELS, ...(hub?.role_labels || {}) }
 }

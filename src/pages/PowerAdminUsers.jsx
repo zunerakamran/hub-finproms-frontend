@@ -4,7 +4,7 @@ import { api } from '../api/client'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { DEFAULT_ROLE_LABELS } from '../utils/roleLabels'
+import { roleLabel as resolveRoleLabel } from '../utils/roleLabels'
 
 const emptyForm = {
   name: '',
@@ -31,13 +31,8 @@ function formatUserModules(user) {
 
 export default function PowerAdminUsers() {
   const { canPower, user: me } = useAuth()
-  const { roleLabels, actingHubId } = useHub()
+  const { hub, roleLabels, actingHubId } = useHub()
   const allowed = canPower('pa_manage_users_roles')
-
-  const fallbackRoles = Object.entries(roleLabels || DEFAULT_ROLE_LABELS).map(([key, label]) => ({
-    key,
-    label,
-  }))
 
   const [users, setUsers] = useState([])
   const [roles, setRoles] = useState([])
@@ -78,6 +73,14 @@ export default function PowerAdminUsers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowed, actingHubId, roleFilter])
 
+  // After roles load, keep create-form role on a visible option.
+  useEffect(() => {
+    if (editingId || roles.length === 0) return
+    if (!roles.some((role) => role.key === form.role)) {
+      setForm((f) => ({ ...f, role: roles[0].key }))
+    }
+  }, [roles, editingId, form.role])
+
   const resetForm = () => {
     setForm(emptyForm)
     setEditingId(null)
@@ -101,8 +104,20 @@ export default function PowerAdminUsers() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // API roles = matrix-visible for this hub. Keep current edit value if missing.
+  const roleOptions = useMemo(() => {
+    const list = [...roles]
+    if (form.role && !list.some((role) => role.key === form.role)) {
+      list.push({
+        key: form.role,
+        label: resolveRoleLabel(hub, form.role) || roleLabels?.[form.role] || form.role,
+      })
+    }
+    return list
+  }, [roles, form.role, hub, roleLabels])
+
   const isAdvisorForm = form.role === 'advisor' || Boolean(form.is_advisor)
-  const staffLabel = (roleLabels || DEFAULT_ROLE_LABELS).admin_staff || 'Admin-staff'
+  const staffLabel = resolveRoleLabel(hub, 'admin_staff') || 'Admin-staff'
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -286,7 +301,7 @@ export default function PowerAdminUsers() {
               }}
               required
             >
-              {(roles.length ? roles : fallbackRoles).map((role) => (
+              {(roleOptions.length ? roleOptions : [{ key: 'user', label: 'User' }]).map((role) => (
                 <option key={role.key} value={role.key}>
                   {role.label}
                 </option>

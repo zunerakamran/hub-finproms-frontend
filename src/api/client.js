@@ -379,6 +379,11 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
+  addPowerAdminCapabilityRole: (payload) =>
+    request('/power-admin/capabilities/roles', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   currentHub: () => request('/hub'),
   powerAdminHubs: () => request('/power-admin/hubs'),
   powerAdminHub: (id) => request(`/power-admin/hubs/${id}`),

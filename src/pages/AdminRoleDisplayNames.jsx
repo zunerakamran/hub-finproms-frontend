@@ -70,7 +70,8 @@ export default function AdminRoleDisplayNames() {
           <p className="eyebrow">Hub</p>
           <h1>User role title</h1>
           <p className="muted">
-            Customize how role names appear across this hub’s UI. Leave a field as the default (or
+            Customize how role names appear across this hub’s UI. Only roles present on this hub
+            (or added for all hubs in Capabilities) are listed. Leave a field as the default (or
             clear it) to reset that role.
           </p>
         </div>

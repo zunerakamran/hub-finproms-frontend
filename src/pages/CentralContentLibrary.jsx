@@ -50,6 +50,7 @@ export default function CentralContentLibrary() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedIds, setSelectedIds] = useState([])
   const [selectedHubIds, setSelectedHubIds] = useState([])
+  const [archiveRemarks, setArchiveRemarks] = useState({})
   const [file, setFile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -209,11 +210,21 @@ export default function CentralContentLibrary() {
   }
 
   const onArchive = async (post) => {
+    const remarks = (archiveRemarks[post.id] || '').trim()
+    if (!remarks) {
+      setError('Enter archive remarks before archiving.')
+      return
+    }
     setError('')
     setMessage('')
     try {
-      const data = await api.archiveCentralLibraryPost(post.id, apiOpts)
+      const data = await api.archiveCentralLibraryPost(post.id, remarks, apiOpts)
       setMessage(data.message || 'Post archived (kept in library, no longer distributable).')
+      setArchiveRemarks((prev) => {
+        const next = { ...prev }
+        delete next[post.id]
+        return next
+      })
       setSelectedIds((prev) => prev.filter((id) => id !== post.id))
       await load()
     } catch (err) {
@@ -319,8 +330,8 @@ export default function CentralContentLibrary() {
           <h1>Content library</h1>
           <p className="muted">
             Build posts in the Central database, then distribute ready (non-archived) copies to
-            Shared or White-labelled hubs. Archive retires a post from distribute (still listed);
-            Unarchive puts it back. Target hubs must have matching{' '}
+            Shared or White-labelled hubs. Archive (with remarks) retires a post from distribute;
+            Unarchive clears remarks and puts it back. Target hubs must have matching{' '}
             <strong>Manual posts</strong> or <strong>AI posts</strong> in Functionalities.
           </p>
         </div>
@@ -420,7 +431,9 @@ export default function CentralContentLibrary() {
                         </td>
                         <td>
                           {archived ? (
-                            <span className="admin-status-pill is-off">Archived</span>
+                            <span className="admin-status-pill is-off" title={post.archive_remarks || ''}>
+                              Archived
+                            </span>
                           ) : (
                             <span className="admin-status-pill is-on">Ready</span>
                           )}
@@ -436,22 +449,13 @@ export default function CentralContentLibrary() {
                               Unarchive
                             </button>
                           ) : (
-                            <>
-                              <button
-                                type="button"
-                                className="btn ghost"
-                                onClick={() => setTab('distribute')}
-                              >
-                                Distribute
-                              </button>{' '}
-                              <button
-                                type="button"
-                                className="btn ghost"
-                                onClick={() => onArchive(post)}
-                              >
-                                Archive
-                              </button>
-                            </>
+                            <button
+                              type="button"
+                              className="btn ghost"
+                              onClick={() => setTab('distribute')}
+                            >
+                              Distribute / archive
+                            </button>
                           )}
                         </td>
                       </tr>
@@ -721,8 +725,8 @@ export default function CentralContentLibrary() {
           <div className="settings-block">
             <h2>2. Archive / unarchive (optional)</h2>
             <p className="muted" style={{ marginTop: 0 }}>
-              Archive retires a post from distribution (keeps it listed). Unarchive restores it to
-              the ready pool.
+              Archive retires a post from distribution (remarks required). Unarchive clears remarks
+              and restores it to the ready pool. Posts stay listed either way.
             </p>
             {livePosts.length === 0 && archivedPosts.length === 0 ? (
               <p className="muted">No posts yet.</p>
@@ -732,7 +736,7 @@ export default function CentralContentLibrary() {
                   <thead>
                     <tr>
                       <th>Post</th>
-                      <th>Status</th>
+                      <th>Remarks</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -742,11 +746,20 @@ export default function CentralContentLibrary() {
                         <td>
                           <strong>{post.title}</strong>
                           <div className="muted" style={{ fontSize: '0.85em' }}>
-                            {post.creation_source || 'manual'}
+                            {post.creation_source || 'manual'} · Ready
                           </div>
                         </td>
                         <td>
-                          <span className="admin-status-pill is-on">Ready</span>
+                          <input
+                            value={archiveRemarks[post.id] || ''}
+                            onChange={(e) =>
+                              setArchiveRemarks((prev) => ({
+                                ...prev,
+                                [post.id]: e.target.value,
+                              }))
+                            }
+                            placeholder="Why this post is being archived"
+                          />
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <button
@@ -764,11 +777,11 @@ export default function CentralContentLibrary() {
                         <td>
                           <strong>{post.title}</strong>
                           <div className="muted" style={{ fontSize: '0.85em' }}>
-                            {post.creation_source || 'manual'}
+                            {post.creation_source || 'manual'} · Archived
                           </div>
                         </td>
                         <td>
-                          <span className="admin-status-pill is-off">Archived</span>
+                          <span className="muted">{post.archive_remarks || '—'}</span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <button

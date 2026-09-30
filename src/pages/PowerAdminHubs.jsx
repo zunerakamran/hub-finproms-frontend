@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import { useHub } from '../context/HubContext'
 
 const emptyForm = {
   name: '',
@@ -24,6 +25,7 @@ function hubTypeLabel(type) {
 }
 
 export default function PowerAdminHubs() {
+  const { refreshHub } = useHub()
   const [hubs, setHubs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -73,10 +75,15 @@ export default function PowerAdminHubs() {
       setMessage(data.message || 'Hub created.')
       setForm(emptyForm)
       setShowForm(false)
-      await load()
+      // Refresh hub context then reload so the top Control hub switcher includes the new hub.
+      try {
+        await refreshHub({ silent: true })
+      } catch {
+        // Ignore — full reload below still refreshes the switcher.
+      }
+      window.location.reload()
     } catch (err) {
       setError(err.message)
-    } finally {
       setCreating(false)
     }
   }

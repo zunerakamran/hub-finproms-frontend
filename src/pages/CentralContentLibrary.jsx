@@ -70,9 +70,9 @@ export default function CentralContentLibrary() {
       }
       const [postsRes, typesRes, catsRes, tagsRes, targetsRes] = await Promise.all([
         api.centralLibraryPosts({ per_page: 100, ...params }, apiOpts),
-        api.listTypes(),
-        api.listCategories(),
-        api.listTags(),
+        api.listTypes().catch(() => ({ types: [] })),
+        api.listCategories().catch(() => ({ categories: [] })),
+        api.listTags().catch(() => ({ tags: [] })),
         api.centralLibraryTargets(apiOpts),
       ])
       setPosts(postsRes.data || [])

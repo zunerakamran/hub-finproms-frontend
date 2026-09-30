@@ -8,6 +8,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, actingHub } = useHub()
   const [renewDay, setRenewDay] = useState(1)
+  const [graceDay, setGraceDay] = useState(4)
   const [nextRenewal, setNextRenewal] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -25,6 +26,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
     try {
       const data = await api.advisorBillingRenewal(apiOpts)
       setRenewDay(data.renew_day || 1)
+      setGraceDay(data.grace_day || Math.min(28, (data.renew_day || 1) + 3))
       setNextRenewal(data.next_renewal_at || '')
     } catch (err) {
       setError(err.message)
@@ -49,10 +51,14 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
     setError('')
     setMessage('')
     try {
-      const data = await api.updateAdvisorBillingRenewal({ renew_day: Number(renewDay) }, apiOpts)
+      const data = await api.updateAdvisorBillingRenewal(
+        { renew_day: Number(renewDay), grace_day: Number(graceDay) },
+        apiOpts
+      )
       setRenewDay(data.renew_day)
+      setGraceDay(data.grace_day)
       setNextRenewal(data.next_renewal_at || '')
-      setMessage(data.message || 'Auto-renew day saved.')
+      setMessage(data.message || 'Billing renew and grace days saved.')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -66,10 +72,9 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
         <div className="page-head">
           <div>
             <p className="eyebrow">{eyebrow}</p>
-            <h1>Advisor billing auto-renew</h1>
+            <h1>Billing renew + grace</h1>
             <p className="muted">
-              Enable &quot;Set advisor billing auto-renew date&quot; for Power Admin / FinProms
-              admin under Capabilities.
+              Enable &quot;Set billing renew + grace dates&quot; for your role under Capabilities.
             </p>
           </div>
         </div>
@@ -86,10 +91,11 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
       <div className="page-head">
         <div>
           <p className="eyebrow">{eyebrow}</p>
-          <h1>Advisor billing auto-renew</h1>
+          <h1>Billing renew + grace</h1>
           <p className="muted">
-            Choose the day of each month when the client admin card is charged for advisor seats
-            (rate × advisors).
+            On the renew day, the hub payment card is charged for all unpaid invoices that are due
+            (one-time module + recurring module + legacy). After the grace day, unpaid recurring
+            seat invoices suspend those users; unpaid one-time module invoices disable those modules.
           </p>
         </div>
       </div>
@@ -97,8 +103,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
       {error && !billingDisabled && <div className="alert">{error}</div>}
       {billingDisabled && (
         <p className="muted">
-          Select a white-labelled hub with advisor billing enabled in Control hub to set the
-          renew day.
+          Select a white-labelled hub with billing enabled in Control hub to set renew / grace days.
         </p>
       )}
       {message && <div className="alert success">{message}</div>}
@@ -108,7 +113,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
       ) : billingDisabled ? null : (
         <form className="admin-form" onSubmit={onSubmit}>
           <label>
-            Auto-renew day (1–28)
+            Renew day (1–28)
             <input
               type="number"
               min="1"
@@ -118,14 +123,23 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
               onChange={(e) => setRenewDay(e.target.value)}
             />
           </label>
+          <label>
+            Grace day (1–28, on or after renew day)
+            <input
+              type="number"
+              min="1"
+              max="28"
+              required
+              value={graceDay}
+              onChange={(e) => setGraceDay(e.target.value)}
+            />
+          </label>
           {nextRenewal && (
-            <p className="muted">
-              Next renewal (local): {formatDateTime(nextRenewal)}
-            </p>
+            <p className="muted">Next renew (local): {formatDateTime(nextRenewal)}</p>
           )}
           <div className="actions">
             <button className="btn primary" disabled={saving}>
-              {saving ? 'Saving...' : 'Save renew day'}
+              {saving ? 'Saving...' : 'Save renew + grace'}
             </button>
           </div>
         </form>

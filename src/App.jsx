@@ -12,7 +12,6 @@ import AdminAdvisors from './pages/AdminAdvisors'
 import AdminActivityLogs from './pages/AdminActivityLogs'
 import AdminActiveSessions from './pages/AdminActiveSessions'
 import AdminAdvisorInvoices from './pages/AdminAdvisorInvoices'
-import AdminAdvisorPricing from './pages/AdminAdvisorPricing'
 import AdminAdvisorRenewal from './pages/AdminAdvisorRenewal'
 import AdminModuleInvoices from './pages/AdminModuleInvoices'
 import AdminModulePricing from './pages/AdminModulePricing'
@@ -655,14 +654,6 @@ export default function App() {
                       anyOf={['wc_publish_live_content', 'wc_manage_deployment_sections']}
                     >
                       <WebsiteCompliancePublish />
-                    </HubCapabilityRoute>
-                  }
-                />
-                <Route
-                  path="advisor-pricing"
-                  element={
-                    <HubCapabilityRoute capability="dashboard_manage_advisor_pricing">
-                      <AdminAdvisorPricing />
                     </HubCapabilityRoute>
                   }
                 />

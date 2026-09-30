@@ -568,6 +568,13 @@ export const api = {
       body: JSON.stringify(payload),
     })
   },
+  updateModuleRecurringTier: (id, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/module-recurring-tiers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
   moduleInvoices: (params = {}, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const query = new URLSearchParams(

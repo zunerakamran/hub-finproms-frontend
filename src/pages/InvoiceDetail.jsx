@@ -27,6 +27,8 @@ function typeLabel(type) {
       return 'Advisor billing'
     case 'module_billing':
       return 'Module billing'
+    case 'module_recurring':
+      return 'Module recurring'
     default:
       return type || 'Invoice'
   }
@@ -36,6 +38,8 @@ function typesLabel(types) {
   switch (types) {
     case 'one_time':
       return 'One time'
+    case 'recurring':
+      return 'Recurring'
     case 'per_user_buying':
       return 'Per user buying'
     case 'ongoing':
@@ -49,6 +53,8 @@ function typesBadgeClass(types) {
   switch (types) {
     case 'one_time':
       return 'badge badge-types badge-types--one-time'
+    case 'recurring':
+      return 'badge badge-types badge-types--ongoing'
     case 'per_user_buying':
       return 'badge badge-types badge-types--per-user'
     case 'ongoing':
@@ -79,6 +85,7 @@ export default function InvoiceDetail() {
   const { isPowerAdmin } = useAuth()
   const [invoice, setInvoice] = useState(null)
   const [payment, setPayment] = useState(null)
+  const [billingBreakdown, setBillingBreakdown] = useState(null)
   const [canMarkPaid, setCanMarkPaid] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -103,11 +110,13 @@ export default function InvoiceDetail() {
         const data = await api.moduleInvoice(id, { asPowerAdmin })
         setInvoice(data.invoice)
         setPayment(data.payment || null)
+        setBillingBreakdown(data.billing_breakdown || null)
         setCanMarkPaid(Boolean(data.can_mark_paid))
       } else {
         const data = await api.invoice(id)
         setInvoice(data.invoice)
         setPayment(null)
+        setBillingBreakdown(null)
         setCanMarkPaid(false)
       }
     } catch (err) {
@@ -123,7 +132,10 @@ export default function InvoiceDetail() {
   }, [id, fromModulePath, asPowerAdmin])
 
   const isAdvisorBilling = fromAdvisorPath || invoice?.type === 'advisor_billing'
-  const isModuleBilling = fromModulePath || invoice?.type === 'module_billing'
+  const isModuleBilling =
+    fromModulePath ||
+    invoice?.type === 'module_billing' ||
+    invoice?.type === 'module_recurring'
   const backTo = isAdvisorBilling
     ? '/my-dashboard/advisor-invoices'
     : isModuleBilling
@@ -155,6 +167,7 @@ export default function InvoiceDetail() {
       const data = await api.markModuleInvoicePaid(id, body, { asPowerAdmin })
       setInvoice(data.invoice)
       setPayment(data.payment || null)
+      setBillingBreakdown(data.billing_breakdown || null)
       setCanMarkPaid(false)
       setMessage('Invoice marked as paid.')
       setForm({
@@ -207,10 +220,16 @@ export default function InvoiceDetail() {
   if (!invoice) return null
 
   const lines = invoice.line_items || []
-  const moduleHub = invoice.module_billing?.hub
+  const moduleHub = invoice.module_recurring_billing?.hub || invoice.module_billing?.hub
   const moduleLabel =
+    invoice.module_recurring_billing?.meta?.module_label ||
+    invoice.module_recurring_billing?.module_key ||
     invoice.module_billing?.meta?.module_label ||
     invoice.module_billing?.module_key ||
+    null
+  const breakdown =
+    billingBreakdown ||
+    lines.find((line) => line?.breakdown)?.breakdown ||
     null
   const showMarkPaidForm =
     isModuleBilling && canMarkPaid && invoice.status !== 'paid'
@@ -334,6 +353,43 @@ export default function InvoiceDetail() {
               ))}
             </tbody>
           </table>
+        )}
+
+        {isModuleBilling && breakdown?.lines?.length > 0 && (
+          <div className="invoice-calc" style={{ marginTop: '1.25rem' }}>
+            <h2 style={{ marginTop: 0, marginBottom: '0.5rem' }}>How this was calculated</h2>
+            {breakdown.summary && (
+              <p>
+                <strong>{breakdown.summary}</strong>
+              </p>
+            )}
+            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem' }}>
+              {breakdown.lines.map((line, index) => (
+                <li key={index}>{line}</li>
+              ))}
+            </ul>
+            {(breakdown.active_users_for_rate != null || breakdown.slot != null) && (
+              <p className="muted" style={{ marginTop: '0.75rem' }}>
+                {breakdown.active_users_for_rate != null && (
+                  <>
+                    Active users counted: <strong>{breakdown.active_users_for_rate}</strong>
+                  </>
+                )}
+                {breakdown.active_users_for_rate != null && breakdown.slot != null && ' · '}
+                {breakdown.slot != null && (
+                  <>
+                    Slot: <strong>#{breakdown.slot}</strong>
+                    {breakdown.tier_label ? ` (${breakdown.tier_label})` : ''}
+                  </>
+                )}
+                {breakdown.charged_quantity != null && (
+                  <>
+                    {' · '}Charged: <strong>{breakdown.charged_quantity}</strong>
+                  </>
+                )}
+              </p>
+            )}
+          </div>
         )}
 
         <div className="invoice-total">

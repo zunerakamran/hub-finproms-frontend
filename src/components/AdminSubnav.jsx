@@ -17,13 +17,8 @@ const links = [
     billingOnly: true,
   },
   {
-    to: '/client-admin/advisor-pricing',
-    label: 'Advisor rates',
-    capability: 'dashboard_manage_advisor_pricing',
-  },
-  {
     to: '/client-admin/advisor-renewal',
-    label: 'Advisor renew day',
+    label: 'Billing renew day',
     capability: 'dashboard_manage_advisor_renewal',
   },
   {

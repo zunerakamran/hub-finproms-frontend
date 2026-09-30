@@ -20,6 +20,7 @@ function formatMoney(amount, currency = 'gbp') {
 
 function typesLabel(types) {
   if (types === 'one_time') return 'One time'
+  if (types === 'recurring') return 'Recurring'
   if (types === 'per_user_buying') return 'Per user buying'
   if (types === 'ongoing') return 'Ongoing'
   return types || '—'
@@ -27,6 +28,7 @@ function typesLabel(types) {
 
 function typesBadgeClass(types) {
   if (types === 'one_time') return 'badge badge-types badge-types--one-time'
+  if (types === 'recurring') return 'badge badge-types badge-types--ongoing'
   if (types === 'per_user_buying') return 'badge badge-types badge-types--per-user'
   if (types === 'ongoing') return 'badge badge-types badge-types--ongoing'
   return 'badge badge-types'
@@ -78,7 +80,8 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
             <h1>Module invoices</h1>
             <p className="muted">
               Enable &quot;View module invoices&quot; for your role under Power Admin → Capabilities,
-              and turn on Functionalities → Charge amount per module (one time).
+              and turn on Functionalities → Charge amount per module (one time) and/or Charge
+              recurring amount per module.
             </p>
           </div>
         </div>
@@ -93,10 +96,10 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
           <p className="eyebrow">{eyebrow}</p>
           <h1>Module invoices</h1>
           <p className="muted">
-            One-time module catalogue charges
-            {targetHub?.name ? ` for ${targetHub.name}` : ' for this hub'}. Charged by FinProms
-            (Stripe merchant account pending). Open an unpaid invoice to mark it paid when you have
-            the &quot;Mark module invoices as paid&quot; capability.
+            One-time and recurring module charges
+            {targetHub?.name ? ` for ${targetHub.name}` : ' for this hub'}. Charged by FinProms on
+            the billing renew day (or mark paid manually). Recurring seat invoices use Option B
+            rates from total active users with that module.
           </p>
         </div>
       </div>
@@ -104,12 +107,15 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
       {error && <div className="alert">{error}</div>}
       {createdNote && <div className="alert success">{createdNote}</div>}
 
-      {!loading && targetHub && targetHub.charge_amount_per_module === false && (
-        <div className="alert">
-          Functionality &quot;Charge amount per module (one time)&quot; is off for this hub — enable
-          it under Functionalities to generate invoices for enabled modules.
-        </div>
-      )}
+      {!loading &&
+        targetHub &&
+        targetHub.charge_amount_per_module === false &&
+        targetHub.charge_recurring_per_module === false && (
+          <div className="alert">
+            Both charge functionalities are off for this hub — enable one-time and/or recurring
+            under Functionalities to generate invoices.
+          </div>
+        )}
 
       <DataGrid
         columns={[
@@ -126,11 +132,35 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
             filterValue: (row) => row.description,
           },
           {
+            key: 'calculation',
+            label: 'Calculation',
+            grow: true,
+            filterValue: (row) => row.billing_breakdown?.summary || '',
+            render: (row) => {
+              const b = row.billing_breakdown
+              if (!b) return '—'
+              return (
+                <div>
+                  <div>{b.summary || '—'}</div>
+                  {b.active_users_for_rate != null && (
+                    <div className="muted" style={{ fontSize: '0.8em' }}>
+                      {b.active_users_for_rate} active
+                      {b.slot != null ? ` → slot #${b.slot}` : ''}
+                      {b.charged_quantity != null ? ` → ${b.charged_quantity} charged` : ''}
+                    </div>
+                  )}
+                </div>
+              )
+            },
+          },
+          {
             key: 'module',
             label: 'Module',
             fit: true,
-            filterValue: (row) => row.module_billing?.module_key || '',
-            render: (row) => row.module_billing?.module_key || '—',
+            filterValue: (row) =>
+              row.module_recurring_billing?.module_key || row.module_billing?.module_key || '',
+            render: (row) =>
+              row.module_recurring_billing?.module_key || row.module_billing?.module_key || '—',
           },
           {
             key: 'types',
@@ -142,6 +172,13 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
                 {typesLabel(row.types || 'one_time')}
               </span>
             ),
+          },
+          {
+            key: 'due_on',
+            label: 'Due',
+            fit: true,
+            filterValue: (row) => formatDate(row.due_on || row.issued_at),
+            render: (row) => <DataGridDate value={row.due_on || row.issued_at} />,
           },
           {
             key: 'status',

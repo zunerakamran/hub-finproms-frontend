@@ -133,7 +133,7 @@ export default function PowerAdminModules() {
       for (const row of rows) next[row.key] = Boolean(row.enabled)
       setFlags(next)
       setMessage(data.message || 'Modules updated.')
-      await refreshHub({ silent: true })
+      await refreshHub({ withLoader: true })
     } catch (err) {
       setError(err.message)
     } finally {

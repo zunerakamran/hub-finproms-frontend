@@ -55,6 +55,9 @@ export function HubProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actingHubSwitching, setActingHubSwitching] = useState(false)
+  // Shown while reloading hub context after Functionalities / Modules / Capabilities
+  // saves so the dashboard navbar can update against fresh checklist + caps.
+  const [hubRefreshing, setHubRefreshing] = useState(false)
   const hubRef = useRef(null)
   const lastIdentityRef = useRef(null)
 
@@ -67,9 +70,11 @@ export function HubProvider({ children }) {
     })
   }, [])
 
-  const refreshHub = useCallback(async ({ silent = false } = {}) => {
+  const refreshHub = useCallback(async ({ silent = false, withLoader = false } = {}) => {
     // Keep existing UI mounted during background refreshes.
-    if (!silent && !hubRef.current) {
+    if (withLoader) {
+      setHubRefreshing(true)
+    } else if (!silent && !hubRef.current) {
       setLoading(true)
     }
     try {
@@ -82,6 +87,9 @@ export function HubProvider({ children }) {
       return null
     } finally {
       setLoading(false)
+      if (withLoader) {
+        setHubRefreshing(false)
+      }
     }
   }, [setHub])
 
@@ -357,6 +365,8 @@ export function HubProvider({ children }) {
         isControlPlane,
         isCentral: Boolean(hub?.is_central || hub?.type === 'central'),
         actingHubSwitching,
+        // True while switching hubs OR refreshing context after checklist saves.
+        hubRefreshing: actingHubSwitching || hubRefreshing,
         canControlWhiteLabelHubs: Boolean(
           switcher?.enabled || can('dashboard_control_white_label_hubs')
         ),
@@ -390,6 +400,7 @@ export function HubProvider({ children }) {
       hasDashboardAccess,
       user,
       actingHubSwitching,
+      hubRefreshing,
       setActingHub,
     ]
   )

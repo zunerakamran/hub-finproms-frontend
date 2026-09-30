@@ -16,7 +16,8 @@ import { brandLogoUrl } from '../utils/brandLogo'
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, actingHub, actingHubId, actingHubSwitching, actingAdvisor, roleLabel, canViewSitePages } = useHub()
+  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, actingHub, actingHubId, actingHubSwitching, hubRefreshing, actingAdvisor, roleLabel, canViewSitePages } = useHub()
+  const navBusy = Boolean(hubRefreshing || actingHubSwitching)
   const navigate = useNavigate()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
@@ -63,7 +64,7 @@ export default function MyDashboardLayout() {
 
   // Leave pages that are unavailable for the selected hub (e.g. White-labelled hubs while controlling a WL tenant).
   useEffect(() => {
-    if (actingHubSwitching) return
+    if (navBusy) return
     if (location.pathname === '/my-dashboard') return
 
     const link = findActiveDashboardLink(location.pathname)
@@ -95,7 +96,7 @@ export default function MyDashboardLayout() {
       navigate('/my-dashboard', { replace: true })
     }
   }, [
-    actingHubSwitching,
+    navBusy,
     location.pathname,
     can,
     canPower,
@@ -150,7 +151,7 @@ export default function MyDashboardLayout() {
   }
 
   return (
-    <div className={`dash-shell${navOpen ? ' is-nav-open' : ''}`}>
+    <div className={`dash-shell${navOpen ? ' is-nav-open' : ''}${navBusy ? ' is-hub-refreshing' : ''}`}>
       <button
         type="button"
         className="dash-nav-backdrop"
@@ -159,7 +160,7 @@ export default function MyDashboardLayout() {
         onClick={() => setNavOpen(false)}
       />
 
-      <aside className="dash-sidebar" id="dash-sidebar">
+      <aside className="dash-sidebar" id="dash-sidebar" aria-busy={navBusy || undefined}>
         <div className="dash-sidebar__brand">
           {logoUrl ? (
             <img src={logoUrl} alt="" className="dash-sidebar__logo" />
@@ -189,6 +190,13 @@ export default function MyDashboardLayout() {
           <div className="dash-acting-pill">
             On behalf of {actingAdvisor.name} — acting as {roleLabel('advisor') || 'Advisor'} (
             {roleLabel('admin_staff') || 'Admin-staff'})
+          </div>
+        ) : null}
+
+        {navBusy ? (
+          <div className="dash-sidebar__refresh" aria-live="polite" aria-label="Updating navigation">
+            <div className="page-loader__spinner" />
+            <span>Updating menu…</span>
           </div>
         ) : null}
 
@@ -264,11 +272,11 @@ export default function MyDashboardLayout() {
           </div>
         </header>
         <main
-          className={`dash-content${actingHubSwitching ? ' is-hub-switching' : ''}`}
-          aria-busy={actingHubSwitching || undefined}
+          className={`dash-content${navBusy ? ' is-hub-switching' : ''}`}
+          aria-busy={navBusy || undefined}
         >
-          {actingHubSwitching ? (
-            <div className="dash-content-refresh-overlay" aria-live="polite" aria-label="Loading hub">
+          {navBusy ? (
+            <div className="dash-content-refresh-overlay" aria-live="polite" aria-label="Updating dashboard">
               <div className="page-loader__spinner" />
             </div>
           ) : null}

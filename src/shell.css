@@ -514,6 +514,33 @@ h2,
   border: 1px solid color-mix(in srgb, var(--brand) 45%, transparent);
 }
 
+.dash-sidebar__refresh {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.35rem 0.55rem 0.15rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, #fff 12%, transparent);
+  color: color-mix(in srgb, #fff 88%, transparent);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.dash-sidebar__refresh .page-loader__spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  border-color: color-mix(in srgb, #fff 28%, transparent);
+  border-top-color: #fff;
+  flex-shrink: 0;
+}
+
+.dash-shell.is-hub-refreshing .dash-nav {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .dash-nav {
   display: grid;
   gap: 0.12rem;

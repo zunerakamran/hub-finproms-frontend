@@ -6,7 +6,7 @@ import { useHub } from '../context/HubContext'
 import { checklistToMap } from '../utils/checklist'
 
 export default function PowerAdminChecklist() {
-  const { actingHubId, actingHub, hub, isActingOnWhiteLabel, isActingRemotely } = useHub()
+  const { actingHubId, actingHub, hub, isActingOnWhiteLabel, isActingRemotely, refreshHub } = useHub()
   const selectedId = actingHubId || hub?.id || ''
   const selectedName = actingHub?.name || hub?.name || 'this hub'
 
@@ -60,6 +60,8 @@ export default function PowerAdminChecklist() {
       setHubDetail(data.hub)
       setFlags(checklistToMap(data.hub.checklist))
       setMessage(data.message || 'Checklist updated.')
+      // Reload hub context so the dashboard navbar picks up new functionalities.
+      await refreshHub({ withLoader: true })
     } catch (err) {
       setError(err.message)
     } finally {

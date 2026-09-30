@@ -181,7 +181,7 @@ export default function PowerAdminCapabilities() {
       applyMatrix(data.matrix, data.resolved)
       setMessage(data.message || 'Capabilities matrix saved.')
       await refreshUser()
-      await refreshHub()
+      await refreshHub({ withLoader: true })
     } catch (err) {
       setError(err.message)
     } finally {

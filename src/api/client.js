@@ -210,10 +210,15 @@ export const api = {
   },
   createCentralLibraryPost: (formData, options = {}) =>
     request(`${adminBase(options)}/central-library/posts`, { method: 'POST', body: formData }),
-  archiveCentralLibraryPost: (id, remarks, options = {}) =>
+  archiveCentralLibraryPost: (id, options = {}) =>
     request(`${adminBase(options)}/central-library/posts/${id}/archive`, {
       method: 'POST',
-      body: JSON.stringify({ remarks }),
+      body: JSON.stringify({}),
+    }),
+  unarchiveCentralLibraryPost: (id, options = {}) =>
+    request(`${adminBase(options)}/central-library/posts/${id}/unarchive`, {
+      method: 'POST',
+      body: JSON.stringify({}),
     }),
   importCentralLibraryPosts: (file, options = {}) => {
     const formData = new FormData()

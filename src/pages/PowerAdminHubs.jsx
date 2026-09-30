@@ -90,8 +90,9 @@ export default function PowerAdminHubs() {
           <p className="muted">
             Central Hub Controller registry. You can create <strong>many Shared</strong> hubs and{' '}
             <strong>many White-labelled</strong> hubs (same codebase, each with its own database and
-            slug). Record frontend URL + DB credentials so Central can control them remotely. Shared
-            hubs no longer host the control plane — that lives only here.
+            slug). Open a hub for deploy wiring / DB credentials. Manage Functionalities, Modules,
+            Capabilities, and credits by selecting the hub in the <strong>Control hub</strong>{' '}
+            switcher — not from the hub detail page.
           </p>
         </div>
         <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>

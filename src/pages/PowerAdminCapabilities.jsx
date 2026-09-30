@@ -203,22 +203,22 @@ export default function PowerAdminCapabilities() {
 
   const onAddRole = async (e) => {
     e.preventDefault()
-    if (!allowed) return
+    if (!allowed || !selectedHubId) return
     setAddingRole(true)
     setError('')
     setMessage('')
     try {
       const payload =
         addMode === 'catalog'
-          ? { key: addCatalogKey, hub_id: selectedHubId ? Number(selectedHubId) : undefined }
+          ? { key: addCatalogKey, hub_id: Number(selectedHubId) }
           : {
               key: addCustomKey.trim() || undefined,
               label: addCustomLabel.trim() || undefined,
-              hub_id: selectedHubId ? Number(selectedHubId) : undefined,
+              hub_id: Number(selectedHubId),
             }
       const data = await api.addPowerAdminCapabilityRole(payload)
       applyMatrix(data.matrix, data.resolved)
-      setMessage(data.message || 'Role added to all hubs.')
+      setMessage(data.message || 'Role added to this hub.')
       setAddCustomKey('')
       setAddCustomLabel('')
       if (data.available_to_add?.length) {
@@ -251,8 +251,9 @@ export default function PowerAdminCapabilities() {
               : hub?.type === 'central' || hub?.is_central || hub?.is_control_plane
                 ? ' (Central Hub)'
                 : ' (shared)'}
-            . Columns are roles present on this hub (or added for all hubs). Rename role titles under
-            User role title. Hub Functionalities are configured separately under Hub checklists.
+            . Columns are roles present on this hub (or roles you add below for this hub). Rename
+            role titles under User role title. Hub Functionalities are configured separately under
+            Hub checklists.
           </p>
         </div>
       </div>
@@ -275,10 +276,11 @@ export default function PowerAdminCapabilities() {
           {allowed && (
             <form className="matrix-add-role" onSubmit={onAddRole}>
               <div className="matrix-add-role__head">
-                <h2>Add role to all hubs</h2>
+                <h2>Add role to this hub</h2>
                 <p className="muted">
-                  Adds a role column on every hub’s Capabilities matrix (even before any users have
-                  that role). You can rename the display title later under User role title.
+                  Adds a role column on <strong>{selectedHubName}</strong> only (even before any
+                  users have that role). Other hubs are unchanged. Rename the display title later
+                  under User role title.
                 </p>
               </div>
               <div className="matrix-add-role__modes">
@@ -355,7 +357,7 @@ export default function PowerAdminCapabilities() {
                   (addMode === 'custom' && !addCustomLabel.trim() && !addCustomKey.trim())
                 }
               >
-                {addingRole ? 'Adding…' : 'Add role to all hubs'}
+                {addingRole ? 'Adding…' : 'Add role to this hub'}
               </button>
             </form>
           )}
@@ -386,7 +388,7 @@ export default function PowerAdminCapabilities() {
             <div className="empty-state">
               <h2>No roles on this hub yet</h2>
               <p className="muted">
-                Create users with roles, or use <strong>Add role to all hubs</strong> above so
+                Create users with roles, or use <strong>Add role to this hub</strong> above so
                 columns appear before anyone is assigned.
               </p>
             </div>
@@ -424,8 +426,9 @@ export default function PowerAdminCapabilities() {
                             {roles.map((role) => (
                               <th key={role.key} title={role.key}>
                                 {role.label}
-                                {role.added_to_all_hubs && !role.present_on_hub ? (
-                                  <small className="matrix-role-hint"> (all hubs)</small>
+                                {(role.added_to_hub || role.added_to_all_hubs) &&
+                                !role.present_on_hub ? (
+                                  <small className="matrix-role-hint"> (added)</small>
                                 ) : null}
                               </th>
                             ))}

@@ -125,7 +125,7 @@ export default function PowerAdminChecklist() {
               </p>
             </div>
             <Link className="btn ghost" to={`/my-dashboard/hubs/${hubDetail.id}`}>
-              Open full hub settings
+              Deploy wiring / registry
             </Link>
           </div>
           <ChecklistGroupedForm

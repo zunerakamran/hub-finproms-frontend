@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import ChecklistGroupedForm from '../components/ChecklistGroupedForm'
 import HubDeployChecklist from '../components/HubDeployChecklist'
-import { checklistToMap } from '../utils/checklist'
 import { buildDeployPreview } from '../utils/hubDeploy'
 
+/**
+ * Hub registry detail: name / slug / deploy wiring only.
+ * Functionalities, Modules, Capabilities, and Subscriber credits are managed
+ * after selecting the hub in the Control hub switcher — not from this page.
+ */
 export default function PowerAdminHubDetail() {
   const { hubId } = useParams()
   const [hub, setHub] = useState(null)
   const [loading, setLoading] = useState(true)
   const [savingMeta, setSavingMeta] = useState(false)
-  const [savingChecklist, setSavingChecklist] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [meta, setMeta] = useState({
@@ -29,7 +31,6 @@ export default function PowerAdminHubDetail() {
     clear_db_password: false,
     is_active: true,
   })
-  const [flags, setFlags] = useState({})
 
   const load = async () => {
     setLoading(true)
@@ -53,7 +54,6 @@ export default function PowerAdminHubDetail() {
         clear_db_password: false,
         is_active: Boolean(next.is_active),
       })
-      setFlags(checklistToMap(next.checklist))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -64,9 +64,6 @@ export default function PowerAdminHubDetail() {
   useEffect(() => {
     load()
   }, [hubId])
-
-  const checklistItems = hub?.checklist || []
-  const credits = hub?.subscriber_credits || {}
 
   const onSaveMeta = async (e) => {
     e.preventDefault()
@@ -97,7 +94,6 @@ export default function PowerAdminHubDetail() {
       }
       const data = await api.updatePowerAdminHub(hubId, payload)
       setHub(data.hub)
-      setFlags(checklistToMap(data.hub.checklist))
       setMeta((prev) => ({
         ...prev,
         db_password: '',
@@ -116,23 +112,6 @@ export default function PowerAdminHubDetail() {
       setError(err.message)
     } finally {
       setSavingMeta(false)
-    }
-  }
-
-  const onSaveChecklist = async (e) => {
-    e.preventDefault()
-    setSavingChecklist(true)
-    setError('')
-    setMessage('')
-    try {
-      const data = await api.updatePowerAdminHubChecklist(hubId, flags)
-      setHub(data.hub)
-      setFlags(checklistToMap(data.hub.checklist))
-      setMessage(data.message || 'Checklist updated.')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSavingChecklist(false)
     }
   }
 
@@ -158,13 +137,14 @@ export default function PowerAdminHubDetail() {
           <p className="eyebrow">Platform</p>
           <h1>{hub.name}</h1>
           <p className="muted">
-            Update deploy wiring and Functionalities for this{' '}
+            Registry and deploy wiring for this{' '}
             {hub.type === 'central'
               ? 'Central Hub Controller'
               : hub.type === 'shared'
                 ? 'Shared'
                 : 'White-labelled'}{' '}
-            hub. Logo and colours are managed in that hub&apos;s Dashboard → Settings.
+            hub. To manage Functionalities, Modules, Capabilities, or Subscriber credits, select
+            the hub in the <strong>Control hub</strong> switcher in the top bar.
           </p>
           {hub.deploy?.status_label && (
             <p style={{ marginTop: '0.5rem' }}>
@@ -353,44 +333,6 @@ export default function PowerAdminHubDetail() {
         </div>
         <HubDeployChecklist deploy={buildDeployPreview(hub, meta)} slug={hub.slug} />
       </form>
-
-      <div className="admin-form" style={{ marginTop: '1.25rem' }}>
-        <h2>Subscriber credits</h2>
-        <p className="muted">
-          Current allotment:{' '}
-          <strong>
-            {credits.unlimited !== false
-              ? 'Unlimited'
-              : `${credits.credits ?? 0} credits / subscriber / period`}
-          </strong>
-          . Set this from the Power Admin dashboard (gated by Capabilities).
-        </p>
-        <div className="actions">
-          <Link className="btn primary" to={`/my-dashboard/subscriber-credits?hub=${hub.id}`}>
-            Manage subscriber credits
-          </Link>
-        </div>
-      </div>
-
-      <div id="checklist">
-        <div className="page-head" style={{ marginTop: '1.5rem' }}>
-          <div>
-            <h2>Functionalities</h2>
-            <p className="muted">
-              How this hub works (access, credits, distribution). Opposite options cannot both be
-              on. User capabilities are under Capabilities.
-            </p>
-          </div>
-        </div>
-        <ChecklistGroupedForm
-          items={checklistItems}
-          flags={flags}
-          setFlags={setFlags}
-          onSubmit={onSaveChecklist}
-          saving={savingChecklist}
-          submitLabel="Save checklist"
-        />
-      </div>
     </section>
   )
 }

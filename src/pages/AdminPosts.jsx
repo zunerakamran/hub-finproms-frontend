@@ -55,8 +55,13 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     can,
   } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
-  // Create/edit only when manage_posts is on (Central library owns create; content hubs are list-only).
+  // Create stays Central-library-owned (manage_posts off on hubs). Edit on Central only; delete everywhere.
   const canManagePosts = can('dashboard_manage_posts')
+  const canEditPosts =
+    isControlPlane &&
+    !isActingRemotely &&
+    (can('dashboard_view_posts') || can('dashboard_manage_posts'))
+  const canDeletePosts = can('dashboard_view_posts') || can('dashboard_manage_posts')
   const hideCreateForm = !canManagePosts
   const apiOpts = { asPowerAdmin }
 
@@ -71,6 +76,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const formRef = useRef(null)
+  const showPostForm = canManagePosts || (canEditPosts && Boolean(editingId))
 
   const load = async () => {
     setLoading(true)
@@ -123,6 +129,14 @@ export default function AdminPosts({ shell = 'client-admin' }) {
 
   const onSubmit = async (e) => {
     e.preventDefault()
+    if (!editingId && !canManagePosts) {
+      setError('Create new posts from the Central content library.')
+      return
+    }
+    if (editingId && !canEditPosts && !canManagePosts) {
+      setError('Editing posts is only available on the Central Hub.')
+      return
+    }
     if (!form.categories.length) {
       setError('Select at least one category.')
       return
@@ -268,17 +282,17 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         <div>
           <p className="eyebrow">SM Template</p>
           <h1>
-            {hideCreateForm
-              ? 'Posts / reels'
-              : editingId
-                ? 'Edit post'
+            {editingId && (canEditPosts || canManagePosts)
+              ? 'Edit post'
+              : hideCreateForm
+                ? 'Posts / reels'
                 : 'Add social media post'}
           </h1>
           <p className="muted">
             {hideCreateForm
               ? isControlPlane && !isActingRemotely
-                ? 'Central catalog create/distribute lives under Central library. This page lists local posts only.'
-                : 'Posts on this hub are list-only. New posts/reels are created in the Central content library and distributed here.'
+                ? 'Create/distribute from Central library. You can edit local Central posts here, or delete posts on any hub.'
+                : 'New posts arrive from the Central content library. You can delete posts on this hub.'
               : isActingRemotely
                 ? `Creating on ${actingHub?.name}'s database (use Control hub in the top bar to switch).`
                 : 'Managing this hub’s catalog. Use Control hub in the top bar to work on another hub.'}
@@ -291,7 +305,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         )}
       </div>
 
-      {!hideCreateForm && (
+      {showPostForm && (
       <form ref={formRef} className="admin-form" onSubmit={onSubmit}>
         {error && <div className="alert">{error}</div>}
         {message && <div className="alert success">{message}</div>}
@@ -447,8 +461,8 @@ export default function AdminPosts({ shell = 'client-admin' }) {
       </form>
       )}
 
-      {hideCreateForm && error && <div className="alert">{error}</div>}
-      {hideCreateForm && message && <div className="alert success">{message}</div>}
+      {!showPostForm && error && <div className="alert">{error}</div>}
+      {!showPostForm && message && <div className="alert success">{message}</div>}
 
       <div className="admin-posts-head">
         <div>
@@ -477,22 +491,28 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         }
         pageSize={10}
         getRowKey={(row) => row.id}
-        actions={(row) =>
-          hideCreateForm ? null : (
-          <>
-            <DataGridIconBtn
-              icon={FaEdit}
-              label={editingId === row.id ? 'Editing…' : 'Edit'}
-              onClick={() => edit(row)}
-            />
-            <DataGridIconBtn
-              icon={FaTrash}
-              label="Delete"
-              variant="danger"
-              onClick={() => remove(row.id)}
-            />
-          </>
-          )
+        actions={
+          canEditPosts || canDeletePosts
+            ? (row) => (
+                <>
+                  {canEditPosts && (
+                    <DataGridIconBtn
+                      icon={FaEdit}
+                      label={editingId === row.id ? 'Editing…' : 'Edit'}
+                      onClick={() => edit(row)}
+                    />
+                  )}
+                  {canDeletePosts && (
+                    <DataGridIconBtn
+                      icon={FaTrash}
+                      label="Delete"
+                      variant="danger"
+                      onClick={() => remove(row.id)}
+                    />
+                  )}
+                </>
+              )
+            : null
         }
       />
       <style>{`

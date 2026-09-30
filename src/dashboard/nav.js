@@ -79,11 +79,15 @@ const ACCOUNT_ANY = [
 
 const CONTENT_ANY = [
   'dashboard_manage_posts',
+  'dashboard_view_posts',
   'dashboard_central_content_library',
   'dashboard_manage_bundles',
   'dashboard_manage_types',
+  'dashboard_view_types',
   'dashboard_manage_categories',
+  'dashboard_view_categories',
   'dashboard_manage_tags',
+  'dashboard_view_tags',
 ]
 
 const HUB_OPS_ANY = [
@@ -210,8 +214,9 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/posts',
     label: 'Posts / reels',
     title: 'Posts / reels',
-    description: 'Create and edit catalog posts and reels for the current hub.',
-    capability: 'dashboard_manage_posts',
+    description:
+      'List posts/reels on the current hub. Create/edit only where Manage posts is enabled — content hubs receive posts from the Central library.',
+    anyOf: ['dashboard_manage_posts', 'dashboard_view_posts'],
     group: 'content',
   },
   {
@@ -237,24 +242,27 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/types',
     label: 'Types',
     title: 'Types',
-    description: 'Manage content types (post, reel, etc.) for the current hub.',
-    capability: 'dashboard_manage_types',
+    description:
+      'List content types on this hub. Create/edit only on Central (or where Manage types is enabled).',
+    anyOf: ['dashboard_manage_types', 'dashboard_view_types'],
     group: 'content',
   },
   {
     to: '/my-dashboard/categories',
     label: 'Categories',
     title: 'Categories',
-    description: 'Manage topical categories used to group catalog content.',
-    capability: 'dashboard_manage_categories',
+    description:
+      'List categories on this hub. Create/edit only on Central (or where Manage categories is enabled).',
+    anyOf: ['dashboard_manage_categories', 'dashboard_view_categories'],
     group: 'content',
   },
   {
     to: '/my-dashboard/tags',
     label: 'Tags',
     title: 'Tags',
-    description: 'Manage free-form tags for filtering posts and reels.',
-    capability: 'dashboard_manage_tags',
+    description:
+      'List tags on this hub. Create/edit only on Central (or where Manage tags is enabled).',
+    anyOf: ['dashboard_manage_tags', 'dashboard_view_tags'],
     group: 'content',
   },
 

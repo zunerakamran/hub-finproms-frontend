@@ -7,9 +7,10 @@ import { useHub } from '../context/HubContext'
 
 export default function AdminCategories({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub, isControlPlane } = useHub()
+  const { actingHubId, isActingRemotely, actingHub, isControlPlane, can } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
+  const canManage = can('dashboard_manage_categories')
 
   const [categories, setCategories] = useState([])
   const [name, setName] = useState('')
@@ -74,48 +75,56 @@ export default function AdminCategories({ shell = 'client-admin' }) {
             {isActingRemotely
               ? `Managing categories on ${actingHub?.name}. Switch hubs from the top bar.`
               : isControlPlane
-                ? 'Managing Central Hub categories used by the Central content library. On distribute, matching category names are upserted into the target hub.'
-                : 'Managing shared hub categories. Use Control hub in the top bar for a white-labelled hub.'}
+                ? canManage
+                  ? 'Managing Central Hub categories used by the Central content library. On distribute, matching category names are upserted into the target hub.'
+                  : 'Listing Central Hub categories. Enable Manage categories in Capabilities to create or edit.'
+                : canManage
+                  ? 'Managing shared hub categories. Use Control hub in the top bar for a white-labelled hub.'
+                  : 'Categories on this hub are list-only. New categories arrive with posts distributed from the Central content library.'}
           </p>
         </div>
       </div>
 
-      <form className="admin-form" onSubmit={onSubmit}>
-        {error && <div className="alert">{error}</div>}
-        {message && <div className="alert success">{message}</div>}
-        <label>
-          Category name
-          <input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter category name"
-          />
-        </label>
-        <div className="actions">
-          <button className="btn primary" disabled={saving}>
-            {saving
-              ? 'Saving...'
-              : editingId
-                ? 'Update category'
-                : isActingRemotely
-                  ? `Add category on ${actingHub?.name || 'hub'}`
-                  : 'Add category'}
-          </button>
-          {editingId && (
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() => {
-                setEditingId(null)
-                setName('')
-              }}
-            >
-              Cancel edit
+      {canManage && (
+        <form className="admin-form" onSubmit={onSubmit}>
+          {error && <div className="alert">{error}</div>}
+          {message && <div className="alert success">{message}</div>}
+          <label>
+            Category name
+            <input
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter category name"
+            />
+          </label>
+          <div className="actions">
+            <button className="btn primary" disabled={saving}>
+              {saving
+                ? 'Saving...'
+                : editingId
+                  ? 'Update category'
+                  : isActingRemotely
+                    ? `Add category on ${actingHub?.name || 'hub'}`
+                    : 'Add category'}
             </button>
-          )}
-        </div>
-      </form>
+            {editingId && (
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  setEditingId(null)
+                  setName('')
+                }}
+              >
+                Cancel edit
+              </button>
+            )}
+          </div>
+        </form>
+      )}
+
+      {!canManage && error && <div className="alert">{error}</div>}
 
       <h2 className="section-title">
         {isActingRemotely ? `Categories on ${actingHub?.name}` : 'Existing categories'}
@@ -134,32 +143,36 @@ export default function AdminCategories({ shell = 'client-admin' }) {
         loading={loading}
         emptyMessage="No categories yet."
         getRowKey={(row) => row.id}
-        actions={(row) => (
-          <>
-            <DataGridIconBtn
-              icon={FaEdit}
-              label="Edit"
-              onClick={() => {
-                setEditingId(row.id)
-                setName(row.name)
-              }}
-            />
-            <DataGridIconBtn
-              icon={FaTrash}
-              label="Delete"
-              variant="danger"
-              onClick={async () => {
-                if (!window.confirm('Delete this category?')) return
-                try {
-                  await api.deleteCategory(row.id, apiOpts)
-                  await load()
-                } catch (err) {
-                  setError(err.message)
-                }
-              }}
-            />
-          </>
-        )}
+        actions={
+          canManage
+            ? (row) => (
+                <>
+                  <DataGridIconBtn
+                    icon={FaEdit}
+                    label="Edit"
+                    onClick={() => {
+                      setEditingId(row.id)
+                      setName(row.name)
+                    }}
+                  />
+                  <DataGridIconBtn
+                    icon={FaTrash}
+                    label="Delete"
+                    variant="danger"
+                    onClick={async () => {
+                      if (!window.confirm('Delete this category?')) return
+                      try {
+                        await api.deleteCategory(row.id, apiOpts)
+                        await load()
+                      } catch (err) {
+                        setError(err.message)
+                      }
+                    }}
+                  />
+                </>
+              )
+            : undefined
+        }
       />
     </section>
   )

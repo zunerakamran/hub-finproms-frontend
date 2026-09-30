@@ -3,11 +3,11 @@ import { useHub } from '../context/HubContext'
 
 const links = [
   { to: '/client-admin', label: 'Dashboard', end: true },
-  { to: '/client-admin/posts', label: 'Posts', capability: 'dashboard_manage_posts' },
+  { to: '/client-admin/posts', label: 'Posts', anyOf: ['dashboard_manage_posts', 'dashboard_view_posts'] },
   { to: '/client-admin/bundles', label: 'Bundles', capability: 'dashboard_manage_bundles' },
-  { to: '/client-admin/types', label: 'Types', capability: 'dashboard_manage_types' },
-  { to: '/client-admin/categories', label: 'Categories', capability: 'dashboard_manage_categories' },
-  { to: '/client-admin/tags', label: 'Tags', capability: 'dashboard_manage_tags' },
+  { to: '/client-admin/types', label: 'Types', anyOf: ['dashboard_manage_types', 'dashboard_view_types'] },
+  { to: '/client-admin/categories', label: 'Categories', anyOf: ['dashboard_manage_categories', 'dashboard_view_categories'] },
+  { to: '/client-admin/tags', label: 'Tags', anyOf: ['dashboard_manage_tags', 'dashboard_view_tags'] },
   { to: '/client-admin/firms', label: 'Firms', capability: 'dashboard_manage_firms' },
   { to: '/client-admin/plans', label: 'Subscriptions', capability: 'dashboard_manage_plans' },
   { to: '/client-admin/advisors', label: 'Import Users', anyOf: ['advisor_excel_import', 'advisor_discontinue'] },

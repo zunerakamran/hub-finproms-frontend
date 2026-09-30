@@ -55,8 +55,9 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     can,
   } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
-  // Central home uses Central library for create/distribute — not this catalog form.
-  const hideCreateForm = Boolean(isControlPlane && !isActingRemotely)
+  // Create/edit only when manage_posts is on (Central library owns create; content hubs are list-only).
+  const canManagePosts = can('dashboard_manage_posts')
+  const hideCreateForm = !canManagePosts
   const apiOpts = { asPowerAdmin }
 
   const [posts, setPosts] = useState([])
@@ -275,7 +276,9 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           </h1>
           <p className="muted">
             {hideCreateForm
-              ? 'Central catalog create/distribute lives under Central library. This page lists local posts only.'
+              ? isControlPlane && !isActingRemotely
+                ? 'Central catalog create/distribute lives under Central library. This page lists local posts only.'
+                : 'Posts on this hub are list-only. New posts/reels are created in the Central content library and distributed here.'
               : isActingRemotely
                 ? `Creating on ${actingHub?.name}'s database (use Control hub in the top bar to switch).`
                 : 'Managing this hub’s catalog. Use Control hub in the top bar to work on another hub.'}
@@ -467,7 +470,9 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         loading={loading}
         emptyMessage={
           hideCreateForm
-            ? 'No local posts on Central. Create and distribute from Central library.'
+            ? isControlPlane && !isActingRemotely
+              ? 'No local posts on Central. Create and distribute from Central library.'
+              : 'No posts on this hub yet. Content arrives when Central distributes archived library posts.'
             : 'No posts yet. Create a post or reel above and it will show up here.'
         }
         pageSize={10}

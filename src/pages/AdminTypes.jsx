@@ -7,9 +7,11 @@ import { useHub } from '../context/HubContext'
 
 export default function AdminTypes({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub, isControlPlane } = useHub()
+  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub, isControlPlane, can } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
+  const canManage = can('dashboard_manage_types')
+  const canManage = can('dashboard_manage_types')
 
   const [types, setTypes] = useState([])
   const [name, setName] = useState('')
@@ -82,12 +84,17 @@ export default function AdminTypes({ shell = 'client-admin' }) {
             {isActingRemotely
               ? `Managing types on ${actingHub?.name}. Switch hubs from the top bar.`
               : isControlPlane
-                ? 'Managing Central Hub types used by the Central content library. When you distribute a post, matching type names are upserted into the target hub.'
-                : 'Managing shared hub types. Use Control hub in the top bar for a white-labelled hub.'}
+                ? canManage
+                  ? 'Managing Central Hub types used by the Central content library. When you distribute a post, matching type names are upserted into the target hub.'
+                  : 'Listing Central Hub types. Enable Manage types in Capabilities to create or edit.'
+                : canManage
+                  ? 'Managing shared hub types. Use Control hub in the top bar for a white-labelled hub.'
+                  : 'Types on this hub are list-only. New types arrive with posts distributed from the Central content library.'}
           </p>
         </div>
       </div>
 
+      {canManage && (
       <form className="admin-form" onSubmit={onSubmit}>
         {error && <div className="alert">{error}</div>}
         {message && <div className="alert success">{message}</div>}
@@ -116,6 +123,9 @@ export default function AdminTypes({ shell = 'client-admin' }) {
           )}
         </div>
       </form>
+      )}
+
+      {!canManage && error && <div className="alert">{error}</div>}
 
       <h2 className="section-title">
         {isActingRemotely ? `Types on ${actingHub?.name}` : 'Existing types'}
@@ -141,7 +151,9 @@ export default function AdminTypes({ shell = 'client-admin' }) {
         loading={loading}
         emptyMessage="No types yet."
         getRowKey={(row) => row.id}
-        actions={(row) => (
+        actions={
+          canManage
+            ? (row) => (
           <>
             <DataGridIconBtn
               icon={FaEdit}
@@ -167,7 +179,9 @@ export default function AdminTypes({ shell = 'client-admin' }) {
               }}
             />
           </>
-        )}
+              )
+            : undefined
+        }
       />
     </section>
   )

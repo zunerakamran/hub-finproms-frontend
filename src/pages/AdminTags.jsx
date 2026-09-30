@@ -7,9 +7,10 @@ import { useHub } from '../context/HubContext'
 
 export default function AdminTags({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub, isControlPlane } = useHub()
+  const { actingHubId, isActingRemotely, actingHub, isControlPlane, can } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
+  const canManage = can('dashboard_manage_tags')
 
   const [tags, setTags] = useState([])
   const [name, setName] = useState('')
@@ -74,48 +75,56 @@ export default function AdminTags({ shell = 'client-admin' }) {
             {isActingRemotely
               ? `Managing tags on ${actingHub?.name}. Switch hubs from the top bar.`
               : isControlPlane
-                ? 'Managing Central Hub tags used by the Central content library. On distribute, matching tag names are upserted into the target hub.'
-                : 'Managing shared hub tags. Use Control hub in the top bar for a white-labelled hub.'}
+                ? canManage
+                  ? 'Managing Central Hub tags used by the Central content library. On distribute, matching tag names are upserted into the target hub.'
+                  : 'Listing Central Hub tags. Enable Manage tags in Capabilities to create or edit.'
+                : canManage
+                  ? 'Managing shared hub tags. Use Control hub in the top bar for a white-labelled hub.'
+                  : 'Tags on this hub are list-only. New tags arrive with posts distributed from the Central content library.'}
           </p>
         </div>
       </div>
 
-      <form className="admin-form" onSubmit={onSubmit}>
-        {error && <div className="alert">{error}</div>}
-        {message && <div className="alert success">{message}</div>}
-        <label>
-          Tag name
-          <input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter tag name"
-          />
-        </label>
-        <div className="actions">
-          <button className="btn primary" disabled={saving}>
-            {saving
-              ? 'Saving...'
-              : editingId
-                ? 'Update tag'
-                : isActingRemotely
-                  ? `Add tag on ${actingHub?.name || 'hub'}`
-                  : 'Add tag'}
-          </button>
-          {editingId && (
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() => {
-                setEditingId(null)
-                setName('')
-              }}
-            >
-              Cancel edit
+      {canManage && (
+        <form className="admin-form" onSubmit={onSubmit}>
+          {error && <div className="alert">{error}</div>}
+          {message && <div className="alert success">{message}</div>}
+          <label>
+            Tag name
+            <input
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter tag name"
+            />
+          </label>
+          <div className="actions">
+            <button className="btn primary" disabled={saving}>
+              {saving
+                ? 'Saving...'
+                : editingId
+                  ? 'Update tag'
+                  : isActingRemotely
+                    ? `Add tag on ${actingHub?.name || 'hub'}`
+                    : 'Add tag'}
             </button>
-          )}
-        </div>
-      </form>
+            {editingId && (
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  setEditingId(null)
+                  setName('')
+                }}
+              >
+                Cancel edit
+              </button>
+            )}
+          </div>
+        </form>
+      )}
+
+      {!canManage && error && <div className="alert">{error}</div>}
 
       <h2 className="section-title">
         {isActingRemotely ? `Tags on ${actingHub?.name}` : 'Existing tags'}
@@ -134,32 +143,36 @@ export default function AdminTags({ shell = 'client-admin' }) {
         loading={loading}
         emptyMessage="No tags yet."
         getRowKey={(row) => row.id}
-        actions={(row) => (
-          <>
-            <DataGridIconBtn
-              icon={FaEdit}
-              label="Edit"
-              onClick={() => {
-                setEditingId(row.id)
-                setName(row.name)
-              }}
-            />
-            <DataGridIconBtn
-              icon={FaTrash}
-              label="Delete"
-              variant="danger"
-              onClick={async () => {
-                if (!window.confirm('Delete this tag?')) return
-                try {
-                  await api.deleteTag(row.id, apiOpts)
-                  await load()
-                } catch (err) {
-                  setError(err.message)
-                }
-              }}
-            />
-          </>
-        )}
+        actions={
+          canManage
+            ? (row) => (
+                <>
+                  <DataGridIconBtn
+                    icon={FaEdit}
+                    label="Edit"
+                    onClick={() => {
+                      setEditingId(row.id)
+                      setName(row.name)
+                    }}
+                  />
+                  <DataGridIconBtn
+                    icon={FaTrash}
+                    label="Delete"
+                    variant="danger"
+                    onClick={async () => {
+                      if (!window.confirm('Delete this tag?')) return
+                      try {
+                        await api.deleteTag(row.id, apiOpts)
+                        await load()
+                      } catch (err) {
+                        setError(err.message)
+                      }
+                    }}
+                  />
+                </>
+              )
+            : undefined
+        }
       />
     </section>
   )

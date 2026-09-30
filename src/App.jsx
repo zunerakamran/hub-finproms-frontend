@@ -255,7 +255,7 @@ export default function App() {
                 <Route
                   path="posts"
                   element={
-                    <HubCapabilityRoute capability="dashboard_manage_posts">
+                    <HubCapabilityRoute anyOf={['dashboard_manage_posts', 'dashboard_view_posts']}>
                       <AdminPosts />
                     </HubCapabilityRoute>
                   }
@@ -279,7 +279,7 @@ export default function App() {
                 <Route
                   path="types"
                   element={
-                    <HubCapabilityRoute capability="dashboard_manage_types">
+                    <HubCapabilityRoute anyOf={['dashboard_manage_types', 'dashboard_view_types']}>
                       <AdminTypes />
                     </HubCapabilityRoute>
                   }
@@ -287,7 +287,7 @@ export default function App() {
                 <Route
                   path="categories"
                   element={
-                    <HubCapabilityRoute capability="dashboard_manage_categories">
+                    <HubCapabilityRoute anyOf={['dashboard_manage_categories', 'dashboard_view_categories']}>
                       <AdminCategories />
                     </HubCapabilityRoute>
                   }
@@ -295,7 +295,7 @@ export default function App() {
                 <Route
                   path="tags"
                   element={
-                    <HubCapabilityRoute capability="dashboard_manage_tags">
+                    <HubCapabilityRoute anyOf={['dashboard_manage_tags', 'dashboard_view_tags']}>
                       <AdminTags />
                     </HubCapabilityRoute>
                   }

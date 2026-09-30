@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import AdminPostThumb from '../components/AdminPostThumb'
 import MultiSelectField from '../components/MultiSelectField'
@@ -19,6 +20,13 @@ const emptyForm = {
   attachment: null,
 }
 
+const TABS = [
+  { id: 'library', label: 'Library' },
+  { id: 'create', label: 'Create' },
+  { id: 'ai', label: 'AI posts' },
+  { id: 'distribute', label: 'Distribute' },
+]
+
 function normalizeNames(list) {
   if (!Array.isArray(list)) return []
   return list
@@ -28,11 +36,11 @@ function normalizeNames(list) {
 
 export default function CentralContentLibrary() {
   const { isPowerAdmin } = useAuth()
-  const { isActingRemotely, can } = useHub()
+  const { isActingRemotely, can, refreshHub } = useHub()
   const apiOpts = { asPowerAdmin: isPowerAdmin }
 
-  const [tab, setTab] = useState('manual') // manual | ai | distribute
-  const [createMode, setCreateMode] = useState('one') // one | bulk
+  const [tab, setTab] = useState('library')
+  const [createMode, setCreateMode] = useState('one')
   const [posts, setPosts] = useState([])
   const [types, setTypes] = useState([])
   const [categories, setCategories] = useState([])
@@ -81,15 +89,25 @@ export default function CentralContentLibrary() {
 
   useEffect(() => {
     if (isActingRemotely) return
+    if (!can('dashboard_central_content_library')) return
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, isActingRemotely])
+
+  useEffect(() => {
+    // Caps may have been seeded after login — refresh once on mount.
+    refreshHub({ silent: true }).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const archivedPosts = useMemo(
     () => posts.filter((post) => post.archived_at || post.is_archived),
     [posts]
   )
-
+  const livePosts = useMemo(
+    () => posts.filter((post) => !post.archived_at && !post.is_archived),
+    [posts]
+  )
   const eligibleTargets = useMemo(
     () => targets.filter((hub) => hub.eligible),
     [targets]
@@ -118,6 +136,7 @@ export default function CentralContentLibrary() {
       const data = await api.createCentralLibraryPost(toFormData(), apiOpts)
       setMessage(data.message || 'Post created in Central library.')
       setForm(emptyForm)
+      setTab('library')
       await load()
     } catch (err) {
       setError(err.message)
@@ -165,6 +184,7 @@ export default function CentralContentLibrary() {
       const data = await api.importCentralLibraryPosts(file, apiOpts)
       setMessage(data.message || 'Import finished.')
       setFile(null)
+      setTab('library')
       await load()
     } catch (err) {
       setError(err.message)
@@ -243,12 +263,13 @@ export default function CentralContentLibrary() {
             <p className="eyebrow">Central</p>
             <h1>Content library</h1>
             <p className="muted">
-              Switch back to Central Hub Controller to manage the Central content library. Posts
-              created here stay in the Central database until you distribute them.
+              Switch the Control hub back to Central to manage the Central content library.
             </p>
           </div>
         </div>
-        <div className="alert">Hub switcher is on a remote hub — Central library is Central-only.</div>
+        <div className="alert">
+          Hub switcher is on a remote hub. Central library posts stay on Central only.
+        </div>
       </section>
     )
   }
@@ -256,237 +277,113 @@ export default function CentralContentLibrary() {
   if (!can('dashboard_central_content_library')) {
     return (
       <section>
-        <div className="alert">You do not have the Central content library capability.</div>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Central</p>
+            <h1>Content library</h1>
+          </div>
+        </div>
+        <div className="alert">
+          Central content library is not enabled for your role yet. Run migrations, then open{' '}
+          <strong>Capabilities</strong> on Central and enable{' '}
+          <em>Central content library</em> for Power Admin / FinProms admin. Refresh the page
+          afterwards.
+        </div>
       </section>
     )
   }
 
   return (
-    <section>
+    <section className="central-library">
       <div className="page-head">
         <div>
           <p className="eyebrow">Central</p>
           <h1>Content library</h1>
           <p className="muted">
-            Create manual posts in the Central database (one-by-one or Excel bulk), archive them with
-            remarks, then distribute to Shared / White-labelled hubs. AI posts are under
-            development. Target hubs must have matching Manual posts or AI posts functionality.
+            Build posts in the Central database, archive them with remarks, then distribute copies
+            to Shared or White-labelled hubs. Target hubs must have matching{' '}
+            <strong>Manual posts</strong> or <strong>AI posts</strong> in Functionalities.
           </p>
         </div>
+        <button type="button" className="btn primary" onClick={() => setTab('create')}>
+          New post
+        </button>
       </div>
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
-      <div className="matrix-add-role__modes" style={{ marginBottom: 16 }}>
-        <label>
-          <input type="radio" checked={tab === 'manual'} onChange={() => setTab('manual')} />
-          Manual posts
-        </label>
-        <label>
-          <input type="radio" checked={tab === 'ai'} onChange={() => setTab('ai')} />
-          AI posts
-        </label>
-        <label>
-          <input
-            type="radio"
-            checked={tab === 'distribute'}
-            onChange={() => setTab('distribute')}
-          />
-          Archive &amp; distribute
-        </label>
+      <div className="library-tabs" role="tablist" aria-label="Content library sections">
+        {TABS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === item.id}
+            className={`library-tabs__btn${tab === item.id ? ' is-active' : ''}`}
+            onClick={() => setTab(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
-      {tab === 'ai' && (
+      {tab === 'library' && (
         <div className="settings-block">
-          <h2>AI posts</h2>
-          <p className="muted">Under development — AI post generation is not available yet.</p>
-          <div className="empty-state">
-            <h2>Coming soon</h2>
-            <p className="muted">This section is intentionally empty until AI generation ships.</p>
-          </div>
-        </div>
-      )}
-
-      {tab === 'manual' && (
-        <>
-          <div className="matrix-add-role__modes" style={{ marginBottom: 12 }}>
-            <label>
-              <input
-                type="radio"
-                checked={createMode === 'one'}
-                onChange={() => setCreateMode('one')}
-              />
-              Create one by one
-            </label>
-            <label>
-              <input
-                type="radio"
-                checked={createMode === 'bulk'}
-                onChange={() => setCreateMode('bulk')}
-              />
-              Bulk via Excel
-            </label>
-          </div>
-
-          {createMode === 'bulk' ? (
-            <form className="admin-form settings-form" onSubmit={onImport}>
-              <div className="settings-block">
-                <h2>Bulk import</h2>
-                <p className="muted" style={{ marginTop: 0 }}>
-                  Download the template, fill rows, then upload. Attachments are not included in the
-                  sheet — add media later per post if needed.
-                </p>
-                <div className="actions" style={{ marginBottom: 12 }}>
-                  <button type="button" className="btn ghost" onClick={downloadTemplate}>
-                    Download Excel template
-                  </button>
-                </div>
-                <label>
-                  Excel file (.xlsx)
-                  <input
-                    type="file"
-                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  />
-                </label>
-              </div>
-              <div className="actions">
-                <button className="btn primary" type="submit" disabled={importing || !file}>
-                  {importing ? 'Importing…' : 'Import posts'}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <form className="admin-form settings-form" onSubmit={onCreate} ref={formRef}>
-              <div className="settings-block">
-                <h2>New manual post</h2>
-                <div className="form-grid">
-                  <label>
-                    <RequiredMark>Title</RequiredMark>
-                    <input
-                      value={form.title}
-                      onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <RequiredMark>Type</RequiredMark>
-                    <select
-                      value={form.type}
-                      onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
-                      required
-                    >
-                      <option value="">Select type</option>
-                      {types.map((type) => (
-                        <option key={type.id || type.name} value={type.name}>
-                          {type.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <RequiredMark>Credits</RequiredMark>
-                    <input
-                      type="number"
-                      min={1}
-                      value={form.credits_cost}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, credits_cost: Number(e.target.value) || 1 }))
-                      }
-                      required
-                    />
-                  </label>
-                  <label>
-                    Canva link
-                    <input
-                      value={form.canva_link}
-                      onChange={(e) => setForm((p) => ({ ...p, canva_link: e.target.value }))}
-                      placeholder="https://"
-                    />
-                  </label>
-                  <div className="admin-field">
-                    <RequiredMark>Categories</RequiredMark>
-                    <MultiSelectField
-                      options={normalizeNames(categories)}
-                      value={form.categories}
-                      onChange={(next) => setForm((p) => ({ ...p, categories: next }))}
-                      placeholder="Select a category to add…"
-                    />
-                  </div>
-                  <div className="admin-field">
-                    <span className="field-label-text">Tags</span>
-                    <MultiSelectField
-                      options={normalizeNames(tags)}
-                      value={form.tags}
-                      onChange={(next) => setForm((p) => ({ ...p, tags: next }))}
-                      placeholder="Select a tag to add…"
-                    />
-                  </div>
-                  <label>
-                    Attachment
-                    <input
-                      type="file"
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, attachment: e.target.files?.[0] || null }))
-                      }
-                    />
-                  </label>
-                  <label className="checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={form.is_active}
-                      onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
-                    />
-                    Active in library
-                  </label>
-                </div>
-                <label>
-                  Description
-                  <RichTextEditor
-                    value={form.description}
-                    onChange={(description) => setForm((p) => ({ ...p, description }))}
-                  />
-                </label>
-              </div>
-              <div className="actions sticky-actions">
-                <button className="btn primary" type="submit" disabled={saving}>
-                  {saving ? 'Saving…' : 'Add to Central library'}
-                </button>
-              </div>
-            </form>
-          )}
-
-          <div className="settings-block" style={{ marginTop: 24 }}>
-            <div className="page-head" style={{ marginBottom: 8 }}>
-              <h2 style={{ margin: 0 }}>Library posts</h2>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="all">All</option>
-                <option value="active">Not archived</option>
-                <option value="archived">Archived</option>
-              </select>
+          <div className="library-toolbar">
+            <h2 style={{ margin: 0 }}>Posts in Central</h2>
+            <div className="library-toolbar__filters">
+              <button
+                type="button"
+                className={`btn ghost${statusFilter === 'all' ? ' is-selected' : ''}`}
+                onClick={() => setStatusFilter('all')}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className={`btn ghost${statusFilter === 'active' ? ' is-selected' : ''}`}
+                onClick={() => setStatusFilter('active')}
+              >
+                Ready
+              </button>
+              <button
+                type="button"
+                className={`btn ghost${statusFilter === 'archived' ? ' is-selected' : ''}`}
+                onClick={() => setStatusFilter('archived')}
+              >
+                Archived
+              </button>
             </div>
-            {loading ? (
-              <div className="state">Loading…</div>
-            ) : posts.length === 0 ? (
-              <div className="empty-state">
-                <h2>No posts yet</h2>
-                <p className="muted">Create a post above or import from Excel.</p>
-              </div>
-            ) : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th>Title</th>
-                      <th>Source</th>
-                      <th>Status</th>
-                      <th>Credits</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {posts.map((post) => (
+          </div>
+
+          {loading ? (
+            <div className="state">Loading…</div>
+          ) : posts.length === 0 ? (
+            <div className="empty-state">
+              <h2>No posts yet</h2>
+              <p className="muted">Create a post or import from Excel to get started.</p>
+              <button type="button" className="btn primary" onClick={() => setTab('create')}>
+                Create post
+              </button>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Title</th>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Credits</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {posts.map((post) => {
+                    const archived = Boolean(post.archived_at || post.is_archived)
+                    return (
                       <tr key={post.id}>
                         <td>
                           <AdminPostThumb post={post} />
@@ -497,34 +394,210 @@ export default function CentralContentLibrary() {
                             {post.type}
                           </div>
                         </td>
-                        <td>{post.creation_source || 'manual'}</td>
                         <td>
-                          {post.archived_at || post.is_archived ? (
-                            <span title={post.archive_remarks || ''}>Archived</span>
+                          <span className="admin-status-pill is-on">
+                            {post.creation_source || 'manual'}
+                          </span>
+                        </td>
+                        <td>
+                          {archived ? (
+                            <span className="admin-status-pill is-off" title={post.archive_remarks || ''}>
+                              Archived
+                            </span>
                           ) : (
-                            'Library'
+                            <span className="admin-status-pill is-on">Ready</span>
                           )}
                         </td>
                         <td>{post.credits_cost}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          {!archived && (
+                            <button
+                              type="button"
+                              className="btn ghost"
+                              onClick={() => setTab('distribute')}
+                            >
+                              Archive / send
+                            </button>
+                          )}
+                        </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'create' && (
+        <div className="settings-block">
+          <div className="library-mode-switch">
+            <button
+              type="button"
+              className={`library-mode-switch__btn${createMode === 'one' ? ' is-active' : ''}`}
+              onClick={() => setCreateMode('one')}
+            >
+              One by one
+            </button>
+            <button
+              type="button"
+              className={`library-mode-switch__btn${createMode === 'bulk' ? ' is-active' : ''}`}
+              onClick={() => setCreateMode('bulk')}
+            >
+              Bulk Excel
+            </button>
           </div>
-        </>
+
+          {createMode === 'bulk' ? (
+            <form className="admin-form" onSubmit={onImport}>
+              <p className="muted">
+                Download the template, fill rows, then upload. Media attachments are not included in
+                the sheet.
+              </p>
+              <div className="actions" style={{ marginBottom: 16 }}>
+                <button type="button" className="btn ghost" onClick={downloadTemplate}>
+                  Download Excel template
+                </button>
+              </div>
+              <label>
+                Excel file (.xlsx)
+                <input
+                  type="file"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                />
+              </label>
+              <div className="actions sticky-actions">
+                <button className="btn primary" type="submit" disabled={importing || !file}>
+                  {importing ? 'Importing…' : 'Import posts'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form className="admin-form" onSubmit={onCreate} ref={formRef}>
+              <div className="form-grid">
+                <label>
+                  <RequiredMark>Title</RequiredMark>
+                  <input
+                    value={form.title}
+                    onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                    required
+                  />
+                </label>
+                <label>
+                  <RequiredMark>Type</RequiredMark>
+                  <select
+                    value={form.type}
+                    onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
+                    required
+                  >
+                    <option value="">Select type</option>
+                    {types.map((type) => (
+                      <option key={type.id || type.name} value={type.name}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <RequiredMark>Credits</RequiredMark>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.credits_cost}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, credits_cost: Number(e.target.value) || 1 }))
+                    }
+                    required
+                  />
+                </label>
+                <label>
+                  Canva link
+                  <input
+                    value={form.canva_link}
+                    onChange={(e) => setForm((p) => ({ ...p, canva_link: e.target.value }))}
+                    placeholder="https://"
+                  />
+                </label>
+                <div className="admin-field">
+                  <RequiredMark>Categories</RequiredMark>
+                  <MultiSelectField
+                    options={normalizeNames(categories)}
+                    value={form.categories}
+                    onChange={(next) => setForm((p) => ({ ...p, categories: next }))}
+                    placeholder="Select a category to add…"
+                    emptyHint={
+                      <>
+                        No categories yet. <Link to="/my-dashboard/categories">Add categories</Link>.
+                      </>
+                    }
+                  />
+                </div>
+                <div className="admin-field">
+                  <span className="field-label-text">Tags</span>
+                  <MultiSelectField
+                    options={normalizeNames(tags)}
+                    value={form.tags}
+                    onChange={(next) => setForm((p) => ({ ...p, tags: next }))}
+                    placeholder="Select a tag to add…"
+                  />
+                </div>
+                <label>
+                  Attachment
+                  <input
+                    type="file"
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, attachment: e.target.files?.[0] || null }))
+                    }
+                  />
+                </label>
+                <label className="checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={form.is_active}
+                    onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
+                  />
+                  Active in library
+                </label>
+              </div>
+              <div className="admin-field form-grid__full" style={{ marginTop: 12 }}>
+                <span className="field-label-text">Description</span>
+                <RichTextEditor
+                  value={form.description}
+                  onChange={(description) => setForm((p) => ({ ...p, description }))}
+                />
+              </div>
+              <div className="actions sticky-actions">
+                <button className="btn primary" type="submit" disabled={saving}>
+                  {saving ? 'Saving…' : 'Add to Central library'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
+      {tab === 'ai' && (
+        <div className="settings-block library-ai-stub">
+          <h2>AI posts</h2>
+          <p className="muted">Under development — AI generation is not available yet.</p>
+          <div className="empty-state">
+            <h2>Coming soon</h2>
+            <p className="muted">This workspace is reserved for AI-generated posts.</p>
+          </div>
+        </div>
       )}
 
       {tab === 'distribute' && (
-        <>
+        <div className="library-distribute">
           <div className="settings-block">
-            <h2>Archive with remarks</h2>
+            <h2>1. Archive with remarks</h2>
             <p className="muted" style={{ marginTop: 0 }}>
-              Archive a post before distributing it. Remarks are required.
+              Archive a ready post before distributing it. Remarks are required.
             </p>
-            {posts.filter((p) => !p.archived_at && !p.is_archived).length === 0 ? (
-              <p className="muted">No unarchived library posts.</p>
+            {livePosts.length === 0 ? (
+              <p className="muted">No ready posts to archive.</p>
             ) : (
               <div className="table-wrap">
                 <table className="data-table">
@@ -536,109 +609,121 @@ export default function CentralContentLibrary() {
                     </tr>
                   </thead>
                   <tbody>
-                    {posts
-                      .filter((p) => !p.archived_at && !p.is_archived)
-                      .map((post) => (
-                        <tr key={post.id}>
-                          <td>
-                            <strong>{post.title}</strong>
-                            <div className="muted" style={{ fontSize: '0.85em' }}>
-                              {post.creation_source || 'manual'}
-                            </div>
-                          </td>
-                          <td>
-                            <input
-                              value={archiveRemarks[post.id] || ''}
-                              onChange={(e) =>
-                                setArchiveRemarks((prev) => ({
-                                  ...prev,
-                                  [post.id]: e.target.value,
-                                }))
-                              }
-                              placeholder="Why this post is ready to distribute"
-                            />
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn ghost"
-                              onClick={() => onArchive(post)}
-                            >
-                              Archive
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                    {livePosts.map((post) => (
+                      <tr key={post.id}>
+                        <td>
+                          <strong>{post.title}</strong>
+                          <div className="muted" style={{ fontSize: '0.85em' }}>
+                            {post.creation_source || 'manual'}
+                          </div>
+                        </td>
+                        <td>
+                          <input
+                            value={archiveRemarks[post.id] || ''}
+                            onChange={(e) =>
+                              setArchiveRemarks((prev) => ({
+                                ...prev,
+                                [post.id]: e.target.value,
+                              }))
+                            }
+                            placeholder="Why this post is ready to distribute"
+                          />
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            onClick={() => onArchive(post)}
+                          >
+                            Archive
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             )}
           </div>
 
-          <form className="admin-form settings-form" onSubmit={onDistribute}>
-            <div className="settings-block">
-              <h2>Distribute archived posts</h2>
-              <p className="muted" style={{ marginTop: 0 }}>
-                Copies selected archived posts into the chosen hubs’ databases. Manual posts only go
-                to hubs with Manual posts; AI posts only go to hubs with AI posts.
-              </p>
+          <form className="settings-block" onSubmit={onDistribute}>
+            <h2>2. Distribute archived posts</h2>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Copies selected archived posts into chosen hubs. Manual → Manual posts hubs; AI → AI
+              posts hubs.
+            </p>
 
-              <h3>Archived posts</h3>
-              {archivedPosts.length === 0 ? (
-                <p className="muted">Archive posts first.</p>
-              ) : (
-                <div className="form-grid">
-                  {archivedPosts.map((post) => (
-                    <label key={post.id} className="checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(post.id)}
-                        onChange={() => toggleSelected(post.id)}
-                      />
-                      {post.title}{' '}
-                      <span className="muted">({post.creation_source || 'manual'})</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-
-              <h3 style={{ marginTop: 16 }}>Target hubs</h3>
-              {eligibleTargets.length === 0 ? (
-                <p className="muted">
-                  No eligible hubs. Each target needs Receive content from Central, remote DB
-                  credentials, and Manual posts or AI posts.
-                </p>
-              ) : (
-                <div className="form-grid">
-                  {eligibleTargets.map((hub) => (
-                    <label key={hub.id} className="checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={selectedHubIds.includes(hub.id)}
-                        onChange={() => toggleHub(hub.id)}
-                      />
-                      {hub.name}{' '}
-                      <span className="muted">
-                        ({hub.type}
-                        {hub.manual_posts ? ', manual' : ''}
-                        {hub.ai_posts ? ', AI' : ''})
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
+            <div className="library-distribute__columns">
+              <div>
+                <h3>Archived posts</h3>
+                {archivedPosts.length === 0 ? (
+                  <p className="muted">Archive posts first.</p>
+                ) : (
+                  <ul className="library-checklist">
+                    {archivedPosts.map((post) => (
+                      <li key={post.id}>
+                        <label className="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(post.id)}
+                            onChange={() => toggleSelected(post.id)}
+                          />
+                          <span>
+                            {post.title}{' '}
+                            <span className="muted">({post.creation_source || 'manual'})</span>
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <h3>Target hubs</h3>
+                {eligibleTargets.length === 0 ? (
+                  <p className="muted">
+                    No eligible hubs. Need Receive content from Central, remote DB, and Manual or AI
+                    posts.
+                  </p>
+                ) : (
+                  <ul className="library-checklist">
+                    {eligibleTargets.map((hub) => (
+                      <li key={hub.id}>
+                        <label className="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={selectedHubIds.includes(hub.id)}
+                            onChange={() => toggleHub(hub.id)}
+                          />
+                          <span>
+                            {hub.name}{' '}
+                            <span className="muted">
+                              ({hub.type}
+                              {hub.manual_posts ? ', manual' : ''}
+                              {hub.ai_posts ? ', AI' : ''})
+                            </span>
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
+
             <div className="actions sticky-actions">
               <button
                 className="btn primary"
                 type="submit"
-                disabled={distributing || selectedIds.length === 0 || selectedHubIds.length === 0}
+                disabled={
+                  distributing || selectedIds.length === 0 || selectedHubIds.length === 0
+                }
               >
                 {distributing ? 'Distributing…' : 'Distribute to selected hubs'}
               </button>
             </div>
           </form>
-        </>
+        </div>
       )}
     </section>
   )

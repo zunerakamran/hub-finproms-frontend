@@ -138,13 +138,10 @@ export default function MyDashboard() {
           <p className="eyebrow">Welcome back</p>
           <h1>{user?.name ? `Hi, ${user.name.split(' ')[0]}` : 'Your tools'}</h1>
           <p className="muted">
-            {isControlPlane && !isActingRemotely
-              ? 'Central Hub Controller — manage hubs, Functionalities, Capabilities, and remote control.'
-              : totalTools > 0
-                ? `${totalTools} tool${totalTools === 1 ? '' : 's'} enabled for your role on `
-                : 'No tools enabled yet on '}
-            {!(isControlPlane && !isActingRemotely) && <strong>{brandName}</strong>}
-            {isControlPlane && !isActingRemotely ? null : '.'}
+            {totalTools > 0
+              ? `${totalTools} tool${totalTools === 1 ? '' : 's'} enabled for your role on `
+              : 'No tools enabled yet on '}
+            <strong>{brandName}</strong>.
           </p>
         </div>
         {showBrowseCatalog && (

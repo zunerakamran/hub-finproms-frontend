@@ -49,7 +49,7 @@ const links = [
   { to: '/client-admin/settings', label: 'Settings', capability: 'dashboard_manage_settings' },
   {
     to: '/client-admin/role-display-names',
-    label: 'User role title',
+    label: 'Manage roles',
     capability: 'dashboard_manage_role_display_names',
   },
   {

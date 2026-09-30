@@ -327,6 +327,11 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ roles }),
     }),
+  addHubRole: (payload) =>
+    request(`${CLIENT_ADMIN}/role-display-names/roles`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   complianceStatusDisplayNames: () =>
     request(`${CLIENT_ADMIN}/compliance-status-display-names`),
   updateComplianceStatusDisplayNames: (statuses) =>

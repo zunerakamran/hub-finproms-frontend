@@ -49,25 +49,17 @@ export default function PowerAdminCapabilities() {
   const selectedHubName = actingHub?.name || hub?.name || 'this hub'
 
   const [roles, setRoles] = useState([])
-  const [availableToAdd, setAvailableToAdd] = useState([])
   const [rows, setRows] = useState([])
   const [groupOrder, setGroupOrder] = useState(DEFAULT_GROUP_ORDER)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [addingRole, setAddingRole] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState({})
-  const [addMode, setAddMode] = useState('catalog') // catalog | custom
-  const [addCatalogKey, setAddCatalogKey] = useState('')
-  const [addCustomKey, setAddCustomKey] = useState('')
-  const [addCustomLabel, setAddCustomLabel] = useState('')
 
   const applyMatrix = (matrix, resolvedPower) => {
     setRoles(matrix.roles || [])
-    const nextAvailable = matrix.available_to_add || []
-    setAvailableToAdd(nextAvailable)
     setRows(matrix.rows || [])
     if (Array.isArray(matrix.group_order) && matrix.group_order.length > 0) {
       setGroupOrder(matrix.group_order)
@@ -75,10 +67,6 @@ export default function PowerAdminCapabilities() {
       setGroupOrder(DEFAULT_GROUP_ORDER)
     }
     if (resolvedPower) setPowerCapabilities(resolvedPower)
-    setAddCatalogKey((prev) => {
-      if (nextAvailable.some((role) => role.key === prev)) return prev
-      return nextAvailable[0]?.key || ''
-    })
   }
 
   const load = async (hubId = selectedHubId) => {
@@ -201,41 +189,6 @@ export default function PowerAdminCapabilities() {
     }
   }
 
-  const onAddRole = async (e) => {
-    e.preventDefault()
-    if (!allowed || !selectedHubId) return
-    setAddingRole(true)
-    setError('')
-    setMessage('')
-    try {
-      const payload =
-        addMode === 'catalog'
-          ? { key: addCatalogKey, hub_id: Number(selectedHubId) }
-          : {
-              key: addCustomKey.trim() || undefined,
-              label: addCustomLabel.trim() || undefined,
-              hub_id: Number(selectedHubId),
-            }
-      const data = await api.addPowerAdminCapabilityRole(payload)
-      applyMatrix(data.matrix, data.resolved)
-      setMessage(data.message || 'Role added to this hub.')
-      setAddCustomKey('')
-      setAddCustomLabel('')
-      if (data.available_to_add?.length) {
-        setAddCatalogKey(data.available_to_add[0].key)
-      } else {
-        setAddCatalogKey('')
-        setAddMode('custom')
-      }
-      await refreshUser()
-      await refreshHub({ silent: true })
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setAddingRole(false)
-    }
-  }
-
   return (
     <section className="capabilities-matrix-page">
       <div className="page-head">
@@ -251,9 +204,9 @@ export default function PowerAdminCapabilities() {
               : hub?.type === 'central' || hub?.is_central || hub?.is_control_plane
                 ? ' (Central Hub)'
                 : ' (shared)'}
-            . Columns are roles present on this hub (or roles you add below for this hub). Rename
-            role titles under User role title. Hub Functionalities are configured separately under
-            Hub checklists.
+            . Columns are roles present on this hub (or added under{' '}
+            <strong>Manage roles</strong>). Add / rename roles on the Manage roles page. Hub
+            Functionalities are configured separately under Hub checklists.
           </p>
         </div>
       </div>
@@ -272,96 +225,6 @@ export default function PowerAdminCapabilities() {
       ) : loading ? (
         <div className="state">Loading matrix...</div>
       ) : (
-        <>
-          {allowed && (
-            <form className="matrix-add-role" onSubmit={onAddRole}>
-              <div className="matrix-add-role__head">
-                <h2>Add role to this hub</h2>
-                <p className="muted">
-                  Adds a role column on <strong>{selectedHubName}</strong> only (even before any
-                  users have that role). Other hubs are unchanged. Rename the display title later
-                  under User role title.
-                </p>
-              </div>
-              <div className="matrix-add-role__modes">
-                <label>
-                  <input
-                    type="radio"
-                    name="add-role-mode"
-                    checked={addMode === 'catalog'}
-                    onChange={() => setAddMode('catalog')}
-                    disabled={availableToAdd.length === 0}
-                  />
-                  Existing system role
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="add-role-mode"
-                    checked={addMode === 'custom'}
-                    onChange={() => setAddMode('custom')}
-                  />
-                  New custom role
-                </label>
-              </div>
-              {addMode === 'catalog' ? (
-                <label className="matrix-add-role__field">
-                  Role
-                  <select
-                    value={addCatalogKey}
-                    onChange={(e) => setAddCatalogKey(e.target.value)}
-                    disabled={availableToAdd.length === 0}
-                  >
-                    {availableToAdd.length === 0 ? (
-                      <option value="">All system roles already added</option>
-                    ) : (
-                      availableToAdd.map((role) => (
-                        <option key={role.key} value={role.key}>
-                          {role.label}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </label>
-              ) : (
-                <div className="matrix-add-role__custom">
-                  <label className="matrix-add-role__field">
-                    Display name
-                    <input
-                      type="text"
-                      value={addCustomLabel}
-                      onChange={(e) => setAddCustomLabel(e.target.value)}
-                      placeholder="e.g. Compliance Lead"
-                      maxLength={100}
-                      required
-                    />
-                  </label>
-                  <label className="matrix-add-role__field">
-                    Key (optional)
-                    <input
-                      type="text"
-                      value={addCustomKey}
-                      onChange={(e) => setAddCustomKey(e.target.value)}
-                      placeholder="auto from name, e.g. compliance_lead"
-                      maxLength={41}
-                    />
-                  </label>
-                </div>
-              )}
-              <button
-                className="btn primary"
-                type="submit"
-                disabled={
-                  addingRole ||
-                  (addMode === 'catalog' && (!addCatalogKey || availableToAdd.length === 0)) ||
-                  (addMode === 'custom' && !addCustomLabel.trim() && !addCustomKey.trim())
-                }
-              >
-                {addingRole ? 'Adding…' : 'Add role to this hub'}
-              </button>
-            </form>
-          )}
-
         <form onSubmit={onSave}>
           <div className="matrix-toolbar">
             <label className="matrix-search">
@@ -388,8 +251,8 @@ export default function PowerAdminCapabilities() {
             <div className="empty-state">
               <h2>No roles on this hub yet</h2>
               <p className="muted">
-                Create users with roles, or use <strong>Add role to this hub</strong> above so
-                columns appear before anyone is assigned.
+                Create users with roles, or open <strong>Manage roles</strong> to add a role column
+                before anyone is assigned.
               </p>
             </div>
           ) : groupedRows.length === 0 ? (
@@ -511,7 +374,6 @@ export default function PowerAdminCapabilities() {
             </div>
           )}
         </form>
-        </>
       )}
     </section>
   )

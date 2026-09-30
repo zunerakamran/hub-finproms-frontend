@@ -279,9 +279,9 @@ export const DASHBOARD_LINKS = [
   },
   {
     to: '/my-dashboard/role-display-names',
-    label: 'User role title',
-    title: 'User role title',
-    description: 'Customize how role names appear across this hub’s UI.',
+    label: 'Manage roles',
+    title: 'Manage roles',
+    description: 'Add roles to this hub and customize how role names appear in the UI.',
     capability: 'dashboard_manage_role_display_names',
     group: 'hub',
   },

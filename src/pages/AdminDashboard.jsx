@@ -101,8 +101,8 @@ const sections = [
   },
   {
     to: '/client-admin/role-display-names',
-    title: 'User role title',
-    description: 'Customize how role names appear across this hub’s UI.',
+    title: 'Manage roles',
+    description: 'Add roles to this hub and customize how role names appear in the UI.',
     capability: 'dashboard_manage_role_display_names',
   },
   {

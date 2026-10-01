@@ -5333,7 +5333,7 @@ export default function AdvisorDashboard({
                         <div className="wc-supporting-files-card">
                           <p className="wc-supporting-files-card__title">Supporting files (optional)</p>
                           <p className="wc-supporting-files-card__hint">
-                            Attach PDF, Office, images, or ZIP evidence with this change request before you submit.
+                            Attach PDF, Office, images, or ZIP with this change request.
                           </p>
                           <SupportingFilesPicker
                             id="wc-batch-submit-supporting-files"
@@ -5343,7 +5343,7 @@ export default function AdvisorDashboard({
                             hint={null}
                           />
                         </div>
-                        <div className="pt-1 flex justify-end">
+                        <div className="flex justify-end">
                           <button
                             type="button"
                             onClick={handleBatchSubmit}

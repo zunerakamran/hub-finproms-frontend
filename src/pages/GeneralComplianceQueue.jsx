@@ -9,6 +9,7 @@ import { useHub } from '../context/HubContext'
 import { reviewersForSubmitterFirm } from '../utils/firmAssigneeFilter'
 import { formatDateTime, complianceStatusChangedAt } from '../utils/dateFormat'
 import { gridActorName } from '../utils/submissionAttribution'
+import { resolveComplianceSupportingFiles } from '../utils/complianceSupportingFiles'
 
 export default function GeneralComplianceQueue() {
   const { user, isPowerAdmin } = useAuth()
@@ -134,13 +135,11 @@ export default function GeneralComplianceQueue() {
     {
       key: 'files',
       label: 'Files',
-      render: (row) =>
-        (row.attachments || []).length ? (
-          <span className="muted">{row.attachments.length} file(s)</span>
-        ) : (
-          '—'
-        ),
-      filterValue: (row) => String((row.attachments || []).length),
+      render: (row) => {
+        const count = resolveComplianceSupportingFiles(row).length
+        return count ? <span className="muted">{count} file(s)</span> : '—'
+      },
+      filterValue: (row) => String(resolveComplianceSupportingFiles(row).length),
     },
     {
       key: 'status',

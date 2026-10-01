@@ -17,6 +17,8 @@ import {
   capturePreviewSnapshot,
   resolveRequestPreview,
 } from '../utils/changeRequestPreview'
+import SupportingFilesPicker from '../../components/SupportingFilesPicker'
+import { compliancePostBody } from '../../utils/complianceSupportingFiles'
 import wcApi from '../wcApi'
 
 /**
@@ -38,6 +40,7 @@ export default function ChangeRequestReviewActions({
   const [scheduleDate, setScheduleDate] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
   const [awfFeedback, setAwfFeedback] = useState('')
+  const [reviewSupportingFiles, setReviewSupportingFiles] = useState([])
 
   if (!request || !user) return null
 
@@ -118,9 +121,8 @@ export default function ChangeRequestReviewActions({
 
     try {
       await snapshotBeforeDecision()
-      const data = await api.websiteComplianceApproveChangeRequest(request.id, {
-        scheduled_at: scheduledTime,
-      })
+      const body = compliancePostBody({ scheduled_at: scheduledTime || '' }, reviewSupportingFiles)
+      const data = await api.websiteComplianceApproveChangeRequest(request.id, body)
       const status = data?.status || (scheduledTime ? 'scheduled' : 'approved')
       const savedScheduledAt = data?.scheduled_at || scheduledTime
       onUpdated?.({
@@ -136,6 +138,7 @@ export default function ChangeRequestReviewActions({
       } else {
         onMessage?.('Request approved. All sections in this request have been published live.')
       }
+      setReviewSupportingFiles([])
     } catch (err) {
       onError?.(err.message || err.data?.message || 'Failed to approve request.')
     } finally {
@@ -153,9 +156,8 @@ export default function ChangeRequestReviewActions({
     onMessage?.('')
     try {
       await snapshotBeforeDecision()
-      await api.websiteComplianceRejectChangeRequest(request.id, {
-        rejection_reason: rejectionReason,
-      })
+      const body = compliancePostBody({ rejection_reason: rejectionReason }, reviewSupportingFiles)
+      await api.websiteComplianceRejectChangeRequest(request.id, body)
       onUpdated?.({
         ...request,
         status: 'rejected',
@@ -164,6 +166,7 @@ export default function ChangeRequestReviewActions({
         scheduled_at: null,
       })
       onMessage?.('Request rejected. Section locks released for editor.')
+      setReviewSupportingFiles([])
     } catch (err) {
       onError?.(err.message || err.data?.message || 'Failed to reject request.')
     } finally {
@@ -181,9 +184,8 @@ export default function ChangeRequestReviewActions({
     onMessage?.('')
     try {
       await snapshotBeforeDecision()
-      const data = await api.websiteComplianceApproveChangeRequestWithFeedback(request.id, {
-        feedback: awfFeedback,
-      })
+      const body = compliancePostBody({ feedback: awfFeedback }, reviewSupportingFiles)
+      const data = await api.websiteComplianceApproveChangeRequestWithFeedback(request.id, body)
       onUpdated?.({
         ...request,
         status: 'approved_with_feedback',
@@ -192,6 +194,7 @@ export default function ChangeRequestReviewActions({
         ...(data?.change_request || data || {}),
       })
       onMessage?.('Request approved with feedback. Editor can revise or confirm & publish.')
+      setReviewSupportingFiles([])
     } catch (err) {
       onError?.(err.message || err.data?.message || 'Failed to approve with feedback.')
     } finally {
@@ -266,6 +269,13 @@ export default function ChangeRequestReviewActions({
               </button>
             </div>
           </div>
+
+          <SupportingFilesPicker
+            id="wc-review-supporting-files"
+            files={reviewSupportingFiles}
+            onChange={setReviewSupportingFiles}
+            className="wc-review-supporting-files"
+          />
 
           {decision === 'approve' ? (
             <div className="wc-review-pane wc-review-pane--approve">

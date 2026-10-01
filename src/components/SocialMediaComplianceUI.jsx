@@ -3,6 +3,8 @@ import { useHub } from '../context/HubContext'
 import { StatusWithDate } from './DataGrid'
 import ComplianceStatusText from './ComplianceStatusText'
 import RichTextDisplay from './RichTextDisplay'
+import { SupportingFilesList } from './GeneralComplianceUI'
+import { resolveComplianceSupportingFiles } from '../utils/complianceSupportingFiles'
 
 export default function SmcStatusBadge({ status, at }) {
   const { complianceStatusLabel } = useHub()
@@ -45,6 +47,10 @@ export function SmcBarChart({ labels = [], data = [], title }) {
       </div>
     </div>
   )
+}
+
+export function SmcSupportingFilesBlock({ files = [] }) {
+  return <SupportingFilesList files={files} />
 }
 
 export function SmcVersionCard({ version, isLatest }) {
@@ -94,6 +100,10 @@ export function SmcVersionCard({ version, isLatest }) {
           ) : (
             <p className="muted">No attachment</p>
           )}
+        </div>
+        <div>
+          <p className="muted label">Supporting files</p>
+          <SmcSupportingFilesBlock files={resolveComplianceSupportingFiles(version)} />
         </div>
       </div>
       {version.reviewed_at && (

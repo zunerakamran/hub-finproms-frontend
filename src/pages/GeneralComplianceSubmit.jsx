@@ -5,7 +5,8 @@ import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
 import RequiredMark from '../components/RequiredMark'
 import RichTextEditor, { isRichTextEmpty } from '../components/RichTextEditor'
 import { useHub } from '../context/HubContext'
-import { GC_ACCEPT } from '../utils/generalCompliance'
+import SupportingFilesPicker from '../components/SupportingFilesPicker'
+import { appendSupportingFiles } from '../utils/complianceSupportingFiles'
 
 export default function GeneralComplianceSubmit() {
   const { can, loading: hubLoading } = useHub()
@@ -48,11 +49,6 @@ export default function GeneralComplianceSubmit() {
     }
   }, [hubLoading, moduleOn, canSubmit])
 
-  const onFiles = (list) => {
-    const next = Array.from(list || []).slice(0, 10)
-    setFiles(next)
-  }
-
   const submit = async (event) => {
     event.preventDefault()
     if (!contentType) {
@@ -63,17 +59,13 @@ export default function GeneralComplianceSubmit() {
       setError('Description is required.')
       return
     }
-    if (!files.length) {
-      setError('Attach at least one file.')
-      return
-    }
     setSaving(true)
     setError('')
     try {
       const form = new FormData()
       form.append('content_type', contentType)
       form.append('description', description)
-      files.forEach((file) => form.append('attachments[]', file))
+      appendSupportingFiles(form, files)
       const data = await api.generalComplianceSubmit(form)
       navigate(`/my-dashboard/general-compliance/${data.data.id}`, {
         state: { from: 'submit' },
@@ -110,8 +102,7 @@ export default function GeneralComplianceSubmit() {
           <p className="eyebrow">General Compliance</p>
           <h1>Submit for general compliance</h1>
           <p className="muted">
-            Choose a content type, describe the material, and attach supporting files (PDF, Office,
-            images, ZIP — max 10 files, 10MB each).
+            Choose a content type and describe the material. Supporting files are optional.
           </p>
           <ActingAdvisorBanner action="submissions" />
         </div>
@@ -163,25 +154,11 @@ export default function GeneralComplianceSubmit() {
           />
         </label>
 
-        <label>
-          <RequiredMark after="(up to 10)">Attachments</RequiredMark>
-          <input
-            type="file"
-            accept={GC_ACCEPT}
-            multiple
-            onChange={(e) => onFiles(e.target.files)}
-          />
-        </label>
-        {files.length > 0 && (
-          <ul className="gc-attach-list">
-            {files.map((file) => (
-              <li key={`${file.name}-${file.size}`}>
-                {file.name}{' '}
-                <span className="muted">({(file.size / (1024 * 1024)).toFixed(2)} MB)</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <SupportingFilesPicker
+          id="gc-submit-supporting-files"
+          files={files}
+          onChange={setFiles}
+        />
 
         <div className="actions">
           <button className="btn primary" disabled={saving || !types.length}>

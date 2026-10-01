@@ -18,6 +18,8 @@ import {
 } from './utils/imageAssets'
 import { hubDomainPlaceholder, resolveHubPreviewBase } from './utils/assetUrl'
 import { truncateRichText } from '../utils/richText'
+import SupportingFilesPicker from '../components/SupportingFilesPicker'
+import { buildChangeRequestBody } from '../utils/complianceSupportingFiles'
 import {
   FaBriefcase,
   FaBuilding,
@@ -1244,6 +1246,7 @@ export default function AdvisorDashboard({
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitSupportingFiles, setSubmitSupportingFiles] = useState([])
 
   // Template Request States
   const [templateRequests, setTemplateRequests] = useState([])
@@ -2596,9 +2599,13 @@ export default function AdvisorDashboard({
     setError('')
     setCrActionBusy(`resubmit-${crId}`)
     try {
-      await api.post(`/change-requests/${crId}/resubmit`, { section_edits: buildBatchPayload(false) })
+      await api.post(
+        `/change-requests/${crId}/resubmit`,
+        buildChangeRequestBody(buildBatchPayload(false), submitSupportingFiles)
+      )
       setMessage('Change request resubmitted for review.')
       setRevisionFocusCrId(null)
+      setSubmitSupportingFiles([])
       await refreshAfterCrAction()
     } catch (err) {
       setError(crApiError(err, 'Failed to resubmit change request.'))
@@ -2613,7 +2620,7 @@ export default function AdvisorDashboard({
     setCrActionBusy(`${withEdits ? 'update' : 'confirm'}-${crId}`)
     try {
       const body = withEdits
-        ? { section_edits: buildBatchPayload(false) }
+        ? buildChangeRequestBody(buildBatchPayload(false), submitSupportingFiles)
         : undefined
       if (withEdits && checkedSectionIds.length === 0) {
         setError('Select revised section edits before updating & publishing.')
@@ -2632,6 +2639,7 @@ export default function AdvisorDashboard({
         ? 'Revised content confirmed and published.'
         : 'Approved content confirmed and published.')
       setRevisionFocusCrId(null)
+      setSubmitSupportingFiles([])
       await refreshAfterCrAction()
     } catch (err) {
       setError(crApiError(err, 'Failed to confirm feedback.'))
@@ -2669,7 +2677,10 @@ export default function AdvisorDashboard({
             setIsSubmitting(false)
             return
           }
-          await api.post(`/change-requests/${rejectedCr.id}/resubmit`, { section_edits: batchPayload })
+          await api.post(
+            `/change-requests/${rejectedCr.id}/resubmit`,
+            buildChangeRequestBody(batchPayload, submitSupportingFiles)
+          )
           setMessage(`Resubmitted change request #${rejectedCr.id} (v${(rejectedCr.current_version || 1) + 1}) for review.`)
           setRevisionFocusCrId(null)
         } else if (awfCr) {
@@ -2677,7 +2688,10 @@ export default function AdvisorDashboard({
             setIsSubmitting(false)
             return
           }
-          await api.post(`/change-requests/${awfCr.id}/confirm-feedback`, { section_edits: batchPayload })
+          await api.post(
+            `/change-requests/${awfCr.id}/confirm-feedback`,
+            buildChangeRequestBody(batchPayload, submitSupportingFiles)
+          )
           setMessage(`Submitted revised edits and published change request #${awfCr.id}.`)
           setRevisionFocusCrId(null)
         } else if (actionChangeRequests.length > 0) {
@@ -2687,11 +2701,15 @@ export default function AdvisorDashboard({
           setIsSubmitting(false)
           return
         } else {
-          await api.post('/change-requests', { section_edits: batchPayload })
+          await api.post(
+            '/change-requests',
+            buildChangeRequestBody(batchPayload, submitSupportingFiles)
+          )
           setMessage(`🎉 Successfully submitted a single request containing edits for ${checkedSectionIds.length} section(s).`)
         }
       }
 
+      setSubmitSupportingFiles([])
       await refreshAfterCrAction()
     } catch (err) {
       setError(
@@ -5274,6 +5292,16 @@ export default function AdvisorDashboard({
                         </div>
                       )
                     })}
+
+                    {!isPowerAdminPublishMode ? (
+                      <div className="pt-4 border-t border-gray-100 mt-4">
+                        <SupportingFilesPicker
+                          id="wc-batch-submit-supporting-files"
+                          files={submitSupportingFiles}
+                          onChange={setSubmitSupportingFiles}
+                        />
+                      </div>
+                    ) : null}
 
                     <div className="pt-2 flex justify-end">
                       <button

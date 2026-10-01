@@ -683,12 +683,12 @@ export const api = {
   socialMediaComplianceReview: (id, payload, options = {}) =>
     request(`${adminBase(options)}/social-media-compliance/requests/${id}/review`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
     }),
   socialMediaComplianceChangeStatus: (id, payload, options = {}) =>
     request(`${adminBase(options)}/social-media-compliance/requests/${id}/change-status`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
     }),
   socialMediaComplianceReport: (params = {}, options = {}) => {
     const query = new URLSearchParams(
@@ -770,12 +770,12 @@ export const api = {
   generalComplianceReview: (id, payload, options = {}) =>
     request(`${adminBase(options)}/general-compliance/requests/${id}/review`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
     }),
   generalComplianceChangeStatus: (id, payload, options = {}) =>
     request(`${adminBase(options)}/general-compliance/requests/${id}/change-status`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
     }),
   generalComplianceReport: (params = {}, options = {}) => {
     const query = new URLSearchParams(
@@ -885,7 +885,10 @@ export const api = {
     return request(`/website-compliance/change-requests${query ? `?${query}` : ''}`)
   },
   websiteComplianceCreateChangeRequest: (body) =>
-    request('/website-compliance/change-requests', { method: 'POST', body: JSON.stringify(body) }),
+    request('/website-compliance/change-requests', {
+      method: 'POST',
+      body: body instanceof FormData ? body : JSON.stringify(body),
+    }),
   websiteComplianceChangeRequestPreview: (id, params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
@@ -902,34 +905,37 @@ export const api = {
   websiteComplianceApproveChangeRequest: (id, payload) =>
     request(`/website-compliance/change-requests/${id}/approve`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload instanceof FormData ? payload : JSON.stringify(payload ?? {}),
     }),
   websiteComplianceRejectChangeRequest: (id, payload) =>
     request(`/website-compliance/change-requests/${id}/reject`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
     }),
   websiteComplianceShowChangeRequest: (id) =>
     request(`/website-compliance/change-requests/${id}`),
   websiteComplianceResubmitChangeRequest: (id, body) =>
     request(`/website-compliance/change-requests/${id}/resubmit`, {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: body instanceof FormData ? body : JSON.stringify(body),
     }),
   websiteComplianceConfirmChangeRequestFeedback: (id, body) =>
     request(`/website-compliance/change-requests/${id}/confirm-feedback`, {
       method: 'POST',
-      body: JSON.stringify(body || {}),
+      body:
+        body instanceof FormData
+          ? body
+          : JSON.stringify(body || {}),
     }),
   websiteComplianceApproveChangeRequestWithFeedback: (id, payload) =>
     request(`/website-compliance/change-requests/${id}/approve-with-feedback`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
     }),
   websiteComplianceChangeRequestStatus: (id, payload) =>
     request(`/website-compliance/change-requests/${id}/change-status`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
     }),
   websiteComplianceTemplateRequests: (params = {}) => {
     const query = new URLSearchParams(

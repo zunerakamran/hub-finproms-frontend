@@ -1,4 +1,5 @@
 import { gcStatusClass, formatGcFileSize } from '../utils/generalCompliance'
+import { resolveComplianceSupportingFiles } from '../utils/complianceSupportingFiles'
 import { useHub } from '../context/HubContext'
 import { StatusWithDate } from './DataGrid'
 import ComplianceStatusText from './ComplianceStatusText'
@@ -47,9 +48,9 @@ export function GcBarChart({ labels = [], data = [], title }) {
   )
 }
 
-export function GcAttachmentList({ attachments = [] }) {
+export function GcAttachmentList({ attachments = [], emptyLabel = 'No attachments' }) {
   if (!attachments.length) {
-    return <p className="muted">No attachments</p>
+    return <p className="muted">{emptyLabel}</p>
   }
 
   return (
@@ -70,6 +71,10 @@ export function GcAttachmentList({ attachments = [] }) {
       ))}
     </ul>
   )
+}
+
+export function SupportingFilesList({ files = [], emptyLabel = 'No supporting files' }) {
+  return <GcAttachmentList attachments={files} emptyLabel={emptyLabel} />
 }
 
 export function GcVersionCard({ version, isLatest }) {
@@ -94,8 +99,8 @@ export function GcVersionCard({ version, isLatest }) {
           <RichTextDisplay html={version.description} className="gc-pre" />
         </div>
         <div>
-          <p className="muted label">Attachments</p>
-          <GcAttachmentList attachments={version.attachments || []} />
+          <p className="muted label">Supporting files</p>
+          <SupportingFilesList files={resolveComplianceSupportingFiles(version)} />
         </div>
       </div>
       {version.reviewed_at && (

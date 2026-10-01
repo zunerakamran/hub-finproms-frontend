@@ -9,8 +9,7 @@ export const GC_STATUSES = [
   'Rejected',
 ]
 
-export const GC_ACCEPT =
-  '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.zip'
+export { COMPLIANCE_SUPPORTING_FILES_ACCEPT as GC_ACCEPT } from './complianceSupportingFiles'
 
 export function gcStatusClass(status) {
   const s = String(status || 'Pending').toLowerCase()

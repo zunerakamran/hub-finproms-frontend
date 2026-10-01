@@ -4,6 +4,8 @@ import ChangeRequestPreviewPanel from '../websiteCompliance/components/ChangeReq
 import { StatusWithDate } from './DataGrid'
 import ComplianceStatusText from './ComplianceStatusText'
 import RichTextDisplay from './RichTextDisplay'
+import { SupportingFilesList } from './GeneralComplianceUI'
+import { resolveComplianceSupportingFiles } from '../utils/complianceSupportingFiles'
 
 export default function WcStatusBadge({ status, at }) {
   const { complianceStatusLabel } = useHub()
@@ -46,6 +48,12 @@ export function WcVersionCard({ version, isLatest, requestId = null, request = n
           <p className="muted label">Submitted by</p>
           <p className="wc-pre">{version.submitted_by || '—'}</p>
         </div>
+        {resolveComplianceSupportingFiles(version).length ? (
+          <div>
+            <p className="muted label">Supporting files</p>
+            <SupportingFilesList files={resolveComplianceSupportingFiles(version)} />
+          </div>
+        ) : null}
       </div>
       {(version.reviewed_at || version.feedback) && (
         <footer className="wc-version-foot">

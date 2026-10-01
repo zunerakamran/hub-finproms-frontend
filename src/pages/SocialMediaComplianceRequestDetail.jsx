@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import SmcStatusBadge, { SmcVersionCard } from '../components/SocialMediaComplianceUI'
+import SmcStatusBadge, { SmcVersionCard, SmcSupportingFilesBlock } from '../components/SocialMediaComplianceUI'
+import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import DateTimeText from '../components/DateTimeText'
 import RequiredMark from '../components/RequiredMark'
 import RichTextDisplay from '../components/RichTextDisplay'
@@ -9,6 +10,11 @@ import RichTextEditor, { isRichTextEmpty } from '../components/RichTextEditor'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { SMC_STATUSES, smcStatusClass } from '../utils/socialMediaCompliance'
+import {
+  appendSupportingFiles,
+  compliancePostBody,
+  resolveComplianceSupportingFiles,
+} from '../utils/complianceSupportingFiles'
 import ComplianceStatusText from '../components/ComplianceStatusText'
 
 export default function SocialMediaComplianceRequestDetail() {
@@ -29,6 +35,10 @@ export default function SocialMediaComplianceRequestDetail() {
   const [resubImage, setResubImage] = useState(null)
   const [confirmImage, setConfirmImage] = useState(null)
   const [assigningSelf, setAssigningSelf] = useState(false)
+  const [reviewSupportingFiles, setReviewSupportingFiles] = useState([])
+  const [changeStatusFiles, setChangeStatusFiles] = useState([])
+  const [resubSupportingFiles, setResubSupportingFiles] = useState([])
+  const [confirmSupportingFiles, setConfirmSupportingFiles] = useState([])
 
   const moduleOn = can('module_social_media_compliance')
   const canReview = can('smc_review_requests')
@@ -125,12 +135,13 @@ export default function SocialMediaComplianceRequestDetail() {
     setError('')
     setMessage('')
     try {
-      const data = await api.socialMediaComplianceReview(
-        id,
+      const body = compliancePostBody(
         { status: reviewStatus, feedback },
-        { asPowerAdmin }
+        reviewSupportingFiles
       )
+      const data = await api.socialMediaComplianceReview(id, body, { asPowerAdmin })
       setRow(data.data)
+      setReviewSupportingFiles([])
       setMessage('Review saved.')
     } catch (err) {
       setError(err.message || 'Review failed.')
@@ -145,13 +156,14 @@ export default function SocialMediaComplianceRequestDetail() {
     setError('')
     setMessage('')
     try {
-      const data = await api.socialMediaComplianceChangeStatus(
-        id,
+      const body = compliancePostBody(
         { status: changeStatus, comment: changeComment },
-        { asPowerAdmin }
+        changeStatusFiles
       )
+      const data = await api.socialMediaComplianceChangeStatus(id, body, { asPowerAdmin })
       setRow(data.data)
       setChangeComment('')
+      setChangeStatusFiles([])
       setChangeStatus(data.data?.status || changeStatus)
       setMessage('Status updated (new version created).')
     } catch (err) {
@@ -174,10 +186,12 @@ export default function SocialMediaComplianceRequestDetail() {
       const form = new FormData()
       form.append('description', resubDescription)
       if (resubImage) form.append('attachment', resubImage)
+      appendSupportingFiles(form, resubSupportingFiles)
       const data = await api.socialMediaComplianceResubmit(id, form)
       setRow(data.data)
       setMessage('Resubmitted for review.')
       setResubImage(null)
+      setResubSupportingFiles([])
     } catch (err) {
       setError(err.message || 'Resubmit failed.')
     } finally {
@@ -192,10 +206,12 @@ export default function SocialMediaComplianceRequestDetail() {
     try {
       const form = new FormData()
       if (withImage && confirmImage) form.append('attachment', confirmImage)
+      appendSupportingFiles(form, confirmSupportingFiles)
       const data = await api.socialMediaComplianceConfirmFeedback(id, form)
       setRow(data.data)
       setMessage('Request confirmed as Approved.')
       setConfirmImage(null)
+      setConfirmSupportingFiles([])
     } catch (err) {
       setError(err.message || 'Confirm failed.')
     } finally {
@@ -289,6 +305,11 @@ export default function SocialMediaComplianceRequestDetail() {
               placeholder="Leave feedback for the submitter…"
             />
           </label>
+          <SupportingFilesPicker
+            id="smc-review-supporting-files"
+            files={reviewSupportingFiles}
+            onChange={setReviewSupportingFiles}
+          />
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Saving…' : 'Save review'}
@@ -317,14 +338,23 @@ export default function SocialMediaComplianceRequestDetail() {
               onChange={(e) => setConfirmImage(e.target.files?.[0] || null)}
             />
           </label>
+          <SupportingFilesPicker
+            id="smc-confirm-supporting-files"
+            files={confirmSupportingFiles}
+            onChange={setConfirmSupportingFiles}
+          />
           <div className="actions">
             <button
               type="button"
               className="btn primary"
               disabled={saving}
-              onClick={() => confirmFeedback(Boolean(confirmImage))}
+              onClick={() =>
+                confirmFeedback(Boolean(confirmImage || confirmSupportingFiles.length))
+              }
             >
-              {confirmImage ? 'Upload & approve' : 'Confirm approved'}
+              {confirmImage || confirmSupportingFiles.length
+                ? 'Upload & approve'
+                : 'Confirm approved'}
             </button>
           </div>
         </div>
@@ -350,6 +380,11 @@ export default function SocialMediaComplianceRequestDetail() {
               onChange={(e) => setResubImage(e.target.files?.[0] || null)}
             />
           </label>
+          <SupportingFilesPicker
+            id="smc-resubmit-supporting-files"
+            files={resubSupportingFiles}
+            onChange={setResubSupportingFiles}
+          />
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Submitting…' : 'Resubmit'}
@@ -391,6 +426,11 @@ export default function SocialMediaComplianceRequestDetail() {
               placeholder="Reason for changing status…"
             />
           </label>
+          <SupportingFilesPicker
+            id="smc-change-status-supporting-files"
+            files={changeStatusFiles}
+            onChange={setChangeStatusFiles}
+          />
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Saving…' : 'Update status'}
@@ -419,6 +459,11 @@ export default function SocialMediaComplianceRequestDetail() {
           )}
         </div>
       )}
+
+      <div className="smc-panel" style={{ marginBottom: '1rem' }}>
+        <p className="muted label">Supporting files</p>
+        <SmcSupportingFilesBlock files={resolveComplianceSupportingFiles(row)} />
+      </div>
 
       <div className="smc-versions">
         {versions.map((ver) => (

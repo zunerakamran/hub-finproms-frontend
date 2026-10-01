@@ -15,7 +15,9 @@ import { DataGridDate } from '../components/DataGrid'
 import DateTimeText from '../components/DateTimeText'
 import RequiredMark from '../components/RequiredMark'
 import RichTextDisplay from '../components/RichTextDisplay'
+import { SupportingFilesList } from '../components/GeneralComplianceUI'
 import WcStatusBadge, { WcVersionCard } from '../components/WebsiteComplianceUI'
+import { resolveComplianceSupportingFiles } from '../utils/complianceSupportingFiles'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import ChangeRequestPreviewPanel from '../websiteCompliance/components/ChangeRequestPreviewPanel'
@@ -273,6 +275,13 @@ export default function WebsiteComplianceRequestDetail() {
         <div className="wc-detail-callout wc-detail-callout--reject">
           <p className="wc-detail-callout__title">Rejection reason</p>
           <RichTextDisplay html={row.rejection_reason} className="wc-feedback" />
+        </div>
+      ) : null}
+
+      {resolveComplianceSupportingFiles(row).length ? (
+        <div className="wc-panel wc-detail-card">
+          <p className="muted label">Supporting files</p>
+          <SupportingFilesList files={resolveComplianceSupportingFiles(row)} />
         </div>
       ) : null}
 

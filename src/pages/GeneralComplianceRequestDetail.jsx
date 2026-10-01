@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import GcStatusBadge, { GcAttachmentList, GcVersionCard } from '../components/GeneralComplianceUI'
+import GcStatusBadge, { GcVersionCard, SupportingFilesList } from '../components/GeneralComplianceUI'
+import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import DateTimeText from '../components/DateTimeText'
 import RequiredMark from '../components/RequiredMark'
 import RichTextDisplay from '../components/RichTextDisplay'
 import RichTextEditor, { isRichTextEmpty } from '../components/RichTextEditor'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { GC_ACCEPT, GC_STATUSES, gcStatusClass } from '../utils/generalCompliance'
+import { GC_STATUSES, gcStatusClass } from '../utils/generalCompliance'
+import {
+  appendSupportingFiles,
+  compliancePostBody,
+  resolveComplianceSupportingFiles,
+} from '../utils/complianceSupportingFiles'
 import ComplianceStatusText from '../components/ComplianceStatusText'
 
 export default function GeneralComplianceRequestDetail() {
@@ -33,6 +39,8 @@ export default function GeneralComplianceRequestDetail() {
   const [assigningSelf, setAssigningSelf] = useState(false)
   const [changeStatus, setChangeStatus] = useState('Pending')
   const [changeComment, setChangeComment] = useState('')
+  const [reviewSupportingFiles, setReviewSupportingFiles] = useState([])
+  const [changeStatusFiles, setChangeStatusFiles] = useState([])
 
   const moduleOn = can('module_general_compliance')
   const canReview = can('gc_review_requests')
@@ -143,12 +151,13 @@ export default function GeneralComplianceRequestDetail() {
     setError('')
     setMessage('')
     try {
-      const data = await api.generalComplianceReview(
-        id,
+      const body = compliancePostBody(
         { status: reviewStatus, feedback },
-        { asPowerAdmin }
+        reviewSupportingFiles
       )
+      const data = await api.generalComplianceReview(id, body, { asPowerAdmin })
       setRow(data.data)
+      setReviewSupportingFiles([])
       setMessage('Review saved.')
     } catch (err) {
       setError(err.message || 'Review failed.')
@@ -163,13 +172,14 @@ export default function GeneralComplianceRequestDetail() {
     setError('')
     setMessage('')
     try {
-      const data = await api.generalComplianceChangeStatus(
-        id,
+      const body = compliancePostBody(
         { status: changeStatus, comment: changeComment },
-        { asPowerAdmin }
+        changeStatusFiles
       )
+      const data = await api.generalComplianceChangeStatus(id, body, { asPowerAdmin })
       setRow(data.data)
       setChangeComment('')
+      setChangeStatusFiles([])
       setChangeStatus(data.data?.status || changeStatus)
       setMessage('Status updated (new version created).')
     } catch (err) {
@@ -180,7 +190,7 @@ export default function GeneralComplianceRequestDetail() {
   }
 
   const appendAttachments = (form, files) => {
-    Array.from(files || []).forEach((file) => form.append('attachments[]', file))
+    appendSupportingFiles(form, files)
   }
 
   const resubmit = async (event) => {
@@ -311,6 +321,11 @@ export default function GeneralComplianceRequestDetail() {
               placeholder="Leave feedback for the submitter…"
             />
           </label>
+          <SupportingFilesPicker
+            id="gc-review-supporting-files"
+            files={reviewSupportingFiles}
+            onChange={setReviewSupportingFiles}
+          />
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Saving…' : 'Save review'}
@@ -331,15 +346,11 @@ export default function GeneralComplianceRequestDetail() {
             Confirm as approved, or upload corrected files (also becomes Approved).
           </p>
           {row.feedback && <RichTextDisplay html={row.feedback} className="gc-feedback" />}
-          <label>
-            Optional new attachments
-            <input
-              type="file"
-              accept={GC_ACCEPT}
-              multiple
-              onChange={(e) => setConfirmFiles(Array.from(e.target.files || []).slice(0, 10))}
-            />
-          </label>
+          <SupportingFilesPicker
+            id="gc-confirm-supporting-files"
+            files={confirmFiles}
+            onChange={setConfirmFiles}
+          />
           <div className="actions">
             <button
               type="button"
@@ -384,15 +395,11 @@ export default function GeneralComplianceRequestDetail() {
               required
             />
           </label>
-          <label>
-            New attachments (optional — leave empty to keep previous files)
-            <input
-              type="file"
-              accept={GC_ACCEPT}
-              multiple
-              onChange={(e) => setResubFiles(Array.from(e.target.files || []).slice(0, 10))}
-            />
-          </label>
+          <SupportingFilesPicker
+            id="gc-resubmit-supporting-files"
+            files={resubFiles}
+            onChange={setResubFiles}
+          />
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Submitting…' : 'Resubmit'}
@@ -434,6 +441,11 @@ export default function GeneralComplianceRequestDetail() {
               placeholder="Reason for changing status…"
             />
           </label>
+          <SupportingFilesPicker
+            id="gc-change-status-supporting-files"
+            files={changeStatusFiles}
+            onChange={setChangeStatusFiles}
+          />
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Saving…' : 'Update status'}
@@ -475,9 +487,9 @@ export default function GeneralComplianceRequestDetail() {
         </p>
         <RichTextDisplay html={row.description} className="gc-pre" />
         <p className="muted label" style={{ marginTop: '0.75rem' }}>
-          Current attachments
+          Supporting files
         </p>
-        <GcAttachmentList attachments={row.attachments || []} />
+        <SupportingFilesList files={resolveComplianceSupportingFiles(row)} />
       </div>
 
       <div className="gc-versions">

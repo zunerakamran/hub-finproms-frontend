@@ -4,7 +4,9 @@ import { api } from '../api/client'
 import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
 import RequiredMark from '../components/RequiredMark'
 import RichTextEditor, { isRichTextEmpty } from '../components/RichTextEditor'
+import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import { useHub } from '../context/HubContext'
+import { appendSupportingFiles } from '../utils/complianceSupportingFiles'
 
 function isVideoFile(file) {
   if (!file) return false
@@ -18,6 +20,7 @@ export default function SocialMediaComplianceSubmit() {
 
   const [description, setDescription] = useState('')
   const [attachment, setAttachment] = useState(null)
+  const [supportingFiles, setSupportingFiles] = useState([])
   const [preview, setPreview] = useState('')
   const [previewIsVideo, setPreviewIsVideo] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -54,6 +57,7 @@ export default function SocialMediaComplianceSubmit() {
       const form = new FormData()
       form.append('description', description)
       form.append('attachment', attachment)
+      appendSupportingFiles(form, supportingFiles)
       const data = await api.socialMediaComplianceSubmit(form)
       navigate(`/my-dashboard/social-media-compliance/${data.data.id}`, {
         state: { from: 'submit' },
@@ -131,6 +135,12 @@ export default function SocialMediaComplianceSubmit() {
             )}
           </div>
         )}
+
+        <SupportingFilesPicker
+          id="smc-submit-supporting-files"
+          files={supportingFiles}
+          onChange={setSupportingFiles}
+        />
 
         <div className="actions">
           <button className="btn primary" disabled={saving}>

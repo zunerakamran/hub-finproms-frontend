@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import AdminPostThumb from '../components/AdminPostThumb'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import MultiSelectField from '../components/MultiSelectField'
+import FileDropzone from '../components/FileDropzone'
 import RequiredMark from '../components/RequiredMark'
 import RichTextEditor from '../components/RichTextEditor'
 import { useAuth } from '../context/AuthContext'
@@ -617,25 +618,24 @@ export default function AdminPosts({ shell = 'client-admin' }) {
             />
           </div>
 
-          <label>
-            {isReelType ? 'Video' : 'Attachment'}
-            <input
-              type="file"
-              accept={
-                isReelType
-                  ? 'video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm'
-                  : '.jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.mp4,.mov,.webm,.zip'
-              }
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, attachment: e.target.files?.[0] || null }))
-              }
-            />
-            <span className="field-hint">
-              {isReelType
+          <FileDropzone
+            id="admin-post-attachment"
+            label={isReelType ? 'Video' : 'Attachment'}
+            accept={
+              isReelType
+                ? 'video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm'
+                : '.jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.mp4,.mov,.webm,.zip'
+            }
+            hint={
+              isReelType
                 ? 'Upload an MP4, MOV, or WebM file.'
-                : 'Image, PDF, document, video, or ZIP.'}
-            </span>
-          </label>
+                : 'Image, PDF, document, video, or ZIP.'
+            }
+            files={form.attachment ? [form.attachment] : []}
+            onChange={(next) =>
+              setForm((prev) => ({ ...prev, attachment: next[0] || null }))
+            }
+          />
 
           <label className="admin-field admin-field--check">
             <span className="field-label-text">Visibility</span>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import ActingAdvisorBanner from '../components/ActingAdvisorBanner'
+import FileDropzone from '../components/FileDropzone'
 import RequiredMark from '../components/RequiredMark'
 import RichTextEditor, { isRichTextEmpty } from '../components/RichTextEditor'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
@@ -117,15 +118,15 @@ export default function SocialMediaComplianceSubmit() {
           />
         </label>
 
-        <label>
-          <RequiredMark>Attachment (image or video)</RequiredMark>
-          <input
-            type="file"
-            accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
-            required
-            onChange={(e) => onAttachment(e.target.files?.[0])}
-          />
-        </label>
+        <FileDropzone
+          id="smc-submit-attachment"
+          label={<RequiredMark>Attachment (image or video)</RequiredMark>}
+          accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+          required
+          files={attachment ? [attachment] : []}
+          onChange={(next) => onAttachment(next[0] || null)}
+          disabled={saving}
+        />
         {preview && (
           <div className="smc-thumb-wrap">
             {previewIsVideo ? (

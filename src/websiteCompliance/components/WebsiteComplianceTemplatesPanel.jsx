@@ -24,6 +24,7 @@ import {
 } from 'react-icons/fa'
 import { useHub } from '../../context/HubContext'
 import ComplianceStatusText from '../../components/ComplianceStatusText'
+import FileDropzone from '../../components/FileDropzone'
 import RequiredMark from '../../components/RequiredMark'
 import RichTextEditor from '../../components/RichTextEditor'
 import { websiteComplianceAssetUrl } from '../../api/client'
@@ -96,6 +97,7 @@ function storedUploadPath(data) {
 }
 
 function BrandingUploadField({
+  id,
   label,
   accept,
   hint,
@@ -106,13 +108,15 @@ function BrandingUploadField({
   onClear,
   darkPreview = false,
 }) {
+  const [localFile, setLocalFile] = useState(null)
   const displaySrc = previewUrl || (value ? websiteComplianceAssetUrl(value) : '')
+
+  useEffect(() => {
+    if (!uploading) setLocalFile(null)
+  }, [value, uploading])
 
   return (
     <div>
-      <label className="block text-xs font-bold text-gray-700 mb-1.5">
-        {label} <span className="text-gray-400 font-normal">(optional)</span>
-      </label>
       <div className="flex items-start gap-3">
         <div
           className={`w-14 h-14 rounded-xl border overflow-hidden shrink-0 flex items-center justify-center ${
@@ -126,21 +130,23 @@ function BrandingUploadField({
           )}
         </div>
         <div className="min-w-0 flex-1 space-y-2">
-          <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition">
-            <FaUpload className="w-3 h-3 text-[var(--brand)]" />
-            {uploading ? 'Uploading…' : 'Upload file'}
-            <input
-              type="file"
-              accept={accept}
-              className="hidden"
-              disabled={uploading}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) onUpload(file)
-                e.target.value = ''
-              }}
-            />
-          </label>
+          <FileDropzone
+            id={id}
+            label={
+              <>
+                {label} <span className="text-gray-400 font-normal">(optional)</span>
+              </>
+            }
+            accept={accept}
+            hint={hint}
+            disabled={uploading}
+            files={localFile ? [localFile] : []}
+            onChange={(next) => {
+              const file = next[0] || null
+              setLocalFile(file)
+              if (file) onUpload(file)
+            }}
+          />
           {value && (
             <button
               type="button"
@@ -150,7 +156,6 @@ function BrandingUploadField({
               Remove
             </button>
           )}
-          {hint && <p className="text-[11px] text-gray-500">{hint}</p>}
         </div>
       </div>
     </div>
@@ -489,6 +494,7 @@ export default function WebsiteComplianceTemplatesPanel() {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <BrandingUploadField
+          id="wc-template-branding-logo"
           label="Site Logo"
           accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
           hint="Used on light backgrounds."
@@ -499,6 +505,7 @@ export default function WebsiteComplianceTemplatesPanel() {
           onClear={() => { setLogoUrl(''); setLogoPreview('') }}
         />
         <BrandingUploadField
+          id="wc-template-branding-white-logo"
           label="White Logo"
           accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
           hint="Used on dark backgrounds (nav, footer)."
@@ -510,6 +517,7 @@ export default function WebsiteComplianceTemplatesPanel() {
           darkPreview
         />
         <BrandingUploadField
+          id="wc-template-branding-favicon"
           label="Favicon"
           accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
           hint="Browser tab icon."

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import SmcStatusBadge, { SmcVersionCard, SmcSupportingFilesBlock } from '../components/SocialMediaComplianceUI'
+import FileDropzone from '../components/FileDropzone'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import DateTimeText from '../components/DateTimeText'
 import RequiredMark from '../components/RequiredMark'
@@ -330,14 +331,14 @@ export default function SocialMediaComplianceRequestDetail() {
             Confirm as approved, or upload a corrected image/video (also becomes Approved).
           </p>
           {row.feedback && <RichTextDisplay html={row.feedback} className="smc-feedback" />}
-          <label>
-            Optional new attachment
-            <input
-              type="file"
-              accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
-              onChange={(e) => setConfirmImage(e.target.files?.[0] || null)}
-            />
-          </label>
+          <FileDropzone
+            id="smc-confirm-attachment"
+            label="Optional new attachment"
+            hint="JPG, PNG, GIF, WebP, MP4, MOV or WebM."
+            accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+            files={confirmImage ? [confirmImage] : []}
+            onChange={(next) => setConfirmImage(next?.[0] || null)}
+          />
           <SupportingFilesPicker
             id="smc-confirm-supporting-files"
             files={confirmSupportingFiles}
@@ -372,14 +373,14 @@ export default function SocialMediaComplianceRequestDetail() {
               required
             />
           </label>
-          <label>
-            New attachment (optional)
-            <input
-              type="file"
-              accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
-              onChange={(e) => setResubImage(e.target.files?.[0] || null)}
-            />
-          </label>
+          <FileDropzone
+            id="smc-resubmit-attachment"
+            label="New attachment (optional)"
+            hint="JPG, PNG, GIF, WebP, MP4, MOV or WebM. Leave empty to keep the current file."
+            accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+            files={resubImage ? [resubImage] : []}
+            onChange={(next) => setResubImage(next?.[0] || null)}
+          />
           <SupportingFilesPicker
             id="smc-resubmit-supporting-files"
             files={resubSupportingFiles}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
+import FileDropzone from '../components/FileDropzone'
 import MultiSelectField from '../components/MultiSelectField'
 import RequiredMark from '../components/RequiredMark'
 import RichTextEditor from '../components/RichTextEditor'
@@ -364,18 +365,17 @@ export default function AdminBundles({ shell = 'client-admin' }) {
           />
         </div>
 
-        <label>
-          Bundle image
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            onChange={(e) => {
-              setForm({ ...form, image: e.target.files?.[0] || null })
-              setRemoveImage(false)
-            }}
-          />
-          <span className="field-hint">JPG, PNG, GIF or WebP. Max 5MB. Shown on the bundles listing.</span>
-        </label>
+        <FileDropzone
+          id="admin-bundle-image"
+          label="Bundle image"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          hint="JPG, PNG, GIF or WebP. Max 5MB. Shown on the bundles listing."
+          files={form.image ? [form.image] : []}
+          onChange={(next) => {
+            setForm({ ...form, image: next[0] || null })
+            setRemoveImage(false)
+          }}
+        />
         {imagePreviewUrl ? (
           <div className="plan-image-preview">
             <img src={imagePreviewUrl} alt="Bundle preview" />
@@ -462,15 +462,14 @@ export default function AdminBundles({ shell = 'client-admin' }) {
                   onChange={(e) => setDraftPost({ ...draftPost, credits_cost: e.target.value })}
                 />
               </label>
-              <label>
-                Attachment
-                <input
-                  type="file"
-                  onChange={(e) =>
-                    setDraftPost({ ...draftPost, attachment: e.target.files?.[0] || null })
-                  }
-                />
-              </label>
+              <FileDropzone
+                id="admin-bundle-draft-post-attachment"
+                label="Attachment"
+                files={draftPost.attachment ? [draftPost.attachment] : []}
+                onChange={(next) =>
+                  setDraftPost({ ...draftPost, attachment: next[0] || null })
+                }
+              />
               <div className="admin-field">
                 <span className="field-label-text">Categories</span>
                 <MultiSelectField

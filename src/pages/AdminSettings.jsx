@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import FileDropzone from '../components/FileDropzone'
 import { useHub } from '../context/HubContext'
 
 export default function AdminSettings() {
@@ -112,22 +113,10 @@ export default function AdminSettings() {
     return () => URL.revokeObjectURL(url)
   }, [authBgFile])
 
-  const onLogoChange = (e) => {
-    const file = e.target.files?.[0] || null
-    setLogoFile(file)
-    setRemoveLogo(false)
-  }
-
   const onRemoveLogo = () => {
     setLogoFile(null)
     setLogoPreview('')
     setRemoveLogo(true)
-  }
-
-  const onWhiteLogoChange = (e) => {
-    const file = e.target.files?.[0] || null
-    setWhiteLogoFile(file)
-    setRemoveWhiteLogo(false)
   }
 
   const onRemoveWhiteLogo = () => {
@@ -136,22 +125,10 @@ export default function AdminSettings() {
     setRemoveWhiteLogo(true)
   }
 
-  const onFaviconChange = (e) => {
-    const file = e.target.files?.[0] || null
-    setFaviconFile(file)
-    setRemoveFavicon(false)
-  }
-
   const onRemoveFavicon = () => {
     setFaviconFile(null)
     setFaviconPreview('')
     setRemoveFavicon(true)
-  }
-
-  const onAuthBgChange = (e) => {
-    const file = e.target.files?.[0] || null
-    setAuthBgFile(file)
-    setRemoveAuthBg(false)
   }
 
   const onRemoveAuthBg = () => {
@@ -276,15 +253,18 @@ export default function AdminSettings() {
 
           <div className="settings-block">
             <h2>Logo</h2>
-            <label>
-              Logo attachment
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onLogoChange}
-              />
-            </label>
-            <p className="muted form-hint">Upload a PNG, JPG, GIF, or WebP (max 5MB). Replaces the current logo.</p>
+            <FileDropzone
+              id="settings-logo"
+              label="Logo attachment"
+              accept="image/*"
+              hint="Upload a PNG, JPG, GIF, or WebP (max 5MB). Replaces the current logo."
+              files={logoFile ? [logoFile] : []}
+              onChange={(next) => {
+                setLogoFile(next[0] || null)
+                setRemoveLogo(false)
+              }}
+              disabled={saving}
+            />
 
             {displayedLogo ? (
               <div className="settings-logo-preview">
@@ -307,18 +287,18 @@ export default function AdminSettings() {
 
           <div className="settings-block">
             <h2>White logo</h2>
-            <label>
-              White logo attachment
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onWhiteLogoChange}
-              />
-            </label>
-            <p className="muted form-hint">
-              Light / white version of the logo for dark UI surfaces (max 5MB). If unset, the normal
-              logo is used everywhere.
-            </p>
+            <FileDropzone
+              id="settings-white-logo"
+              label="White logo attachment"
+              accept="image/*"
+              hint="Light / white version of the logo for dark UI surfaces (max 5MB). If unset, the normal logo is used everywhere."
+              files={whiteLogoFile ? [whiteLogoFile] : []}
+              onChange={(next) => {
+                setWhiteLogoFile(next[0] || null)
+                setRemoveWhiteLogo(false)
+              }}
+              disabled={saving}
+            />
 
             {displayedWhiteLogo ? (
               <div className="settings-logo-preview settings-logo-preview--dark">
@@ -341,17 +321,18 @@ export default function AdminSettings() {
 
           <div className="settings-block">
             <h2>Favicon</h2>
-            <label>
-              Favicon attachment
-              <input
-                type="file"
-                accept=".ico,image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
-                onChange={onFaviconChange}
-              />
-            </label>
-            <p className="muted form-hint">
-              Browser tab icon. Upload an ICO, PNG, JPG, GIF, WebP, or SVG (max 1MB).
-            </p>
+            <FileDropzone
+              id="settings-favicon"
+              label="Favicon attachment"
+              accept=".ico,image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+              hint="Browser tab icon. Upload an ICO, PNG, JPG, GIF, WebP, or SVG (max 1MB)."
+              files={faviconFile ? [faviconFile] : []}
+              onChange={(next) => {
+                setFaviconFile(next[0] || null)
+                setRemoveFavicon(false)
+              }}
+              disabled={saving}
+            />
 
             {displayedFavicon ? (
               <div className="settings-logo-preview settings-favicon-preview">
@@ -367,14 +348,18 @@ export default function AdminSettings() {
 
           <div className="settings-block">
             <h2>Login / register background</h2>
-            <label>
-              Background image
-              <input type="file" accept="image/*" onChange={onAuthBgChange} />
-            </label>
-            <p className="muted form-hint">
-              Full-screen image behind the sign-in and sign-up forms, shown with a brand colour
-              gradient overlay (PNG, JPG, GIF, or WebP, max 8MB).
-            </p>
+            <FileDropzone
+              id="settings-auth-bg"
+              label="Background image"
+              accept="image/*"
+              hint="Full-screen image behind the sign-in and sign-up forms, shown with a brand colour gradient overlay (PNG, JPG, GIF, or WebP, max 8MB)."
+              files={authBgFile ? [authBgFile] : []}
+              onChange={(next) => {
+                setAuthBgFile(next[0] || null)
+                setRemoveAuthBg(false)
+              }}
+              disabled={saving}
+            />
 
             {displayedAuthBg ? (
               <div className="settings-logo-preview settings-auth-bg-preview">

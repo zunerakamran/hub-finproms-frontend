@@ -1,9 +1,10 @@
+import FileDropzone from './FileDropzone'
 import {
   COMPLIANCE_SUPPORTING_FILES_ACCEPT,
   COMPLIANCE_SUPPORTING_FILES_HELPER,
+  COMPLIANCE_SUPPORTING_FILES_MAX,
   sliceSupportingFiles,
 } from '../utils/complianceSupportingFiles'
-import { formatGcFileSize } from '../utils/generalCompliance'
 
 /**
  * Optional multi-file picker for compliance supporting documents.
@@ -13,28 +14,21 @@ export default function SupportingFilesPicker({
   onChange,
   id = 'compliance-supporting-files',
   className = '',
+  label = 'Supporting files (optional)',
+  disabled = false,
 }) {
   return (
-    <label className={className}>
-      Supporting files (optional)
-      <span className="field-hint">{COMPLIANCE_SUPPORTING_FILES_HELPER}</span>
-      <input
-        id={id}
-        type="file"
-        accept={COMPLIANCE_SUPPORTING_FILES_ACCEPT}
-        multiple
-        onChange={(e) => onChange(sliceSupportingFiles(e.target.files))}
-      />
-      {files.length > 0 ? (
-        <ul className="gc-attach-list">
-          {files.map((file) => (
-            <li key={`${file.name}-${file.size}-${file.lastModified}`}>
-              {file.name}{' '}
-              <span className="muted">({formatGcFileSize(file.size)})</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </label>
+    <FileDropzone
+      id={id}
+      className={className}
+      label={label}
+      hint={COMPLIANCE_SUPPORTING_FILES_HELPER}
+      accept={COMPLIANCE_SUPPORTING_FILES_ACCEPT}
+      multiple
+      maxFiles={COMPLIANCE_SUPPORTING_FILES_MAX}
+      files={files}
+      disabled={disabled}
+      onChange={(next) => onChange(sliceSupportingFiles(next))}
+    />
   )
 }

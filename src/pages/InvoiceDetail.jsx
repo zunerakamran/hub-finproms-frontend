@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import FileDropzone from '../components/FileDropzone'
 import { useAuth } from '../context/AuthContext'
 import { formatDateTime } from '../utils/dateFormat'
 
@@ -475,14 +476,14 @@ export default function InvoiceDetail() {
               placeholder="Who paid, when, and any other settlement notes"
             />
           </label>
-          <label>
-            Attachment (optional)
-            <input
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
-              onChange={(e) => setForm({ ...form, attachment: e.target.files?.[0] || null })}
-            />
-          </label>
+          <FileDropzone
+            id="invoice-payment-attachment"
+            label="Attachment (optional)"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+            files={form.attachment ? [form.attachment] : []}
+            onChange={(next) => setForm({ ...form, attachment: next[0] || null })}
+            disabled={saving}
+          />
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving ? 'Saving...' : 'Mark invoice paid'}

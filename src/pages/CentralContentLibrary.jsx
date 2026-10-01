@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import FileDropzone from '../components/FileDropzone'
 import MultiSelectField from '../components/MultiSelectField'
 import RequiredMark from '../components/RequiredMark'
 import RichTextEditor from '../components/RichTextEditor'
@@ -379,14 +380,14 @@ export default function CentralContentLibrary() {
                   Download Excel template
                 </button>
               </div>
-              <label>
-                Excel file (.xlsx)
-                <input
-                  type="file"
-                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                />
-              </label>
+              <FileDropzone
+                id="central-library-import-xlsx"
+                label="Excel file (.xlsx)"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                files={file ? [file] : []}
+                onChange={(next) => setFile(next[0] || null)}
+                disabled={importing}
+              />
               <div className="actions sticky-actions">
                 <button className="btn primary" type="submit" disabled={importing || !file}>
                   {importing ? 'Importing…' : 'Import posts'}
@@ -477,15 +478,14 @@ export default function CentralContentLibrary() {
                     }
                   />
                 </div>
-                <label>
-                  Attachment
-                  <input
-                    type="file"
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, attachment: e.target.files?.[0] || null }))
-                    }
-                  />
-                </label>
+                <FileDropzone
+                  id="central-library-post-attachment"
+                  label="Attachment"
+                  files={form.attachment ? [form.attachment] : []}
+                  onChange={(next) =>
+                    setForm((p) => ({ ...p, attachment: next[0] || null }))
+                  }
+                />
                 <label className="checkbox-row">
                   <input
                     type="checkbox"

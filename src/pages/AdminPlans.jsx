@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
+import FileDropzone from '../components/FileDropzone'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatDateTime } from '../utils/dateFormat'
@@ -372,15 +373,14 @@ export default function AdminPlans({ shell = 'client-admin' }) {
             />
           </label>
         </div>
-        <label>
-          Plan image
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })}
-          />
-          <span className="field-hint">JPG, PNG, GIF or WebP. Max 5MB.</span>
-        </label>
+        <FileDropzone
+          id="admin-plan-image"
+          label="Plan image"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          hint="JPG, PNG, GIF or WebP. Max 5MB."
+          files={form.image ? [form.image] : []}
+          onChange={(next) => setForm({ ...form, image: next[0] || null })}
+        />
         {(form.image || existingImageUrl) && (
           <div className="plan-image-preview">
             <img src={imagePreviewUrl} alt="Plan preview" />

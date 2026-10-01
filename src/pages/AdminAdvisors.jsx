@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { FaBan } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
+import FileDropzone from '../components/FileDropzone'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
@@ -274,14 +275,14 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       {canImport && (
       <form className="admin-form advisor-import-form" onSubmit={onImport}>
         <h2>Upload users</h2>
-        <label>
-          Excel file (.xlsx)
-          <input
-            type="file"
-            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-          />
-        </label>
+        <FileDropzone
+          id="admin-advisors-import-xlsx"
+          label="Excel file (.xlsx)"
+          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          files={file ? [file] : []}
+          onChange={(next) => setFile(next[0] || null)}
+          disabled={uploading}
+        />
         <div className="actions">
           <button className="btn primary" disabled={uploading || !file}>
             {uploading ? 'Checking file...' : billingEnabled ? 'Review & continue' : 'Import advisors'}

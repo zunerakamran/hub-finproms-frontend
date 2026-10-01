@@ -18,6 +18,7 @@ import {
 } from './utils/imageAssets'
 import { hubDomainPlaceholder, resolveHubPreviewBase } from './utils/assetUrl'
 import { truncateRichText } from '../utils/richText'
+import FileDropzone from '../components/FileDropzone'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import { buildChangeRequestBody } from '../utils/complianceSupportingFiles'
 import {
@@ -69,6 +70,25 @@ import {
   FaUpload,
   FaImage,
 } from 'react-icons/fa'
+
+function BrandingImmediateFileDropzone({ id, accept, hint, disabled, onUpload }) {
+  const [files, setFiles] = useState([])
+
+  return (
+    <FileDropzone
+      id={id}
+      accept={accept}
+      hint={hint}
+      disabled={disabled}
+      files={files}
+      onChange={(next) => {
+        setFiles(next)
+        const file = next[0]
+        if (file) onUpload(file)
+      }}
+    />
+  )
+}
 
 const SERVICE_ICON_OPTIONS = [
   { value: 'chart-pie', label: 'Chart pie', Icon: FaChartPie },
@@ -5392,21 +5412,13 @@ export default function AdvisorDashboard({
                       )}
                     </div>
                     <div className="min-w-0 flex-1 space-y-2">
-                      <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition">
-                        <FaUpload className="w-3 h-3 text-[var(--brand)]" />
-                        {uploadingLogo ? 'Uploading…' : 'Upload logo'}
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                          className="hidden"
-                          disabled={uploadingLogo}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) uploadBrandingAsset(file, 'logo')
-                            e.target.value = ''
-                          }}
-                        />
-                      </label>
+                      <BrandingImmediateFileDropzone
+                        id="advisor-dashboard-branding-logo"
+                        accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                        hint="Used on light backgrounds (header bar)."
+                        disabled={uploadingLogo}
+                        onUpload={(file) => uploadBrandingAsset(file, 'logo')}
+                      />
                       {logoUrl && (
                         <button
                           type="button"
@@ -5416,7 +5428,6 @@ export default function AdvisorDashboard({
                           Remove
                         </button>
                       )}
-                      <p className="text-[11px] text-gray-500">Used on light backgrounds (header bar).</p>
                     </div>
                   </div>
                 </div>
@@ -5436,21 +5447,13 @@ export default function AdvisorDashboard({
                       )}
                     </div>
                     <div className="min-w-0 flex-1 space-y-2">
-                      <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition">
-                        <FaUpload className="w-3 h-3 text-[var(--brand)]" />
-                        {uploadingWhiteLogo ? 'Uploading…' : 'Upload white logo'}
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                          className="hidden"
-                          disabled={uploadingWhiteLogo}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) uploadBrandingAsset(file, 'white_logo')
-                            e.target.value = ''
-                          }}
-                        />
-                      </label>
+                      <BrandingImmediateFileDropzone
+                        id="advisor-dashboard-branding-white-logo"
+                        accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                        hint="Used on dark backgrounds (nav, footer)."
+                        disabled={uploadingWhiteLogo}
+                        onUpload={(file) => uploadBrandingAsset(file, 'white_logo')}
+                      />
                       {whiteLogoUrl && (
                         <button
                           type="button"
@@ -5460,7 +5463,6 @@ export default function AdvisorDashboard({
                           Remove
                         </button>
                       )}
-                      <p className="text-[11px] text-gray-500">Used on dark backgrounds (nav, footer).</p>
                     </div>
                   </div>
                 </div>
@@ -5480,21 +5482,13 @@ export default function AdvisorDashboard({
                       )}
                     </div>
                     <div className="min-w-0 flex-1 space-y-2">
-                      <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition">
-                        <FaUpload className="w-3 h-3 text-[var(--brand)]" />
-                        {uploadingFavicon ? 'Uploading…' : 'Upload favicon'}
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
-                          className="hidden"
-                          disabled={uploadingFavicon}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) uploadBrandingAsset(file, 'favicon')
-                            e.target.value = ''
-                          }}
-                        />
-                      </label>
+                      <BrandingImmediateFileDropzone
+                        id="advisor-dashboard-branding-favicon"
+                        accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
+                        hint="Browser tab icon on the advisor's live site."
+                        disabled={uploadingFavicon}
+                        onUpload={(file) => uploadBrandingAsset(file, 'favicon')}
+                      />
                       {faviconUrl && (
                         <button
                           type="button"
@@ -5504,7 +5498,6 @@ export default function AdvisorDashboard({
                           Remove
                         </button>
                       )}
-                      <p className="text-[11px] text-gray-500">Browser tab icon on the advisor&apos;s live site.</p>
                     </div>
                   </div>
                 </div>

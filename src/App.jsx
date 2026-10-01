@@ -80,6 +80,7 @@ import PowerAdminUsers from './pages/PowerAdminUsers'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import VerifyEmail from './pages/VerifyEmail'
 import SubscriptionDetail from './pages/SubscriptionDetail'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import Subscriptions from './pages/Subscriptions'
@@ -835,6 +836,7 @@ export default function App() {
             <Route path="register" element={<Register />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password" element={<ResetPassword />} />
+            <Route path="verify-email" element={<VerifyEmail />} />
             <Route path="client-admin/login" element={<Navigate to="/login" replace />} />
             <Route path="power-admin/login" element={<Navigate to="/login" replace />} />
 

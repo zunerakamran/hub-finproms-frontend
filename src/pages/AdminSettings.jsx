@@ -392,7 +392,7 @@ export default function AdminSettings() {
                 <span className="settings-logo-usage__check" aria-hidden="true">
                   ✓
                 </span>
-                Login, register, forgot password, and reset password screens
+                Login, register, verify email, forgot password, and reset password screens
               </li>
             </ul>
           </div>

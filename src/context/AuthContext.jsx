@@ -90,6 +90,26 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (payload) => {
     const data = await api.login(payload)
+    if (data?.otp_required) {
+      return data
+    }
+    setToken(data.token)
+    setUser(data.user)
+    if (data.user?.role === 'power_admin') {
+      try {
+        const caps = await api.powerAdminCapabilitiesMe()
+        setPowerCapabilities(caps.resolved || {})
+      } catch {
+        setPowerCapabilities({})
+      }
+    } else {
+      setPowerCapabilities({})
+    }
+    return data
+  }, [setUser, setPowerCapabilities])
+
+  const verifyLoginOtp = useCallback(async (payload) => {
+    const data = await api.verifyLoginOtp(payload)
     setToken(data.token)
     setUser(data.user)
     if (data.user?.role === 'power_admin') {
@@ -107,6 +127,17 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (payload) => {
     const data = await api.register(payload)
+    // Self-registration requires email verification — no session token yet.
+    if (data?.token) {
+      setToken(data.token)
+      setUser(data.user)
+      setPowerCapabilities({})
+    }
+    return data
+  }, [setUser, setPowerCapabilities])
+
+  const completeEmailVerification = useCallback(async (payload) => {
+    const data = await api.verifyEmail(payload)
     setToken(data.token)
     setUser(data.user)
     setPowerCapabilities({})
@@ -135,7 +166,9 @@ export function AuthProvider({ children }) {
       setUser,
       loading,
       login,
+      verifyLoginOtp,
       register,
+      completeEmailVerification,
       logout,
       refreshUser,
       powerCapabilities,
@@ -152,7 +185,7 @@ export function AuthProvider({ children }) {
       isAdmin: HUB_ADMIN_ROLES.includes(user?.role),
       isAuthenticated: Boolean(user),
     }),
-    [user, loading, login, register, logout, refreshUser, powerCapabilities, setUser, setPowerCapabilities, canPower]
+    [user, loading, login, verifyLoginOtp, register, completeEmailVerification, logout, refreshUser, powerCapabilities, setUser, setPowerCapabilities, canPower]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

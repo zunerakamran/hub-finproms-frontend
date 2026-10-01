@@ -67,6 +67,14 @@ export const api = {
     request('/auth/forgot-password', { method: 'POST', body: JSON.stringify(payload) }),
   resetPassword: (payload) =>
     request('/auth/reset-password', { method: 'POST', body: JSON.stringify(payload) }),
+  verifyEmail: (payload) =>
+    request('/auth/verify-email', { method: 'POST', body: JSON.stringify(payload) }),
+  resendVerification: (payload) =>
+    request('/auth/resend-verification', { method: 'POST', body: JSON.stringify(payload) }),
+  verifyLoginOtp: (payload) =>
+    request('/auth/verify-login-otp', { method: 'POST', body: JSON.stringify(payload) }),
+  resendLoginOtp: (payload) =>
+    request('/auth/resend-login-otp', { method: 'POST', body: JSON.stringify(payload) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
   plans: () => request('/subscription-plans'),

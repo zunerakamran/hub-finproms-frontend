@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { api } from '../api/client'
 import AuthFavicon from '../components/AuthFavicon'
 import AuthScreen from '../components/AuthScreen'
 import { useAuth } from '../context/AuthContext'
@@ -8,7 +9,6 @@ import { useHub } from '../context/HubContext'
 export default function Register() {
   const { register, isAuthenticated } = useAuth()
   const { hub, branding, loading: hubLoading, registrationEnabled } = useHub()
-  const navigate = useNavigate()
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -17,6 +17,9 @@ export default function Register() {
   })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [pendingEmail, setPendingEmail] = useState('')
+  const [resendMessage, setResendMessage] = useState('')
+  const [resending, setResending] = useState(false)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
   if (isAuthenticated) return <Navigate to="/my-dashboard" replace />
@@ -44,13 +47,32 @@ export default function Register() {
     )
   }
 
+  const onResend = async () => {
+    if (!pendingEmail) return
+    setResendMessage('')
+    setError('')
+    setResending(true)
+    try {
+      const data = await api.resendVerification({ email: pendingEmail })
+      setResendMessage(data.message || 'If that email needs verification, a new link has been sent.')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setResending(false)
+    }
+  }
+
   const onSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setResendMessage('')
     setSubmitting(true)
     try {
-      await register(form)
-      navigate('/subscriptions')
+      const data = await register(form)
+      if (data?.email_verification_required) {
+        setPendingEmail(data.email || form.email)
+        return
+      }
     } catch (err) {
       const first =
         err.data?.errors?.email?.[0] ||
@@ -63,6 +85,34 @@ export default function Register() {
     }
   }
 
+  if (pendingEmail) {
+    return (
+      <AuthScreen>
+        <div className="auth-screen__panel">
+          <div className="auth-screen__brand">
+            <AuthFavicon />
+            <div>
+              <p className="eyebrow">{brandName}</p>
+              <h1>Check your email</h1>
+            </div>
+          </div>
+          <p className="muted">
+            We sent a verification link to <strong>{pendingEmail}</strong>. Open it to activate
+            your account, then you can sign in.
+          </p>
+          {error && <div className="alert">{error}</div>}
+          {resendMessage && <div className="alert success">{resendMessage}</div>}
+          <button type="button" className="btn primary full" disabled={resending} onClick={onResend}>
+            {resending ? 'Sending...' : 'Resend verification email'}
+          </button>
+          <p className="muted center">
+            Already verified? <Link to="/login">Sign in</Link>
+          </p>
+        </div>
+      </AuthScreen>
+    )
+  }
+
   return (
     <AuthScreen>
       <form className="auth-screen__panel auth-screen__form" onSubmit={onSubmit}>
@@ -73,7 +123,7 @@ export default function Register() {
             <h1>Create your account</h1>
           </div>
         </div>
-        <p className="muted">Buy credits and unlock social media posts.</p>
+        <p className="muted">Buy credits and unlock social media posts. We’ll email you a verification link.</p>
         {error && <div className="alert">{error}</div>}
         <label>
           Name

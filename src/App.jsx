@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 import { HubProvider } from './context/HubContext'
 import AppBootGate from './components/AppBootGate'
+import TermsGate from './components/TermsGate'
 import AdminBankTransfers from './pages/AdminBankTransfers'
 import AdminAdvisors from './pages/AdminAdvisors'
 import AdminActivityLogs from './pages/AdminActivityLogs'
@@ -25,6 +26,7 @@ import AdminPlans from './pages/AdminPlans'
 import AdminPosts from './pages/AdminPosts'
 import CentralContentLibrary from './pages/CentralContentLibrary'
 import AdminSettings from './pages/AdminSettings'
+import AdminTerms from './pages/AdminTerms'
 import AdminRoleDisplayNames from './pages/AdminRoleDisplayNames'
 import AdminComplianceStatusDisplayNames from './pages/AdminComplianceStatusDisplayNames'
 import AdminEmailTemplates from './pages/AdminEmailTemplates'
@@ -110,6 +112,7 @@ export default function App() {
     <AuthProvider>
       <HubProvider>
         <AppBootGate>
+          <TermsGate>
           <BrowserRouter>
             <Routes>
             {/* Home — public on shared hubs; login required on white-labelled */}
@@ -691,6 +694,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="terms"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_terms">
+                      <AdminTerms />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
                   path="role-display-names"
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_role_display_names">
@@ -843,6 +854,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+        </TermsGate>
         </AppBootGate>
       </HubProvider>
     </AuthProvider>

@@ -18,6 +18,8 @@ function sameUser(a, b) {
     Boolean(a.has_unlimited_credits) === Boolean(b.has_unlimited_credits) &&
     Boolean(a.is_suspended) === Boolean(b.is_suspended) &&
     Boolean(a.is_discontinued) === Boolean(b.is_discontinued) &&
+    Boolean(a.terms_accepted) === Boolean(b.terms_accepted) &&
+    a.terms_accepted_version === b.terms_accepted_version &&
     a.billing_subject_id === b.billing_subject_id
   )
 }

@@ -8,14 +8,40 @@ const ALLOWED_TAGS = [
   'em',
   'i',
   'u',
+  's',
+  'strike',
+  'del',
   'ul',
   'ol',
   'li',
   'a',
   'span',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'blockquote',
+  'pre',
+  'code',
+  'sub',
+  'sup',
+  'img',
+  'div',
 ]
 
-const ALLOWED_ATTR = ['href', 'target', 'rel', 'class']
+const ALLOWED_ATTR = [
+  'href',
+  'target',
+  'rel',
+  'class',
+  'style',
+  'src',
+  'alt',
+  'width',
+  'height',
+]
 
 /**
  * Sanitize rich-text HTML for safe rendering.
@@ -37,6 +63,7 @@ export function sanitizeRichText(html) {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     ALLOW_DATA_ATTR: false,
+    ALLOW_UNKNOWN_PROTOCOLS: false,
   })
 }
 

@@ -1,21 +1,50 @@
-import { useMemo } from 'react'
-import ReactQuill from 'react-quill'
+import { useMemo, useRef } from 'react'
+import ReactQuill, { Quill } from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 import { isRichTextEmpty, plainTextFromHtml } from '../utils/richText'
 
-const DEFAULT_MODULES = {
-  toolbar: [
-    ['bold', 'italic', 'underline'],
-    [{ list: 'ordered' }, { list: 'bullet' }],
-    ['link'],
-    ['clean'],
-  ],
-}
+// Wider default size options (closer to Word / Google Docs style editors).
+const Size = Quill.import('formats/size')
+Size.whitelist = ['small', false, 'large', 'huge']
+Quill.register(Size, true)
 
-const DEFAULT_FORMATS = ['bold', 'italic', 'underline', 'list', 'bullet', 'link']
+const FULL_TOOLBAR = [
+  [{ header: [1, 2, 3, 4, false] }],
+  [{ size: ['small', false, 'large', 'huge'] }],
+  ['bold', 'italic', 'underline', 'strike'],
+  [{ color: [] }, { background: [] }],
+  [{ script: 'sub' }, { script: 'super' }],
+  [{ list: 'ordered' }, { list: 'bullet' }],
+  [{ indent: '-1' }, { indent: '+1' }],
+  [{ align: [] }],
+  ['blockquote', 'code-block'],
+  ['link', 'image'],
+  ['clean'],
+]
+
+const FULL_FORMATS = [
+  'header',
+  'size',
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'color',
+  'background',
+  'script',
+  'list',
+  'bullet',
+  'indent',
+  'align',
+  'blockquote',
+  'code-block',
+  'link',
+  'image',
+]
 
 /**
- * Shared rich-text editor (bold, italic, lists, hyperlink).
+ * Shared rich-text editor used across the product (posts, compliance, terms, etc.).
+ * Full Quill toolbar: headings, sizes, colors, lists, alignment, links, images.
  * Value is HTML string; empty Quill docs normalize to ''.
  */
 export default function RichTextEditor({
@@ -28,8 +57,31 @@ export default function RichTextEditor({
   id,
   disabled = false,
 }) {
-  const modules = useMemo(() => DEFAULT_MODULES, [])
-  const minHeight = Math.max(80, Number(rows) * 24)
+  const quillRef = useRef(null)
+  const minHeight = Math.max(120, Number(rows) * 24)
+
+  const modules = useMemo(
+    () => ({
+      toolbar: {
+        container: FULL_TOOLBAR,
+        handlers: {
+          image() {
+            const url = window.prompt('Paste image URL')
+            if (!url) return
+            const editor = quillRef.current?.getEditor?.()
+            if (!editor) return
+            const range = editor.getSelection(true)
+            editor.insertEmbed(range?.index ?? 0, 'image', url.trim(), 'user')
+            editor.setSelection((range?.index ?? 0) + 1)
+          },
+        },
+      },
+      clipboard: {
+        matchVisual: false,
+      },
+    }),
+    []
+  )
 
   const handleChange = (html) => {
     if (!onChange) return
@@ -38,17 +90,18 @@ export default function RichTextEditor({
 
   return (
     <div
-      className={`rich-text-editor ${className}`.trim()}
+      className={`rich-text-editor rich-text-editor--full ${className}`.trim()}
       id={id}
       data-required={required || undefined}
       data-empty={isRichTextEmpty(value) ? 'true' : 'false'}
     >
       <ReactQuill
+        ref={quillRef}
         theme="snow"
         value={value || ''}
         onChange={handleChange}
         modules={modules}
-        formats={DEFAULT_FORMATS}
+        formats={FULL_FORMATS}
         placeholder={placeholder}
         readOnly={disabled}
         style={{ minHeight }}

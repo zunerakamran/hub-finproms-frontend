@@ -28,6 +28,7 @@ const ACTION_LABELS = {
   'auth.email_verified': 'Email verified',
   'auth.login_otp_sent': 'Login OTP sent',
   'auth.login_otp_verified': 'Login OTP verified',
+  'auth.terms_accepted': 'Accepted terms',
   'activity_logs.view': 'Viewed activity log',
   'activity_logs.report': 'Viewed activity report',
   'modules.update': 'Updated hub modules',

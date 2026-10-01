@@ -93,6 +93,7 @@ const CONTENT_ANY = [
 const HUB_OPS_ANY = [
   'dashboard_manage_plans',
   'dashboard_manage_settings',
+  'dashboard_manage_terms',
   'dashboard_manage_role_display_names',
   'dashboard_manage_compliance_status_display_names',
   'dashboard_manage_email_templates',
@@ -295,6 +296,14 @@ export const DASHBOARD_LINKS = [
     title: 'Settings',
     description: 'Configure branding, NEW banner duration, and other hub options.',
     capability: 'dashboard_manage_settings',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/terms',
+    label: 'Terms & Conditions',
+    title: 'Terms & Conditions',
+    description: 'Edit the Terms & Conditions users must accept on first login.',
+    capability: 'dashboard_manage_terms',
     group: 'hub',
   },
   {

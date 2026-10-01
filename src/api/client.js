@@ -409,6 +409,14 @@ export const api = {
     request(`${CLIENT_ADMIN}/email-templates/${event}/${audience}/reset`, {
       method: 'POST',
     }),
+  adminTerms: () => request(`${CLIENT_ADMIN}/terms`),
+  updateAdminTerms: (payload) =>
+    request(`${CLIENT_ADMIN}/terms`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  resetAdminTerms: () => request(`${CLIENT_ADMIN}/terms/reset`, { method: 'POST' }),
+  acceptTerms: () => request('/auth/accept-terms', { method: 'POST' }),
   powerAdminPaymentMethods: (hubId) => {
     const query = hubId ? `?hub_id=${hubId}` : ''
     return request(`/power-admin/payment-methods${query}`)

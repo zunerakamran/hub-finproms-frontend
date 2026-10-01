@@ -107,8 +107,10 @@ export default function SocialMediaComplianceSubmit() {
       {error && <div className="alert">{error}</div>}
 
       <form className="admin-form" onSubmit={submit}>
-        <label>
-          <RequiredMark>Description</RequiredMark>
+        <div className="admin-field">
+          <span className="field-label-text">
+            <RequiredMark>Description</RequiredMark>
+          </span>
           <RichTextEditor
             rows={5}
             value={description}
@@ -116,7 +118,7 @@ export default function SocialMediaComplianceSubmit() {
             placeholder="Describe the material for social media compliance review…"
             required
           />
-        </label>
+        </div>
 
         <FileDropzone
           id="smc-submit-attachment"

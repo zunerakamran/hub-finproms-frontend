@@ -15,6 +15,7 @@ export default function SupportingFilesPicker({
   id = 'compliance-supporting-files',
   className = '',
   label = 'Supporting files (optional)',
+  hint = COMPLIANCE_SUPPORTING_FILES_HELPER,
   disabled = false,
 }) {
   return (
@@ -22,7 +23,7 @@ export default function SupportingFilesPicker({
       id={id}
       className={className}
       label={label}
-      hint={COMPLIANCE_SUPPORTING_FILES_HELPER}
+      hint={hint}
       accept={COMPLIANCE_SUPPORTING_FILES_ACCEPT}
       multiple
       maxFiles={COMPLIANCE_SUPPORTING_FILES_MAX}

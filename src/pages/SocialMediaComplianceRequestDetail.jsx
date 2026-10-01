@@ -297,15 +297,15 @@ export default function SocialMediaComplianceRequestDetail() {
               </label>
             ))}
           </fieldset>
-          <label>
-            Feedback / notes
+          <div className="admin-field">
+            <span className="field-label-text">Feedback / notes</span>
             <RichTextEditor
               rows={4}
               value={feedback}
               onChange={setFeedback}
               placeholder="Leave feedback for the submitter…"
             />
-          </label>
+          </div>
           <SupportingFilesPicker
             id="smc-review-supporting-files"
             files={reviewSupportingFiles}
@@ -364,15 +364,17 @@ export default function SocialMediaComplianceRequestDetail() {
       {isOwner && can('smc_submit_request') && row.status === 'Rejected' && (
         <form className="admin-form smc-panel" onSubmit={resubmit}>
           <h2>Rejected — resubmit</h2>
-          <label>
-            <RequiredMark>Updated description</RequiredMark>
+          <div className="admin-field">
+            <span className="field-label-text">
+              <RequiredMark>Updated description</RequiredMark>
+            </span>
             <RichTextEditor
               rows={4}
               value={resubDescription}
               onChange={setResubDescription}
               required
             />
-          </label>
+          </div>
           <FileDropzone
             id="smc-resubmit-attachment"
             label="New attachment (optional)"
@@ -418,15 +420,15 @@ export default function SocialMediaComplianceRequestDetail() {
               </label>
             ))}
           </fieldset>
-          <label>
-            Comment (optional)
+          <div className="admin-field">
+            <span className="field-label-text">Comment (optional)</span>
             <RichTextEditor
               rows={3}
               value={changeComment}
               onChange={setChangeComment}
               placeholder="Reason for changing status…"
             />
-          </label>
+          </div>
           <SupportingFilesPicker
             id="smc-change-status-supporting-files"
             files={changeStatusFiles}

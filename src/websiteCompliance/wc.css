@@ -103,6 +103,9 @@
 }
 
 /* Quill rich-text toolbar inside WC surfaces */
+.wc-app .rich-text-editor {
+  overflow: visible;
+}
 .wc-app .rich-text-editor .ql-toolbar.ql-snow,
 .wc-app .rich-text-editor .ql-container.ql-snow {
   border: 1px solid rgba(15, 23, 42, 0.12);
@@ -112,6 +115,9 @@
   border-radius: 8px 8px 0 0;
   background: #f8fafc;
   padding: 6px 8px;
+  overflow: visible;
+  position: relative;
+  z-index: 2;
 }
 .wc-app .rich-text-editor .ql-container.ql-snow {
   border-top: 0;
@@ -124,6 +130,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+/* Keep Quill picker SVGs inline so dropdown chevrons/icons layout correctly. */
+.wc-app .rich-text-editor .ql-toolbar svg {
+  display: inline;
+  flex-shrink: 0;
+}
+.wc-app .rich-text-editor .ql-toolbar .ql-picker.ql-expanded {
+  z-index: 20;
+}
+.wc-app .rich-text-editor .ql-toolbar .ql-picker-options {
+  z-index: 30;
 }
 .wc-app .rich-text-editor .ql-editor {
   min-height: 96px;
@@ -210,4 +227,96 @@
 
 .wc-app .wc-template-preview__scroller {
   max-width: none;
+}
+
+/* Keep shared FileDropzone usable inside WC Tailwind resets. */
+.wc-app .file-dropzone-field {
+  width: 100%;
+}
+
+.wc-app .file-dropzone {
+  width: 100%;
+  border: 1.5px dashed color-mix(in srgb, var(--wc-brand) 35%, var(--wc-line));
+  border-radius: var(--wc-radius, 14px);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--wc-brand) 4%, #fff) 0%, #fff 100%);
+  padding: 1.25rem 1.1rem;
+  color: var(--wc-muted);
+}
+
+.wc-app .file-dropzone.is-dragging,
+.wc-app .file-dropzone:hover,
+.wc-app .file-dropzone:focus-visible {
+  border-color: var(--wc-brand);
+  background: color-mix(in srgb, var(--wc-brand) 10%, #fff);
+}
+
+.wc-app .file-dropzone-input {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.wc-app .file-dropzone-remove {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, #b42318 8%, #fff);
+  color: #b42318;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wc-app .file-dropzone-chip {
+  border: 1px solid var(--wc-line);
+  background: #fff;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+}
+
+.wc-app .wc-supporting-files-card {
+  border: 1px solid color-mix(in srgb, var(--wc-brand) 22%, var(--wc-line));
+  background: color-mix(in srgb, var(--wc-brand) 5%, #fff);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wc-app .wc-supporting-files-card__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--wc-brand-dark);
+}
+
+.wc-app .wc-supporting-files-card__hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--wc-muted);
+}
+
+.wc-app .wc-submit-bar {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 30;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--wc-line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.12);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }

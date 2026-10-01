@@ -3413,6 +3413,21 @@ export default function AdvisorDashboard({
                         )}
                       </div>
                     </div>
+                    {(cr.status === 'rejected' || cr.status === 'approved_with_feedback') && isFocused ? (
+                      <div className="wc-supporting-files-card mt-3">
+                        <p className="wc-supporting-files-card__title">Supporting files (optional)</p>
+                        <p className="wc-supporting-files-card__hint">
+                          Attach evidence with this resubmit / confirm action.
+                        </p>
+                        <SupportingFilesPicker
+                          id={`wc-action-supporting-files-${cr.id}`}
+                          files={submitSupportingFiles}
+                          onChange={setSubmitSupportingFiles}
+                          label={null}
+                          hint={null}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                   )
                 })}
@@ -5314,28 +5329,47 @@ export default function AdvisorDashboard({
                     })}
 
                     {!isPowerAdminPublishMode ? (
-                      <div className="pt-4 border-t border-gray-100 mt-4">
-                        <SupportingFilesPicker
-                          id="wc-batch-submit-supporting-files"
-                          files={submitSupportingFiles}
-                          onChange={setSubmitSupportingFiles}
-                        />
+                      <div className="wc-submit-bar">
+                        <div className="wc-supporting-files-card">
+                          <p className="wc-supporting-files-card__title">Supporting files (optional)</p>
+                          <p className="wc-supporting-files-card__hint">
+                            Attach PDF, Office, images, or ZIP evidence with this change request before you submit.
+                          </p>
+                          <SupportingFilesPicker
+                            id="wc-batch-submit-supporting-files"
+                            files={submitSupportingFiles}
+                            onChange={setSubmitSupportingFiles}
+                            label={null}
+                            hint={null}
+                          />
+                        </div>
+                        <div className="pt-1 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={handleBatchSubmit}
+                            disabled={isSubmitting}
+                            className="inline-flex items-center gap-2 bg-[var(--brand)] text-white text-base font-extrabold px-8 py-3.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] shadow-lg shadow-[color-mix(in_srgb,var(--brand-dark)_25%,transparent)] transition disabled:opacity-50"
+                          >
+                            <FaPaperPlane className="w-4 h-4" />
+                            {isSubmitting
+                              ? 'Submitting...'
+                              : 'Submit All Section Edits'}
+                          </button>
+                        </div>
                       </div>
-                    ) : null}
-
-                    <div className="pt-2 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={handleBatchSubmit}
-                        disabled={isSubmitting}
-                        className="inline-flex items-center gap-2 bg-[var(--brand)] text-white text-base font-extrabold px-8 py-3.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] shadow-lg shadow-[color-mix(in_srgb,var(--brand-dark)_25%,transparent)] transition disabled:opacity-50"
-                      >
-                        <FaPaperPlane className="w-4 h-4" />
-                        {isSubmitting
-                          ? (isPowerAdminPublishMode ? 'Publishing...' : 'Submitting...')
-                          : (isPowerAdminPublishMode ? 'Publish to Live' : 'Submit All Section Edits')}
-                      </button>
-                    </div>
+                    ) : (
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={handleBatchSubmit}
+                          disabled={isSubmitting}
+                          className="inline-flex items-center gap-2 bg-[var(--brand)] text-white text-base font-extrabold px-8 py-3.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] shadow-lg shadow-[color-mix(in_srgb,var(--brand-dark)_25%,transparent)] transition disabled:opacity-50"
+                        >
+                          <FaPaperPlane className="w-4 h-4" />
+                          {isSubmitting ? 'Publishing...' : 'Publish to Live'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-12 text-center">

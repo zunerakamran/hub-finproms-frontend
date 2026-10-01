@@ -16,8 +16,12 @@ import DateTimeText from '../components/DateTimeText'
 import RequiredMark from '../components/RequiredMark'
 import RichTextDisplay from '../components/RichTextDisplay'
 import { SupportingFilesList } from '../components/GeneralComplianceUI'
+import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import WcStatusBadge, { WcVersionCard } from '../components/WebsiteComplianceUI'
-import { resolveComplianceSupportingFiles } from '../utils/complianceSupportingFiles'
+import {
+  compliancePostBody,
+  resolveComplianceSupportingFiles,
+} from '../utils/complianceSupportingFiles'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import ChangeRequestPreviewPanel from '../websiteCompliance/components/ChangeRequestPreviewPanel'
@@ -56,6 +60,7 @@ export default function WebsiteComplianceRequestDetail() {
   const [reviewers, setReviewers] = useState([])
   const [assignTo, setAssignTo] = useState('')
   const [assigning, setAssigning] = useState(false)
+  const [confirmSupportingFiles, setConfirmSupportingFiles] = useState([])
 
   const moduleOn = can('module_website_compliance')
   const canSubmit = can('wc_submit_change_requests') || can('wc_edit_sections')
@@ -144,8 +149,10 @@ export default function WebsiteComplianceRequestDetail() {
     setError('')
     setMessage('')
     try {
-      const data = await api.websiteComplianceConfirmChangeRequestFeedback(id, {})
+      const body = compliancePostBody({}, confirmSupportingFiles)
+      const data = await api.websiteComplianceConfirmChangeRequestFeedback(id, body)
       setRow(data?.change_request || data)
+      setConfirmSupportingFiles([])
       setMessage('Request confirmed as Approved.')
     } catch (err) {
       setError(err.message || err.data?.message || 'Confirm failed.')
@@ -278,12 +285,13 @@ export default function WebsiteComplianceRequestDetail() {
         </div>
       ) : null}
 
-      {resolveComplianceSupportingFiles(row).length ? (
-        <div className="wc-panel wc-detail-card">
-          <p className="muted label">Supporting files</p>
-          <SupportingFilesList files={resolveComplianceSupportingFiles(row)} />
-        </div>
-      ) : null}
+      <div className="wc-panel wc-detail-card">
+        <p className="muted label">Supporting files</p>
+        <SupportingFilesList
+          files={resolveComplianceSupportingFiles(row)}
+          emptyLabel="No supporting files attached to the current version."
+        />
+      </div>
 
       {canShowReviewActions ? (
         <ChangeRequestReviewActions
@@ -358,6 +366,19 @@ export default function WebsiteComplianceRequestDetail() {
             Confirm as approved without changes, or open the content editor to revise only the
             previous version&apos;s sections and publish.
           </p>
+          <div className="wc-supporting-files-card" style={{ marginBottom: '1rem' }}>
+            <p className="wc-supporting-files-card__title">Supporting files (optional)</p>
+            <p className="wc-supporting-files-card__hint">
+              Attach evidence when confirming this request as approved.
+            </p>
+            <SupportingFilesPicker
+              id="wc-confirm-supporting-files"
+              files={confirmSupportingFiles}
+              onChange={setConfirmSupportingFiles}
+              label={null}
+              hint={null}
+            />
+          </div>
           <div className="actions">
             <button
               type="button"

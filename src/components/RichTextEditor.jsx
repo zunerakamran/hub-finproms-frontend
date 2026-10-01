@@ -88,12 +88,22 @@ export default function RichTextEditor({
     onChange(isRichTextEmpty(html) ? '' : html)
   }
 
+  // Quill pickers (heading/size/color/align) open then instantly close when the
+  // editor sits inside a <label>: label activation steals focus on mousedown.
+  // preventDefault stops that without blocking Quill's own click handlers.
+  const stopLabelActivation = (event) => {
+    if (event.target?.closest?.('.ql-toolbar')) {
+      event.preventDefault()
+    }
+  }
+
   return (
     <div
       className={`rich-text-editor rich-text-editor--full ${className}`.trim()}
       id={id}
       data-required={required || undefined}
       data-empty={isRichTextEmpty(value) ? 'true' : 'false'}
+      onMouseDown={stopLabelActivation}
     >
       <ReactQuill
         ref={quillRef}

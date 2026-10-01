@@ -5559,6 +5559,7 @@ td.data-grid__actions {
 .rich-text-editor {
   position: relative;
   width: 100%;
+  overflow: visible;
 }
 .rich-text-editor .ql-toolbar.ql-snow {
   border: 1px solid var(--line);
@@ -5569,6 +5570,9 @@ td.data-grid__actions {
   flex-wrap: wrap;
   gap: 0.15rem 0.1rem;
   align-items: center;
+  overflow: visible;
+  position: relative;
+  z-index: 2;
 }
 .rich-text-editor .ql-toolbar.ql-snow .ql-formats {
   margin-right: 0.65rem;
@@ -5576,6 +5580,17 @@ td.data-grid__actions {
 .rich-text-editor .ql-toolbar.ql-snow button,
 .rich-text-editor .ql-toolbar.ql-snow .ql-picker {
   margin: 1px;
+}
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker {
+  position: relative;
+}
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker.ql-expanded {
+  z-index: 20;
+}
+.rich-text-editor .ql-toolbar.ql-snow .ql-picker-options {
+  z-index: 30;
+  max-height: min(280px, 60vh);
+  overflow-y: auto;
 }
 .rich-text-editor .ql-toolbar.ql-snow button:hover,
 .rich-text-editor .ql-toolbar.ql-snow button:focus,
@@ -5823,7 +5838,7 @@ td.data-grid__actions {
   gap: 0.75rem;
 }
 
-/* —— File dropzone (drag & drop attachments) —— */
+/* ?? File dropzone (drag & drop attachments) ?? */
 .file-dropzone-field {
   display: flex;
   flex-direction: column;
@@ -6022,4 +6037,27 @@ td.data-grid__actions {
     min-height: 120px;
     padding: 1rem 0.85rem;
   }
+}
+
+.wc-supporting-files-card {
+  border: 1px solid color-mix(in srgb, var(--brand) 22%, var(--line));
+  background: color-mix(in srgb, var(--brand) 5%, #fff);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wc-supporting-files-card__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--brand-dark);
+}
+
+.wc-supporting-files-card__hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
 }

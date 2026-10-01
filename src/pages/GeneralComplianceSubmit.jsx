@@ -143,8 +143,10 @@ export default function GeneralComplianceSubmit() {
           </p>
         )}
 
-        <label>
-          <RequiredMark>Description</RequiredMark>
+        <div className="admin-field">
+          <span className="field-label-text">
+            <RequiredMark>Description</RequiredMark>
+          </span>
           <RichTextEditor
             rows={6}
             value={description}
@@ -152,7 +154,7 @@ export default function GeneralComplianceSubmit() {
             placeholder="Describe the material for general compliance review…"
             required
           />
-        </label>
+        </div>
 
         <SupportingFilesPicker
           id="gc-submit-supporting-files"

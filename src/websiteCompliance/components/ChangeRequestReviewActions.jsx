@@ -270,12 +270,19 @@ export default function ChangeRequestReviewActions({
             </div>
           </div>
 
-          <SupportingFilesPicker
-            id="wc-review-supporting-files"
-            files={reviewSupportingFiles}
-            onChange={setReviewSupportingFiles}
-            className="wc-review-supporting-files"
-          />
+          <div className="wc-supporting-files-card" style={{ marginBottom: '1rem' }}>
+            <p className="wc-supporting-files-card__title">Supporting files (optional)</p>
+            <p className="wc-supporting-files-card__hint">
+              Attach PDF, Office, images, or ZIP with your approve / reject decision.
+            </p>
+            <SupportingFilesPicker
+              id="wc-review-supporting-files"
+              files={reviewSupportingFiles}
+              onChange={setReviewSupportingFiles}
+              label={null}
+              hint={null}
+            />
+          </div>
 
           {decision === 'approve' ? (
             <div className="wc-review-pane wc-review-pane--approve">

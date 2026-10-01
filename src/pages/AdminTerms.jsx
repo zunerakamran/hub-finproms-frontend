@@ -122,15 +122,15 @@ export default function AdminTerms() {
             <RichTextDisplay html={content} empty="No content yet." />
           </div>
         ) : (
-          <label style={{ display: 'block', marginBottom: '1rem' }}>
-            Content
+          <div className="admin-field" style={{ marginBottom: '1rem' }}>
+            <span className="field-label-text">Content</span>
             <RichTextEditor
               value={content}
               onChange={setContent}
               rows={16}
               placeholder="Write the Terms & Conditions for this hub…"
             />
-          </label>
+          </div>
         )}
 
         <button className="btn primary" disabled={saving || preview}>

@@ -5,6 +5,7 @@ import {
   FaCheckCircle,
   FaEdit,
   FaEyeSlash,
+  FaFileAlt,
   FaGlobe,
   FaImage,
   FaPalette,
@@ -27,6 +28,10 @@ import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/asset
 import { sectionDisplayName } from '../utils/sectionDisplay'
 import TemplateScrollPreview from './TemplateScrollPreview'
 import { ColorSchemesEditor, normalizeColorSchemes } from './ColorSchemeFields'
+import {
+  AvailablePagesEditor,
+  normalizeAvailablePages,
+} from './TemplateRequestContentFields'
 import {
   AssignAdvisorModal,
   CreateDeploymentModal,
@@ -198,6 +203,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
   const [templatePreviewUrl, setTemplatePreviewUrl] = useState('')
   const [templateIsActive, setTemplateIsActive] = useState(true)
   const [templateColorSchemes, setTemplateColorSchemes] = useState([])
+  const [templateAvailablePages, setTemplateAvailablePages] = useState([])
   const [regeneratePreview, setRegeneratePreview] = useState(false)
   const [isSavingTemplate, setIsSavingTemplate] = useState(false)
 
@@ -369,6 +375,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
     setRegeneratePreview(false)
     setTemplateIsActive(true)
     setTemplateColorSchemes([])
+    setTemplateAvailablePages([])
     setShowTemplateModal(true)
   }
 
@@ -381,6 +388,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
     setRegeneratePreview(false)
     setTemplateIsActive(Boolean(tpl.is_active))
     setTemplateColorSchemes(normalizeColorSchemes(tpl.color_schemes))
+    setTemplateAvailablePages(normalizeAvailablePages(tpl.available_pages))
     setShowTemplateModal(true)
   }
 
@@ -398,6 +406,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
         preview_url: templatePreviewUrl || defaultTemplatePreviewUrl(templateSlug, previewBase),
         is_active: templateIsActive,
         color_schemes: normalizeColorSchemes(templateColorSchemes),
+        available_pages: normalizeAvailablePages(templateAvailablePages),
       }
       if (editingTemplate) {
         if (regeneratePreview) payload.regenerate_preview = true
@@ -790,26 +799,34 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                           <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">
                             {truncateRichText(tpl.description, 120) || 'No description.'}
                           </p>
-                          {Array.isArray(tpl.color_schemes) && tpl.color_schemes.length > 0 && (
-                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                              <FaPalette className="w-3 h-3 text-gray-400 shrink-0" aria-hidden="true" />
-                              {tpl.color_schemes.slice(0, 5).map((scheme, i) => (
-                                <span key={`swatch-${tpl.id}-${i}`} className="inline-flex items-center gap-0.5" title={scheme.name || `Scheme ${i + 1}`}>
-                                  <span
-                                    className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
-                                    style={{ backgroundColor: scheme.primary || '#0B1B3D' }}
-                                  />
-                                  <span
-                                    className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
-                                    style={{ backgroundColor: scheme.secondary || '#C8102E' }}
-                                  />
-                                </span>
-                              ))}
-                              {tpl.color_schemes.length > 5 && (
-                                <span className="text-[10px] font-bold text-gray-400">+{tpl.color_schemes.length - 5}</span>
-                              )}
-                            </div>
-                          )}
+                          <div className="flex items-center gap-3 mt-2 flex-wrap">
+                            {Array.isArray(tpl.color_schemes) && tpl.color_schemes.length > 0 && (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <FaPalette className="w-3 h-3 text-gray-400 shrink-0" aria-hidden="true" />
+                                {tpl.color_schemes.slice(0, 5).map((scheme, i) => (
+                                  <span key={`swatch-${tpl.id}-${i}`} className="inline-flex items-center gap-0.5" title={scheme.name || `Scheme ${i + 1}`}>
+                                    <span
+                                      className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
+                                      style={{ backgroundColor: scheme.primary || '#0B1B3D' }}
+                                    />
+                                    <span
+                                      className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
+                                      style={{ backgroundColor: scheme.secondary || '#C8102E' }}
+                                    />
+                                  </span>
+                                ))}
+                                {tpl.color_schemes.length > 5 && (
+                                  <span className="text-[10px] font-bold text-gray-400">+{tpl.color_schemes.length - 5}</span>
+                                )}
+                              </div>
+                            )}
+                            {Array.isArray(tpl.available_pages) && tpl.available_pages.length > 0 && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-500">
+                                <FaFileAlt className="w-3 h-3 text-gray-400" aria-hidden="true" />
+                                {tpl.available_pages.length} page{tpl.available_pages.length === 1 ? '' : 's'}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                             <button
                               type="button"
@@ -970,8 +987,8 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
           title={editingTemplate ? 'Edit template' : 'Register template'}
           subtitle={
             editingTemplate
-              ? 'Update catalog details, preview, and colour schemes for this showcase template.'
-              : 'Add a showcase template to this hub’s Website Template Library catalog.'
+              ? 'Update catalog details, colour schemes, and selectable pages for this showcase template.'
+              : 'Add a showcase template with colour schemes and pages requesters can choose from.'
           }
           onClose={() => setShowTemplateModal(false)}
           maxWidth="max-w-2xl"
@@ -1047,6 +1064,11 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
             <ColorSchemesEditor
               schemes={templateColorSchemes}
               onChange={setTemplateColorSchemes}
+            />
+
+            <AvailablePagesEditor
+              pages={templateAvailablePages}
+              onChange={setTemplateAvailablePages}
             />
 
             <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-slate-50 px-3.5 py-3 cursor-pointer">

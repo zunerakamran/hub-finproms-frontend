@@ -11,6 +11,13 @@ import SectionIframePreview from './components/SectionIframePreview'
 import TemplateScrollPreview from './components/TemplateScrollPreview'
 import ImageFieldPicker from './components/ImageFieldPicker'
 import { ColorSchemePicker, templateColorSchemes } from './components/ColorSchemeFields'
+import {
+  TemplateRequestContentFields,
+  buildRequestContentPayload,
+  emptyContactDetails,
+  emptyRequestContentState,
+  templateAvailablePages,
+} from './components/TemplateRequestContentFields'
 import { parseJson } from './utils/parseJson'
 import { sectionDisplayName, sectionTemplateKey } from './utils/sectionDisplay'
 import {
@@ -1291,6 +1298,12 @@ export default function AdvisorDashboard({
   const [primaryColor, setPrimaryColor] = useState(sitePrimaryDefault)
   const [secondaryColor, setSecondaryColor] = useState(siteSecondaryDefault)
   const [colorSchemeKey, setColorSchemeKey] = useState('custom')
+  const [requestServices, setRequestServices] = useState([])
+  const [requestImages, setRequestImages] = useState([])
+  const [requestContactDetails, setRequestContactDetails] = useState(emptyContactDetails())
+  const [requestPolicies, setRequestPolicies] = useState([])
+  const [requestSelectedPages, setRequestSelectedPages] = useState([])
+  const [requestPageContents, setRequestPageContents] = useState({})
   const [isSubmittingTemplate, setIsSubmittingTemplate] = useState(false)
   const [selectedDeploymentId, setSelectedDeploymentId] = useState(null)
   const [uploadingState, setUploadingState] = useState({})
@@ -2016,6 +2029,16 @@ export default function AdvisorDashboard({
     loadPages()
   }, [templateRequests, selectedDeploymentId])
 
+  const resetRequestContentExtras = () => {
+    const empty = emptyRequestContentState()
+    setRequestServices(empty.services)
+    setRequestImages(empty.images)
+    setRequestContactDetails(empty.contactDetails)
+    setRequestPolicies(empty.policies)
+    setRequestSelectedPages(empty.selectedPages)
+    setRequestPageContents(empty.pageContents)
+  }
+
   const openDeploymentModal = (templateSlug, switchToDeployments = false) => {
     const slug = templateSlug || selectedTemplateName
     if (slug) setSelectedTemplateName(slug)
@@ -2034,6 +2057,7 @@ export default function AdvisorDashboard({
       setPrimaryColor(sitePrimaryDefault)
       setSecondaryColor(siteSecondaryDefault)
     }
+    resetRequestContentExtras()
     // From content editor, send users to the dedicated request-site page
     if (forcedTab === 'editor' && switchToDeployments) {
       navigate(WC_TAB_ROUTES.templates)
@@ -2100,7 +2124,15 @@ export default function AdvisorDashboard({
         favicon_url: faviconUrl || undefined,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
-        request_type: 'advisor_website'
+        request_type: 'advisor_website',
+        ...buildRequestContentPayload({
+          services: requestServices,
+          images: requestImages,
+          contactDetails: requestContactDetails,
+          policies: requestPolicies,
+          selectedPages: requestSelectedPages,
+          pageContents: requestPageContents,
+        }),
       })
       setMessage(`Deployment request submitted! ${powerAdminLabel} will review it. You can request additional deployments anytime.`)
       setShowTemplateModal(false)
@@ -2111,6 +2143,7 @@ export default function AdvisorDashboard({
       setLogoPreview('')
       setWhiteLogoPreview('')
       setFaviconPreview('')
+      resetRequestContentExtras()
       setActiveTab('deployments')
       fetchTemplateRequests()
     } catch (err) {
@@ -5413,172 +5446,199 @@ export default function AdvisorDashboard({
       {showTemplateModal && (
         <ModalShell
           title="Request New Deployment"
-          subtitle="Submit another showcase site — each request can use a different domain and template"
+          subtitle="Choose a template, branding, services, pages, and content for your showcase site"
           onClose={() => setShowTemplateModal(false)}
-          maxWidth="max-w-xl"
+          maxWidth="max-w-3xl"
         >
-            <form onSubmit={handleTemplateSubmit} className="space-y-4">
-              <div>
-                <label className={labelClass}>Showcase Template</label>
-                <select
-                  value={selectedTemplateName}
-                  onChange={e => {
-                    const next = e.target.value
-                    setSelectedTemplateName(next)
-                    const tpl = availableTemplates.find(t => t.slug === next)
-                    const schemes = templateColorSchemes(tpl)
-                    if (schemes.length) {
-                      setColorSchemeKey('0')
-                      setPrimaryColor(schemes[0].primary)
-                      setSecondaryColor(schemes[0].secondary)
-                    } else {
-                      setColorSchemeKey('custom')
-                      setPrimaryColor(sitePrimaryDefault)
-                      setSecondaryColor(siteSecondaryDefault)
-                    }
-                  }}
-                  className={inputClass}
-                >
-                  {availableTemplates.map(tpl => (
-                    <option key={tpl.id} value={tpl.slug}>
-                      {tpl.name} ({tpl.slug})
-                    </option>
-                  ))}
-                  {availableTemplates.length === 0 && (
-                    <option value="template4">Template 4 - Corporate Financial Advisory (template4)</option>
-                  )}
-                </select>
-              </div>
+            <form onSubmit={handleTemplateSubmit} className="space-y-5">
+              <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-4 space-y-4">
+                <div>
+                  <p className="text-sm font-extrabold text-[var(--brand-dark)]">Basics</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Template, domain, and site branding.</p>
+                </div>
 
-              <div>
-                <label className={labelClass}><RequiredMark>Target Domain Name</RequiredMark></label>
-                <input
-                  type="text"
-                  required
-                  placeholder={`e.g. ${domainPlaceholder}`}
-                  value={domainName}
-                  onChange={e => setDomainName(e.target.value)}
-                  className={inputClass}
+                <div>
+                  <label className={labelClass}>Showcase Template</label>
+                  <select
+                    value={selectedTemplateName}
+                    onChange={e => {
+                      const next = e.target.value
+                      setSelectedTemplateName(next)
+                      const tpl = availableTemplates.find(t => t.slug === next)
+                      const schemes = templateColorSchemes(tpl)
+                      if (schemes.length) {
+                        setColorSchemeKey('0')
+                        setPrimaryColor(schemes[0].primary)
+                        setSecondaryColor(schemes[0].secondary)
+                      } else {
+                        setColorSchemeKey('custom')
+                        setPrimaryColor(sitePrimaryDefault)
+                        setSecondaryColor(siteSecondaryDefault)
+                      }
+                      resetRequestContentExtras()
+                    }}
+                    className={inputClass}
+                  >
+                    {availableTemplates.map(tpl => (
+                      <option key={tpl.id} value={tpl.slug}>
+                        {tpl.name} ({tpl.slug})
+                      </option>
+                    ))}
+                    {availableTemplates.length === 0 && (
+                      <option value="template4">Template 4 - Corporate Financial Advisory (template4)</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClass}><RequiredMark>Target Domain Name</RequiredMark></label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={`e.g. ${domainPlaceholder}`}
+                    value={domainName}
+                    onChange={e => setDomainName(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Site Logo <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <div className="flex items-start gap-3">
+                      <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                        {(logoPreview || logoUrl) ? (
+                          <img
+                            src={logoPreview || absoluteAssetUrl(logoUrl)}
+                            alt=""
+                            className="w-full h-full object-contain p-1"
+                          />
+                        ) : (
+                          <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <BrandingImmediateFileDropzone
+                          id="advisor-dashboard-branding-logo"
+                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                          hint="Used on light backgrounds (header bar)."
+                          disabled={uploadingLogo}
+                          onUpload={(file) => uploadBrandingAsset(file, 'logo')}
+                        />
+                        {logoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => { setLogoUrl(''); setLogoPreview('') }}
+                            className="block text-[11px] font-semibold text-rose-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>White Logo <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <div className="flex items-start gap-3">
+                      <div className="w-14 h-14 rounded-xl border border-gray-700 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
+                        {(whiteLogoPreview || whiteLogoUrl) ? (
+                          <img
+                            src={whiteLogoPreview || absoluteAssetUrl(whiteLogoUrl)}
+                            alt=""
+                            className="w-full h-full object-contain p-1"
+                          />
+                        ) : (
+                          <FaImage className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <BrandingImmediateFileDropzone
+                          id="advisor-dashboard-branding-white-logo"
+                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                          hint="Used on dark backgrounds (nav, footer)."
+                          disabled={uploadingWhiteLogo}
+                          onUpload={(file) => uploadBrandingAsset(file, 'white_logo')}
+                        />
+                        {whiteLogoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
+                            className="block text-[11px] font-semibold text-rose-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Favicon <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <div className="flex items-start gap-3">
+                      <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                        {(faviconPreview || faviconUrl) ? (
+                          <img
+                            src={faviconPreview || absoluteAssetUrl(faviconUrl)}
+                            alt=""
+                            className="w-full h-full object-contain p-1"
+                          />
+                        ) : (
+                          <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <BrandingImmediateFileDropzone
+                          id="advisor-dashboard-branding-favicon"
+                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
+                          hint="Browser tab icon on the advisor's live site."
+                          disabled={uploadingFavicon}
+                          onUpload={(file) => uploadBrandingAsset(file, 'favicon')}
+                        />
+                        {faviconUrl && (
+                          <button
+                            type="button"
+                            onClick={() => { setFaviconUrl(''); setFaviconPreview('') }}
+                            className="block text-[11px] font-semibold text-rose-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <ColorSchemePicker
+                  schemes={templateColorSchemes(
+                    availableTemplates.find((t) => t.slug === selectedTemplateName)
+                  )}
+                  selectionKey={colorSchemeKey}
+                  onSelectionChange={setColorSchemeKey}
+                  primaryColor={primaryColor}
+                  secondaryColor={secondaryColor}
+                  onPrimaryChange={setPrimaryColor}
+                  onSecondaryChange={setSecondaryColor}
+                  labelClass={labelClass}
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Site Logo <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <div className="flex items-start gap-3">
-                    <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
-                      {(logoPreview || logoUrl) ? (
-                        <img
-                          src={logoPreview || absoluteAssetUrl(logoUrl)}
-                          alt=""
-                          className="w-full h-full object-contain p-1"
-                        />
-                      ) : (
-                        <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <BrandingImmediateFileDropzone
-                        id="advisor-dashboard-branding-logo"
-                        accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                        hint="Used on light backgrounds (header bar)."
-                        disabled={uploadingLogo}
-                        onUpload={(file) => uploadBrandingAsset(file, 'logo')}
-                      />
-                      {logoUrl && (
-                        <button
-                          type="button"
-                          onClick={() => { setLogoUrl(''); setLogoPreview('') }}
-                          className="block text-[11px] font-semibold text-rose-600 hover:underline"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className={labelClass}>White Logo <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <div className="flex items-start gap-3">
-                    <div className="w-14 h-14 rounded-xl border border-gray-700 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
-                      {(whiteLogoPreview || whiteLogoUrl) ? (
-                        <img
-                          src={whiteLogoPreview || absoluteAssetUrl(whiteLogoUrl)}
-                          alt=""
-                          className="w-full h-full object-contain p-1"
-                        />
-                      ) : (
-                        <FaImage className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <BrandingImmediateFileDropzone
-                        id="advisor-dashboard-branding-white-logo"
-                        accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                        hint="Used on dark backgrounds (nav, footer)."
-                        disabled={uploadingWhiteLogo}
-                        onUpload={(file) => uploadBrandingAsset(file, 'white_logo')}
-                      />
-                      {whiteLogoUrl && (
-                        <button
-                          type="button"
-                          onClick={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
-                          className="block text-[11px] font-semibold text-rose-600 hover:underline"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className={labelClass}>Favicon <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <div className="flex items-start gap-3">
-                    <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
-                      {(faviconPreview || faviconUrl) ? (
-                        <img
-                          src={faviconPreview || absoluteAssetUrl(faviconUrl)}
-                          alt=""
-                          className="w-full h-full object-contain p-1"
-                        />
-                      ) : (
-                        <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <BrandingImmediateFileDropzone
-                        id="advisor-dashboard-branding-favicon"
-                        accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
-                        hint="Browser tab icon on the advisor's live site."
-                        disabled={uploadingFavicon}
-                        onUpload={(file) => uploadBrandingAsset(file, 'favicon')}
-                      />
-                      {faviconUrl && (
-                        <button
-                          type="button"
-                          onClick={() => { setFaviconUrl(''); setFaviconPreview('') }}
-                          className="block text-[11px] font-semibold text-rose-600 hover:underline"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <ColorSchemePicker
-                schemes={templateColorSchemes(
+              <TemplateRequestContentFields
+                availablePages={templateAvailablePages(
                   availableTemplates.find((t) => t.slug === selectedTemplateName)
                 )}
-                selectionKey={colorSchemeKey}
-                onSelectionChange={setColorSchemeKey}
-                primaryColor={primaryColor}
-                secondaryColor={secondaryColor}
-                onPrimaryChange={setPrimaryColor}
-                onSecondaryChange={setSecondaryColor}
+                services={requestServices}
+                onServicesChange={setRequestServices}
+                images={requestImages}
+                onImagesChange={setRequestImages}
+                contactDetails={requestContactDetails}
+                onContactDetailsChange={setRequestContactDetails}
+                policies={requestPolicies}
+                onPoliciesChange={setRequestPolicies}
+                selectedPages={requestSelectedPages}
+                onSelectedPagesChange={setRequestSelectedPages}
+                pageContents={requestPageContents}
+                onPageContentsChange={setRequestPageContents}
                 labelClass={labelClass}
               />
 

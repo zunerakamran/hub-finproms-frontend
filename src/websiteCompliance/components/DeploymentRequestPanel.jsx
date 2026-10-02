@@ -19,6 +19,13 @@ import FileDropzone from '../../components/FileDropzone'
 import RequiredMark from '../../components/RequiredMark'
 import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
 import { ColorSchemePicker, templateColorSchemes } from './ColorSchemeFields'
+import {
+  TemplateRequestContentFields,
+  buildRequestContentPayload,
+  emptyContactDetails,
+  emptyRequestContentState,
+  templateAvailablePages,
+} from './TemplateRequestContentFields'
 
 // ─── Alert banner ─────────────────────────────────────────────────────────────
 
@@ -173,9 +180,25 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
   const [secondaryColor, setSecondaryColor] = useState(hubSecondary)
   const [colorSchemeKey, setColorSchemeKey] = useState('custom')
   const [assignedAdvisorId, setAssignedAdvisorId] = useState('')
+  const [services, setServices] = useState([])
+  const [images, setImages] = useState([])
+  const [contactDetails, setContactDetails] = useState(emptyContactDetails())
+  const [policies, setPolicies] = useState([])
+  const [selectedPages, setSelectedPages] = useState([])
+  const [pageContents, setPageContents] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [serverTemplates, setServerTemplates] = useState([])
+
+  const resetContentExtras = () => {
+    const empty = emptyRequestContentState()
+    setServices(empty.services)
+    setImages(empty.images)
+    setContactDetails(empty.contactDetails)
+    setPolicies(empty.policies)
+    setSelectedPages(empty.selectedPages)
+    setPageContents(empty.pageContents)
+  }
 
   useEffect(() => {
     api.get('/templates').then(res => {
@@ -195,6 +218,7 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
           setPrimaryColor(hubPrimary)
           setSecondaryColor(hubSecondary)
         }
+        resetContentExtras()
       }
     }).catch(() => {})
   }, [hubPrimary, hubSecondary])
@@ -206,8 +230,9 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
   const selectedTemplate =
     serverTemplates.find(t => (t.slug || t.name) === templateName) || null
   const availableSchemes = templateColorSchemes(selectedTemplate)
+  const availablePages = templateAvailablePages(selectedTemplate)
 
-  const applyTemplateSchemes = (tpl) => {
+  const applyTemplateDefaults = (tpl) => {
     const schemes = templateColorSchemes(tpl)
     if (schemes.length) {
       setColorSchemeKey('0')
@@ -218,6 +243,7 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
       setPrimaryColor(hubPrimary)
       setSecondaryColor(hubSecondary)
     }
+    resetContentExtras()
   }
 
   const uploadAsset = async (file, kind) => {
@@ -265,6 +291,14 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         request_type: 'advisor_website',
+        ...buildRequestContentPayload({
+          services,
+          images,
+          contactDetails,
+          policies,
+          selectedPages,
+          pageContents,
+        }),
       }
       if (canAssignAdvisor && assignedAdvisorId) {
         payload.assigned_advisor_id = Number(assignedAdvisorId)
@@ -286,100 +320,121 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
       title="Request New Deployment"
       subtitle={
         canAssignAdvisor
-          ? 'Submit a showcase site for deployment and assign an advisor who will edit its content after go-live.'
-          : 'Submit a new advisor showcase site for deployment.'
+          ? 'Choose a template, branding, services, pages, and assign an advisor for content editing after go-live.'
+          : 'Choose a template, branding, services, pages, and content for your new showcase site.'
       }
       onClose={onClose}
-      maxWidth="max-w-xl"
+      maxWidth="max-w-3xl"
     >
       {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Template */}
-        <div>
-          <label className={labelClass}>Template</label>
-          <select
-            value={templateName}
-            onChange={e => {
-              const next = e.target.value
-              setTemplateName(next)
-              const tpl = serverTemplates.find(t => (t.slug || t.name) === next)
-              applyTemplateSchemes(tpl)
-            }}
-            className={inputClass}
-          >
-            {templateOptions.map(t => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
+        <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-4 space-y-4">
+          <div>
+            <p className="text-sm font-extrabold text-[var(--brand-dark)]">Basics</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">Template, domain, and site branding.</p>
+          </div>
+
+          <div>
+            <label className={labelClass}>Template</label>
+            <select
+              value={templateName}
+              onChange={e => {
+                const next = e.target.value
+                setTemplateName(next)
+                const tpl = serverTemplates.find(t => (t.slug || t.name) === next)
+                applyTemplateDefaults(tpl)
+              }}
+              className={inputClass}
+            >
+              {templateOptions.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              <RequiredMark>Domain Name</RequiredMark>
+            </label>
+            <input
+              type="text"
+              value={domainName}
+              onChange={e => setDomainName(e.target.value)}
+              placeholder={domainPlaceholder}
+              required
+              className={inputClass}
+            />
+            <p className="text-[11px] text-gray-500 mt-1">The target domain for this advisor&apos;s site.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <BrandingUploadField
+              id="deployment-branding-logo"
+              label="Site Logo"
+              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+              hint="Used on light backgrounds (header bar)."
+              value={logoUrl}
+              previewUrl={logoPreview}
+              uploading={uploadingLogo}
+              onUpload={(file) => uploadAsset(file, 'logo')}
+              onClear={() => { setLogoUrl(''); setLogoPreview('') }}
+            />
+            <BrandingUploadField
+              id="deployment-branding-white-logo"
+              label="White Logo"
+              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+              hint="Used on dark backgrounds (nav bar, footer)."
+              value={whiteLogoUrl}
+              previewUrl={whiteLogoPreview}
+              uploading={uploadingWhiteLogo}
+              onUpload={(file) => uploadAsset(file, 'white_logo')}
+              onClear={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
+              darkPreview
+            />
+            <BrandingUploadField
+              id="deployment-branding-favicon"
+              label="Favicon"
+              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
+              hint="Browser tab icon on the live advisor site."
+              value={faviconUrl}
+              previewUrl={faviconPreview}
+              uploading={uploadingFavicon}
+              onUpload={(file) => uploadAsset(file, 'favicon')}
+              onClear={() => { setFaviconUrl(''); setFaviconPreview('') }}
+            />
+          </div>
+
+          <ColorSchemePicker
+            schemes={availableSchemes}
+            selectionKey={colorSchemeKey}
+            onSelectionChange={setColorSchemeKey}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            onPrimaryChange={setPrimaryColor}
+            onSecondaryChange={setSecondaryColor}
+            labelClass={labelClass}
+          />
         </div>
 
-        {/* Domain */}
-        <div>
-          <label className={labelClass}>
-            <RequiredMark>Domain Name</RequiredMark>
-          </label>
-          <input
-            type="text"
-            value={domainName}
-            onChange={e => setDomainName(e.target.value)}
-            placeholder={domainPlaceholder}
-            required
-            className={inputClass}
-          />
-          <p className="text-[11px] text-gray-500 mt-1">The target domain for this advisor's site.</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <BrandingUploadField
-            id="deployment-branding-logo"
-            label="Site Logo"
-            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-            hint="Used on light backgrounds (header bar)."
-            value={logoUrl}
-            previewUrl={logoPreview}
-            uploading={uploadingLogo}
-            onUpload={(file) => uploadAsset(file, 'logo')}
-            onClear={() => { setLogoUrl(''); setLogoPreview('') }}
-          />
-          <BrandingUploadField
-            id="deployment-branding-white-logo"
-            label="White Logo"
-            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-            hint="Used on dark backgrounds (nav bar, footer)."
-            value={whiteLogoUrl}
-            previewUrl={whiteLogoPreview}
-            uploading={uploadingWhiteLogo}
-            onUpload={(file) => uploadAsset(file, 'white_logo')}
-            onClear={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
-            darkPreview
-          />
-          <BrandingUploadField
-            id="deployment-branding-favicon"
-            label="Favicon"
-            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
-            hint="Browser tab icon on the live advisor site."
-            value={faviconUrl}
-            previewUrl={faviconPreview}
-            uploading={uploadingFavicon}
-            onUpload={(file) => uploadAsset(file, 'favicon')}
-            onClear={() => { setFaviconUrl(''); setFaviconPreview('') }}
-          />
-        </div>
-
-        <ColorSchemePicker
-          schemes={availableSchemes}
-          selectionKey={colorSchemeKey}
-          onSelectionChange={setColorSchemeKey}
-          primaryColor={primaryColor}
-          secondaryColor={secondaryColor}
-          onPrimaryChange={setPrimaryColor}
-          onSecondaryChange={setSecondaryColor}
+        <TemplateRequestContentFields
+          availablePages={availablePages}
+          services={services}
+          onServicesChange={setServices}
+          images={images}
+          onImagesChange={setImages}
+          contactDetails={contactDetails}
+          onContactDetailsChange={setContactDetails}
+          policies={policies}
+          onPoliciesChange={setPolicies}
+          selectedPages={selectedPages}
+          onSelectedPagesChange={setSelectedPages}
+          pageContents={pageContents}
+          onPageContentsChange={setPageContents}
           labelClass={labelClass}
         />
 
-        {/* Assign Advisor — managers with assign capability only; required */}
         {canAssignAdvisor && (
-        <div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
           <label className={labelClass}>
             <RequiredMark>Assign Advisor for Content Editing</RequiredMark>
           </label>

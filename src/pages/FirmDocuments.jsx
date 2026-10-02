@@ -227,10 +227,12 @@ export default function FirmDocuments() {
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
-      {rights && rights.functionality_enabled === false ? (
+      {rights && rights.functionality_enabled === false && !rights.is_firm_head ? (
         <div className="alert">
-          Firm documents are disabled for this hub. A Power Admin must enable{' '}
-          <strong>Functionalities → Firm documents</strong> first.
+          Hub-wide firm document tools are off. A Power Admin can enable{' '}
+          <strong>Functionalities → Firm documents</strong> on this hub (from Central, with
+          remote DB wiring) for all-firms matrix access. Head of Firm still has access to
+          their own firm’s documents.
         </div>
       ) : null}
 

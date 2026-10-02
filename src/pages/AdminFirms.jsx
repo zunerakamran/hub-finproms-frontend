@@ -251,10 +251,17 @@ export default function AdminFirms({ shell = 'client-admin' }) {
               ))}
             </select>
           </label>
-          <p className="muted">
-            Only one Head of Firm per firm. The head can upload documents and grant add / view / delete /
-            archive rights to firm members.
-          </p>
+          {headMembers.length === 0 ? (
+            <p className="muted">
+              No users are assigned to this firm yet. Assign users to this firm first (Users / advisor
+              import), then choose a Head of Firm.
+            </p>
+          ) : (
+            <p className="muted">
+              Only one Head of Firm per firm. The head can upload documents and grant add / view / delete /
+              archive rights to firm members.
+            </p>
+          )}
           <div className="actions">
             <button className="btn primary" disabled={savingHead}>
               {savingHead ? 'Saving…' : 'Save Head of Firm'}

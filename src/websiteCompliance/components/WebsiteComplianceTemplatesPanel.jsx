@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import {
   FaCheckCircle,
-  FaClock,
   FaCog,
   FaEdit,
   FaEyeSlash,
@@ -16,23 +15,28 @@ import {
   FaRocket,
   FaSearch,
   FaSync,
-  FaThLarge,
   FaTimes,
-  FaTimesCircle,
   FaTrash,
-  FaUpload,
+  FaUserCheck,
 } from 'react-icons/fa'
 import { useHub } from '../../context/HubContext'
-import ComplianceStatusText from '../../components/ComplianceStatusText'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
 import FileDropzone from '../../components/FileDropzone'
 import RequiredMark from '../../components/RequiredMark'
 import RichTextEditor from '../../components/RichTextEditor'
+import WcStatusBadge from '../../components/WebsiteComplianceUI'
 import { websiteComplianceAssetUrl } from '../../api/client'
+import { formatDateTime } from '../../utils/dateFormat'
 import { truncateRichText } from '../../utils/richText'
 import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
 import { sectionDisplayName } from '../utils/sectionDisplay'
 import TemplateScrollPreview from './TemplateScrollPreview'
 import { ColorSchemesEditor, normalizeColorSchemes } from './ColorSchemeFields'
+import {
+  AssignAdvisorModal,
+  CreateDeploymentModal,
+  isRequestedByAdvisor,
+} from './DeploymentRequestPanel'
 import api from '../wcApi'
 
 function normalizeSiteUrl(value) {
@@ -48,38 +52,6 @@ function requestRequesterName(req, fallback = 'Unknown') {
 
 function resolveAdvisorSiteUrl(req) {
   return normalizeSiteUrl(req.cpanel_domain || req.domain_name || req.domain || '')
-}
-
-const STATUS_CONFIG = {
-  pending: {
-    label: 'Pending',
-    icon: FaClock,
-    className: 'bg-amber-50 text-amber-700 border-amber-200',
-  },
-  deployed: {
-    label: 'Deployed',
-    icon: FaCheckCircle,
-    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  },
-  rejected: {
-    label: 'Rejected',
-    icon: FaTimesCircle,
-    className: 'bg-rose-50 text-rose-700 border-rose-200',
-  },
-}
-
-function StatusBadge({ status }) {
-  const { complianceStatusLabel } = useHub()
-  const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending
-  const Icon = config.icon
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${config.className}`}
-    >
-      <Icon className="w-3 h-3 shrink-0" aria-hidden="true" />
-      <ComplianceStatusText status={status} label={complianceStatusLabel(status)} />
-    </span>
-  )
 }
 
 const fieldLabelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
@@ -197,13 +169,15 @@ function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' 
 /**
  * Template catalog + Power Admin deploy / section management (from content-flow PowerAdminDashboard).
  */
-export default function WebsiteComplianceTemplatesPanel() {
-  const { can, hub, actingHub } = useHub()
+export default function WebsiteComplianceTemplatesPanel({ includeRequestActions = false }) {
+  const { can, hub, actingHub, complianceStatusLabel } = useHub()
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const canManageTemplates = can('wc_manage_templates')
   const canDeployWebsites = can('wc_deploy_websites')
   const canPublishLive = can('wc_publish_live_content')
   const canManageSections = can('wc_manage_deployment_sections')
+  const canRequest = includeRequestActions && (can('wc_request_deployments') || can('wc_assign_website_templates'))
+  const canAssignAdvisor = includeRequestActions && can('wc_assign_website_templates')
   const canViewDeployments =
     canDeployWebsites || can('wc_view_all_deployments') || canPublishLive
 
@@ -212,12 +186,15 @@ export default function WebsiteComplianceTemplatesPanel() {
   )
   const [templates, setTemplates] = useState([])
   const [requests, setRequests] = useState([])
+  const [advisors, setAdvisors] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [templateSearch, setTemplateSearch] = useState('')
-  const [requestSearch, setRequestSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [appliedStatus, setAppliedStatus] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [assignTarget, setAssignTarget] = useState(null)
 
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState(null)
@@ -278,8 +255,27 @@ export default function WebsiteComplianceTemplatesPanel() {
       } finally {
         setLoading(false)
       }
+
+      if (!canAssignAdvisor) {
+        setAdvisors([])
+        return
+      }
+
+      try {
+        const usersRes = await api.get('/advisors')
+        const users = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data || []
+        setAdvisors(users.filter((u) => u.role === 'advisor' || u.role === 'editor'))
+      } catch {
+        try {
+          const usersRes = await api.get('/users')
+          const users = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data || []
+          setAdvisors(users.filter((u) => u.role === 'advisor' || u.role === 'editor'))
+        } catch {
+          setAdvisors([])
+        }
+      }
     },
-    [canViewDeployments, canManageTemplates]
+    [canViewDeployments, canManageTemplates, canAssignAdvisor]
   )
 
   useEffect(() => {
@@ -298,17 +294,77 @@ export default function WebsiteComplianceTemplatesPanel() {
   }, [templates, templateSearch])
 
   const filteredRequests = useMemo(() => {
-    const q = requestSearch.trim().toLowerCase()
-    return requests.filter((req) => {
-      const matchesStatus = statusFilter === 'all' || req.status === statusFilter
-      const matchesSearch =
-        !q ||
-        [requestRequesterName(req, ''), req.template_name, req.domain_name, req.domain]
-          .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q))
-      return matchesStatus && matchesSearch
-    })
-  }, [requests, requestSearch, statusFilter])
+    if (!appliedStatus) return requests
+    return requests.filter(
+      (req) => String(req.status || '').toLowerCase() === appliedStatus.toLowerCase()
+    )
+  }, [requests, appliedStatus])
+
+  const deploymentColumns = useMemo(
+    () => [
+      {
+        key: 'id',
+        label: '#',
+        narrow: true,
+        render: (row) => <strong>#{row.id}</strong>,
+        filterValue: (row) => String(row.id),
+        sortValue: (row) => Number(row.id) || 0,
+      },
+      {
+        key: 'requester',
+        label: 'Requested by',
+        render: (row) => requestRequesterName(row, 'Advisor'),
+        filterValue: (row) => requestRequesterName(row, ''),
+      },
+      {
+        key: 'template_name',
+        label: 'Template',
+        render: (row) => row.template_name || '—',
+        filterValue: (row) => row.template_name || '',
+      },
+      {
+        key: 'domain_name',
+        label: 'Domain',
+        grow: true,
+        render: (row) => (
+          <span className="inline-flex items-center gap-1.5">
+            <FaGlobe className="w-3 h-3 text-gray-400 shrink-0" aria-hidden="true" />
+            {row.domain_name || row.domain || '—'}
+          </span>
+        ),
+        filterValue: (row) => row.domain_name || row.domain || '',
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        fit: true,
+        render: (row) => (
+          <WcStatusBadge
+            status={row.status}
+            at={row.deployed_at || row.updated_at || row.created_at}
+          />
+        ),
+        filterValue: (row) =>
+          [
+            complianceStatusLabel(row.status) || row.status || '',
+            formatDateTime(row.deployed_at || row.updated_at || row.created_at, ''),
+          ]
+            .filter(Boolean)
+            .join(' '),
+        truncate: false,
+      },
+      {
+        key: 'created_at',
+        label: 'Created',
+        date: true,
+        render: (row) => <DataGridDate value={row.created_at} />,
+        filterValue: (row) => formatDateTime(row.created_at, ''),
+        sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
+        truncate: false,
+      },
+    ],
+    [complianceStatusLabel]
+  )
 
   const openCreateTemplateModal = () => {
     setEditingTemplate(null)
@@ -668,19 +724,22 @@ export default function WebsiteComplianceTemplatesPanel() {
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => fetchData(true)}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50"
-        >
-          <FaSync className="w-3 h-3" />
-          Refresh
-        </button>
+        {activeTab === 'templates' ? (
+          <button
+            type="button"
+            onClick={() => fetchData(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50"
+          >
+            <FaSync className="w-3 h-3" />
+            Refresh
+          </button>
+        ) : null}
       </div>
 
-      {loading ? (
-        <p className="text-sm text-gray-500">Loading…</p>
-      ) : activeTab === 'templates' && canManageTemplates ? (
+      {activeTab === 'templates' && canManageTemplates ? (
+        loading ? (
+          <p className="text-sm text-gray-500">Loading…</p>
+        ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -786,132 +845,119 @@ export default function WebsiteComplianceTemplatesPanel() {
             )}
           </div>
         </div>
+        )
       ) : null}
 
       {activeTab === 'deployments' && canViewDeployments ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 space-y-3">
-            <div>
-              <h2 className="text-lg font-bold text-[var(--brand-dark)]">Deployment hub</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {canDeployWebsites
-                  ? 'Deploy templates to cPanel and manage live section visibility.'
-                  : 'View deployment requests across the hub.'}
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="wc-icon-field flex-1">
-                <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
-                <input
-                  type="search"
-                  placeholder="Search domain, template, requester…"
-                  value={requestSearch}
-                  onChange={(e) => setRequestSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl"
-                />
-              </div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white"
-              >
-                <option value="all">All statuses</option>
-                <option value="pending">Pending</option>
-                <option value="deployed">Deployed</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
+        <div>
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-[var(--brand-dark)]">Deployment hub</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {canDeployWebsites
+                ? 'Deploy templates to cPanel and manage live section visibility.'
+                : 'View deployment requests across the hub.'}
+            </p>
           </div>
-          {filteredRequests.length === 0 ? (
-            <div className="py-12 text-center text-sm text-gray-500">
-              <FaThLarge className="w-6 h-6 text-slate-300 mx-auto mb-2" />
-              No deployment requests.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-gray-500 text-[10px] font-extrabold uppercase tracking-wider">
-                  <tr>
-                    <th className="px-5 py-3">Requested by</th>
-                    <th className="px-5 py-3">Template</th>
-                    <th className="px-5 py-3">Domain</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {filteredRequests.map((req) => (
-                    <tr key={req.id} className="hover:bg-slate-50/80">
-                      <td className="px-5 py-3 font-bold text-[var(--brand-dark)]">{requestRequesterName(req, 'Advisor')}</td>
-                      <td className="px-5 py-3">
-                        <span className="font-bold text-xs bg-blue-50 text-[var(--brand-dark)] px-2 py-1 rounded-lg">
-                          {req.template_name || '—'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 font-mono text-xs">
-                        <span className="inline-flex items-center gap-1.5">
-                          <FaGlobe className="w-3 h-3 text-gray-400" />
-                          {req.domain_name || req.domain || '—'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <StatusBadge status={req.status} />
-                      </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center justify-end gap-2 flex-wrap">
-                          {req.status === 'deployed' && canPublishLive && (
-                            <Link
-                              to={`/my-dashboard/website-compliance/publish/${req.id}`}
-                              className="inline-flex items-center gap-1.5 bg-[var(--brand)] text-white text-xs font-bold px-3 py-2 rounded-lg"
-                            >
-                              <FaPen className="w-3 h-3" /> Edit &amp; publish
-                            </Link>
-                          )}
-                          {req.status === 'deployed' && canManageSections && (
-                            <button
-                              type="button"
-                              onClick={() => openSectionManageModal(req)}
-                              className="inline-flex items-center gap-1.5 bg-white border border-[var(--brand-dark)] text-[var(--brand-dark)] text-xs font-bold px-3 py-2 rounded-lg"
-                            >
-                              <FaLayerGroup className="w-3 h-3" /> Sections
-                            </button>
-                          )}
-                          {canDeployWebsites && (
-                            <>
-                              {req.status === 'deployed' && (
-                                <button
-                                  type="button"
-                                  onClick={() => openBrandingModal(req)}
-                                  className="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-[var(--brand-dark)] text-xs font-bold px-3 py-2 rounded-lg hover:bg-gray-50"
-                                >
-                                  <FaPalette className="w-3 h-3" /> Branding
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => openDeployModal(req)}
-                                className="inline-flex items-center gap-1.5 bg-[var(--brand-dark)] text-white text-xs font-bold px-3 py-2 rounded-lg"
-                              >
-                                {req.status === 'deployed' ? (
-                                  <>
-                                    <FaCog className="w-3 h-3" /> Update
-                                  </>
-                                ) : (
-                                  <>
-                                    <FaRocket className="w-3 h-3" /> Deploy
-                                  </>
-                                )}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+
+          <form
+            className="filters-row"
+            onSubmit={(e) => {
+              e.preventDefault()
+              setAppliedStatus(statusFilter)
+            }}
+          >
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="">All statuses</option>
+              <option value="pending">{complianceStatusLabel('pending') || 'Pending'}</option>
+              <option value="deployed">{complianceStatusLabel('deployed') || 'Deployed'}</option>
+              <option value="rejected">{complianceStatusLabel('rejected') || 'Rejected'}</option>
+            </select>
+            <button className="btn primary" type="submit">
+              Filter
+            </button>
+            {canRequest ? (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => setShowCreateModal(true)}
+              >
+                <FaPlus aria-hidden style={{ marginRight: 6 }} />
+                Request Deployment
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => fetchData(true)}
+              disabled={loading}
+            >
+              <FaSync aria-hidden style={{ marginRight: 6 }} />
+              Refresh
+            </button>
+          </form>
+
+          <DataGrid
+            columns={deploymentColumns}
+            rows={filteredRequests}
+            loading={loading}
+            pageSize={10}
+            emptyMessage="No deployment requests."
+            actionsLabel="Actions"
+            actions={(row) => {
+              const isDeployed = row.status === 'deployed'
+              const advisorOwned = isRequestedByAdvisor(row)
+              const showAssignAdvisor = canAssignAdvisor && !advisorOwned
+              const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+              const hasAction =
+                showAssignAdvisor ||
+                (isDeployed && canPublishLive) ||
+                (isDeployed && canManageSections) ||
+                canDeployWebsites
+              if (!hasAction) return <span className="muted">—</span>
+              return (
+                <>
+                  {showAssignAdvisor ? (
+                    <DataGridIconBtn
+                      icon={FaUserCheck}
+                      label={assignedAdvisor ? 'Reassign advisor' : 'Assign advisor'}
+                      onClick={() => setAssignTarget(row)}
+                    />
+                  ) : null}
+                  {isDeployed && canPublishLive ? (
+                    <DataGridIconBtn
+                      icon={FaPen}
+                      label="Edit & publish"
+                      variant="primary"
+                      as={Link}
+                      to={`/my-dashboard/website-compliance/publish/${row.id}`}
+                    />
+                  ) : null}
+                  {isDeployed && canManageSections ? (
+                    <DataGridIconBtn
+                      icon={FaLayerGroup}
+                      label="Manage sections"
+                      onClick={() => openSectionManageModal(row)}
+                    />
+                  ) : null}
+                  {canDeployWebsites && isDeployed ? (
+                    <DataGridIconBtn
+                      icon={FaPalette}
+                      label="Update branding"
+                      onClick={() => openBrandingModal(row)}
+                    />
+                  ) : null}
+                  {canDeployWebsites ? (
+                    <DataGridIconBtn
+                      icon={isDeployed ? FaCog : FaRocket}
+                      label={isDeployed ? 'Update deployment' : 'Deploy'}
+                      variant="primary"
+                      onClick={() => openDeployModal(row)}
+                    />
+                  ) : null}
+                </>
+              )
+            }}
+          />
         </div>
       ) : null}
 
@@ -920,100 +966,165 @@ export default function WebsiteComplianceTemplatesPanel() {
           title={editingTemplate ? 'Edit template' : 'Register template'}
           subtitle={
             editingTemplate
-              ? 'Update catalog details for this showcase template.'
-              : "Add a template to this hub's Website Template Library catalog."
+              ? 'Update catalog details, preview, and colour schemes for this showcase template.'
+              : 'Add a showcase template to this hub’s Website Template Library catalog.'
           }
           onClose={() => setShowTemplateModal(false)}
           maxWidth="max-w-2xl"
         >
-          <form onSubmit={handleSaveTemplate} className="space-y-5">
-            <div>
-              <label className={fieldLabelClass} htmlFor="wc-tpl-name">
-                <RequiredMark>Name</RequiredMark>
-              </label>
-              <input
-                id="wc-tpl-name"
-                className={fieldInputClass}
-                value={templateName}
-                onChange={(e) => setTemplateName(e.target.value)}
-                placeholder="Template 4 (Complete Financial Centre)"
-                required
-              />
-            </div>
-            <div>
-              <label className={fieldLabelClass} htmlFor="wc-tpl-slug">
-                Slug
-              </label>
-              <input
-                id="wc-tpl-slug"
-                className={`${fieldInputClass} font-mono`}
-                value={templateSlug}
-                onChange={(e) => setTemplateSlug(e.target.value)}
-                placeholder="template4"
-              />
-            </div>
-            <div>
-              <label className={fieldLabelClass} htmlFor="wc-tpl-desc">
-                Description
-              </label>
-              <RichTextEditor
-                id="wc-tpl-desc"
-                className={fieldInputClass}
-                rows={3}
-                value={templateDesc}
-                onChange={setTemplateDesc}
-                placeholder="Short summary shown in the template catalog"
-              />
-            </div>
-            <div>
-              <label className={fieldLabelClass} htmlFor="wc-tpl-preview">
-                Preview URL
-              </label>
-              <input
-                id="wc-tpl-preview"
-                className={fieldInputClass}
-                value={templatePreviewUrl}
-                onChange={(e) => setTemplatePreviewUrl(e.target.value)}
-                placeholder={hubPreviewPlaceholder}
-              />
-              <p className="text-[11px] text-gray-500 mt-1.5">
-                Defaults to this hub’s site URL
-                {previewBase ? (
-                  <>
-                    {' '}
-                    (<span className="font-mono text-gray-600">{previewBase}</span>)
-                  </>
-                ) : null}
-                .
-              </p>
-            </div>
+          <form onSubmit={handleSaveTemplate} className="space-y-6">
+            {/* Catalog details */}
+            <section className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+                <p className="text-sm font-extrabold text-[var(--brand-dark)]">Catalog details</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Name and slug identify this template in the library.
+                </p>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className={fieldLabelClass} htmlFor="wc-tpl-name">
+                      <RequiredMark>Name</RequiredMark>
+                    </label>
+                    <input
+                      id="wc-tpl-name"
+                      className={fieldInputClass}
+                      value={templateName}
+                      onChange={(e) => setTemplateName(e.target.value)}
+                      placeholder="Template 4 (Complete Financial Centre)"
+                      required
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className={fieldLabelClass} htmlFor="wc-tpl-slug">
+                      Slug
+                      <span className="ml-1.5 font-normal text-gray-400">(optional — auto from name)</span>
+                    </label>
+                    <input
+                      id="wc-tpl-slug"
+                      className={`${fieldInputClass} font-mono`}
+                      value={templateSlug}
+                      onChange={(e) => setTemplateSlug(e.target.value)}
+                      placeholder="template4"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className={fieldLabelClass} htmlFor="wc-tpl-desc">
+                      Description
+                      <span className="ml-1.5 font-normal text-gray-400">(shown in catalog)</span>
+                    </label>
+                    <RichTextEditor
+                      id="wc-tpl-desc"
+                      className={fieldInputClass}
+                      rows={3}
+                      value={templateDesc}
+                      onChange={setTemplateDesc}
+                      placeholder="Short summary shown in the template catalog"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Preview */}
+            <section className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+                <p className="text-sm font-extrabold text-[var(--brand-dark)]">Preview</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Live showcase URL used for thumbnails and catalog previews.
+                </p>
+              </div>
+              <div className="p-4 space-y-3">
+                <div>
+                  <label className={fieldLabelClass} htmlFor="wc-tpl-preview">
+                    Preview URL
+                  </label>
+                  <input
+                    id="wc-tpl-preview"
+                    className={fieldInputClass}
+                    value={templatePreviewUrl}
+                    onChange={(e) => setTemplatePreviewUrl(e.target.value)}
+                    placeholder={hubPreviewPlaceholder}
+                  />
+                  <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+                    Leave blank to use this hub’s site URL
+                    {previewBase ? (
+                      <>
+                        {' '}
+                        (<span className="font-mono text-gray-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                          {previewBase}
+                        </span>
+                      </>
+                    ) : null}
+                    .
+                  </p>
+                </div>
+                {editingTemplate && (
+                  <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-slate-50/70 px-3.5 py-3 cursor-pointer hover:bg-slate-50 transition">
+                    <input
+                      type="checkbox"
+                      checked={regeneratePreview}
+                      onChange={(e) => setRegeneratePreview(e.target.checked)}
+                      className="mt-0.5 rounded border-gray-300 text-[var(--brand)] focus:ring-[var(--brand)]"
+                    />
+                    <span>
+                      <span className="block text-sm font-bold text-gray-800">Regenerate preview thumbnail</span>
+                      <span className="block text-[11px] text-gray-500 mt-0.5">
+                        Capture a fresh thumbnail from the preview URL when you save.
+                      </span>
+                    </span>
+                  </label>
+                )}
+              </div>
+            </section>
 
             <ColorSchemesEditor
               schemes={templateColorSchemes}
               onChange={setTemplateColorSchemes}
             />
 
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={templateIsActive}
-                onChange={(e) => setTemplateIsActive(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              Active
-            </label>
-            {editingTemplate && (
-              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={regeneratePreview}
-                  onChange={(e) => setRegeneratePreview(e.target.checked)}
-                  className="rounded border-gray-300"
-                />
-                Regenerate preview thumbnail
-              </label>
-            )}
-            <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
+            {/* Availability */}
+            <section className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+                <p className="text-sm font-extrabold text-[var(--brand-dark)]">Availability</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Control whether requesters can select this template.
+                </p>
+              </div>
+              <div className="p-4">
+                <label className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-slate-50/70 px-3.5 py-3 cursor-pointer hover:bg-slate-50 transition">
+                  <span>
+                    <span className="block text-sm font-bold text-gray-800">Active in catalog</span>
+                    <span className="block text-[11px] text-gray-500 mt-0.5">
+                      Inactive templates stay hidden from deployment requests.
+                    </span>
+                  </span>
+                  <span className="relative inline-flex items-center shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={templateIsActive}
+                      onChange={(e) => setTemplateIsActive(e.target.checked)}
+                      className="peer sr-only"
+                    />
+                    <span
+                      className={`w-11 h-6 rounded-full transition ${
+                        templateIsActive ? 'bg-[var(--brand)]' : 'bg-gray-300'
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition ${
+                        templateIsActive ? 'translate-x-5' : ''
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <div className="pt-1 flex items-center justify-end gap-3 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => setShowTemplateModal(false)}
@@ -1026,7 +1137,11 @@ export default function WebsiteComplianceTemplatesPanel() {
                 disabled={isSavingTemplate}
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
               >
-                {isSavingTemplate ? 'Saving…' : 'Save'}
+                {isSavingTemplate
+                  ? 'Saving…'
+                  : editingTemplate
+                    ? 'Save changes'
+                    : 'Register template'}
               </button>
             </div>
           </form>
@@ -1220,6 +1335,39 @@ export default function WebsiteComplianceTemplatesPanel() {
             </form>
           )}
         </ModalShell>
+      )}
+
+      {showCreateModal && canRequest && (
+        <CreateDeploymentModal
+          advisors={advisors}
+          canAssignAdvisor={canAssignAdvisor}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={(newRequest) => {
+            setShowCreateModal(false)
+            setRequests((prev) => [newRequest, ...prev])
+            setMessage('Deployment request submitted successfully.')
+            setActiveTab('deployments')
+          }}
+        />
+      )}
+
+      {assignTarget && canAssignAdvisor && !isRequestedByAdvisor(assignTarget) && (
+        <AssignAdvisorModal
+          request={assignTarget}
+          advisors={advisors}
+          onClose={() => setAssignTarget(null)}
+          onAssigned={(updatedRequest) => {
+            setAssignTarget(null)
+            setRequests((prev) =>
+              prev.map((r) => (r.id === updatedRequest.id ? updatedRequest : r))
+            )
+            const advisorName =
+              updatedRequest.assigned_advisor?.name ||
+              updatedRequest.assignedAdvisor?.name ||
+              'Advisor'
+            setMessage(`Assigned this website to ${advisorName}.`)
+          }}
+        />
       )}
     </div>
   )

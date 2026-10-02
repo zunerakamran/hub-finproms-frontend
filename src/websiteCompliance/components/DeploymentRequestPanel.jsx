@@ -152,7 +152,7 @@ function BrandingUploadField({
   )
 }
 
-function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, onCreated }) {
+export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, onCreated }) {
   const { branding, hub, actingHub } = useHub()
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const domainPlaceholder = hubDomainPlaceholder(previewBase)
@@ -429,7 +429,7 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
 
 // ─── Assign advisor modal (for existing request) ──────────────────────────────
 
-function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
+export function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
   const [advisorId, setAdvisorId] = useState(
     String(request.assigned_advisor_id || request.advisor_id || '')
   )
@@ -508,7 +508,7 @@ function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
   )
 }
 
-function isRequestedByAdvisor(req) {
+export function isRequestedByAdvisor(req) {
   const requester = req.requested_by || req.requestedBy
   if (requester?.role) {
     return requester.role === 'advisor' || requester.role === 'editor'

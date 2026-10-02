@@ -15,6 +15,12 @@ export default function WebsiteComplianceDeployments() {
     can('wc_assign_website_templates') ||
     can('wc_view_all_deployments')
   const canAdmin = can('wc_manage_templates') || can('wc_deploy_websites')
+  const canViewDeployHub =
+    can('wc_deploy_websites') ||
+    can('wc_view_all_deployments') ||
+    can('wc_publish_live_content')
+  // Avoid two request tables: Deploy hub (admin panel) owns the list when available.
+  const showRequestPanel = canRequestOrView && !canViewDeployHub
   const canAccessPage =
     can('wc_view_all_deployments') ||
     can('wc_deploy_websites') ||
@@ -65,10 +71,12 @@ export default function WebsiteComplianceDeployments() {
           </p>
         </div>
       </div>
-      <div className="wc-app wc-surface space-y-8">
-        {canRequestOrView && <DeploymentRequestPanel />}
-        {canAdmin && <WebsiteComplianceTemplatesPanel />}
-        {!hubLoading && !canRequestOrView && !canAdmin && (
+      <div className="space-y-8">
+        {showRequestPanel && <DeploymentRequestPanel />}
+        {(canAdmin || canViewDeployHub) && (
+          <WebsiteComplianceTemplatesPanel includeRequestActions={canViewDeployHub} />
+        )}
+        {!hubLoading && !showRequestPanel && !canAdmin && !canViewDeployHub && (
           <p className="muted text-sm">
             You do not have site operations capabilities for Website Template Library.
           </p>

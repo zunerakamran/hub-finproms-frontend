@@ -9,7 +9,7 @@ import { COMPLIANCE_SUPPORTING_FILES_ACCEPT } from '../utils/complianceSupportin
 const PER_PAGE = 50
 
 export default function FirmDocuments() {
-  const { can, actingHubId } = useHub()
+  const { can, actingHubId, hub } = useHub()
   const [firms, setFirms] = useState([])
   const [firmId, setFirmId] = useState('')
   const [documents, setDocuments] = useState([])
@@ -27,6 +27,19 @@ export default function FirmDocuments() {
   const [members, setMembers] = useState([])
   const [savingRightsUserId, setSavingRightsUserId] = useState(null)
 
+  const isFirmHead = Boolean(
+    rights?.is_firm_head || hub?.firm_document_rights?.is_firm_head
+  )
+  // Hub-wide matrix users pick a firm; Head / member-grant users stay on their own firm.
+  const showFirmPicker = !isFirmHead && (
+    Boolean(hub?.firm_document_rights?.hub_wide?.can_view) ||
+    Boolean(hub?.firm_document_rights?.hub_wide?.can_add) ||
+    Boolean(hub?.firm_document_rights?.hub_wide?.can_delete) ||
+    Boolean(hub?.firm_document_rights?.hub_wide?.can_archive) ||
+    can('firm_documents_view') ||
+    can('firm_documents_add')
+  )
+
   const selectedFirm = useMemo(
     () => firms.find((f) => String(f.id) === String(firmId)) || null,
     [firms, firmId]
@@ -34,7 +47,31 @@ export default function FirmDocuments() {
 
   const loadFirms = async () => {
     try {
-      // Prefer firms list when user can manage/assign; otherwise rely on my-rights firm_id.
+      const mine = await api.firmDocumentsMyRights()
+      const ownFirmId = mine.rights?.firm_id
+      const head = Boolean(mine.rights?.is_firm_head)
+      if (mine.rights) setRights(mine.rights)
+
+      // Head of Firm: only their own firm — no multi-firm picker.
+      if (head && ownFirmId) {
+        setFirms([{ id: ownFirmId, name: 'My firm' }])
+        setFirmId(String(ownFirmId))
+        return
+      }
+
+      // Member with grants for one firm (no hub-wide matrix).
+      const hubWide = Boolean(
+        mine.rights?.hub_wide?.can_view ||
+          mine.rights?.hub_wide?.can_add ||
+          mine.rights?.hub_wide?.can_delete ||
+          mine.rights?.hub_wide?.can_archive
+      )
+      if (!hubWide && ownFirmId) {
+        setFirms([{ id: ownFirmId, name: 'My firm' }])
+        setFirmId(String(ownFirmId))
+        return
+      }
+
       let list = []
       try {
         const data = await api.listFirms({ page: 1, per_page: 100 })
@@ -42,11 +79,8 @@ export default function FirmDocuments() {
       } catch {
         list = []
       }
-      if (list.length === 0) {
-        const mine = await api.firmDocumentsMyRights()
-        if (mine.rights?.firm_id) {
-          list = [{ id: mine.rights.firm_id, name: 'My firm' }]
-        }
+      if (list.length === 0 && ownFirmId) {
+        list = [{ id: ownFirmId, name: 'My firm' }]
       }
       setFirms(list)
       if (!firmId && list[0]) {
@@ -74,8 +108,18 @@ export default function FirmDocuments() {
       })
       setDocuments(data.documents || [])
       setRights(data.rights || null)
-      if (data.firm && !firms.some((f) => f.id === data.firm.id)) {
-        setFirms((prev) => [...prev, data.firm])
+      if (data.firm) {
+        setFirms((prev) => {
+          if (isFirmHead || prev.length <= 1) {
+            return [data.firm]
+          }
+          if (prev.some((f) => String(f.id) === String(data.firm.id))) {
+            return prev.map((f) =>
+              String(f.id) === String(data.firm.id) ? data.firm : f
+            )
+          }
+          return [...prev, data.firm]
+        })
       }
     } catch (err) {
       setError(err.message)
@@ -237,18 +281,26 @@ export default function FirmDocuments() {
       ) : null}
 
       <div className="admin-form" style={{ marginBottom: '1rem' }}>
-        <label>
-          Firm
-          <select value={firmId} onChange={(e) => setFirmId(e.target.value)}>
-            <option value="">Select a firm</option>
-            {firms.map((firm) => (
-              <option key={firm.id} value={firm.id}>
-                {firm.name}
-                {firm.head_user?.name ? ` · Head: ${firm.head_user.name}` : ''}
-              </option>
-            ))}
-          </select>
-        </label>
+        {showFirmPicker ? (
+          <label>
+            Firm
+            <select value={firmId} onChange={(e) => setFirmId(e.target.value)}>
+              <option value="">Select a firm</option>
+              {firms.map((firm) => (
+                <option key={firm.id} value={firm.id}>
+                  {firm.name}
+                  {firm.head_user?.name ? ` · Head: ${firm.head_user.name}` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : selectedFirm || firmId ? (
+          <p className="muted" style={{ marginBottom: 0 }}>
+            Firm:{' '}
+            <strong>{selectedFirm?.name || 'My firm'}</strong>
+            {isFirmHead ? ' · You are the Head of Firm' : ''}
+          </p>
+        ) : null}
         <label>
           Show
           <select value={scope} onChange={(e) => setScope(e.target.value)}>
@@ -257,10 +309,9 @@ export default function FirmDocuments() {
             <option value="all">All</option>
           </select>
         </label>
-        {selectedFirm?.head_user ? (
+        {showFirmPicker && selectedFirm?.head_user ? (
           <p className="muted" style={{ marginBottom: 0 }}>
             Head of Firm: <strong>{selectedFirm.head_user.name}</strong> ({selectedFirm.head_user.email})
-            {rights?.is_firm_head ? ' · You are the head' : ''}
           </p>
         ) : null}
       </div>

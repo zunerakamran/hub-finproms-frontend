@@ -279,7 +279,7 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
   }
 
   const labelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
-  const inputClass = 'w-full text-sm p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] outline-none transition'
+  const inputClass = 'wc-field-input'
 
   return (
     <ModalShell

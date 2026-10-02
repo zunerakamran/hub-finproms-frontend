@@ -2,9 +2,6 @@ import { FaPlus, FaPalette, FaTrash } from 'react-icons/fa'
 
 /**
  * Helpers + UI pieces for website-template colour schemes.
- *
- * Power Admin can attach named primary/secondary schemes to a showcase template.
- * Request forms let users pick one of those schemes, or enter a custom pair.
  */
 
 export function emptyColorScheme(index = 0) {
@@ -31,8 +28,6 @@ export function templateColorSchemes(template) {
 }
 
 const fieldLabelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
-const fieldInputClass =
-  'w-full text-sm p-2.5 border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition'
 
 function SchemePreviewBar({ primary, secondary }) {
   return (
@@ -64,7 +59,7 @@ export function ColorSchemesEditor({ schemes, onChange, maxSchemes = 12 }) {
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-      <div className="flex items-start justify-between gap-3 px-4 py-3.5 bg-gradient-to-r from-slate-50 to-white border-b border-gray-100">
+      <div className="flex items-start justify-between gap-3 px-4 py-3.5 bg-slate-50 border-b border-gray-100">
         <div className="flex items-start gap-3 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-[color-mix(in_srgb,var(--brand)_12%,white)] text-[var(--brand-dark)] flex items-center justify-center shrink-0">
             <FaPalette className="w-4 h-4" aria-hidden="true" />
@@ -72,7 +67,7 @@ export function ColorSchemesEditor({ schemes, onChange, maxSchemes = 12 }) {
           <div className="min-w-0">
             <p className="text-sm font-extrabold text-[var(--brand-dark)]">Colour schemes</p>
             <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
-              Primary / secondary pairs that suit this template. Requesters pick one, or enter a custom scheme.
+              Primary / secondary pairs for this template. Requesters pick one, or enter a custom scheme.
             </p>
           </div>
         </div>
@@ -80,7 +75,7 @@ export function ColorSchemesEditor({ schemes, onChange, maxSchemes = 12 }) {
           type="button"
           onClick={addScheme}
           disabled={list.length >= maxSchemes}
-          className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-[var(--brand-dark)] text-white hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] disabled:opacity-50 transition shadow-sm"
+          className="wc-btn wc-btn--primary shrink-0 text-xs"
         >
           <FaPlus className="w-3 h-3" aria-hidden="true" />
           Add
@@ -92,7 +87,7 @@ export function ColorSchemesEditor({ schemes, onChange, maxSchemes = 12 }) {
           <button
             type="button"
             onClick={addScheme}
-            className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-slate-50/60 hover:border-[color-mix(in_srgb,var(--brand)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--brand)_4%,white)] transition px-4 py-8 text-center"
+            className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-slate-50/60 hover:border-[color-mix(in_srgb,var(--brand)_35%,transparent)] transition px-4 py-8 text-center"
           >
             <FaPalette className="w-6 h-6 text-slate-300 mx-auto mb-2" aria-hidden="true" />
             <p className="text-sm font-bold text-gray-600">No colour schemes yet</p>
@@ -109,7 +104,7 @@ export function ColorSchemesEditor({ schemes, onChange, maxSchemes = 12 }) {
             {list.map((scheme, index) => (
               <div
                 key={`scheme-${index}`}
-                className="rounded-xl border border-gray-200 bg-slate-50/40 p-3.5 space-y-3 hover:border-gray-300 transition"
+                className="rounded-xl border border-gray-200 bg-slate-50/40 p-3.5 space-y-3"
               >
                 <SchemePreviewBar primary={scheme.primary} secondary={scheme.secondary} />
 
@@ -139,8 +134,8 @@ export function ColorSchemesEditor({ schemes, onChange, maxSchemes = 12 }) {
                     type="text"
                     value={scheme.name}
                     onChange={(e) => updateAt(index, { name: e.target.value })}
-                    placeholder={`e.g. Classic Navy`}
-                    className={fieldInputClass}
+                    placeholder="e.g. Classic Navy"
+                    className="wc-field-input"
                     maxLength={100}
                   />
                 </div>
@@ -153,14 +148,14 @@ export function ColorSchemesEditor({ schemes, onChange, maxSchemes = 12 }) {
                         type="color"
                         value={/^#[0-9A-Fa-f]{6}$/.test(scheme.primary) ? scheme.primary : '#0B1B3D'}
                         onChange={(e) => updateAt(index, { primary: e.target.value })}
-                        className="w-10 h-10 p-0.5 border border-gray-200 rounded-xl cursor-pointer shrink-0 bg-white"
+                        className="wc-field-color"
                         aria-label={`Primary colour for scheme ${index + 1}`}
                       />
                       <input
                         type="text"
                         value={scheme.primary}
                         onChange={(e) => updateAt(index, { primary: e.target.value })}
-                        className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono bg-white focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
+                        className="wc-field-input wc-field-input--mono"
                       />
                     </div>
                   </div>
@@ -171,14 +166,14 @@ export function ColorSchemesEditor({ schemes, onChange, maxSchemes = 12 }) {
                         type="color"
                         value={/^#[0-9A-Fa-f]{6}$/.test(scheme.secondary) ? scheme.secondary : '#C8102E'}
                         onChange={(e) => updateAt(index, { secondary: e.target.value })}
-                        className="w-10 h-10 p-0.5 border border-gray-200 rounded-xl cursor-pointer shrink-0 bg-white"
+                        className="wc-field-color"
                         aria-label={`Secondary colour for scheme ${index + 1}`}
                       />
                       <input
                         type="text"
                         value={scheme.secondary}
                         onChange={(e) => updateAt(index, { secondary: e.target.value })}
-                        className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono bg-white focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
+                        className="wc-field-input wc-field-input--mono"
                       />
                     </div>
                   </div>
@@ -194,8 +189,6 @@ export function ColorSchemesEditor({ schemes, onChange, maxSchemes = 12 }) {
 
 /**
  * Request-form picker: choose a template scheme, or enter a custom primary/secondary.
- *
- * selectionKey: "0" | "1" | ... for scheme index, or "custom"
  */
 export function ColorSchemePicker({
   schemes,
@@ -291,15 +284,15 @@ export function ColorSchemePicker({
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                value={primaryColor}
+                value={/^#[0-9A-Fa-f]{6}$/.test(primaryColor) ? primaryColor : '#0B1B3D'}
                 onChange={(e) => onPrimaryChange(e.target.value)}
-                className="w-10 h-10 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
+                className="wc-field-color"
               />
               <input
                 type="text"
                 value={primaryColor}
                 onChange={(e) => onPrimaryChange(e.target.value)}
-                className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
+                className="wc-field-input wc-field-input--mono"
               />
             </div>
           </div>
@@ -310,15 +303,15 @@ export function ColorSchemePicker({
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                value={secondaryColor}
+                value={/^#[0-9A-Fa-f]{6}$/.test(secondaryColor) ? secondaryColor : '#C8102E'}
                 onChange={(e) => onSecondaryChange(e.target.value)}
-                className="w-10 h-10 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
+                className="wc-field-color"
               />
               <input
                 type="text"
                 value={secondaryColor}
                 onChange={(e) => onSecondaryChange(e.target.value)}
-                className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
+                className="wc-field-input wc-field-input--mono"
               />
             </div>
           </div>

@@ -55,8 +55,7 @@ function resolveAdvisorSiteUrl(req) {
 }
 
 const fieldLabelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
-const fieldInputClass =
-  'w-full text-sm p-2.5 border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] transition'
+const fieldInputClass = 'wc-field-input'
 
 function storedUploadPath(data) {
   const path = data?.relative_url || data?.url || ''
@@ -595,15 +594,15 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
           <div className="flex items-center gap-2">
             <input
               type="color"
-              value={primaryColor}
+              value={/^#[0-9A-Fa-f]{6}$/.test(primaryColor) ? primaryColor : '#0B1B3D'}
               onChange={(e) => setPrimaryColor(e.target.value)}
-              className="w-10 h-10 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
+              className="wc-field-color"
             />
             <input
               type="text"
               value={primaryColor}
               onChange={(e) => setPrimaryColor(e.target.value)}
-              className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
+              className="wc-field-input wc-field-input--mono"
             />
           </div>
         </div>
@@ -612,15 +611,15 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
           <div className="flex items-center gap-2">
             <input
               type="color"
-              value={secondaryColor}
+              value={/^#[0-9A-Fa-f]{6}$/.test(secondaryColor) ? secondaryColor : '#C8102E'}
               onChange={(e) => setSecondaryColor(e.target.value)}
-              className="w-10 h-10 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
+              className="wc-field-color"
             />
             <input
               type="text"
               value={secondaryColor}
               onChange={(e) => setSecondaryColor(e.target.value)}
-              className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
+              className="wc-field-input wc-field-input--mono"
             />
           </div>
         </div>
@@ -701,158 +700,155 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
   return (
     <div className="space-y-4">
       {message && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm px-4 py-3">
-          {message}
-        </div>
+        <div className="alert success">{message}</div>
       )}
       {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm px-4 py-3">{error}</div>
+        <div className="alert">{error}</div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-                activeTab === tab.id ? 'bg-[var(--brand-dark)] text-white' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        {activeTab === 'templates' ? (
+      <div className="library-tabs" role="tablist" aria-label="Site operations">
+        {tabs.map((tab) => (
           <button
+            key={tab.id}
             type="button"
-            onClick={() => fetchData(true)}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`library-tabs__btn${activeTab === tab.id ? ' is-active' : ''}`}
           >
-            <FaSync className="w-3 h-3" />
-            Refresh
+            {tab.label}
           </button>
-        ) : null}
+        ))}
       </div>
 
       {activeTab === 'templates' && canManageTemplates ? (
-        loading ? (
-          <p className="text-sm text-gray-500">Loading…</p>
-        ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-[var(--brand-dark)]">Showcase templates</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Register and edit templates available for deployments.</p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="wc-icon-field w-full sm:w-64">
-                <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
-                <input
-                  type="search"
-                  placeholder="Search templates…"
-                  value={templateSearch}
-                  onChange={(e) => setTemplateSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)]"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={openCreateTemplateModal}
-                className="inline-flex items-center gap-1.5 bg-[var(--brand-dark)] text-white text-xs font-bold px-3 py-2 rounded-lg"
-              >
-                <FaPlus className="w-3 h-3" />
-                Register
-              </button>
-            </div>
-          </div>
-          <div className="p-5">
-            {filteredTemplates.length === 0 ? (
-              <div className="py-12 text-center text-sm text-gray-500">No templates yet.</div>
-            ) : (
-              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {filteredTemplates.map((tpl) => (
-                  <article key={tpl.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[color-mix(in_srgb,var(--brand-dark)_25%,transparent)] hover:shadow-md transition-all duration-300">
-                    <TemplateScrollPreview
-                      template={tpl}
-                      className="h-40 w-full"
-                      overlay={
-                        <>
-                          <div className="absolute top-3 left-3 bg-[color-mix(in_srgb,var(--brand-dark)_90%,transparent)] text-white font-mono text-[10px] font-bold px-2 py-1 rounded-md z-10 pointer-events-none">
-                            {tpl.slug}
-                          </div>
-                          <div className="absolute top-3 right-3 z-10 pointer-events-none">
-                            {tpl.is_active ? (
-                              <span className="inline-flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">
-                                <FaCheckCircle className="w-2.5 h-2.5" /> Active
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 bg-gray-500 text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">
-                                <FaEyeSlash className="w-2.5 h-2.5" /> Disabled
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      }
+        <div className="wc-app">
+          {loading ? (
+            <p className="text-sm text-gray-500">Loading…</p>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-[var(--brand-dark)]">Showcase templates</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">Register and edit templates available for deployments.</p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="wc-icon-field w-full sm:w-64">
+                    <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
+                    <input
+                      type="search"
+                      placeholder="Search templates…"
+                      value={templateSearch}
+                      onChange={(e) => setTemplateSearch(e.target.value)}
+                      className="wc-field-input"
                     />
-                    <div className="p-4 flex-1 flex flex-col">
-                      <h3 className="font-extrabold text-[var(--brand-dark)]">{tpl.name}</h3>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">
-                        {truncateRichText(tpl.description, 120) || 'No description.'}
-                      </p>
-                      {Array.isArray(tpl.color_schemes) && tpl.color_schemes.length > 0 && (
-                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                          <FaPalette className="w-3 h-3 text-gray-400 shrink-0" aria-hidden="true" />
-                          {tpl.color_schemes.slice(0, 5).map((scheme, i) => (
-                            <span key={`swatch-${tpl.id}-${i}`} className="inline-flex items-center gap-0.5" title={scheme.name || `Scheme ${i + 1}`}>
-                              <span
-                                className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
-                                style={{ backgroundColor: scheme.primary || '#0B1B3D' }}
-                              />
-                              <span
-                                className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
-                                style={{ backgroundColor: scheme.secondary || '#C8102E' }}
-                              />
-                            </span>
-                          ))}
-                          {tpl.color_schemes.length > 5 && (
-                            <span className="text-[10px] font-bold text-gray-400">+{tpl.color_schemes.length - 5}</span>
-                          )}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                        <button
-                          type="button"
-                          onClick={() => openEditTemplateModal(tpl)}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[var(--brand-dark)] bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-lg transition"
-                        >
-                          <FaEdit className="w-3 h-3" /> Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTemplate(tpl)}
-                          className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-lg transition"
-                          aria-label={`Delete ${tpl.name}`}
-                        >
-                          <FaTrash className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fetchData(true)}
+                    className="wc-btn wc-btn--soft text-xs"
+                  >
+                    <FaSync className="w-3 h-3" />
+                    Refresh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openCreateTemplateModal}
+                    className="wc-btn wc-btn--primary text-xs"
+                  >
+                    <FaPlus className="w-3 h-3" />
+                    Register
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
+              <div className="p-5">
+                {filteredTemplates.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-500">No templates yet.</div>
+                ) : (
+                  <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {filteredTemplates.map((tpl) => (
+                      <article key={tpl.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[color-mix(in_srgb,var(--brand-dark)_25%,transparent)] hover:shadow-md transition-all duration-300">
+                        <TemplateScrollPreview
+                          template={tpl}
+                          className="h-40 w-full"
+                          overlay={
+                            <>
+                              <div className="absolute top-3 left-3 bg-[color-mix(in_srgb,var(--brand-dark)_90%,transparent)] text-white font-mono text-[10px] font-bold px-2 py-1 rounded-md z-10 pointer-events-none">
+                                {tpl.slug}
+                              </div>
+                              <div className="absolute top-3 right-3 z-10 pointer-events-none">
+                                {tpl.is_active ? (
+                                  <span className="inline-flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">
+                                    <FaCheckCircle className="w-2.5 h-2.5" /> Active
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 bg-gray-500 text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">
+                                    <FaEyeSlash className="w-2.5 h-2.5" /> Disabled
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          }
+                        />
+                        <div className="p-4 flex-1 flex flex-col">
+                          <h3 className="font-extrabold text-[var(--brand-dark)]">{tpl.name}</h3>
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">
+                            {truncateRichText(tpl.description, 120) || 'No description.'}
+                          </p>
+                          {Array.isArray(tpl.color_schemes) && tpl.color_schemes.length > 0 && (
+                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                              <FaPalette className="w-3 h-3 text-gray-400 shrink-0" aria-hidden="true" />
+                              {tpl.color_schemes.slice(0, 5).map((scheme, i) => (
+                                <span key={`swatch-${tpl.id}-${i}`} className="inline-flex items-center gap-0.5" title={scheme.name || `Scheme ${i + 1}`}>
+                                  <span
+                                    className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
+                                    style={{ backgroundColor: scheme.primary || '#0B1B3D' }}
+                                  />
+                                  <span
+                                    className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
+                                    style={{ backgroundColor: scheme.secondary || '#C8102E' }}
+                                  />
+                                </span>
+                              ))}
+                              {tpl.color_schemes.length > 5 && (
+                                <span className="text-[10px] font-bold text-gray-400">+{tpl.color_schemes.length - 5}</span>
+                              )}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                            <button
+                              type="button"
+                              onClick={() => openEditTemplateModal(tpl)}
+                              className="wc-btn wc-btn--soft flex-1 text-xs"
+                            >
+                              <FaEdit className="w-3 h-3" /> Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTemplate(tpl)}
+                              className="wc-btn text-xs"
+                              style={{ background: '#fff1f2', color: '#e11d48', borderColor: '#fecdd3' }}
+                              aria-label={`Delete ${tpl.name}`}
+                            >
+                              <FaTrash className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-        )
       ) : null}
 
       {activeTab === 'deployments' && canViewDeployments ? (
         <div>
           <div className="mb-4">
-            <h2 className="text-lg font-bold text-[var(--brand-dark)]">Deployment hub</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h2 style={{ margin: 0, fontSize: '1.15rem' }}>Deployment hub</h2>
+            <p className="muted" style={{ marginTop: 4, fontSize: '0.85rem' }}>
               {canDeployWebsites
                 ? 'Deploy templates to cPanel and manage live section visibility.'
                 : 'View deployment requests across the hub.'}
@@ -972,170 +968,123 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
           onClose={() => setShowTemplateModal(false)}
           maxWidth="max-w-2xl"
         >
-          <form onSubmit={handleSaveTemplate} className="space-y-6">
-            {/* Catalog details */}
-            <section className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
-                <p className="text-sm font-extrabold text-[var(--brand-dark)]">Catalog details</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  Name and slug identify this template in the library.
-                </p>
-              </div>
-              <div className="p-4 space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className={fieldLabelClass} htmlFor="wc-tpl-name">
-                      <RequiredMark>Name</RequiredMark>
-                    </label>
-                    <input
-                      id="wc-tpl-name"
-                      className={fieldInputClass}
-                      value={templateName}
-                      onChange={(e) => setTemplateName(e.target.value)}
-                      placeholder="Template 4 (Complete Financial Centre)"
-                      required
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={fieldLabelClass} htmlFor="wc-tpl-slug">
-                      Slug
-                      <span className="ml-1.5 font-normal text-gray-400">(optional — auto from name)</span>
-                    </label>
-                    <input
-                      id="wc-tpl-slug"
-                      className={`${fieldInputClass} font-mono`}
-                      value={templateSlug}
-                      onChange={(e) => setTemplateSlug(e.target.value)}
-                      placeholder="template4"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={fieldLabelClass} htmlFor="wc-tpl-desc">
-                      Description
-                      <span className="ml-1.5 font-normal text-gray-400">(shown in catalog)</span>
-                    </label>
-                    <RichTextEditor
-                      id="wc-tpl-desc"
-                      className={fieldInputClass}
-                      rows={3}
-                      value={templateDesc}
-                      onChange={setTemplateDesc}
-                      placeholder="Short summary shown in the template catalog"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
+          <form onSubmit={handleSaveTemplate} className="space-y-5">
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-tpl-name">
+                <RequiredMark>Name</RequiredMark>
+              </label>
+              <input
+                id="wc-tpl-name"
+                type="text"
+                className="wc-field-input"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="Template 4 (Complete Financial Centre)"
+                required
+                autoFocus
+              />
+            </div>
 
-            {/* Preview */}
-            <section className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
-                <p className="text-sm font-extrabold text-[var(--brand-dark)]">Preview</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  Live showcase URL used for thumbnails and catalog previews.
-                </p>
-              </div>
-              <div className="p-4 space-y-3">
-                <div>
-                  <label className={fieldLabelClass} htmlFor="wc-tpl-preview">
-                    Preview URL
-                  </label>
-                  <input
-                    id="wc-tpl-preview"
-                    className={fieldInputClass}
-                    value={templatePreviewUrl}
-                    onChange={(e) => setTemplatePreviewUrl(e.target.value)}
-                    placeholder={hubPreviewPlaceholder}
-                  />
-                  <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
-                    Leave blank to use this hub’s site URL
-                    {previewBase ? (
-                      <>
-                        {' '}
-                        (<span className="font-mono text-gray-600 bg-slate-100 px-1.5 py-0.5 rounded">
-                          {previewBase}
-                        </span>
-                      </>
-                    ) : null}
-                    .
-                  </p>
-                </div>
-                {editingTemplate && (
-                  <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-slate-50/70 px-3.5 py-3 cursor-pointer hover:bg-slate-50 transition">
-                    <input
-                      type="checkbox"
-                      checked={regeneratePreview}
-                      onChange={(e) => setRegeneratePreview(e.target.checked)}
-                      className="mt-0.5 rounded border-gray-300 text-[var(--brand)] focus:ring-[var(--brand)]"
-                    />
-                    <span>
-                      <span className="block text-sm font-bold text-gray-800">Regenerate preview thumbnail</span>
-                      <span className="block text-[11px] text-gray-500 mt-0.5">
-                        Capture a fresh thumbnail from the preview URL when you save.
-                      </span>
-                    </span>
-                  </label>
-                )}
-              </div>
-            </section>
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-tpl-slug">
+                Slug <span className="font-normal text-gray-400">(optional — auto from name)</span>
+              </label>
+              <input
+                id="wc-tpl-slug"
+                type="text"
+                className="wc-field-input wc-field-input--mono"
+                value={templateSlug}
+                onChange={(e) => setTemplateSlug(e.target.value)}
+                placeholder="template4"
+              />
+            </div>
+
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-tpl-desc">
+                Description <span className="font-normal text-gray-400">(shown in catalog)</span>
+              </label>
+              <RichTextEditor
+                id="wc-tpl-desc"
+                rows={3}
+                value={templateDesc}
+                onChange={setTemplateDesc}
+                placeholder="Short summary shown in the template catalog"
+              />
+            </div>
+
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-tpl-preview">
+                Preview URL
+              </label>
+              <input
+                id="wc-tpl-preview"
+                type="url"
+                className="wc-field-input"
+                value={templatePreviewUrl}
+                onChange={(e) => setTemplatePreviewUrl(e.target.value)}
+                placeholder={hubPreviewPlaceholder}
+              />
+              <p className="text-[11px] text-gray-500 mt-1.5">
+                Leave blank to use this hub’s site URL
+                {previewBase ? (
+                  <>
+                    {' '}
+                    (<span className="font-mono text-gray-600">{previewBase}</span>)
+                  </>
+                ) : null}
+                .
+              </p>
+            </div>
 
             <ColorSchemesEditor
               schemes={templateColorSchemes}
               onChange={setTemplateColorSchemes}
             />
 
-            {/* Availability */}
-            <section className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
-                <p className="text-sm font-extrabold text-[var(--brand-dark)]">Availability</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  Control whether requesters can select this template.
-                </p>
-              </div>
-              <div className="p-4">
-                <label className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-slate-50/70 px-3.5 py-3 cursor-pointer hover:bg-slate-50 transition">
-                  <span>
-                    <span className="block text-sm font-bold text-gray-800">Active in catalog</span>
-                    <span className="block text-[11px] text-gray-500 mt-0.5">
-                      Inactive templates stay hidden from deployment requests.
-                    </span>
-                  </span>
-                  <span className="relative inline-flex items-center shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={templateIsActive}
-                      onChange={(e) => setTemplateIsActive(e.target.checked)}
-                      className="peer sr-only"
-                    />
-                    <span
-                      className={`w-11 h-6 rounded-full transition ${
-                        templateIsActive ? 'bg-[var(--brand)]' : 'bg-gray-300'
-                      }`}
-                      aria-hidden="true"
-                    />
-                    <span
-                      className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition ${
-                        templateIsActive ? 'translate-x-5' : ''
-                      }`}
-                      aria-hidden="true"
-                    />
-                  </span>
-                </label>
-              </div>
-            </section>
+            <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-slate-50 px-3.5 py-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={templateIsActive}
+                onChange={(e) => setTemplateIsActive(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="block text-sm font-bold text-gray-800">Active in catalog</span>
+                <span className="block text-[11px] text-gray-500 mt-0.5">
+                  Inactive templates stay hidden from deployment requests.
+                </span>
+              </span>
+            </label>
 
-            <div className="pt-1 flex items-center justify-end gap-3 border-t border-gray-100">
+            {editingTemplate && (
+              <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-slate-50 px-3.5 py-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={regeneratePreview}
+                  onChange={(e) => setRegeneratePreview(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="block text-sm font-bold text-gray-800">Regenerate preview thumbnail</span>
+                  <span className="block text-[11px] text-gray-500 mt-0.5">
+                    Capture a fresh thumbnail from the preview URL when you save.
+                  </span>
+                </span>
+              </label>
+            )}
+
+            <div className="pt-2 flex items-center justify-end gap-3 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => setShowTemplateModal(false)}
-                className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+                className="wc-btn wc-btn--ghost"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSavingTemplate}
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
+                className="wc-btn wc-btn--primary"
               >
                 {isSavingTemplate
                   ? 'Saving…'

@@ -3,24 +3,19 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import {
   FaCheckCircle,
-  FaCog,
   FaEdit,
   FaEyeSlash,
   FaGlobe,
   FaImage,
-  FaLayerGroup,
   FaPalette,
-  FaPen,
   FaPlus,
-  FaRocket,
   FaSearch,
   FaSync,
   FaTimes,
   FaTrash,
-  FaUserCheck,
 } from 'react-icons/fa'
 import { useHub } from '../../context/HubContext'
-import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
+import DataGrid, { DataGridDate } from '../../components/DataGrid'
 import FileDropzone from '../../components/FileDropzone'
 import RequiredMark from '../../components/RequiredMark'
 import RichTextEditor from '../../components/RichTextEditor'
@@ -899,6 +894,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
             pageSize={10}
             emptyMessage="No deployment requests."
             actionsLabel="Actions"
+            actionsMinWidth="16rem"
             actions={(row) => {
               const isDeployed = row.status === 'deployed'
               const advisorOwned = isRequestedByAdvisor(row)
@@ -910,47 +906,59 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                 (isDeployed && canManageSections) ||
                 canDeployWebsites
               if (!hasAction) return <span className="muted">—</span>
+              const compactBtn = { padding: '0.35rem 0.7rem', fontSize: '0.75rem', minHeight: 0 }
               return (
-                <>
+                <span className="data-grid__actions-inner" style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
                   {showAssignAdvisor ? (
-                    <DataGridIconBtn
-                      icon={FaUserCheck}
-                      label={assignedAdvisor ? 'Reassign advisor' : 'Assign advisor'}
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      style={compactBtn}
                       onClick={() => setAssignTarget(row)}
-                    />
+                    >
+                      {assignedAdvisor ? 'Reassign' : 'Assign'}
+                    </button>
                   ) : null}
                   {isDeployed && canPublishLive ? (
-                    <DataGridIconBtn
-                      icon={FaPen}
-                      label="Edit & publish"
-                      variant="primary"
-                      as={Link}
+                    <Link
+                      className="btn primary"
+                      style={compactBtn}
                       to={`/my-dashboard/website-compliance/publish/${row.id}`}
-                    />
+                    >
+                      Edit
+                    </Link>
                   ) : null}
                   {isDeployed && canManageSections ? (
-                    <DataGridIconBtn
-                      icon={FaLayerGroup}
-                      label="Manage sections"
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      style={compactBtn}
                       onClick={() => openSectionManageModal(row)}
-                    />
+                    >
+                      Sections
+                    </button>
                   ) : null}
                   {canDeployWebsites && isDeployed ? (
-                    <DataGridIconBtn
-                      icon={FaPalette}
-                      label="Update branding"
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      style={compactBtn}
                       onClick={() => openBrandingModal(row)}
-                    />
+                    >
+                      Branding
+                    </button>
                   ) : null}
                   {canDeployWebsites ? (
-                    <DataGridIconBtn
-                      icon={isDeployed ? FaCog : FaRocket}
-                      label={isDeployed ? 'Update deployment' : 'Deploy'}
-                      variant="primary"
+                    <button
+                      type="button"
+                      className="btn primary"
+                      style={compactBtn}
                       onClick={() => openDeployModal(row)}
-                    />
+                    >
+                      {isDeployed ? 'Update' : 'Deploy'}
+                    </button>
                   ) : null}
-                </>
+                </span>
               )
             }}
           />

@@ -166,11 +166,26 @@ export function HubProvider({ children }) {
 
   const can = useCallback(
     (flag) => {
+      const firmDocRight = (key) => {
+        const fdr = hub?.firm_document_rights
+        if (!fdr?.functionality_enabled) return false
+        if (key === 'firm_documents_view') return Boolean(fdr.can_view)
+        if (key === 'firm_documents_add') return Boolean(fdr.can_add)
+        if (key === 'firm_documents_delete') return Boolean(fdr.can_delete)
+        if (key === 'firm_documents_archive') return Boolean(fdr.can_archive)
+        return false
+      }
+
       // Authenticated viewers must use role-resolved caps — never the hub-wide
       // OR checklist (that would show tools unchecked for this role).
       if (hub?.effective_capabilities) {
         if (Object.prototype.hasOwnProperty.call(hub.effective_capabilities, flag)) {
-          return Boolean(hub.effective_capabilities[flag])
+          if (Boolean(hub.effective_capabilities[flag])) return true
+          // Matrix cell off: still unlock via Head of Firm / member grants.
+          if (String(flag).startsWith('firm_documents_')) {
+            return firmDocRight(flag)
+          }
+          return false
         }
         // Unknown capability key while logged in → deny dashboard/member tools.
         if (
@@ -180,12 +195,18 @@ export function HubProvider({ children }) {
           String(flag).startsWith('smc_') ||
           String(flag).startsWith('gc_') ||
           String(flag).startsWith('wc_') ||
+          String(flag).startsWith('firm_documents_') ||
           String(flag).startsWith('module_') ||
           flag === 'advisor_excel_import' ||
           flag === 'advisor_discontinue'
         ) {
+          if (String(flag).startsWith('firm_documents_')) {
+            return firmDocRight(flag)
+          }
           return false
         }
+      } else if (String(flag).startsWith('firm_documents_')) {
+        return firmDocRight(flag)
       }
       return Boolean(hub?.checklist?.[flag])
     },

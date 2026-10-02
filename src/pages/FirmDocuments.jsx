@@ -14,7 +14,7 @@ export default function FirmDocuments() {
   const [firmId, setFirmId] = useState('')
   const [documents, setDocuments] = useState([])
   const [rights, setRights] = useState(null)
-  const [scope, setScope] = useState('active')
+  const [scope, setScope] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -309,9 +309,8 @@ export default function FirmDocuments() {
         <label>
           Show
           <select value={scope} onChange={(e) => setScope(e.target.value)}>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
             <option value="all">All</option>
+            <option value="archived">Archived</option>
           </select>
         </label>
         {showFirmPicker && selectedFirm?.head_user ? (

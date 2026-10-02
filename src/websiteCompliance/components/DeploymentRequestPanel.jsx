@@ -7,6 +7,7 @@ import {
   FaUserCheck,
   FaExclamationTriangle,
   FaImage,
+  FaRocket,
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
@@ -17,6 +18,7 @@ import { formatDateTime } from '../../utils/dateFormat'
 import FileDropzone from '../../components/FileDropzone'
 import RequiredMark from '../../components/RequiredMark'
 import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
+import { ColorSchemePicker, templateColorSchemes } from './ColorSchemeFields'
 
 // ─── Alert banner ─────────────────────────────────────────────────────────────
 
@@ -169,6 +171,7 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
   const [uploadingFavicon, setUploadingFavicon] = useState(false)
   const [primaryColor, setPrimaryColor] = useState(hubPrimary)
   const [secondaryColor, setSecondaryColor] = useState(hubSecondary)
+  const [colorSchemeKey, setColorSchemeKey] = useState('custom')
   const [assignedAdvisorId, setAssignedAdvisorId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -177,13 +180,45 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
   useEffect(() => {
     api.get('/templates').then(res => {
       const list = Array.isArray(res.data) ? res.data : res.data.data || []
-      if (list.length) setServerTemplates(list)
+      if (list.length) {
+        setServerTemplates(list)
+        const first = list[0]
+        const slug = first.slug || first.name
+        if (slug) setTemplateName(slug)
+        const schemes = templateColorSchemes(first)
+        if (schemes.length) {
+          setColorSchemeKey('0')
+          setPrimaryColor(schemes[0].primary)
+          setSecondaryColor(schemes[0].secondary)
+        } else {
+          setColorSchemeKey('custom')
+          setPrimaryColor(hubPrimary)
+          setSecondaryColor(hubSecondary)
+        }
+      }
     }).catch(() => {})
-  }, [])
+  }, [hubPrimary, hubSecondary])
 
   const templateOptions = serverTemplates.length
-    ? serverTemplates.map(t => ({ value: t.slug || t.name, label: t.name }))
-    : TEMPLATES
+    ? serverTemplates.map(t => ({ value: t.slug || t.name, label: t.name, template: t }))
+    : TEMPLATES.map(t => ({ ...t, template: null }))
+
+  const selectedTemplate =
+    serverTemplates.find(t => (t.slug || t.name) === templateName) || null
+  const availableSchemes = templateColorSchemes(selectedTemplate)
+
+  const applyTemplateSchemes = (tpl) => {
+    const schemes = templateColorSchemes(tpl)
+    if (schemes.length) {
+      setColorSchemeKey('0')
+      setPrimaryColor(schemes[0].primary)
+      setSecondaryColor(schemes[0].secondary)
+    } else {
+      setColorSchemeKey('custom')
+      setPrimaryColor(hubPrimary)
+      setSecondaryColor(hubSecondary)
+    }
+  }
 
   const uploadAsset = async (file, kind) => {
     const setters = {
@@ -264,7 +299,12 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
           <label className={labelClass}>Template</label>
           <select
             value={templateName}
-            onChange={e => setTemplateName(e.target.value)}
+            onChange={e => {
+              const next = e.target.value
+              setTemplateName(next)
+              const tpl = serverTemplates.find(t => (t.slug || t.name) === next)
+              applyTemplateSchemes(tpl)
+            }}
             className={inputClass}
           >
             {templateOptions.map(t => (
@@ -326,43 +366,16 @@ function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, on
           />
         </div>
 
-        {/* Colors */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Primary Color</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={primaryColor}
-                onChange={e => setPrimaryColor(e.target.value)}
-                className="w-10 h-10 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
-              />
-              <input
-                type="text"
-                value={primaryColor}
-                onChange={e => setPrimaryColor(e.target.value)}
-                className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
-              />
-            </div>
-          </div>
-          <div>
-            <label className={labelClass}>Secondary Color</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={secondaryColor}
-                onChange={e => setSecondaryColor(e.target.value)}
-                className="w-10 h-10 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
-              />
-              <input
-                type="text"
-                value={secondaryColor}
-                onChange={e => setSecondaryColor(e.target.value)}
-                className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
-              />
-            </div>
-          </div>
-        </div>
+        <ColorSchemePicker
+          schemes={availableSchemes}
+          selectionKey={colorSchemeKey}
+          onSelectionChange={setColorSchemeKey}
+          primaryColor={primaryColor}
+          secondaryColor={secondaryColor}
+          onPrimaryChange={setPrimaryColor}
+          onSecondaryChange={setSecondaryColor}
+          labelClass={labelClass}
+        />
 
         {/* Assign Advisor — managers with assign capability only; required */}
         {canAssignAdvisor && (

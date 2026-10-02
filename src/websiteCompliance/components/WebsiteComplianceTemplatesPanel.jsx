@@ -32,6 +32,7 @@ import { truncateRichText } from '../../utils/richText'
 import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
 import { sectionDisplayName } from '../utils/sectionDisplay'
 import TemplateScrollPreview from './TemplateScrollPreview'
+import { ColorSchemesEditor, normalizeColorSchemes } from './ColorSchemeFields'
 import api from '../wcApi'
 
 function normalizeSiteUrl(value) {
@@ -225,6 +226,7 @@ export default function WebsiteComplianceTemplatesPanel() {
   const [templateDesc, setTemplateDesc] = useState('')
   const [templatePreviewUrl, setTemplatePreviewUrl] = useState('')
   const [templateIsActive, setTemplateIsActive] = useState(true)
+  const [templateColorSchemes, setTemplateColorSchemes] = useState([])
   const [regeneratePreview, setRegeneratePreview] = useState(false)
   const [isSavingTemplate, setIsSavingTemplate] = useState(false)
 
@@ -316,6 +318,7 @@ export default function WebsiteComplianceTemplatesPanel() {
     setTemplatePreviewUrl('')
     setRegeneratePreview(false)
     setTemplateIsActive(true)
+    setTemplateColorSchemes([])
     setShowTemplateModal(true)
   }
 
@@ -327,6 +330,7 @@ export default function WebsiteComplianceTemplatesPanel() {
     setTemplatePreviewUrl(tpl.preview_url || defaultTemplatePreviewUrl(tpl.slug, previewBase))
     setRegeneratePreview(false)
     setTemplateIsActive(Boolean(tpl.is_active))
+    setTemplateColorSchemes(normalizeColorSchemes(tpl.color_schemes))
     setShowTemplateModal(true)
   }
 
@@ -343,6 +347,7 @@ export default function WebsiteComplianceTemplatesPanel() {
         description: templateDesc,
         preview_url: templatePreviewUrl || defaultTemplatePreviewUrl(templateSlug, previewBase),
         is_active: templateIsActive,
+        color_schemes: normalizeColorSchemes(templateColorSchemes),
       }
       if (editingTemplate) {
         if (regeneratePreview) payload.regenerate_preview = true
@@ -737,6 +742,26 @@ export default function WebsiteComplianceTemplatesPanel() {
                       <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">
                         {truncateRichText(tpl.description, 120) || 'No description.'}
                       </p>
+                      {Array.isArray(tpl.color_schemes) && tpl.color_schemes.length > 0 && (
+                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                          <FaPalette className="w-3 h-3 text-gray-400 shrink-0" aria-hidden="true" />
+                          {tpl.color_schemes.slice(0, 5).map((scheme, i) => (
+                            <span key={`swatch-${tpl.id}-${i}`} className="inline-flex items-center gap-0.5" title={scheme.name || `Scheme ${i + 1}`}>
+                              <span
+                                className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
+                                style={{ backgroundColor: scheme.primary || '#0B1B3D' }}
+                              />
+                              <span
+                                className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
+                                style={{ backgroundColor: scheme.secondary || '#C8102E' }}
+                              />
+                            </span>
+                          ))}
+                          {tpl.color_schemes.length > 5 && (
+                            <span className="text-[10px] font-bold text-gray-400">+{tpl.color_schemes.length - 5}</span>
+                          )}
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                         <button
                           type="button"
@@ -899,7 +924,7 @@ export default function WebsiteComplianceTemplatesPanel() {
               : "Add a template to this hub's Website Template Library catalog."
           }
           onClose={() => setShowTemplateModal(false)}
-          maxWidth="max-w-xl"
+          maxWidth="max-w-2xl"
         >
           <form onSubmit={handleSaveTemplate} className="space-y-5">
             <div>
@@ -962,6 +987,12 @@ export default function WebsiteComplianceTemplatesPanel() {
                 .
               </p>
             </div>
+
+            <ColorSchemesEditor
+              schemes={templateColorSchemes}
+              onChange={setTemplateColorSchemes}
+            />
+
             <label className="inline-flex items-center gap-2 text-sm text-gray-700">
               <input
                 type="checkbox"

@@ -10,6 +10,7 @@ import RichTextDisplay from '../components/RichTextDisplay'
 import SectionIframePreview from './components/SectionIframePreview'
 import TemplateScrollPreview from './components/TemplateScrollPreview'
 import ImageFieldPicker from './components/ImageFieldPicker'
+import { ColorSchemePicker, templateColorSchemes } from './components/ColorSchemeFields'
 import { parseJson } from './utils/parseJson'
 import { sectionDisplayName, sectionTemplateKey } from './utils/sectionDisplay'
 import {
@@ -1289,6 +1290,7 @@ export default function AdvisorDashboard({
   const [uploadingFavicon, setUploadingFavicon] = useState(false)
   const [primaryColor, setPrimaryColor] = useState(sitePrimaryDefault)
   const [secondaryColor, setSecondaryColor] = useState(siteSecondaryDefault)
+  const [colorSchemeKey, setColorSchemeKey] = useState('custom')
   const [isSubmittingTemplate, setIsSubmittingTemplate] = useState(false)
   const [selectedDeploymentId, setSelectedDeploymentId] = useState(null)
   const [uploadingState, setUploadingState] = useState({})
@@ -2015,7 +2017,23 @@ export default function AdvisorDashboard({
   }, [templateRequests, selectedDeploymentId])
 
   const openDeploymentModal = (templateSlug, switchToDeployments = false) => {
-    if (templateSlug) setSelectedTemplateName(templateSlug)
+    const slug = templateSlug || selectedTemplateName
+    if (slug) setSelectedTemplateName(slug)
+    const tpl =
+      availableTemplates.find((t) => t.slug === slug) ||
+      availableTemplates.find((t) => t.slug === selectedTemplateName) ||
+      availableTemplates[0] ||
+      null
+    const schemes = templateColorSchemes(tpl)
+    if (schemes.length) {
+      setColorSchemeKey('0')
+      setPrimaryColor(schemes[0].primary)
+      setSecondaryColor(schemes[0].secondary)
+    } else {
+      setColorSchemeKey('custom')
+      setPrimaryColor(sitePrimaryDefault)
+      setSecondaryColor(siteSecondaryDefault)
+    }
     // From content editor, send users to the dedicated request-site page
     if (forcedTab === 'editor' && switchToDeployments) {
       navigate(WC_TAB_ROUTES.templates)
@@ -5404,7 +5422,21 @@ export default function AdvisorDashboard({
                 <label className={labelClass}>Showcase Template</label>
                 <select
                   value={selectedTemplateName}
-                  onChange={e => setSelectedTemplateName(e.target.value)}
+                  onChange={e => {
+                    const next = e.target.value
+                    setSelectedTemplateName(next)
+                    const tpl = availableTemplates.find(t => t.slug === next)
+                    const schemes = templateColorSchemes(tpl)
+                    if (schemes.length) {
+                      setColorSchemeKey('0')
+                      setPrimaryColor(schemes[0].primary)
+                      setSecondaryColor(schemes[0].secondary)
+                    } else {
+                      setColorSchemeKey('custom')
+                      setPrimaryColor(sitePrimaryDefault)
+                      setSecondaryColor(siteSecondaryDefault)
+                    }
+                  }}
                   className={inputClass}
                 >
                   {availableTemplates.map(tpl => (
@@ -5537,43 +5569,18 @@ export default function AdvisorDashboard({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Primary Color</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={primaryColor}
-                      onChange={e => setPrimaryColor(e.target.value)}
-                      className="w-11 h-11 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
-                    />
-                    <input
-                      type="text"
-                      value={primaryColor}
-                      onChange={e => setPrimaryColor(e.target.value)}
-                      className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className={labelClass}>Secondary Color</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={secondaryColor}
-                      onChange={e => setSecondaryColor(e.target.value)}
-                      className="w-11 h-11 p-0 border border-gray-200 rounded-xl cursor-pointer shrink-0"
-                    />
-                    <input
-                      type="text"
-                      value={secondaryColor}
-                      onChange={e => setSecondaryColor(e.target.value)}
-                      className="min-w-0 flex-1 w-auto text-xs p-2.5 border border-gray-200 rounded-xl font-mono focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
+              <ColorSchemePicker
+                schemes={templateColorSchemes(
+                  availableTemplates.find((t) => t.slug === selectedTemplateName)
+                )}
+                selectionKey={colorSchemeKey}
+                onSelectionChange={setColorSchemeKey}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                onPrimaryChange={setPrimaryColor}
+                onSecondaryChange={setSecondaryColor}
+                labelClass={labelClass}
+              />
 
               <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
                 <button

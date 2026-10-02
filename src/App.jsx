@@ -321,7 +321,6 @@ export default function App() {
                         'firm_documents_add',
                         'firm_documents_delete',
                         'firm_documents_archive',
-                        'firm_documents_manage_member_rights',
                       ]}
                     >
                       <FirmDocuments />

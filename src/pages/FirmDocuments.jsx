@@ -180,7 +180,8 @@ export default function FirmDocuments() {
   }
 
   const canAdd = rights?.can_add || can('firm_documents_add')
-  const canManageRights = rights?.can_manage_member_rights || can('firm_documents_manage_member_rights')
+  const canManageRights = Boolean(rights?.can_manage_member_rights || rights?.is_firm_head)
+  const functionalityEnabled = rights?.functionality_enabled !== false
 
   return (
     <section>
@@ -194,7 +195,7 @@ export default function FirmDocuments() {
           </p>
         </div>
         <div className="actions" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>
-          {canManageRights ? (
+          {functionalityEnabled && canManageRights ? (
             <button
               type="button"
               className="btn ghost"
@@ -208,7 +209,7 @@ export default function FirmDocuments() {
               Member rights
             </button>
           ) : null}
-          {canAdd ? (
+          {functionalityEnabled && canAdd ? (
             <button
               type="button"
               className="btn primary"
@@ -226,6 +227,12 @@ export default function FirmDocuments() {
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
+      {rights && rights.functionality_enabled === false ? (
+        <div className="alert">
+          Firm documents are disabled for this hub. A Power Admin must enable{' '}
+          <strong>Functionalities → Firm documents</strong> first.
+        </div>
+      ) : null}
 
       <div className="admin-form" style={{ marginBottom: '1rem' }}>
         <label>

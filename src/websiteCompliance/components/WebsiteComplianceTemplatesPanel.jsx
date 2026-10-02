@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import {
   FaCheckCircle,
+  FaClock,
   FaCog,
   FaEdit,
   FaEyeSlash,
@@ -13,22 +14,24 @@ import {
   FaPen,
   FaPlus,
   FaRocket,
+  FaSearch,
   FaSync,
+  FaThLarge,
   FaTimes,
+  FaTimesCircle,
   FaTrash,
   FaUpload,
 } from 'react-icons/fa'
 import { useHub } from '../../context/HubContext'
-import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
+import ComplianceStatusText from '../../components/ComplianceStatusText'
 import FileDropzone from '../../components/FileDropzone'
 import RequiredMark from '../../components/RequiredMark'
 import RichTextEditor from '../../components/RichTextEditor'
-import WcStatusBadge from '../../components/WebsiteComplianceUI'
 import { websiteComplianceAssetUrl } from '../../api/client'
-import { formatDateTime } from '../../utils/dateFormat'
 import { truncateRichText } from '../../utils/richText'
 import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
 import { sectionDisplayName } from '../utils/sectionDisplay'
+import TemplateScrollPreview from './TemplateScrollPreview'
 import api from '../wcApi'
 
 function normalizeSiteUrl(value) {
@@ -44,6 +47,38 @@ function requestRequesterName(req, fallback = 'Unknown') {
 
 function resolveAdvisorSiteUrl(req) {
   return normalizeSiteUrl(req.cpanel_domain || req.domain_name || req.domain || '')
+}
+
+const STATUS_CONFIG = {
+  pending: {
+    label: 'Pending',
+    icon: FaClock,
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+  },
+  deployed: {
+    label: 'Deployed',
+    icon: FaCheckCircle,
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  rejected: {
+    label: 'Rejected',
+    icon: FaTimesCircle,
+    className: 'bg-rose-50 text-rose-700 border-rose-200',
+  },
+}
+
+function StatusBadge({ status }) {
+  const { complianceStatusLabel } = useHub()
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending
+  const Icon = config.icon
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${config.className}`}
+    >
+      <Icon className="w-3 h-3 shrink-0" aria-hidden="true" />
+      <ComplianceStatusText status={status} label={complianceStatusLabel(status)} />
+    </span>
+  )
 }
 
 const fieldLabelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
@@ -179,8 +214,9 @@ export default function WebsiteComplianceTemplatesPanel() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [appliedStatus, setAppliedStatus] = useState('')
+  const [templateSearch, setTemplateSearch] = useState('')
+  const [requestSearch, setRequestSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState(null)
@@ -248,167 +284,29 @@ export default function WebsiteComplianceTemplatesPanel() {
     fetchData()
   }, [fetchData])
 
+  const filteredTemplates = useMemo(() => {
+    const q = templateSearch.trim().toLowerCase()
+    if (!q) return templates
+    return templates.filter(
+      (tpl) =>
+        tpl.name?.toLowerCase().includes(q) ||
+        tpl.slug?.toLowerCase().includes(q) ||
+        tpl.description?.toLowerCase().includes(q)
+    )
+  }, [templates, templateSearch])
+
   const filteredRequests = useMemo(() => {
-    if (!appliedStatus) return requests
-    return requests.filter((r) => String(r.status || '').toLowerCase() === appliedStatus.toLowerCase())
-  }, [requests, appliedStatus])
-
-  const templateColumns = useMemo(
-    () => [
-      {
-        key: 'id',
-        label: '#',
-        narrow: true,
-        render: (row) => <strong>{row.id}</strong>,
-        filterValue: (row) => String(row.id),
-        sortValue: (row) => Number(row.id) || 0,
-      },
-      {
-        key: 'name',
-        label: 'Name',
-        grow: true,
-        render: (row) => row.name || '—',
-        filterValue: (row) => row.name || '',
-      },
-      {
-        key: 'slug',
-        label: 'Slug',
-        render: (row) => <span className="muted">{row.slug || '—'}</span>,
-        filterValue: (row) => row.slug || '',
-      },
-      {
-        key: 'status',
-        label: 'Status',
-        fit: true,
-        render: (row) =>
-          row.is_active ? (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
-              <FaCheckCircle aria-hidden /> Active
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-500">
-              <FaEyeSlash aria-hidden /> Disabled
-            </span>
-          ),
-        filterValue: (row) => (row.is_active ? 'Active' : 'Disabled'),
-        truncate: false,
-      },
-      {
-        key: 'description',
-        label: 'Description',
-        render: (row) => truncateRichText(row.description, 80) || '—',
-        filterValue: (row) => truncateRichText(row.description, 200) || '',
-      },
-      {
-        key: 'preview',
-        label: 'Preview',
-        filterable: false,
-        sortable: false,
-        render: (row) =>
-          row.preview_url ? (
-            <a
-              href={row.preview_url}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
-            >
-              Open
-            </a>
-          ) : (
-            '—'
-          ),
-        truncate: false,
-      },
-    ],
-    []
-  )
-
-  const deploymentColumns = useMemo(
-    () => [
-      {
-        key: 'id',
-        label: '#',
-        narrow: true,
-        render: (row) => <strong>#{row.id}</strong>,
-        filterValue: (row) => String(row.id),
-        sortValue: (row) => Number(row.id) || 0,
-      },
-      {
-        key: 'requester',
-        label: 'Requested by',
-        render: (row) => requestRequesterName(row, '—'),
-        filterValue: (row) => requestRequesterName(row, ''),
-      },
-      {
-        key: 'template_name',
-        label: 'Template',
-        render: (row) => row.template_name || '—',
-        filterValue: (row) => row.template_name || '',
-      },
-      {
-        key: 'domain_name',
-        label: 'Domain',
-        grow: true,
-        render: (row) => (
-          <span className="inline-flex items-center gap-1.5">
-            <FaGlobe aria-hidden className="text-gray-400" style={{ width: 12, height: 12 }} />
-            {row.domain_name || row.domain || '—'}
-          </span>
-        ),
-        filterValue: (row) => row.domain_name || row.domain || '',
-        truncate: false,
-      },
-      {
-        key: 'status',
-        label: 'Status',
-        fit: true,
-        render: (row) => (
-          <WcStatusBadge
-            status={row.status}
-            at={row.deployed_at || row.updated_at || row.created_at}
-          />
-        ),
-        filterValue: (row) =>
-          [row.status, formatDateTime(row.deployed_at || row.updated_at || row.created_at, '')]
-            .filter(Boolean)
-            .join(' '),
-        truncate: false,
-      },
-      {
-        key: 'created_at',
-        label: 'Created',
-        date: true,
-        render: (row) => <DataGridDate value={row.created_at} />,
-        filterValue: (row) => formatDateTime(row.created_at, ''),
-        sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
-        truncate: false,
-      },
-      {
-        key: 'live_url',
-        label: 'Live URL',
-        render: (row) =>
-          row.cpanel_domain ? (
-            <a
-              href={
-                row.cpanel_domain.startsWith('http')
-                  ? row.cpanel_domain
-                  : `https://${row.cpanel_domain}`
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {row.cpanel_domain}
-            </a>
-          ) : (
-            '—'
-          ),
-        filterValue: (row) => row.cpanel_domain || '',
-        truncate: false,
-      },
-    ],
-    []
-  )
+    const q = requestSearch.trim().toLowerCase()
+    return requests.filter((req) => {
+      const matchesStatus = statusFilter === 'all' || req.status === statusFilter
+      const matchesSearch =
+        !q ||
+        [requestRequesterName(req, ''), req.template_name, req.domain_name, req.domain]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q))
+      return matchesStatus && matchesSearch
+    })
+  }, [requests, requestSearch, statusFilter])
 
   const openCreateTemplateModal = () => {
     setEditingTemplate(null)
@@ -740,17 +638,17 @@ export default function WebsiteComplianceTemplatesPanel() {
   ].filter(Boolean)
 
   return (
-    <div>
-      {error ? <div className="alert">{error}</div> : null}
-      {message ? <div className="alert success">{message}</div> : null}
+    <div className="space-y-4">
+      {message && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm px-4 py-3">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm px-4 py-3">{error}</div>
+      )}
 
-      <form
-        className="filters-row"
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (activeTab === 'deployments') setAppliedStatus(statusFilter)
-        }}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1">
           {tabs.map((tab) => (
             <button
@@ -758,126 +656,238 @@ export default function WebsiteComplianceTemplatesPanel() {
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-                activeTab === tab.id
-                  ? 'bg-[var(--brand-dark)] text-white'
-                  : 'text-gray-600 hover:bg-gray-50'
+                activeTab === tab.id ? 'bg-[var(--brand-dark)] text-white' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
               {tab.label}
             </button>
           ))}
         </div>
-
-        {activeTab === 'deployments' && canViewDeployments ? (
-          <>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">All statuses</option>
-              <option value="pending">Pending</option>
-              <option value="deployed">Deployed</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            <button className="btn primary" type="submit">
-              Filter
-            </button>
-          </>
-        ) : null}
-
-        {activeTab === 'templates' && canManageTemplates ? (
-          <button type="button" className="btn primary" onClick={openCreateTemplateModal}>
-            <FaPlus aria-hidden style={{ marginRight: 6 }} />
-            Register template
-          </button>
-        ) : null}
-
         <button
           type="button"
-          className="btn ghost"
           onClick={() => fetchData(true)}
-          disabled={loading}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50"
         >
-          <FaSync aria-hidden style={{ marginRight: 6 }} />
+          <FaSync className="w-3 h-3" />
           Refresh
         </button>
-      </form>
+      </div>
 
-      {activeTab === 'templates' && canManageTemplates ? (
-        <DataGrid
-          columns={templateColumns}
-          rows={templates}
-          loading={loading}
-          pageSize={10}
-          emptyMessage="No templates yet. Register a template to make it available for deployment requests."
-          actionsLabel="Actions"
-          actions={(row) => (
-            <>
-              <DataGridIconBtn
-                icon={FaEdit}
-                label="Edit template"
-                variant="primary"
-                onClick={() => openEditTemplateModal(row)}
-              />
-              <DataGridIconBtn
-                icon={FaTrash}
-                label="Delete template"
-                onClick={() => handleDeleteTemplate(row)}
-              />
-            </>
-          )}
-        />
+      {loading ? (
+        <p className="text-sm text-gray-500">Loading…</p>
+      ) : activeTab === 'templates' && canManageTemplates ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-[var(--brand-dark)]">Showcase templates</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Register and edit templates available for deployments.</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="wc-icon-field w-full sm:w-64">
+                <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
+                <input
+                  type="search"
+                  placeholder="Search templates…"
+                  value={templateSearch}
+                  onChange={(e) => setTemplateSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)]"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={openCreateTemplateModal}
+                className="inline-flex items-center gap-1.5 bg-[var(--brand-dark)] text-white text-xs font-bold px-3 py-2 rounded-lg"
+              >
+                <FaPlus className="w-3 h-3" />
+                Register
+              </button>
+            </div>
+          </div>
+          <div className="p-5">
+            {filteredTemplates.length === 0 ? (
+              <div className="py-12 text-center text-sm text-gray-500">No templates yet.</div>
+            ) : (
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {filteredTemplates.map((tpl) => (
+                  <article key={tpl.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[color-mix(in_srgb,var(--brand-dark)_25%,transparent)] hover:shadow-md transition-all duration-300">
+                    <TemplateScrollPreview
+                      template={tpl}
+                      className="h-40 w-full"
+                      overlay={
+                        <>
+                          <div className="absolute top-3 left-3 bg-[color-mix(in_srgb,var(--brand-dark)_90%,transparent)] text-white font-mono text-[10px] font-bold px-2 py-1 rounded-md z-10 pointer-events-none">
+                            {tpl.slug}
+                          </div>
+                          <div className="absolute top-3 right-3 z-10 pointer-events-none">
+                            {tpl.is_active ? (
+                              <span className="inline-flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">
+                                <FaCheckCircle className="w-2.5 h-2.5" /> Active
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 bg-gray-500 text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">
+                                <FaEyeSlash className="w-2.5 h-2.5" /> Disabled
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      }
+                    />
+                    <div className="p-4 flex-1 flex flex-col">
+                      <h3 className="font-extrabold text-[var(--brand-dark)]">{tpl.name}</h3>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">
+                        {truncateRichText(tpl.description, 120) || 'No description.'}
+                      </p>
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => openEditTemplateModal(tpl)}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[var(--brand-dark)] bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-lg transition"
+                        >
+                          <FaEdit className="w-3 h-3" /> Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTemplate(tpl)}
+                          className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-lg transition"
+                          aria-label={`Delete ${tpl.name}`}
+                        >
+                          <FaTrash className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       ) : null}
 
       {activeTab === 'deployments' && canViewDeployments ? (
-        <DataGrid
-          columns={deploymentColumns}
-          rows={filteredRequests}
-          loading={loading}
-          pageSize={10}
-          emptyMessage={
-            canDeployWebsites
-              ? 'No deployment requests yet.'
-              : 'No deployment requests in this queue.'
-          }
-          actionsLabel="Actions"
-          actions={(row) => (
-            <>
-              {row.status === 'deployed' && canPublishLive ? (
-                <DataGridIconBtn
-                  icon={FaPen}
-                  label="Edit & publish"
-                  variant="primary"
-                  as={Link}
-                  to={`/my-dashboard/website-compliance/publish/${row.id}`}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 space-y-3">
+            <div>
+              <h2 className="text-lg font-bold text-[var(--brand-dark)]">Deployment hub</h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {canDeployWebsites
+                  ? 'Deploy templates to cPanel and manage live section visibility.'
+                  : 'View deployment requests across the hub.'}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="wc-icon-field flex-1">
+                <FaSearch className="wc-icon-field__icon" aria-hidden="true" />
+                <input
+                  type="search"
+                  placeholder="Search domain, template, requester…"
+                  value={requestSearch}
+                  onChange={(e) => setRequestSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl"
                 />
-              ) : null}
-              {row.status === 'deployed' && canManageSections ? (
-                <DataGridIconBtn
-                  icon={FaLayerGroup}
-                  label="Manage sections"
-                  onClick={() => openSectionManageModal(row)}
-                />
-              ) : null}
-              {canDeployWebsites && row.status === 'deployed' ? (
-                <DataGridIconBtn
-                  icon={FaPalette}
-                  label="Update branding"
-                  onClick={() => openBrandingModal(row)}
-                />
-              ) : null}
-              {canDeployWebsites ? (
-                <DataGridIconBtn
-                  icon={row.status === 'deployed' ? FaCog : FaRocket}
-                  label={row.status === 'deployed' ? 'Update deployment' : 'Deploy to cPanel'}
-                  variant="primary"
-                  onClick={() => openDeployModal(row)}
-                />
-              ) : null}
-              {!canDeployWebsites &&
-              !(row.status === 'deployed' && (canPublishLive || canManageSections)) ? (
-                <span className="muted">—</span>
-              ) : null}
-            </>
+              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white"
+              >
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="deployed">Deployed</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+          {filteredRequests.length === 0 ? (
+            <div className="py-12 text-center text-sm text-gray-500">
+              <FaThLarge className="w-6 h-6 text-slate-300 mx-auto mb-2" />
+              No deployment requests.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-gray-500 text-[10px] font-extrabold uppercase tracking-wider">
+                  <tr>
+                    <th className="px-5 py-3">Requested by</th>
+                    <th className="px-5 py-3">Template</th>
+                    <th className="px-5 py-3">Domain</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredRequests.map((req) => (
+                    <tr key={req.id} className="hover:bg-slate-50/80">
+                      <td className="px-5 py-3 font-bold text-[var(--brand-dark)]">{requestRequesterName(req, 'Advisor')}</td>
+                      <td className="px-5 py-3">
+                        <span className="font-bold text-xs bg-blue-50 text-[var(--brand-dark)] px-2 py-1 rounded-lg">
+                          {req.template_name || '—'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 font-mono text-xs">
+                        <span className="inline-flex items-center gap-1.5">
+                          <FaGlobe className="w-3 h-3 text-gray-400" />
+                          {req.domain_name || req.domain || '—'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <StatusBadge status={req.status} />
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                          {req.status === 'deployed' && canPublishLive && (
+                            <Link
+                              to={`/my-dashboard/website-compliance/publish/${req.id}`}
+                              className="inline-flex items-center gap-1.5 bg-[var(--brand)] text-white text-xs font-bold px-3 py-2 rounded-lg"
+                            >
+                              <FaPen className="w-3 h-3" /> Edit &amp; publish
+                            </Link>
+                          )}
+                          {req.status === 'deployed' && canManageSections && (
+                            <button
+                              type="button"
+                              onClick={() => openSectionManageModal(req)}
+                              className="inline-flex items-center gap-1.5 bg-white border border-[var(--brand-dark)] text-[var(--brand-dark)] text-xs font-bold px-3 py-2 rounded-lg"
+                            >
+                              <FaLayerGroup className="w-3 h-3" /> Sections
+                            </button>
+                          )}
+                          {canDeployWebsites && (
+                            <>
+                              {req.status === 'deployed' && (
+                                <button
+                                  type="button"
+                                  onClick={() => openBrandingModal(req)}
+                                  className="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-[var(--brand-dark)] text-xs font-bold px-3 py-2 rounded-lg hover:bg-gray-50"
+                                >
+                                  <FaPalette className="w-3 h-3" /> Branding
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => openDeployModal(req)}
+                                className="inline-flex items-center gap-1.5 bg-[var(--brand-dark)] text-white text-xs font-bold px-3 py-2 rounded-lg"
+                              >
+                                {req.status === 'deployed' ? (
+                                  <>
+                                    <FaCog className="w-3 h-3" /> Update
+                                  </>
+                                ) : (
+                                  <>
+                                    <FaRocket className="w-3 h-3" /> Deploy
+                                  </>
+                                )}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        />
+        </div>
       ) : null}
 
       {showTemplateModal && (

@@ -163,6 +163,39 @@ export const api = {
     request(`${adminBase(options)}/firms/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteFirm: (id, options = {}) =>
     request(`${adminBase(options)}/firms/${id}`, { method: 'DELETE' }),
+  firmMembers: (firmId, options = {}) =>
+    request(`${adminBase(options)}/firms/${firmId}/members`),
+  assignFirmHead: (firmId, headUserId, options = {}) =>
+    request(`${adminBase(options)}/firms/${firmId}/head`, {
+      method: 'PUT',
+      body: JSON.stringify({ head_user_id: headUserId }),
+    }),
+  firmDocumentsMyRights: () => request('/firm-documents/my-rights'),
+  listFirmDocuments: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/firm-documents${query ? `?${query}` : ''}`)
+  },
+  createFirmDocument: (formData) =>
+    request('/firm-documents', { method: 'POST', body: formData }),
+  deleteFirmDocument: (id) =>
+    request(`/firm-documents/${id}`, { method: 'DELETE' }),
+  archiveFirmDocument: (id) =>
+    request(`/firm-documents/${id}/archive`, { method: 'POST' }),
+  unarchiveFirmDocument: (id) =>
+    request(`/firm-documents/${id}/unarchive`, { method: 'POST' }),
+  firmDocumentMemberRights: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/firm-documents/member-rights${query ? `?${query}` : ''}`)
+  },
+  setFirmDocumentMemberRights: (payload) =>
+    request('/firm-documents/member-rights', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
   purchasePost: (id, paymentMethod = null) =>
     request(`/posts/${id}/purchase`, {
       method: 'POST',

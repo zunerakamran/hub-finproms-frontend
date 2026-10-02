@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FaEdit, FaTrash } from 'react-icons/fa'
+import { FaEdit, FaTrash, FaUserTie } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
@@ -35,9 +35,11 @@ function checkAuthorityLabel(firm) {
 
 export default function AdminFirms({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { actingHubId, isActingOnWhiteLabel, isActingRemotely, actingHub } = useHub()
+  const { actingHubId, isActingRemotely, actingHub, can } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const apiOpts = { asPowerAdmin }
+  const canManageFirms = can('dashboard_manage_firms')
+  const canAssignHead = can('dashboard_assign_firm_head')
 
   const [firms, setFirms] = useState([])
   const [firmOptions, setFirmOptions] = useState([])
@@ -49,6 +51,10 @@ export default function AdminFirms({ shell = 'client-admin' }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [headFirmId, setHeadFirmId] = useState(null)
+  const [headMembers, setHeadMembers] = useState([])
+  const [headUserId, setHeadUserId] = useState('')
+  const [savingHead, setSavingHead] = useState(false)
 
   const otherFirmOptions = useMemo(
     () => firmOptions.filter((f) => !f.is_central && f.id !== editingId),
@@ -80,6 +86,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
     setShowForm(false)
     setEditingId(null)
     setForm(emptyForm)
+    setHeadFirmId(null)
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actingHubId])
@@ -94,6 +101,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
     setEditingId(null)
     setForm(emptyForm)
     setShowForm(true)
+    setHeadFirmId(null)
     setMessage('')
     setError('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -103,8 +111,25 @@ export default function AdminFirms({ shell = 'client-admin' }) {
     setEditingId(firm.id)
     setForm(visibilityFromFirm(firm))
     setShowForm(true)
+    setHeadFirmId(null)
     setMessage('')
     setError('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const startAssignHead = async (firm) => {
+    setShowForm(false)
+    setHeadFirmId(firm.id)
+    setHeadUserId(firm.head_user_id ? String(firm.head_user_id) : '')
+    setMessage('')
+    setError('')
+    try {
+      const data = await api.firmMembers(firm.id, apiOpts)
+      setHeadMembers(data.members || [])
+    } catch (err) {
+      setError(err.message)
+      setHeadMembers([])
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -141,6 +166,28 @@ export default function AdminFirms({ shell = 'client-admin' }) {
     }
   }
 
+  const onAssignHead = async (e) => {
+    e.preventDefault()
+    if (!headFirmId) return
+    setSavingHead(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.assignFirmHead(
+        headFirmId,
+        headUserId ? Number(headUserId) : null,
+        apiOpts
+      )
+      setMessage(data.message || 'Head of Firm updated.')
+      setHeadFirmId(null)
+      await load()
+    } catch (err) {
+      setError(err.data?.errors?.head_user_id?.[0] || err.data?.message || err.message)
+    } finally {
+      setSavingHead(false)
+    }
+  }
+
   const deleteFirm = async (firm) => {
     if (!window.confirm(`Delete Firm “${firm.name}”?`)) return
     try {
@@ -157,6 +204,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
   const isEditingCentral = Boolean(
     editingFirm?.is_central || (editingId && editingId === centralFirmId)
   )
+  const headFirm = firms.find((f) => f.id === headFirmId)
 
   return (
     <section>
@@ -170,15 +218,17 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                   ? 'Edit Central / Network'
                   : 'Edit Firm'
                 : 'Add Firm'
-              : 'Firms'}
+              : headFirmId
+                ? `Head of Firm — ${headFirm?.name || ''}`
+                : 'Firms'}
           </h1>
           <p className="muted">
             {isActingRemotely
               ? `Managing Firms on ${actingHub?.name}. Switch hubs from the top bar.`
-              : 'Manage Firms and who may review, approve, and see reports for each Firm’s compliance requests. Public registration does not ask for a Firm.'}
+              : 'Manage Firms, appoint a Head of Firm, and set who may review compliance requests.'}
           </p>
         </div>
-        {!showForm ? (
+        {!showForm && !headFirmId && canManageFirms ? (
           <button type="button" className="btn primary" onClick={startCreate}>
             {isActingRemotely ? `Add Firm on ${actingHub?.name || 'hub'}` : 'Add Firm'}
           </button>
@@ -188,7 +238,38 @@ export default function AdminFirms({ shell = 'client-admin' }) {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
-      {showForm ? (
+      {headFirmId ? (
+        <form className="admin-form" onSubmit={onAssignHead}>
+          <label>
+            Head of Firm
+            <select value={headUserId} onChange={(e) => setHeadUserId(e.target.value)}>
+              <option value="">No head assigned</option>
+              {headMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} ({member.email})
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="muted">
+            Only one Head of Firm per firm. The head can upload documents and grant add / view / delete /
+            archive rights to firm members.
+          </p>
+          <div className="actions">
+            <button className="btn primary" disabled={savingHead}>
+              {savingHead ? 'Saving…' : 'Save Head of Firm'}
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => setHeadFirmId(null)}
+              disabled={savingHead}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : showForm && canManageFirms ? (
         <form className="admin-form" onSubmit={onSubmit}>
           <label>
             {isEditingCentral ? 'Central / Network name' : 'Firm name'}
@@ -286,6 +367,21 @@ export default function AdminFirms({ shell = 'client-admin' }) {
               ),
             },
             {
+              key: 'head',
+              label: 'Head of Firm',
+              grow: true,
+              filterValue: (row) => row.head_user?.name || '',
+              render: (row) =>
+                row.head_user ? (
+                  <span>
+                    {row.head_user.name}
+                    <span className="muted"> · {row.head_user.email}</span>
+                  </span>
+                ) : (
+                  <span className="muted">Not assigned</span>
+                ),
+            },
+            {
               key: 'users_count',
               label: 'Users',
               fit: true,
@@ -307,8 +403,17 @@ export default function AdminFirms({ shell = 'client-admin' }) {
           getRowKey={(row) => row.id}
           actions={(row) => (
             <>
-              <DataGridIconBtn icon={FaEdit} label="Edit" onClick={() => startEdit(row)} />
-              {!row.is_central && row.id !== centralFirmId ? (
+              {canAssignHead ? (
+                <DataGridIconBtn
+                  icon={FaUserTie}
+                  label="Assign Head of Firm"
+                  onClick={() => startAssignHead(row)}
+                />
+              ) : null}
+              {canManageFirms ? (
+                <DataGridIconBtn icon={FaEdit} label="Edit" onClick={() => startEdit(row)} />
+              ) : null}
+              {canManageFirms && !row.is_central && row.id !== centralFirmId ? (
                 <DataGridIconBtn
                   icon={FaTrash}
                   label="Delete"

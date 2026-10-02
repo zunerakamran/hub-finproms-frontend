@@ -20,6 +20,7 @@ import AdminSubscriberCredits from './pages/AdminSubscriberCredits'
 import AdminBundles from './pages/AdminBundles'
 import AdminCategories from './pages/AdminCategories'
 import AdminFirms from './pages/AdminFirms'
+import FirmDocuments from './pages/FirmDocuments'
 import AdminPaymentCard from './pages/AdminPaymentCard'
 import AdminPaymentCardSuccess from './pages/AdminPaymentCardSuccess'
 import AdminPlans from './pages/AdminPlans'
@@ -306,8 +307,24 @@ export default function App() {
                 <Route
                   path="firms"
                   element={
-                    <HubCapabilityRoute capability="dashboard_manage_firms">
+                    <HubCapabilityRoute anyOf={['dashboard_manage_firms', 'dashboard_assign_firm_head']}>
                       <AdminFirms />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="firm-documents"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'firm_documents_view',
+                        'firm_documents_add',
+                        'firm_documents_delete',
+                        'firm_documents_archive',
+                        'firm_documents_manage_member_rights',
+                      ]}
+                    >
+                      <FirmDocuments />
                     </HubCapabilityRoute>
                   }
                 />

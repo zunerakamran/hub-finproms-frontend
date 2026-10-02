@@ -98,6 +98,12 @@ const HUB_OPS_ANY = [
   'dashboard_manage_compliance_status_display_names',
   'dashboard_manage_email_templates',
   'dashboard_manage_firms',
+  'dashboard_assign_firm_head',
+  'firm_documents_view',
+  'firm_documents_add',
+  'firm_documents_delete',
+  'firm_documents_archive',
+  'firm_documents_manage_member_rights',
   'dashboard_bank_transfers',
   'dashboard_view_activity_logs',
   'dashboard_manage_active_sessions',
@@ -278,8 +284,23 @@ export const DASHBOARD_LINKS = [
     label: 'Firms',
     title: 'Firms',
     description:
-      'Manage firms, rename Central / Network, and set who can review and report on each firm’s compliance requests.',
-    capability: 'dashboard_manage_firms',
+      'Manage firms, appoint a Head of Firm, and set who can review and report on each firm’s compliance requests.',
+    anyOf: ['dashboard_manage_firms', 'dashboard_assign_firm_head'],
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/firm-documents',
+    label: 'Firm documents',
+    title: 'Firm documents',
+    description:
+      'Upload and manage firm attachments (images, Word, PDF). Heads have all rights and can grant access to members.',
+    anyOf: [
+      'firm_documents_view',
+      'firm_documents_add',
+      'firm_documents_delete',
+      'firm_documents_archive',
+      'firm_documents_manage_member_rights',
+    ],
     group: 'hub',
   },
   {

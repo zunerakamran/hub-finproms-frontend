@@ -195,7 +195,7 @@ export default function WebsiteComplianceRequestDetail() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Request</h1>
           </div>
           <Link to={backTo} className="btn ghost">
@@ -223,7 +223,7 @@ export default function WebsiteComplianceRequestDetail() {
     <section className="wc-detail">
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Content Pre Approval</p>
           <h1 className="wc-detail__title">
             <span>Request #{row.id}</span>
             <WcStatusBadge

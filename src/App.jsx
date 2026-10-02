@@ -603,7 +603,6 @@ export default function App() {
                         'wc_view_all_deployments',
                         'wc_deploy_websites',
                         'wc_manage_templates',
-                        'wc_manage_deployment_sections',
                         'wc_assign_website_templates',
                       ]}
                     >

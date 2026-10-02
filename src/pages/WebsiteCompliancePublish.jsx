@@ -15,7 +15,7 @@ export default function WebsiteCompliancePublish() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Publish content</h1>
             <p className="muted">
               Website Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it
@@ -32,7 +32,7 @@ export default function WebsiteCompliancePublish() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Publish content</h1>
             <p className="muted">
               You do not have permission to publish live content.{' '}
@@ -48,7 +48,7 @@ export default function WebsiteCompliancePublish() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance · Direct publish</p>
+          <p className="eyebrow">Website Content Pre Approval · Direct publish</p>
           <h1>Edit &amp; publish</h1>
           <p className="muted">
             Changes publish to the live site immediately — no approver review. Deployment #{deploymentId}.

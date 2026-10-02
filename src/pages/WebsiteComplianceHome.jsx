@@ -11,15 +11,20 @@ import {
 } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { anyWebsiteModuleOn, websiteModuleOffMessage } from '../utils/websiteCompliance'
+import {
+  anyWebsiteModuleOn,
+  websiteContentPreApprovalOn,
+  websiteModuleOffMessage,
+  websiteTemplateLibraryOn,
+} from '../utils/websiteCompliance'
 
 function ModuleOff() {
   return (
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
-          <h1>Website Compliance</h1>
+          <p className="eyebrow">Website modules</p>
+          <h1>Website modules</h1>
           <p className="muted">{websiteModuleOffMessage()}</p>
         </div>
       </div>
@@ -27,11 +32,11 @@ function ModuleOff() {
   )
 }
 
-const EDITOR_CARDS = [
+const WTL_CARDS = [
   {
     to: '/my-dashboard/website-compliance/request-site',
     title: 'Request a site',
-    description: 'Browse templates and request a new showcase website deployment.',
+    description: 'Browse website templates and request one by filling the deployment form.',
     icon: FaRocket,
     anyOf: ['wc_request_deployments'],
     exceptRoles: ['power_admin', 'finproms_admin'],
@@ -39,19 +44,22 @@ const EDITOR_CARDS = [
   {
     to: '/my-dashboard/website-compliance/my-sites',
     title: 'My sites',
-    description: 'See pending and live sites you requested, then open one to edit.',
+    description: 'See pending and live template deployments you requested.',
     icon: FaServer,
     anyOf: [
+      'wc_request_deployments',
       'wc_edit_sections',
       'wc_submit_change_requests',
-      'wc_request_deployments',
     ],
     exceptRoles: ['power_admin', 'finproms_admin'],
   },
+]
+
+const WC_EDITOR_CARDS = [
   {
     to: '/my-dashboard/website-compliance/content-editor',
     title: 'Content editor',
-    description: 'Edit website sections and submit changes for compliance review.',
+    description: 'Edit website sections and submit changes for pre-approval review.',
     icon: FaEdit,
     anyOf: ['wc_edit_sections', 'wc_submit_change_requests'],
     exceptRoles: ['power_admin', 'finproms_admin'],
@@ -73,7 +81,7 @@ const EDITOR_CARDS = [
   },
 ]
 
-const APPROVER_CARDS = [
+const WC_APPROVER_CARDS = [
   {
     to: '/my-dashboard/website-compliance/assign',
     title: 'Assign requests',
@@ -125,25 +133,32 @@ function CardGrid({ cards }) {
   )
 }
 
+function filterCards(cards, role, can) {
+  return cards.filter((card) => {
+    if (Array.isArray(card.exceptRoles) && card.exceptRoles.includes(role)) return false
+    return card.anyOf.some((cap) => can(cap))
+  })
+}
+
 export default function WebsiteComplianceHome() {
   const { user } = useAuth()
   const { can, loading: hubLoading } = useHub()
   const moduleOn = anyWebsiteModuleOn(can)
+  const wtlOn = websiteTemplateLibraryOn(can)
+  const wcOn = websiteContentPreApprovalOn(can)
   const role = String(user?.role || '')
 
-  const editorCards = EDITOR_CARDS.filter((card) => {
-    if (Array.isArray(card.exceptRoles) && card.exceptRoles.includes(role)) return false
-    return card.anyOf.some((cap) => can(cap))
-  })
-  const approverCards = APPROVER_CARDS.filter((card) => card.anyOf.some((cap) => can(cap)))
-  const hasWorkspace = editorCards.length > 0 || approverCards.length > 0
+  const wtlCards = wtlOn ? filterCards(WTL_CARDS, role, can) : []
+  const editorCards = wcOn ? filterCards(WC_EDITOR_CARDS, role, can) : []
+  const approverCards = wcOn ? filterCards(WC_APPROVER_CARDS, role, can) : []
+  const hasWorkspace = wtlCards.length > 0 || editorCards.length > 0 || approverCards.length > 0
   const canStaffOps =
-    can('wc_view_all_deployments') ||
-    can('wc_deploy_websites') ||
-    can('wc_manage_templates') ||
-    can('wc_manage_deployment_sections') ||
-    can('wc_assign_website_templates')
-  const canReports = can('wc_view_platform_report')
+    wtlOn &&
+    (can('wc_view_all_deployments') ||
+      can('wc_deploy_websites') ||
+      can('wc_manage_templates') ||
+      can('wc_assign_website_templates'))
+  const canReports = wcOn && can('wc_view_platform_report')
 
   if (!hubLoading && !moduleOn) return <ModuleOff />
 
@@ -165,9 +180,12 @@ export default function WebsiteComplianceHome() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
-            <h1>Website Compliance</h1>
-            <p className="muted">You do not have Website Compliance capabilities on this hub.</p>
+            <p className="eyebrow">Website modules</p>
+            <h1>Website modules</h1>
+            <p className="muted">
+              You do not have Website Template Library or Website Content Pre Approval capabilities on
+              this hub.
+            </p>
           </div>
         </div>
       </section>
@@ -178,24 +196,40 @@ export default function WebsiteComplianceHome() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
-          <h1>Website Compliance</h1>
+          <p className="eyebrow">Website modules</p>
+          <h1>Website modules</h1>
           <p className="muted">
-            {editorCards.some((c) => c.to.includes('publish-live')) && editorCards.length === 1
-              ? 'Choose a live site and publish content directly — no approver review.'
-              : 'Choose a workspace — each task has its own page.'}
+            Template Library covers templates, requests, and manual cPanel deploy. Content Pre Approval
+            is the section-edit compliance workflow and depends on Template Library.
           </p>
         </div>
       </div>
 
       <div className="wc-app wc-surface space-y-8">
+        {(wtlCards.length > 0 || canStaffOps) && (
+          <div className="space-y-3">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">
+              Website Template Library
+            </p>
+            {wtlCards.length > 0 && <CardGrid cards={wtlCards} />}
+            {canStaffOps && (
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to="/my-dashboard/website-compliance/deployments"
+                  className="inline-flex items-center text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-slate-700 hover:border-[var(--brand)]/40"
+                >
+                  Site operations
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
         {editorCards.length > 0 && (
           <div className="space-y-3">
-            {approverCards.length > 0 && (
-              <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">
-                Editing &amp; sites
-              </p>
-            )}
+            <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">
+              Website Content Pre Approval — editing
+            </p>
             <CardGrid cards={editorCards} />
           </div>
         )}
@@ -203,33 +237,23 @@ export default function WebsiteComplianceHome() {
         {approverCards.length > 0 && (
           <div className="space-y-3">
             <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">
-              Review &amp; assignment
+              Website Content Pre Approval — review
             </p>
             <CardGrid cards={approverCards} />
           </div>
         )}
 
-        {(canStaffOps || canReports) && (
+        {canReports && (
           <div className="space-y-2">
-            <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">Staff tools</p>
+            <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">Reports</p>
             <div className="flex flex-wrap gap-2">
-              {canStaffOps && (
-                <Link
-                  to="/my-dashboard/website-compliance/deployments"
-                  className="inline-flex items-center text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-slate-700 hover:border-[var(--brand)]/40"
-                >
-                  Site operations
-                </Link>
-              )}
-              {canReports && (
-                <Link
-                  to="/my-dashboard/website-compliance/reports"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-slate-700 hover:border-[var(--brand)]/40"
-                >
-                  <FaChartBar className="w-3 h-3" />
-                  Reports
-                </Link>
-              )}
+              <Link
+                to="/my-dashboard/website-compliance/reports"
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-slate-700 hover:border-[var(--brand)]/40"
+              >
+                <FaChartBar className="w-3 h-3" />
+                Reports
+              </Link>
             </div>
           </div>
         )}

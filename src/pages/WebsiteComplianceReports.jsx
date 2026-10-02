@@ -11,7 +11,7 @@ export default function WebsiteComplianceReports() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Reports</h1>
             <p className="muted">
               Website Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it
@@ -28,9 +28,9 @@ export default function WebsiteComplianceReports() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Reports</h1>
-            <p className="muted">You do not have permission to view the website compliance platform report.</p>
+            <p className="muted">You do not have permission to view the Website Content Pre Approval platform report.</p>
           </div>
         </div>
       </section>
@@ -41,7 +41,7 @@ export default function WebsiteComplianceReports() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Content Pre Approval</p>
           <h1>Reports</h1>
           <p className="muted">Summary of templates, site deployments, and content change requests.</p>
         </div>

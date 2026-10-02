@@ -235,7 +235,7 @@ export default function PlatformSummaryReport({ onError }) {
     <div className="w-full space-y-4">
       <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-bold text-[var(--brand-dark)]">Website Compliance summary</h2>
+          <h2 className="text-lg font-bold text-[var(--brand-dark)]">Website modules summary</h2>
           <p className="text-xs text-gray-500 mt-0.5">
             Templates, site deployments, and content change requests
             {summary.generated_at
@@ -399,7 +399,7 @@ export default function PlatformSummaryReport({ onError }) {
         </div>
         <p className="text-sm text-gray-500 leading-relaxed">
           {summary.templates?.total ?? 0} template
-          {(summary.templates?.total ?? 0) === 1 ? '' : 's'} in the Website Compliance catalog.
+          {(summary.templates?.total ?? 0) === 1 ? '' : 's'} in the Website Template Library catalog.
         </p>
       </SectionCard>
     </div>

@@ -52,6 +52,14 @@ const GC_NAV_ANY = [
   'gc_manage_content_types',
 ]
 
+const WTL_NAV_ANY = [
+  'wc_request_deployments',
+  'wc_assign_website_templates',
+  'wc_view_all_deployments',
+  'wc_deploy_websites',
+  'wc_manage_templates',
+]
+
 const WC_NAV_ANY = [
   'wc_edit_sections',
   'wc_submit_change_requests',
@@ -59,11 +67,6 @@ const WC_NAV_ANY = [
   'wc_view_all_change_requests',
   'wc_review_change_requests',
   'wc_change_request_status',
-  'wc_request_deployments',
-  'wc_assign_website_templates',
-  'wc_view_all_deployments',
-  'wc_deploy_websites',
-  'wc_manage_templates',
   'wc_manage_deployment_sections',
   'wc_publish_live_content',
   'wc_view_activity_logs',
@@ -141,7 +144,8 @@ export const DASHBOARD_GROUPS = {
   advisors: 'Advisors & billing',
   smc: 'Social Media Compliance',
   gc: 'General Compliance',
-  wc: 'Website Compliance',
+  wtl: 'Website Template Library',
+  wc: 'Website Content Pre Approval',
   platform: 'Platform',
 }
 
@@ -541,39 +545,59 @@ export const DASHBOARD_LINKS = [
     group: 'gc',
   },
 
-  // —— Website Compliance ——
+  // —— Website Template Library ——
   {
     kind: 'section',
-    label: 'Website Compliance',
-    anyOf: WC_NAV_ANY,
+    label: 'Website Template Library',
+    anyOf: WTL_NAV_ANY,
   },
   {
     to: '/my-dashboard/website-compliance/request-site',
     label: 'Request a site',
     title: 'Request a site',
-    description: 'Browse templates and request a new showcase website.',
+    description: 'Browse website templates and request one by filling the deployment form.',
     capability: 'wc_request_deployments',
-    group: 'wc',
+    group: 'wtl',
   },
   {
     to: '/my-dashboard/website-compliance/my-sites',
     label: 'My sites',
     title: 'My sites',
-    description: 'Track your pending and live showcase sites.',
+    description: 'Track your pending and live template deployments.',
     anyOf: [
+      'wc_request_deployments',
       'wc_edit_sections',
       'wc_submit_change_requests',
-      'wc_request_deployments',
     ],
-    // Power Admin / FinProms use Publish live content + Site operations instead.
+    // Power Admin / FinProms use Site operations + Publish live instead.
     exceptRoles: ['power_admin', 'finproms_admin'],
-    group: 'wc',
+    group: 'wtl',
+  },
+  {
+    to: '/my-dashboard/website-compliance/deployments',
+    label: 'Site operations',
+    title: 'Site operations',
+    description: 'Manage templates, view deployment requests, and manually deploy to cPanel.',
+    anyOf: [
+      'wc_view_all_deployments',
+      'wc_deploy_websites',
+      'wc_manage_templates',
+      'wc_assign_website_templates',
+    ],
+    group: 'wtl',
+  },
+
+  // —— Website Content Pre Approval ——
+  {
+    kind: 'section',
+    label: 'Website Content Pre Approval',
+    anyOf: WC_NAV_ANY,
   },
   {
     to: '/my-dashboard/website-compliance/content-editor',
     label: 'Content editor',
     title: 'Content editor',
-    description: 'Edit website sections and submit changes for review.',
+    description: 'Edit website sections and submit changes for pre-approval review.',
     anyOf: ['wc_edit_sections', 'wc_submit_change_requests'],
     exceptRoles: ['power_admin', 'finproms_admin'],
     group: 'wc',
@@ -598,20 +622,6 @@ export const DASHBOARD_LINKS = [
     capability: 'wc_publish_live_content',
     // Detail editor lives at /publish/:deploymentId (not under publish-live/).
     alsoMatch: ['/my-dashboard/website-compliance/publish/'],
-    group: 'wc',
-  },
-  {
-    to: '/my-dashboard/website-compliance/deployments',
-    label: 'Site operations',
-    title: 'Site operations',
-    description: 'Staff tools to request sites for advisors, assign editors, and deploy.',
-    anyOf: [
-      'wc_view_all_deployments',
-      'wc_deploy_websites',
-      'wc_manage_templates',
-      'wc_manage_deployment_sections',
-      'wc_assign_website_templates',
-    ],
     group: 'wc',
   },
   {
@@ -647,7 +657,7 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/website-compliance/reports',
     label: 'Reports',
     title: 'Reports',
-    description: 'Website summary for templates, deployments, and content change requests.',
+    description: 'Website Content Pre Approval summary for change requests and deployments.',
     capability: 'wc_view_platform_report',
     group: 'wc',
   },

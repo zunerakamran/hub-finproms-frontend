@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useHub } from '../context/HubContext'
-import { anyWebsiteModuleOn, websiteModuleOffMessage } from '../utils/websiteCompliance'
+import {
+  websiteModuleOffMessage,
+  websiteTemplateLibraryOn,
+} from '../utils/websiteCompliance'
 import AdvisorDashboard from '../websiteCompliance/AdvisorDashboard'
 
 function ModuleOff() {
@@ -8,9 +11,9 @@ function ModuleOff() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Template Library</p>
           <h1>My sites</h1>
-          <p className="muted">{websiteModuleOffMessage()}</p>
+          <p className="muted">{websiteModuleOffMessage({ templateLibrary: true })}</p>
         </div>
       </div>
     </section>
@@ -19,11 +22,11 @@ function ModuleOff() {
 
 export default function WebsiteComplianceMySites() {
   const { can, loading: hubLoading } = useHub()
-  const moduleOn = anyWebsiteModuleOn(can)
+  const moduleOn = websiteTemplateLibraryOn(can)
   const canView =
+    can('wc_request_deployments') ||
     can('wc_edit_sections') ||
-    can('wc_submit_change_requests') ||
-    can('wc_request_deployments')
+    can('wc_submit_change_requests')
 
   if (!hubLoading && !moduleOn) return <ModuleOff />
 
@@ -32,11 +35,11 @@ export default function WebsiteComplianceMySites() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Template Library</p>
             <h1>My sites</h1>
             <p className="muted">
-              You do not have permission to view site deployments. Staff can manage hub-wide deployments from{' '}
-              <Link to="/my-dashboard/website-compliance/deployments">Site operations</Link>.
+              You do not have permission to view site deployments. Staff can manage hub-wide deployments
+              from <Link to="/my-dashboard/website-compliance/deployments">Site operations</Link>.
             </p>
           </div>
         </div>
@@ -48,10 +51,17 @@ export default function WebsiteComplianceMySites() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Template Library</p>
           <h1>My sites</h1>
           <p className="muted">
-            Track your pending and live showcase sites. Open a live site to edit its content.
+            Track your pending and live template deployments.
+            {can('module_website_compliance') &&
+              (can('wc_edit_sections') || can('wc_submit_change_requests')) && (
+                <>
+                  {' '}
+                  Open a live site to edit content under Website Content Pre Approval.
+                </>
+              )}
           </p>
         </div>
       </div>

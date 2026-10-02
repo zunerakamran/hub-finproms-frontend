@@ -68,7 +68,7 @@ export default function WebsiteCompliancePublishLive() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Publish live content</h1>
             <p className="muted">
               Website Content Pre Approval is not enabled for this hub. Enable it under Modules.
@@ -84,7 +84,7 @@ export default function WebsiteCompliancePublishLive() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Publish live content</h1>
             <p className="muted">
               You do not have permission to publish live website content without approver review.
@@ -99,7 +99,7 @@ export default function WebsiteCompliancePublishLive() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Content Pre Approval</p>
           <h1>Publish live content</h1>
           <p className="muted">
             Pick a live site, edit sections, and publish straight to the website — no approver review.

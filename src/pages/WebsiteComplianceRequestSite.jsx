@@ -10,7 +10,7 @@ function ModuleOff() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website</p>
+          <p className="eyebrow">Website Template Library</p>
           <h1>Request a site</h1>
           <p className="muted">{websiteModuleOffMessage({ templateLibrary: true })}</p>
         </div>
@@ -31,9 +31,9 @@ export default function WebsiteComplianceRequestSite() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website</p>
+            <p className="eyebrow">Website Template Library</p>
             <h1>Request a site</h1>
-            <p className="muted">You do not have permission to request showcase site deployments.</p>
+            <p className="muted">You do not have permission to request website template deployments.</p>
           </div>
         </div>
       </section>
@@ -44,13 +44,16 @@ export default function WebsiteComplianceRequestSite() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website</p>
+          <p className="eyebrow">Website Template Library</p>
           <h1>Request a site</h1>
-          <p className="muted">Browse templates and submit a deployment request for a new showcase site.</p>
+          <p className="muted">
+            Browse templates and submit a deployment request. A capable admin will manually deploy it on
+            cPanel.
+          </p>
         </div>
       </div>
       <div className="wc-app">
-        <AdvisorDashboard />
+        <AdvisorDashboard forcedTab="templates" />
       </div>
     </section>
   )

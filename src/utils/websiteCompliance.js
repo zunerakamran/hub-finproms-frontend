@@ -1,4 +1,4 @@
-/** Website Compliance shared helpers */
+/** Website Template Library + Website Content Pre Approval shared helpers */
 
 import { formatDateTime } from './dateFormat'
 import {

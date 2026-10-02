@@ -7,7 +7,7 @@ function ModuleOff() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Content Pre Approval</p>
           <h1>Content editor</h1>
           <p className="muted">
             Website Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it
@@ -33,7 +33,7 @@ export default function WebsiteComplianceContentEditor() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Content editor</h1>
             <p className="muted">
               You do not have permission to edit website sections.
@@ -54,7 +54,7 @@ export default function WebsiteComplianceContentEditor() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Content Pre Approval</p>
           <h1>Content editor</h1>
           <p className="muted">
             Edit sections on your live site and submit changes for review.{' '}

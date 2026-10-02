@@ -140,7 +140,7 @@ export default function WebsiteComplianceMyRequests() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>My requests</h1>
             <p className="muted">
               Website Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it
@@ -157,7 +157,7 @@ export default function WebsiteComplianceMyRequests() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>My requests</h1>
             <p className="muted">You do not have permission to view your website change requests.</p>
           </div>
@@ -170,7 +170,7 @@ export default function WebsiteComplianceMyRequests() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Content Pre Approval</p>
           <h1>My requests</h1>
           <p className="muted">
             {actingAdvisor
@@ -189,7 +189,7 @@ export default function WebsiteComplianceMyRequests() {
       {error && <div className="alert">{error}</div>}
       {!loading && sorted.length === 0 ? (
         <p className="muted">
-          No website compliance requests yet.
+          No Website Content Pre Approval requests yet.
           {canSubmit && (
             <>
               {' '}
@@ -203,7 +203,7 @@ export default function WebsiteComplianceMyRequests() {
           columns={columns}
           rows={sorted}
           loading={loading}
-          emptyMessage="No website compliance requests yet."
+          emptyMessage="No Website Content Pre Approval requests yet."
           pageSize={10}
           actions={(row) => (
             <DataGridIconBtn

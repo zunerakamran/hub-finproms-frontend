@@ -627,7 +627,7 @@ export default function WebsiteComplianceTemplatesPanel() {
   if (!canManageTemplates && !canViewDeployments) {
     return (
       <p className="muted text-sm">
-        You do not have template or deployment management capabilities for Website Compliance.
+        You do not have template or deployment management capabilities for Website Template Library.
       </p>
     )
   }
@@ -896,7 +896,7 @@ export default function WebsiteComplianceTemplatesPanel() {
           subtitle={
             editingTemplate
               ? 'Update catalog details for this showcase template.'
-              : 'Add a showcase template to this hub’s Website Compliance catalog.'
+              : 'Add a template to this hub's Website Template Library catalog.'
           }
           onClose={() => setShowTemplateModal(false)}
           maxWidth="max-w-xl"

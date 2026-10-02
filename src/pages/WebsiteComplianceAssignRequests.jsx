@@ -13,7 +13,7 @@ export default function WebsiteComplianceAssignRequests() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Assign requests</h1>
             <p className="muted">
               Website Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it
@@ -30,7 +30,7 @@ export default function WebsiteComplianceAssignRequests() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Assign requests</h1>
             <p className="muted">
               You do not have permission to assign website change requests.
@@ -51,7 +51,7 @@ export default function WebsiteComplianceAssignRequests() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Content Pre Approval</p>
           <h1>Assign requests</h1>
           <p className="muted">
             Assign pending content changes to an approver for review.

@@ -3,7 +3,6 @@ import { useHub } from '../context/HubContext'
 import DeploymentRequestPanel from '../websiteCompliance/components/DeploymentRequestPanel'
 import WebsiteComplianceTemplatesPanel from '../websiteCompliance/components/WebsiteComplianceTemplatesPanel'
 import {
-  anyWebsiteModuleOn,
   websiteModuleOffMessage,
   websiteTemplateLibraryOn,
 } from '../utils/websiteCompliance'
@@ -11,44 +10,25 @@ import {
 export default function WebsiteComplianceDeployments() {
   const { can, loading: hubLoading } = useHub()
   const templateModuleOn = websiteTemplateLibraryOn(can)
-  const moduleOn = anyWebsiteModuleOn(can)
   const canRequestOrView =
     can('wc_request_deployments') ||
     can('wc_assign_website_templates') ||
     can('wc_view_all_deployments')
-  const canAdmin =
-    can('wc_manage_templates') || can('wc_deploy_websites') || can('wc_manage_deployment_sections')
+  const canAdmin = can('wc_manage_templates') || can('wc_deploy_websites')
   const canAccessPage =
     can('wc_view_all_deployments') ||
     can('wc_deploy_websites') ||
     can('wc_manage_templates') ||
-    can('wc_manage_deployment_sections') ||
     can('wc_assign_website_templates')
 
-  if (!hubLoading && !moduleOn) {
+  if (!hubLoading && !templateModuleOn) {
     return (
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website</p>
+            <p className="eyebrow">Website Template Library</p>
             <h1>Site operations</h1>
-            <p className="muted">{websiteModuleOffMessage()}</p>
-          </div>
-        </div>
-      </section>
-    )
-  }
-
-  if (!hubLoading && !templateModuleOn && !can('wc_manage_deployment_sections')) {
-    return (
-      <section>
-        <div className="page-head">
-          <div>
-            <p className="eyebrow">Website</p>
-            <h1>Site operations</h1>
-            <p className="muted">
-              {websiteModuleOffMessage({ templateLibrary: true })}
-            </p>
+            <p className="muted">{websiteModuleOffMessage({ templateLibrary: true })}</p>
           </div>
         </div>
       </section>
@@ -60,11 +40,11 @@ export default function WebsiteComplianceDeployments() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Template Library</p>
             <h1>Site operations</h1>
             <p className="muted">
-              This page is for staff who manage deployments across the hub. To request your own site, go to{' '}
-              <Link to="/my-dashboard/website-compliance/request-site">Request a site</Link>.
+              This page is for staff who manage templates and deployments. To request your own site, go
+              to <Link to="/my-dashboard/website-compliance/request-site">Request a site</Link>.
             </p>
           </div>
         </div>
@@ -76,10 +56,10 @@ export default function WebsiteComplianceDeployments() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Template Library</p>
           <h1>Site operations</h1>
           <p className="muted">
-            Staff tools: request sites for advisors, assign editors, manage templates, and deploy to cPanel.
+            Manage templates, review deployment requests, and manually deploy to the respective cPanel.
             Advisors requesting their own site should use{' '}
             <Link to="/my-dashboard/website-compliance/request-site">Request a site</Link>.
           </p>
@@ -89,7 +69,9 @@ export default function WebsiteComplianceDeployments() {
         {canRequestOrView && <DeploymentRequestPanel />}
         {canAdmin && <WebsiteComplianceTemplatesPanel />}
         {!hubLoading && !canRequestOrView && !canAdmin && (
-          <p className="muted text-sm">You do not have site operations capabilities for Website Compliance.</p>
+          <p className="muted text-sm">
+            You do not have site operations capabilities for Website Template Library.
+          </p>
         )}
       </div>
     </section>

@@ -868,7 +868,7 @@ export const api = {
       method: 'DELETE',
     }),
 
-  // —— Website Compliance ——
+  // —— Website Template Library / Content Pre Approval ——
   websiteComplianceTemplates: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
@@ -1026,7 +1026,7 @@ export const api = {
   websiteCompliancePublicPages: () => request('/website-compliance/public/pages'),
 }
 
-/** Absolute API base for Website Compliance asset URLs (no trailing slash). */
+/** Absolute API base for website module asset URLs (no trailing slash). */
 export const WEBSITE_COMPLIANCE_API_BASE = `${API_URL}/website-compliance`
 
 /** Live template preview host (cPanel showcase sites). Prefer hub.frontend_url at runtime. */

@@ -12,7 +12,7 @@ export default function WebsiteComplianceReviewQueue() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Review queue</h1>
             <p className="muted">
               Website Content Pre Approval is not enabled for this hub. Ask Power Admin to enable it
@@ -29,7 +29,7 @@ export default function WebsiteComplianceReviewQueue() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Website Compliance</p>
+            <p className="eyebrow">Website Content Pre Approval</p>
             <h1>Review queue</h1>
             <p className="muted">
               You do not have permission to review website change requests.
@@ -50,7 +50,7 @@ export default function WebsiteComplianceReviewQueue() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Compliance</p>
+          <p className="eyebrow">Website Content Pre Approval</p>
           <h1>Review queue</h1>
           <p className="muted">
             Pick up unassigned requests, then open them to approve, reject, or approve with feedback.

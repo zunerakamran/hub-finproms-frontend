@@ -896,7 +896,7 @@ export default function WebsiteComplianceTemplatesPanel() {
           subtitle={
             editingTemplate
               ? 'Update catalog details for this showcase template.'
-              : 'Add a template to this hub's Website Template Library catalog.'
+              : "Add a template to this hub's Website Template Library catalog."
           }
           onClose={() => setShowTemplateModal(false)}
           maxWidth="max-w-xl"

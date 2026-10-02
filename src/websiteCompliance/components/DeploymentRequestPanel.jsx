@@ -1,73 +1,22 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  FaRocket,
   FaPlus,
-  FaClock,
-  FaCheckCircle,
-  FaTimesCircle,
   FaTimes,
   FaSync,
   FaUserCheck,
   FaExclamationTriangle,
-  FaUpload,
   FaImage,
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
+import WcStatusBadge from '../../components/WebsiteComplianceUI'
 import { websiteComplianceAssetUrl } from '../../api/client'
-import { formatDate } from '../../utils/dateFormat'
-import ComplianceStatusText from '../../components/ComplianceStatusText'
+import { formatDateTime } from '../../utils/dateFormat'
 import FileDropzone from '../../components/FileDropzone'
 import RequiredMark from '../../components/RequiredMark'
 import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
-
-// ─── Status badge ────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG = {
-  pending: {
-    label: 'Pending Deployment',
-    icon: FaClock,
-    className: 'bg-amber-50 text-amber-700 border-amber-200',
-    dot: 'bg-amber-500',
-  },
-  deployed: {
-    label: 'Deployed',
-    icon: FaCheckCircle,
-    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    dot: 'bg-emerald-500',
-  },
-  rejected: {
-    label: 'Rejected',
-    icon: FaTimesCircle,
-    className: 'bg-rose-50 text-rose-700 border-rose-200',
-    dot: 'bg-rose-500',
-  },
-}
-
-function StatusBadge({ status, at }) {
-  const { complianceStatusLabel } = useHub()
-  const config = STATUS_CONFIG[status]
-  const badge = !config ? (
-    <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border bg-gray-50 text-gray-700 border-gray-200">
-      <ComplianceStatusText status={status} label={complianceStatusLabel(status)} />
-    </span>
-  ) : (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full border ${config.className}`}>
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dot}`} aria-hidden="true" />
-      <config.icon className="w-3 h-3 shrink-0" aria-hidden="true" />
-      <ComplianceStatusText status={status} label={complianceStatusLabel(status)} />
-    </span>
-  )
-  if (!at) return badge
-  return (
-    <span className="compliance-status-cell">
-      {badge}
-      <DataGridDate value={at} />
-    </span>
-  )
-}
 
 // ─── Alert banner ─────────────────────────────────────────────────────────────
 
@@ -572,6 +521,8 @@ export default function DeploymentRequestPanel() {
   const [error, setError] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [assignTarget, setAssignTarget] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('')
+  const [appliedStatus, setAppliedStatus] = useState('')
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (!canAccess) {
@@ -631,35 +582,55 @@ export default function DeploymentRequestPanel() {
     setMessage(`Assigned this website to ${advisorName}. They can edit its content once it is deployed (this is not their own site).`)
   }
 
+  const filteredRequests = useMemo(() => {
+    if (!appliedStatus) return requests
+    return requests.filter((r) => String(r.status || '').toLowerCase() === appliedStatus.toLowerCase())
+  }, [requests, appliedStatus])
+
   const columns = useMemo(() => [
+    {
+      key: 'id',
+      label: '#',
+      narrow: true,
+      render: (row) => <strong>#{row.id}</strong>,
+      filterValue: (row) => String(row.id),
+      sortValue: (row) => Number(row.id) || 0,
+    },
     {
       key: 'domain_name',
       label: 'Domain',
-      width: '16%',
+      grow: true,
       render: (row) => row.domain_name || 'Unnamed Deployment',
       filterValue: (row) => row.domain_name || '',
     },
     {
       key: 'template_name',
       label: 'Template',
-      width: '12%',
       render: (row) => row.template_name || '—',
       filterValue: (row) => row.template_name || '',
     },
     {
       key: 'status',
       label: 'Status',
-      width: '11%',
+      fit: true,
       render: (row) => (
-        <StatusBadge status={row.status} at={row.deployed_at || row.updated_at || row.created_at} />
+        <WcStatusBadge
+          status={row.status}
+          at={row.deployed_at || row.updated_at || row.created_at}
+        />
       ),
-      filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
+      filterValue: (row) =>
+        [
+          complianceStatusLabel(row.status) || row.status || '',
+          formatDateTime(row.deployed_at || row.updated_at || row.created_at, ''),
+        ]
+          .filter(Boolean)
+          .join(' '),
       truncate: false,
     },
     {
       key: 'requester',
       label: 'Requested by',
-      width: '13%',
       render: (row) => {
         const requester = row.requested_by || row.requestedBy || row.advisor
         return requester?.name || '—'
@@ -672,13 +643,12 @@ export default function DeploymentRequestPanel() {
     {
       key: 'advisor',
       label: 'Content advisor',
-      width: '14%',
       render: (row) => {
         const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
         const advisorOwned = isRequestedByAdvisor(row)
         const contentAdvisor = assignedAdvisor || (advisorOwned ? row.advisor : null)
         if (contentAdvisor) return contentAdvisor.name
-        return <span className="text-amber-600">Unassigned</span>
+        return <span className="muted">Unassigned</span>
       },
       filterValue: (row) => {
         const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
@@ -691,23 +661,22 @@ export default function DeploymentRequestPanel() {
     {
       key: 'created_at',
       label: 'Created',
-      width: '11%',
-      render: (row) => <DataGridDate value={row.created_at} withTime={false} />,
-      filterValue: (row) => formatDate(row.created_at, ''),
+      date: true,
+      render: (row) => <DataGridDate value={row.created_at} />,
+      filterValue: (row) => formatDateTime(row.created_at, ''),
       sortValue: (row) => (row.created_at ? new Date(row.created_at).getTime() : 0),
       truncate: false,
     },
     {
       key: 'live_url',
       label: 'Live URL',
-      width: '14%',
       render: (row) =>
         row.cpanel_domain ? (
           <a
             href={row.cpanel_domain.startsWith('http') ? row.cpanel_domain : `https://${row.cpanel_domain}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[var(--brand)] hover:underline"
+            onClick={(e) => e.stopPropagation()}
           >
             {row.cpanel_domain}
           </a>
@@ -721,89 +690,73 @@ export default function DeploymentRequestPanel() {
 
   return (
     <div>
-      {message && <AlertBanner type="success" message={message} onDismiss={() => setMessage('')} />}
-      {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
+      {error ? <div className="alert">{error}</div> : null}
+      {message ? <div className="alert success">{message}</div> : null}
 
-      {/* Header row */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-gray-500">
-            {canRequest
-              ? `Staff tools: request showcase sites for advisors, assign editors, and track deployment status. Advisors requesting their own site should use Request a site.`
-              : 'Browse all deployment requests across the platform.'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {canRequest && (
-            <button
-              type="button"
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 bg-[var(--brand)] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition shadow-sm"
-            >
-              <FaPlus className="w-3.5 h-3.5" />
-              Request Deployment
-            </button>
-          )}
+      <form
+        className="filters-row"
+        onSubmit={(e) => {
+          e.preventDefault()
+          setAppliedStatus(statusFilter)
+        }}
+      >
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="">All statuses</option>
+          <option value="pending">{complianceStatusLabel('pending') || 'Pending'}</option>
+          <option value="deployed">{complianceStatusLabel('deployed') || 'Deployed'}</option>
+          <option value="rejected">{complianceStatusLabel('rejected') || 'Rejected'}</option>
+        </select>
+        <button className="btn primary" type="submit">
+          Filter
+        </button>
+        {canRequest ? (
           <button
             type="button"
-            onClick={() => fetchData(true)}
-            disabled={refreshing || loading}
-            className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition shadow-sm disabled:opacity-60"
+            className="btn primary"
+            onClick={() => setShowCreateModal(true)}
           >
-            <FaSync className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            <FaPlus aria-hidden style={{ marginRight: 6 }} />
+            Request Deployment
           </button>
-        </div>
-      </div>
+        ) : null}
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() => fetchData(true)}
+          disabled={refreshing || loading}
+        >
+          <FaSync aria-hidden style={{ marginRight: 6 }} />
+          {refreshing ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </form>
 
-      {!loading && requests.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
-            <FaRocket className="w-6 h-6 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-bold text-[var(--brand-dark)]">No deployment requests yet</h3>
-          <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
-            {canRequest
-              ? 'Submit your first deployment request to get a new advisor showcase site set up.'
-              : 'Deployment requests will appear here when submitted.'}
-          </p>
-          {canRequest && (
-            <button
-              type="button"
-              onClick={() => setShowCreateModal(true)}
-              className="mt-4 inline-flex items-center gap-2 bg-[var(--brand)] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition shadow-sm"
-            >
-              <FaPlus className="w-3.5 h-3.5" />
-              Request Deployment
-            </button>
-          )}
-        </div>
-      ) : (
-        <DataGrid
-          columns={columns}
-          rows={requests}
-          loading={loading}
-          pageSize={10}
-          emptyMessage="No deployment requests yet"
-          actionsWidth="9%"
-          actions={(row) => {
-            const advisorOwned = isRequestedByAdvisor(row)
-            const showAssignAdvisor = canAssignAdvisor && !advisorOwned
-            const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
-            if (!showAssignAdvisor) return <span className="muted">—</span>
-            return (
-              <DataGridIconBtn
-                icon={FaUserCheck}
-                label={assignedAdvisor ? 'Reassign advisor' : 'Assign advisor'}
-                variant="primary"
-                onClick={() => setAssignTarget(row)}
-              />
-            )
-          }}
-        />
-      )}
+      <DataGrid
+        columns={columns}
+        rows={filteredRequests}
+        loading={loading}
+        pageSize={10}
+        emptyMessage={
+          canRequest
+            ? 'No deployment requests yet. Submit a request to get a showcase site set up.'
+            : 'No deployment requests in this queue.'
+        }
+        actionsLabel="Actions"
+        actions={(row) => {
+          const advisorOwned = isRequestedByAdvisor(row)
+          const showAssignAdvisor = canAssignAdvisor && !advisorOwned
+          const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+          if (!showAssignAdvisor) return <span className="muted">—</span>
+          return (
+            <DataGridIconBtn
+              icon={FaUserCheck}
+              label={assignedAdvisor ? 'Reassign advisor' : 'Assign advisor'}
+              variant="primary"
+              onClick={() => setAssignTarget(row)}
+            />
+          )
+        }}
+      />
 
-      {/* Create modal */}
       {showCreateModal && canRequest && (
         <CreateDeploymentModal
           advisors={advisors}
@@ -813,7 +766,6 @@ export default function DeploymentRequestPanel() {
         />
       )}
 
-      {/* Assign advisor modal */}
       {assignTarget && canAssignAdvisor && !isRequestedByAdvisor(assignTarget) && (
         <AssignAdvisorModal
           request={assignTarget}

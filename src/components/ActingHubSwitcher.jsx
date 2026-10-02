@@ -52,7 +52,12 @@ export default function ActingHubSwitcher() {
           aria-label="Hub switcher"
         >
           {hubs.map((h) => (
-            <option key={h.id} value={String(h.id)} disabled={h.eligible === false}>
+            <option
+              key={h.id}
+              value={String(h.id)}
+              disabled={h.eligible === false}
+              title={h.eligible === false ? h.reason || 'Not ready for remote control' : undefined}
+            >
               {h.label || h.name}
             </option>
           ))}
@@ -64,6 +69,11 @@ export default function ActingHubSwitcher() {
         </span>
       )}
       {error && <span className="acting-hub-error">{error}</span>}
+      {hubs.some((h) => h.eligible === false) && (
+        <p className="muted acting-hub-switcher__hint" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
+          Greyed hubs need deploy wiring (remote DB credentials) on Power Admin → Hubs.
+        </p>
+      )}
     </div>
   )
 }

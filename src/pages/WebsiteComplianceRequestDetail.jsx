@@ -15,12 +15,10 @@ import { DataGridDate } from '../components/DataGrid'
 import DateTimeText from '../components/DateTimeText'
 import RequiredMark from '../components/RequiredMark'
 import RichTextDisplay from '../components/RichTextDisplay'
-import { SupportingFilesList } from '../components/GeneralComplianceUI'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import WcStatusBadge, { WcVersionCard } from '../components/WebsiteComplianceUI'
 import {
   compliancePostBody,
-  resolveComplianceSupportingFiles,
 } from '../utils/complianceSupportingFiles'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -284,14 +282,6 @@ export default function WebsiteComplianceRequestDetail() {
           <RichTextDisplay html={row.rejection_reason} className="wc-feedback" />
         </div>
       ) : null}
-
-      <div className="wc-panel wc-detail-card">
-        <p className="muted label">Supporting files</p>
-        <SupportingFilesList
-          files={resolveComplianceSupportingFiles(row)}
-          emptyLabel="No supporting files attached to the current version."
-        />
-      </div>
 
       {canShowReviewActions ? (
         <ChangeRequestReviewActions

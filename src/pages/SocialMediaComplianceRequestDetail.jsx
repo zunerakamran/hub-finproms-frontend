@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import SmcStatusBadge, { SmcVersionCard, SmcSupportingFilesBlock } from '../components/SocialMediaComplianceUI'
+import SmcStatusBadge, { SmcVersionCard } from '../components/SocialMediaComplianceUI'
 import FileDropzone from '../components/FileDropzone'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import DateTimeText from '../components/DateTimeText'
@@ -14,7 +14,6 @@ import { SMC_STATUSES, smcStatusClass } from '../utils/socialMediaCompliance'
 import {
   appendSupportingFiles,
   compliancePostBody,
-  resolveComplianceSupportingFiles,
 } from '../utils/complianceSupportingFiles'
 import ComplianceStatusText from '../components/ComplianceStatusText'
 
@@ -462,11 +461,6 @@ export default function SocialMediaComplianceRequestDetail() {
           )}
         </div>
       )}
-
-      <div className="smc-panel" style={{ marginBottom: '1rem' }}>
-        <p className="muted label">Supporting files</p>
-        <SmcSupportingFilesBlock files={resolveComplianceSupportingFiles(row)} />
-      </div>
 
       <div className="smc-versions">
         {versions.map((ver) => (

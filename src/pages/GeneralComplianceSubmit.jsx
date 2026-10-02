@@ -6,7 +6,10 @@ import RequiredMark from '../components/RequiredMark'
 import RichTextEditor, { isRichTextEmpty } from '../components/RichTextEditor'
 import { useHub } from '../context/HubContext'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
-import { appendSupportingFiles } from '../utils/complianceSupportingFiles'
+import {
+  appendComplianceAttachments,
+  appendSupportingFiles,
+} from '../utils/complianceSupportingFiles'
 
 export default function GeneralComplianceSubmit() {
   const { can, loading: hubLoading } = useHub()
@@ -16,7 +19,8 @@ export default function GeneralComplianceSubmit() {
   const [contentType, setContentType] = useState('')
   const [types, setTypes] = useState([])
   const [typesLoading, setTypesLoading] = useState(true)
-  const [files, setFiles] = useState([])
+  const [attachments, setAttachments] = useState([])
+  const [supportingFiles, setSupportingFiles] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -65,7 +69,8 @@ export default function GeneralComplianceSubmit() {
       const form = new FormData()
       form.append('content_type', contentType)
       form.append('description', description)
-      appendSupportingFiles(form, files)
+      appendComplianceAttachments(form, attachments)
+      appendSupportingFiles(form, supportingFiles)
       const data = await api.generalComplianceSubmit(form)
       navigate(`/my-dashboard/general-compliance/${data.data.id}`, {
         state: { from: 'submit' },
@@ -102,7 +107,8 @@ export default function GeneralComplianceSubmit() {
           <p className="eyebrow">General Compliance</p>
           <h1>Submit for general compliance</h1>
           <p className="muted">
-            Choose a content type and describe the material. Supporting files are optional.
+            Choose a content type and describe the material. Attachments are the content under
+            review; supporting files are optional evidence.
           </p>
           <ActingAdvisorBanner action="submissions" />
         </div>
@@ -123,11 +129,7 @@ export default function GeneralComplianceSubmit() {
             disabled={typesLoading || !types.length}
           >
             <option value="">
-              {typesLoading
-                ? 'Loading…'
-                : types.length
-                  ? 'Select content type…'
-                  : 'No content types configured'}
+              {typesLoading ? 'Loading types…' : 'Select content type…'}
             </option>
             {types.map((type) => (
               <option key={type.id} value={type.name}>
@@ -157,9 +159,16 @@ export default function GeneralComplianceSubmit() {
         </div>
 
         <SupportingFilesPicker
+          id="gc-submit-attachments"
+          label="Attachments (optional)"
+          files={attachments}
+          onChange={setAttachments}
+        />
+
+        <SupportingFilesPicker
           id="gc-submit-supporting-files"
-          files={files}
-          onChange={setFiles}
+          files={supportingFiles}
+          onChange={setSupportingFiles}
         />
 
         <div className="actions">

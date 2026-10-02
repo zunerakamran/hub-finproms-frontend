@@ -8,6 +8,12 @@ export const COMPLIANCE_SUPPORTING_FILES_HELPER =
 
 export const COMPLIANCE_SUPPORTING_FILES_MAX = 10
 
+export const SUPPORTING_FILE_ROLE_LABELS = {
+  advisor: 'Advisor',
+  approver: 'Approver',
+  manager: 'Manager',
+}
+
 export function sliceSupportingFiles(list) {
   return Array.from(list || []).slice(0, COMPLIANCE_SUPPORTING_FILES_MAX)
 }
@@ -16,14 +22,33 @@ export function appendSupportingFiles(form, files) {
   sliceSupportingFiles(files).forEach((file) => form.append('supporting_files[]', file))
 }
 
-/** Prefer `supporting_files`; fall back to legacy `attachments` when present. */
+/** Primary GC submission content files (distinct from supporting_files). */
+export function appendComplianceAttachments(form, files) {
+  sliceSupportingFiles(files).forEach((file) => form.append('attachments[]', file))
+}
+
+/**
+ * Supporting files for a version/request — never falls back to `attachments`
+ * (those are primary content on General Compliance).
+ */
 export function resolveComplianceSupportingFiles(rowOrVersion) {
   if (!rowOrVersion) return []
   const primary = rowOrVersion.supporting_files
-  if (Array.isArray(primary) && primary.length) return primary
-  const legacy = rowOrVersion.attachments
-  if (Array.isArray(legacy) && legacy.length) return legacy
-  return []
+  return Array.isArray(primary) ? primary : []
+}
+
+/** Primary GC attachments on a version/request. */
+export function resolveComplianceAttachments(rowOrVersion) {
+  if (!rowOrVersion) return []
+  const list = rowOrVersion.attachments
+  return Array.isArray(list) ? list : []
+}
+
+export function supportingFileRoleLabel(file) {
+  if (!file) return null
+  const role = file.uploaded_by_role
+  if (role && SUPPORTING_FILE_ROLE_LABELS[role]) return SUPPORTING_FILE_ROLE_LABELS[role]
+  return null
 }
 
 /**

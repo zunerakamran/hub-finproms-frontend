@@ -1,5 +1,9 @@
 import { gcStatusClass, formatGcFileSize } from '../utils/generalCompliance'
-import { resolveComplianceSupportingFiles } from '../utils/complianceSupportingFiles'
+import {
+  resolveComplianceAttachments,
+  resolveComplianceSupportingFiles,
+  supportingFileRoleLabel,
+} from '../utils/complianceSupportingFiles'
 import { useHub } from '../context/HubContext'
 import { StatusWithDate } from './DataGrid'
 import ComplianceStatusText from './ComplianceStatusText'
@@ -48,36 +52,66 @@ export function GcBarChart({ labels = [], data = [], title }) {
   )
 }
 
-export function GcAttachmentList({ attachments = [], emptyLabel = 'No attachments' }) {
+export function GcAttachmentList({
+  attachments = [],
+  emptyLabel = 'No attachments',
+  showUploader = false,
+}) {
   if (!attachments.length) {
     return <p className="muted">{emptyLabel}</p>
   }
 
   return (
     <ul className="gc-attach-list">
-      {attachments.map((file) => (
-        <li key={file.id || `${file.original_name}-${file.file_path}`}>
-          {file.file_url ? (
-            <a href={file.file_url} target="_blank" rel="noreferrer">
-              {file.original_name || 'Download'}
-            </a>
-          ) : (
-            <span>{file.original_name || 'File'}</span>
-          )}
-          {file.size_bytes != null && (
-            <span className="muted"> ({formatGcFileSize(file.size_bytes)})</span>
-          )}
-        </li>
-      ))}
+      {attachments.map((file) => {
+        const roleLabel = showUploader ? supportingFileRoleLabel(file) : null
+        const byName = showUploader ? file.uploaded_by_name : null
+        return (
+          <li key={file.id || `${file.original_name}-${file.file_path}`}>
+            <div className="gc-attach-row">
+              {file.file_url ? (
+                <a href={file.file_url} target="_blank" rel="noreferrer">
+                  {file.original_name || 'Download'}
+                </a>
+              ) : (
+                <span>{file.original_name || 'File'}</span>
+              )}
+              {file.size_bytes != null && (
+                <span className="muted"> ({formatGcFileSize(file.size_bytes)})</span>
+              )}
+            </div>
+            {(roleLabel || byName) && (
+              <p className="muted gc-attach-meta">
+                {roleLabel ? <span className="gc-attach-role">{roleLabel}</span> : null}
+                {roleLabel && byName ? ' · ' : null}
+                {byName ? <span>by {byName}</span> : null}
+              </p>
+            )}
+          </li>
+        )
+      })}
     </ul>
   )
 }
 
-export function SupportingFilesList({ files = [], emptyLabel = 'No supporting files' }) {
-  return <GcAttachmentList attachments={files} emptyLabel={emptyLabel} />
+export function SupportingFilesList({
+  files = [],
+  emptyLabel = 'No supporting files',
+  showUploader = true,
+}) {
+  return (
+    <GcAttachmentList
+      attachments={files}
+      emptyLabel={emptyLabel}
+      showUploader={showUploader}
+    />
+  )
 }
 
 export function GcVersionCard({ version, isLatest }) {
+  const attachments = resolveComplianceAttachments(version)
+  const supportingFiles = resolveComplianceSupportingFiles(version)
+
   return (
     <article className={`gc-version ${isLatest ? 'is-latest' : ''}`}>
       <header className="gc-version-head">
@@ -98,10 +132,18 @@ export function GcVersionCard({ version, isLatest }) {
           <p className="muted label">Description</p>
           <RichTextDisplay html={version.description} className="gc-pre" />
         </div>
-        <div>
-          <p className="muted label">Supporting files</p>
-          <SupportingFilesList files={resolveComplianceSupportingFiles(version)} />
-        </div>
+        {attachments.length ? (
+          <div>
+            <p className="muted label">Attachments</p>
+            <GcAttachmentList attachments={attachments} showUploader={false} />
+          </div>
+        ) : null}
+        {supportingFiles.length ? (
+          <div>
+            <p className="muted label">Supporting files</p>
+            <SupportingFilesList files={supportingFiles} />
+          </div>
+        ) : null}
       </div>
       {version.reviewed_at && (
         <footer className="gc-version-foot">

@@ -4962,6 +4962,17 @@ td.data-grid__actions {
   margin: 0.35rem 0 0;
   padding-left: 1.1rem;
 }
+.gc-attach-list li + li {
+  margin-top: 0.45rem;
+}
+.gc-attach-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.85em;
+}
+.gc-attach-role {
+  font-weight: 600;
+  color: #334155;
+}
 .gc-panel {
   margin-top: 1.25rem;
   padding: 1.25rem;

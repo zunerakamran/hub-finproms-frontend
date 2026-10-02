@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import GcStatusBadge, { GcVersionCard, SupportingFilesList } from '../components/GeneralComplianceUI'
+import GcStatusBadge, { GcVersionCard, GcAttachmentList } from '../components/GeneralComplianceUI'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import DateTimeText from '../components/DateTimeText'
 import RequiredMark from '../components/RequiredMark'
@@ -11,9 +11,10 @@ import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { GC_STATUSES, gcStatusClass } from '../utils/generalCompliance'
 import {
+  appendComplianceAttachments,
   appendSupportingFiles,
   compliancePostBody,
-  resolveComplianceSupportingFiles,
+  resolveComplianceAttachments,
 } from '../utils/complianceSupportingFiles'
 import ComplianceStatusText from '../components/ComplianceStatusText'
 
@@ -35,7 +36,9 @@ export default function GeneralComplianceRequestDetail() {
   const [resubContentType, setResubContentType] = useState('')
   const [contentTypes, setContentTypes] = useState([])
   const [resubFiles, setResubFiles] = useState([])
+  const [resubSupportingFiles, setResubSupportingFiles] = useState([])
   const [confirmFiles, setConfirmFiles] = useState([])
+  const [confirmSupportingFiles, setConfirmSupportingFiles] = useState([])
   const [assigningSelf, setAssigningSelf] = useState(false)
   const [changeStatus, setChangeStatus] = useState('Pending')
   const [changeComment, setChangeComment] = useState('')
@@ -189,8 +192,8 @@ export default function GeneralComplianceRequestDetail() {
     }
   }
 
-  const appendAttachments = (form, files) => {
-    appendSupportingFiles(form, files)
+  const appendPrimaryAttachments = (form, files) => {
+    appendComplianceAttachments(form, files)
   }
 
   const resubmit = async (event) => {
@@ -206,11 +209,13 @@ export default function GeneralComplianceRequestDetail() {
       const form = new FormData()
       form.append('description', resubDescription)
       form.append('content_type', resubContentType)
-      appendAttachments(form, resubFiles)
+      appendPrimaryAttachments(form, resubFiles)
+      appendSupportingFiles(form, resubSupportingFiles)
       const data = await api.generalComplianceResubmit(id, form)
       setRow(data.data)
       setMessage('Resubmitted for review.')
       setResubFiles([])
+      setResubSupportingFiles([])
     } catch (err) {
       setError(err.message || 'Resubmit failed.')
     } finally {
@@ -224,11 +229,15 @@ export default function GeneralComplianceRequestDetail() {
     setMessage('')
     try {
       const form = new FormData()
-      if (withFiles && confirmFiles.length) appendAttachments(form, confirmFiles)
+      if (withFiles) {
+        if (confirmFiles.length) appendPrimaryAttachments(form, confirmFiles)
+        if (confirmSupportingFiles.length) appendSupportingFiles(form, confirmSupportingFiles)
+      }
       const data = await api.generalComplianceConfirmFeedback(id, form)
       setRow(data.data)
       setMessage('Request confirmed as Approved.')
       setConfirmFiles([])
+      setConfirmSupportingFiles([])
     } catch (err) {
       setError(err.message || 'Confirm failed.')
     } finally {
@@ -343,22 +352,32 @@ export default function GeneralComplianceRequestDetail() {
             />
           </h2>
           <p className="muted">
-            Confirm as approved, or upload corrected files (also becomes Approved).
+            Confirm as approved, or upload corrected attachments (also becomes Approved).
           </p>
           {row.feedback && <RichTextDisplay html={row.feedback} className="gc-feedback" />}
           <SupportingFilesPicker
-            id="gc-confirm-supporting-files"
+            id="gc-confirm-attachments"
+            label="Attachments (optional)"
             files={confirmFiles}
             onChange={setConfirmFiles}
+          />
+          <SupportingFilesPicker
+            id="gc-confirm-supporting-files"
+            files={confirmSupportingFiles}
+            onChange={setConfirmSupportingFiles}
           />
           <div className="actions">
             <button
               type="button"
               className="btn primary"
               disabled={saving}
-              onClick={() => confirmFeedback(Boolean(confirmFiles.length))}
+              onClick={() =>
+                confirmFeedback(Boolean(confirmFiles.length || confirmSupportingFiles.length))
+              }
             >
-              {confirmFiles.length ? 'Upload & approve' : 'Confirm approved'}
+              {confirmFiles.length || confirmSupportingFiles.length
+                ? 'Upload & approve'
+                : 'Confirm approved'}
             </button>
           </div>
         </div>
@@ -398,9 +417,15 @@ export default function GeneralComplianceRequestDetail() {
             />
           </div>
           <SupportingFilesPicker
-            id="gc-resubmit-supporting-files"
+            id="gc-resubmit-attachments"
+            label="Attachments (optional)"
             files={resubFiles}
             onChange={setResubFiles}
+          />
+          <SupportingFilesPicker
+            id="gc-resubmit-supporting-files"
+            files={resubSupportingFiles}
+            onChange={setResubSupportingFiles}
           />
           <div className="actions">
             <button className="btn primary" disabled={saving}>
@@ -488,10 +513,17 @@ export default function GeneralComplianceRequestDetail() {
           Current description
         </p>
         <RichTextDisplay html={row.description} className="gc-pre" />
-        <p className="muted label" style={{ marginTop: '0.75rem' }}>
-          Supporting files
-        </p>
-        <SupportingFilesList files={resolveComplianceSupportingFiles(row)} />
+        {resolveComplianceAttachments(row).length ? (
+          <>
+            <p className="muted label" style={{ marginTop: '0.75rem' }}>
+              Attachments
+            </p>
+            <GcAttachmentList
+              attachments={resolveComplianceAttachments(row)}
+              showUploader={false}
+            />
+          </>
+        ) : null}
       </div>
 
       <div className="gc-versions">

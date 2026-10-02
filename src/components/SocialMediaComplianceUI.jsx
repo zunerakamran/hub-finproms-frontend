@@ -101,10 +101,12 @@ export function SmcVersionCard({ version, isLatest }) {
             <p className="muted">No attachment</p>
           )}
         </div>
-        <div>
-          <p className="muted label">Supporting files</p>
-          <SmcSupportingFilesBlock files={resolveComplianceSupportingFiles(version)} />
-        </div>
+        {resolveComplianceSupportingFiles(version).length ? (
+          <div>
+            <p className="muted label">Supporting files</p>
+            <SmcSupportingFilesBlock files={resolveComplianceSupportingFiles(version)} />
+          </div>
+        ) : null}
       </div>
       {version.reviewed_at && (
         <footer className="smc-version-foot">

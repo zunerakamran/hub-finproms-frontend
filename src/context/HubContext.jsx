@@ -17,6 +17,7 @@ function isDashboardCapabilityKey(key) {
     String(key).startsWith('smc_') ||
     String(key).startsWith('gc_') ||
     String(key).startsWith('wc_') ||
+    String(key).startsWith('firm_documents_') ||
     key === 'advisor_excel_import' ||
     key === 'advisor_discontinue'
   )
@@ -38,6 +39,7 @@ function sameHub(a, b) {
     JSON.stringify(a.checklist) === JSON.stringify(b.checklist) &&
     JSON.stringify(a.acting_checklist) === JSON.stringify(b.acting_checklist) &&
     JSON.stringify(a.effective_capabilities) === JSON.stringify(b.effective_capabilities) &&
+    JSON.stringify(a.firm_document_rights) === JSON.stringify(b.firm_document_rights) &&
     JSON.stringify(a.branding) === JSON.stringify(b.branding) &&
     JSON.stringify(a.auth) === JSON.stringify(b.auth) &&
     JSON.stringify(a.hub_switcher) === JSON.stringify(b.hub_switcher) &&
@@ -79,9 +81,41 @@ export function HubProvider({ children }) {
     }
     try {
       const data = await api.currentHub()
-      setHub(data.hub)
+      let nextHub = data.hub
+
+      // Head of Firm / member grants: always reconcile from my-rights so Documents
+      // unlocks for any role (manager, advisor, approver, …) even if /hub omitted rights.
+      if (user) {
+        try {
+          const mine = await api.firmDocumentsMyRights()
+          if (mine?.rights) {
+            const rights = mine.rights
+            const caps = { ...(nextHub.effective_capabilities || {}) }
+            if (rights.functionality_enabled) {
+              if (rights.can_view || rights.is_firm_head) caps.firm_documents_view = true
+              if (rights.can_add || rights.is_firm_head) caps.firm_documents_add = true
+              if (rights.can_delete || rights.is_firm_head) caps.firm_documents_delete = true
+              if (rights.can_archive || rights.is_firm_head) caps.firm_documents_archive = true
+            } else {
+              caps.firm_documents_view = false
+              caps.firm_documents_add = false
+              caps.firm_documents_delete = false
+              caps.firm_documents_archive = false
+            }
+            nextHub = {
+              ...nextHub,
+              firm_document_rights: rights,
+              effective_capabilities: caps,
+            }
+          }
+        } catch {
+          // Hub payload alone is enough when my-rights is unavailable.
+        }
+      }
+
+      setHub(nextHub)
       setError('')
-      return data.hub
+      return nextHub
     } catch (err) {
       setError(err.message || 'Failed to load hub')
       return null
@@ -91,7 +125,7 @@ export function HubProvider({ children }) {
         setHubRefreshing(false)
       }
     }
-  }, [setHub])
+  }, [setHub, user])
 
   useEffect(() => {
     if (authLoading) return
@@ -169,6 +203,8 @@ export function HubProvider({ children }) {
       const firmDocRight = (key) => {
         const fdr = hub?.firm_document_rights
         if (!fdr?.functionality_enabled) return false
+        // Head of Firm (any role) always has full document rights for their firm.
+        if (fdr.is_firm_head) return true
         if (key === 'firm_documents_view') return Boolean(fdr.can_view)
         if (key === 'firm_documents_add') return Boolean(fdr.can_add)
         if (key === 'firm_documents_delete') return Boolean(fdr.can_delete)
@@ -278,6 +314,10 @@ export function HubProvider({ children }) {
   const hasHubDashboardAccess = useMemo(() => {
     if (!user) return false
     if (HUB_ADMIN_ROLES.includes(user.role)) return true
+    // Head of Firm (any role) needs the dashboard shell for Firm documents.
+    if (hub?.firm_document_rights?.is_firm_head && hub?.firm_document_rights?.functionality_enabled) {
+      return true
+    }
     const caps = hub?.effective_capabilities
     if (!caps) return false
     return Object.entries(caps).some(
@@ -319,6 +359,8 @@ export function HubProvider({ children }) {
                 switcher.compliance_status_labels ?? prev.compliance_status_labels,
             }
           })
+          // Reload so firm_document_rights / Head unlock track the selected hub.
+          await refreshHub({ silent: true })
         } else {
           await refreshHub({ silent: true })
         }

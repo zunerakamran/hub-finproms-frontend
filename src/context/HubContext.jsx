@@ -91,17 +91,11 @@ export function HubProvider({ children }) {
           if (mine?.rights) {
             const rights = mine.rights
             const caps = { ...(nextHub.effective_capabilities || {}) }
-            if (rights.functionality_enabled) {
-              if (rights.can_view || rights.is_firm_head) caps.firm_documents_view = true
-              if (rights.can_add || rights.is_firm_head) caps.firm_documents_add = true
-              if (rights.can_delete || rights.is_firm_head) caps.firm_documents_delete = true
-              if (rights.can_archive || rights.is_firm_head) caps.firm_documents_archive = true
-            } else {
-              caps.firm_documents_view = false
-              caps.firm_documents_add = false
-              caps.firm_documents_delete = false
-              caps.firm_documents_archive = false
-            }
+            // Appointment as Head (or grants / matrix) unlocks Firm documents.
+            if (rights.is_firm_head || rights.can_view) caps.firm_documents_view = true
+            if (rights.is_firm_head || rights.can_add) caps.firm_documents_add = true
+            if (rights.is_firm_head || rights.can_delete) caps.firm_documents_delete = true
+            if (rights.is_firm_head || rights.can_archive) caps.firm_documents_archive = true
             nextHub = {
               ...nextHub,
               firm_document_rights: rights,
@@ -202,8 +196,8 @@ export function HubProvider({ children }) {
     (flag) => {
       const firmDocRight = (key) => {
         const fdr = hub?.firm_document_rights
-        if (!fdr?.functionality_enabled) return false
-        // Head of Firm (any role) always has full document rights for their firm.
+        if (!fdr) return false
+        // Head of Firm (any role): appointment unlocks Firm documents.
         if (fdr.is_firm_head) return true
         if (key === 'firm_documents_view') return Boolean(fdr.can_view)
         if (key === 'firm_documents_add') return Boolean(fdr.can_add)
@@ -315,7 +309,7 @@ export function HubProvider({ children }) {
     if (!user) return false
     if (HUB_ADMIN_ROLES.includes(user.role)) return true
     // Head of Firm (any role) needs the dashboard shell for Firm documents.
-    if (hub?.firm_document_rights?.is_firm_head && hub?.firm_document_rights?.functionality_enabled) {
+    if (hub?.firm_document_rights?.is_firm_head) {
       return true
     }
     const caps = hub?.effective_capabilities

@@ -30,15 +30,20 @@ export default function FirmDocuments() {
   const isFirmHead = Boolean(
     rights?.is_firm_head || hub?.firm_document_rights?.is_firm_head
   )
-  // Hub-wide matrix users pick a firm; Head / member-grant users stay on their own firm.
-  const showFirmPicker = !isFirmHead && (
-    Boolean(hub?.firm_document_rights?.hub_wide?.can_view) ||
-    Boolean(hub?.firm_document_rights?.hub_wide?.can_add) ||
-    Boolean(hub?.firm_document_rights?.hub_wide?.can_delete) ||
-    Boolean(hub?.firm_document_rights?.hub_wide?.can_archive) ||
-    can('firm_documents_view') ||
-    can('firm_documents_add')
+  // Firm picker is for hub-wide matrix users only (all firms).
+  // Head of Firm and members with Head-granted rights stay on their own firm —
+  // do NOT use can('firm_documents_*') here; that is true for member grants too.
+  const hubWideFirmDocs = Boolean(
+    rights?.hub_wide?.can_view ||
+      rights?.hub_wide?.can_add ||
+      rights?.hub_wide?.can_delete ||
+      rights?.hub_wide?.can_archive ||
+      hub?.firm_document_rights?.hub_wide?.can_view ||
+      hub?.firm_document_rights?.hub_wide?.can_add ||
+      hub?.firm_document_rights?.hub_wide?.can_delete ||
+      hub?.firm_document_rights?.hub_wide?.can_archive
   )
+  const showFirmPicker = hubWideFirmDocs
 
   const selectedFirm = useMemo(
     () => firms.find((f) => String(f.id) === String(firmId)) || null,

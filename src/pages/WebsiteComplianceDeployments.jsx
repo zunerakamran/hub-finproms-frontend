@@ -71,7 +71,7 @@ export default function WebsiteComplianceDeployments() {
           </p>
         </div>
       </div>
-      <div className="space-y-8">
+      <div className="wc-app wc-surface space-y-8">
         {showRequestPanel && <DeploymentRequestPanel />}
         {(canAdmin || canViewDeployHub) && (
           <WebsiteComplianceTemplatesPanel includeRequestActions={canViewDeployHub} />

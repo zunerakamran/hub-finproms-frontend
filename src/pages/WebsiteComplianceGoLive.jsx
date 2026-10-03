@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FaGlobe, FaRocket, FaSync } from 'react-icons/fa'
+import { FaGlobe, FaPaperPlane, FaRocket, FaSync } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import DataGrid, { DataGridDate } from '../components/DataGrid'
+import RequiredMark from '../components/RequiredMark'
 import WcStatusBadge from '../components/WebsiteComplianceUI'
 import { formatDateTime } from '../utils/dateFormat'
 import {
@@ -23,9 +24,13 @@ export default function WebsiteComplianceGoLive() {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [busyId, setBusyId] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+
+  const [selectedId, setSelectedId] = useState('')
+  const [liveDomain, setLiveDomain] = useState('')
+  const [notes, setNotes] = useState('')
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (!canAccess) {
@@ -55,7 +60,7 @@ export default function WebsiteComplianceGoLive() {
     return requests.filter((row) => canRequestGoLive(row, uid))
   }, [requests, user?.id])
 
-  const awaitingPromotion = useMemo(() => {
+  const submittedGoLiveRequests = useMemo(() => {
     const uid = Number(user?.id)
     return requests.filter(
       (row) =>
@@ -64,24 +69,65 @@ export default function WebsiteComplianceGoLive() {
     )
   }, [requests, user?.id])
 
-  const handleRequestGoLive = async (row) => {
-    setBusyId(row.id)
+  useEffect(() => {
+    if (!selectedId && myStagingRequests[0]) {
+      setSelectedId(String(myStagingRequests[0].id))
+      setLiveDomain(myStagingRequests[0].domain_name || '')
+      return
+    }
+    const stillValid = myStagingRequests.some((r) => String(r.id) === String(selectedId))
+    if (selectedId && !stillValid) {
+      const next = myStagingRequests[0]
+      setSelectedId(next ? String(next.id) : '')
+      setLiveDomain(next?.domain_name || '')
+    }
+  }, [myStagingRequests, selectedId])
+
+  const selectedStaging = useMemo(
+    () => myStagingRequests.find((r) => String(r.id) === String(selectedId)) || null,
+    [myStagingRequests, selectedId]
+  )
+
+  const handleSelectStaging = (id) => {
+    setSelectedId(id)
+    const row = myStagingRequests.find((r) => String(r.id) === String(id))
+    setLiveDomain(row?.domain_name || '')
+  }
+
+  const handleSubmitGoLive = async (e) => {
+    e.preventDefault()
+    if (!selectedStaging) {
+      setError('Select a staging website to request go-live for.')
+      return
+    }
+    if (!liveDomain.trim()) {
+      setError('Main/live domain is required.')
+      return
+    }
+    setSubmitting(true)
     setMessage('')
     setError('')
     try {
-      const res = await api.post(`/template-requests/${row.id}/request-go-live`)
-      setMessage(res.data?.message || 'Go-live requested successfully.')
-      setRequests((prev) =>
-        prev.map((r) => (r.id === row.id ? (res.data?.template_request || { ...r, status: 'ready_for_live' }) : r))
+      const res = await api.post(`/template-requests/${selectedStaging.id}/request-go-live`, {
+        domain_name: liveDomain.trim(),
+        notes: notes.trim() || undefined,
+      })
+      setMessage(
+        res.data?.message ||
+          'Go-live request submitted. Power Admin will see it as a new request and deploy it to the main URL.'
       )
+      setNotes('')
+      setSelectedId('')
+      setLiveDomain('')
+      await fetchData(true)
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to request go-live.')
+      setError(err.response?.data?.message || 'Failed to submit go-live request.')
     } finally {
-      setBusyId(null)
+      setSubmitting(false)
     }
   }
 
-  const columns = useMemo(
+  const historyColumns = useMemo(
     () => [
       {
         key: 'id',
@@ -93,7 +139,7 @@ export default function WebsiteComplianceGoLive() {
       },
       {
         key: 'domain_name',
-        label: 'Intended live domain',
+        label: 'Requested live domain',
         grow: true,
         render: (row) => row.domain_name || '—',
         filterValue: (row) => row.domain_name || '',
@@ -103,12 +149,6 @@ export default function WebsiteComplianceGoLive() {
         label: 'Staging URL',
         render: (row) => row.staging_domain || row.cpanel_domain || '—',
         filterValue: (row) => row.staging_domain || row.cpanel_domain || '',
-      },
-      {
-        key: 'template_name',
-        label: 'Template',
-        render: (row) => row.template_name || '—',
-        filterValue: (row) => row.template_name || '',
       },
       {
         key: 'status',
@@ -121,12 +161,15 @@ export default function WebsiteComplianceGoLive() {
         truncate: false,
       },
       {
-        key: 'updated_at',
-        label: 'Updated',
+        key: 'go_live_requested_at',
+        label: 'Submitted',
         date: true,
-        render: (row) => <DataGridDate value={row.updated_at} />,
-        filterValue: (row) => formatDateTime(row.updated_at, ''),
-        sortValue: (row) => (row.updated_at ? new Date(row.updated_at).getTime() : 0),
+        render: (row) => <DataGridDate value={row.go_live_requested_at || row.updated_at} />,
+        filterValue: (row) => formatDateTime(row.go_live_requested_at || row.updated_at, ''),
+        sortValue: (row) => {
+          const value = row.go_live_requested_at || row.updated_at
+          return value ? new Date(value).getTime() : 0
+        },
         truncate: false,
       },
     ],
@@ -139,7 +182,7 @@ export default function WebsiteComplianceGoLive() {
         <div className="page-head">
           <div>
             <p className="eyebrow">Website Template Library</p>
-            <h1>Ready for live</h1>
+            <h1>Request go-live</h1>
             <p className="muted">{websiteModuleOffMessage({ templateLibrary: true })}</p>
           </div>
         </div>
@@ -153,8 +196,8 @@ export default function WebsiteComplianceGoLive() {
         <div className="page-head">
           <div>
             <p className="eyebrow">Website Template Library</p>
-            <h1>Ready for live</h1>
-            <p className="muted">You do not have permission to request go-live for deployments.</p>
+            <h1>Request go-live</h1>
+            <p className="muted">You do not have permission to submit go-live requests.</p>
           </div>
         </div>
       </section>
@@ -166,10 +209,10 @@ export default function WebsiteComplianceGoLive() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Website Template Library</p>
-          <h1>Ready for live</h1>
+          <h1>Request go-live</h1>
           <p className="muted">
-            When your staging site is complete, request Power Admin ({roleLabel('power_admin')}) to
-            shift it to the main/live URL. Only the original requester can do this.
+            When your staging website is complete, submit a go-live request. {roleLabel('power_admin')}{' '}
+            will see it as a new request and deploy it to your main URL.
           </p>
         </div>
         <div className="page-head__actions">
@@ -191,44 +234,96 @@ export default function WebsiteComplianceGoLive() {
       {error ? <div className="alert">{error}</div> : null}
       {message ? <div className="alert success">{message}</div> : null}
 
-      {awaitingPromotion.length > 0 ? (
-        <div className="alert" style={{ marginBottom: '1rem' }}>
-          {awaitingPromotion.length} site{awaitingPromotion.length === 1 ? '' : 's'} waiting for
-          Power Admin to promote to the live URL.
-        </div>
-      ) : null}
+      <div className="card" style={{ marginBottom: '1.25rem' }}>
+        <h2 style={{ marginTop: 0, marginBottom: '0.35rem' }}>Submit go-live request</h2>
+        <p className="muted" style={{ marginTop: 0 }}>
+          Only the original requester can submit this. Choose a staging site, confirm the main domain,
+          then submit.
+        </p>
 
+        {loading ? (
+          <p className="muted">Loading staging sites…</p>
+        ) : myStagingRequests.length === 0 ? (
+          <div className="alert" style={{ marginBottom: 0 }}>
+            No staging sites are available to request go-live for. Ask Power Admin to deploy to a
+            temporary URL first, finish compliance work, then return here.
+          </div>
+        ) : (
+          <form onSubmit={handleSubmitGoLive} className="form-grid" style={{ gap: '1rem' }}>
+            <label>
+              <RequiredMark>Staging website</RequiredMark>
+              <select
+                value={selectedId}
+                onChange={(e) => handleSelectStaging(e.target.value)}
+                required
+              >
+                {myStagingRequests.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    #{row.id} · {row.domain_name || 'No live domain yet'}
+                    {row.staging_domain || row.cpanel_domain
+                      ? ` (staging: ${row.staging_domain || row.cpanel_domain})`
+                      : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {selectedStaging ? (
+              <div className="muted" style={{ fontSize: '0.85rem' }}>
+                <FaGlobe aria-hidden style={{ marginRight: 6 }} />
+                Currently on staging:{' '}
+                <strong>{selectedStaging.staging_domain || selectedStaging.cpanel_domain || '—'}</strong>
+                {' · '}
+                Template: <strong>{selectedStaging.template_name || '—'}</strong>
+              </div>
+            ) : null}
+
+            <label>
+              <RequiredMark>Main / live domain</RequiredMark>
+              <input
+                type="text"
+                value={liveDomain}
+                onChange={(e) => setLiveDomain(e.target.value)}
+                placeholder="e.g. www.advisorfirm.com"
+                required
+              />
+              <span className="muted" style={{ fontSize: '0.8rem' }}>
+                This is the public URL Power Admin will deploy to when they process your request.
+              </span>
+            </label>
+
+            <label>
+              Notes for Power Admin <span className="muted">(optional)</span>
+              <textarea
+                rows={4}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any launch notes, DNS readiness, or special instructions…"
+                maxLength={5000}
+              />
+            </label>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button type="submit" className="btn primary" disabled={submitting || !selectedStaging}>
+                <FaPaperPlane aria-hidden style={{ marginRight: 6 }} />
+                {submitting ? 'Submitting…' : 'Submit go-live request'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      <h2 style={{ marginBottom: '0.5rem' }}>
+        <FaRocket aria-hidden style={{ marginRight: 8 }} />
+        Your submitted go-live requests
+      </h2>
       <DataGrid
-        columns={columns}
-        rows={[...myStagingRequests, ...awaitingPromotion]}
+        columns={historyColumns}
+        rows={submittedGoLiveRequests}
         loading={loading}
         pageSize={10}
-        emptyMessage="No staging sites are ready for a go-live request. Deploy to staging first, finish compliance work, then return here."
-        actionsLabel="Actions"
-        actions={(row) => {
-          if (String(row.status || '').toLowerCase() === 'ready_for_live') {
-            return <span className="muted">Awaiting promote</span>
-          }
-          return (
-            <button
-              type="button"
-              className="btn primary"
-              style={{ padding: '0.35rem 0.7rem', fontSize: '0.75rem', minHeight: 0 }}
-              disabled={busyId === row.id}
-              onClick={() => handleRequestGoLive(row)}
-            >
-              <FaRocket aria-hidden style={{ marginRight: 6 }} />
-              {busyId === row.id ? 'Submitting…' : 'Ready for live'}
-            </button>
-          )
-        }}
+        emptyMessage="No go-live requests submitted yet."
       />
-
-      <p className="muted" style={{ marginTop: '1rem', fontSize: '0.85rem' }}>
-        <FaGlobe aria-hidden style={{ marginRight: 6, display: 'relative', top: 1 }} />
-        Staging sites stay on their temporary URL until Power Admin promotes them. Compliance keeps
-        working after go-live on the main domain.
-      </p>
     </section>
   )
 }

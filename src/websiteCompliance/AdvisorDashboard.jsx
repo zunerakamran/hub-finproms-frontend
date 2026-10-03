@@ -325,7 +325,7 @@ const REQUEST_STATUS_CONFIG = {
     cardClass: 'border-sky-200 bg-gradient-to-br from-sky-50/70 to-white',
   },
   ready_for_live: {
-    label: 'Ready for live',
+    label: 'Go-live requested',
     icon: FaRocket,
     className: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     dot: 'bg-indigo-500',

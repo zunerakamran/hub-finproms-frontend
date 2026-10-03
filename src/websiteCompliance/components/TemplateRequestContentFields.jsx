@@ -832,6 +832,10 @@ export function TemplateRequestDetailsView({ request }) {
           label="Go-live requested"
           value={request.go_live_requested_at || null}
         />
+        <DetailRow
+          label="Go-live notes"
+          value={request.go_live_notes || null}
+        />
       </DetailBlock>
 
       <DetailBlock icon={FaPalette} title="Branding">

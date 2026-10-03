@@ -1133,7 +1133,7 @@ export default function DeploymentRequestPanel() {
           <option value="">All statuses</option>
           <option value="pending">{complianceStatusLabel('pending') || 'Pending'}</option>
           <option value="staging">{complianceStatusLabel('staging') || 'On staging'}</option>
-          <option value="ready_for_live">{complianceStatusLabel('ready_for_live') || 'Ready for live'}</option>
+          <option value="ready_for_live">{complianceStatusLabel('ready_for_live') || 'Go-live requested'}</option>
           <option value="live">{complianceStatusLabel('live') || 'Live'}</option>
           <option value="deployed">{complianceStatusLabel('deployed') || 'Deployed'}</option>
           <option value="rejected">{complianceStatusLabel('rejected') || 'Rejected'}</option>

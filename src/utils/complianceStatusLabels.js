@@ -8,7 +8,7 @@ export const DEFAULT_COMPLIANCE_STATUS_LABELS = {
   scheduled: 'Scheduled',
   deployed: 'Deployed',
   staging: 'On staging',
-  ready_for_live: 'Ready for live',
+  ready_for_live: 'Go-live requested',
   live: 'Live',
 }
 

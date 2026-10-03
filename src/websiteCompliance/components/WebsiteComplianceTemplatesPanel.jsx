@@ -608,11 +608,11 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
         cpanel_api_key: cpanelApiKey,
         ...brandingPayload(),
       })
-      setMessage(res.data?.message || `Site promoted to live URL ${cpanelDomain}.`)
+      setMessage(res.data?.message || `Go-live request deployed to ${cpanelDomain}.`)
       setPromoteRequest(null)
       fetchData(true)
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to promote site to live.')
+      setError(err.response?.data?.message || 'Failed to deploy go-live request.')
     } finally {
       setIsPromoting(false)
     }
@@ -950,10 +950,19 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
             <h2 style={{ margin: 0, fontSize: '1.15rem' }}>Deployment hub</h2>
             <p className="muted" style={{ marginTop: 4, fontSize: '0.85rem' }}>
               {canDeployWebsites
-                ? 'Deploy templates to cPanel and manage live section visibility.'
-                : 'View deployment requests across the hub.'}
+                ? 'Deploy new sites to staging, then deploy submitted go-live requests to the main URL.'
+                : 'View deployment and go-live requests across the hub.'}
             </p>
           </div>
+
+          {canDeployWebsites && requests.some((r) => canPromoteToLive(r)) ? (
+            <div className="alert" style={{ marginBottom: '1rem' }}>
+              {requests.filter((r) => canPromoteToLive(r)).length} go-live request
+              {requests.filter((r) => canPromoteToLive(r)).length === 1 ? '' : 's'} awaiting live deploy.
+              Filter by &quot;{complianceStatusLabel('ready_for_live') || 'Go-live requested'}&quot; or use{' '}
+              <strong>Deploy live</strong>.
+            </div>
+          ) : null}
 
           <form
             className="filters-row"
@@ -966,7 +975,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
               <option value="">All statuses</option>
               <option value="pending">{complianceStatusLabel('pending') || 'Pending'}</option>
               <option value="staging">{complianceStatusLabel('staging') || 'On staging'}</option>
-              <option value="ready_for_live">{complianceStatusLabel('ready_for_live') || 'Ready for live'}</option>
+              <option value="ready_for_live">{complianceStatusLabel('ready_for_live') || 'Go-live requested'}</option>
               <option value="live">{complianceStatusLabel('live') || 'Live'}</option>
               <option value="deployed">{complianceStatusLabel('deployed') || 'Deployed (legacy)'}</option>
               <option value="rejected">{complianceStatusLabel('rejected') || 'Rejected'}</option>
@@ -1077,7 +1086,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                       style={compactBtn}
                       onClick={() => openPromoteModal(row)}
                     >
-                      Promote live
+                      Deploy live
                     </button>
                   ) : null}
                   {canDeployWebsites && !promoteReady ? (
@@ -1271,7 +1280,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
               >
                 <FaGlobe className="w-3.5 h-3.5" aria-hidden="true" />
                 {canPromoteToLive(detailsRequest)
-                  ? 'Promote live'
+                  ? 'Deploy live'
                   : isDeploymentLive(detailsRequest.status)
                     ? 'Update live'
                     : isDeploymentStagingPhase(detailsRequest.status)
@@ -1434,15 +1443,28 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
 
       {promoteRequest && (
         <ModalShell
-          title="Promote to live URL"
-          subtitle={`${requestRequesterName(promoteRequest)} · staging ${promoteRequest.staging_domain || promoteRequest.cpanel_domain || '—'}`}
+          title="Deploy go-live request"
+          subtitle={`${requestRequesterName(promoteRequest)} submitted a go-live request`}
           onClose={() => setPromoteRequest(null)}
           maxWidth="max-w-3xl"
         >
           <form onSubmit={handlePromoteSubmit} className="space-y-5">
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs text-emerald-900 leading-relaxed">
-              The requester marked this site ready for live. Enter (or confirm) the
-              <strong> main/live URL</strong>, then promote. Compliance will continue on the live host.
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-xs text-indigo-950 leading-relaxed space-y-1.5">
+              <p>
+                This is a <strong>go-live request</strong> from the requester. Deploy it to the
+                <strong> main/live URL</strong>. Compliance will continue on that live host.
+              </p>
+              <p>
+                Staging URL:{' '}
+                <span className="font-mono font-semibold">
+                  {promoteRequest.staging_domain || promoteRequest.cpanel_domain || '—'}
+                </span>
+              </p>
+              {promoteRequest.go_live_notes ? (
+                <p>
+                  Requester notes: <span className="font-semibold">{promoteRequest.go_live_notes}</span>
+                </p>
+              ) : null}
             </div>
             {brandingFields}
             <div>
@@ -1458,7 +1480,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                 required
               />
               <p className="text-[11px] text-gray-500 mt-1.5">
-                Defaults to the intended live domain from the original request
+                Prefills from the requester&apos;s go-live submission
                 ({promoteRequest.domain_name || 'not set'}).
               </p>
             </div>
@@ -1497,7 +1519,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                 disabled={isPromoting || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition disabled:opacity-50 shadow-md"
               >
-                {isPromoting ? 'Promoting…' : 'Promote to live'}
+                {isPromoting ? 'Deploying…' : 'Deploy to live'}
               </button>
             </div>
           </form>

@@ -55,8 +55,8 @@ const WTL_CARDS = [
   },
   {
     to: '/my-dashboard/website-compliance/go-live',
-    title: 'Ready for live',
-    description: 'When staging work is complete, ask Power Admin to move the site to the main URL.',
+    title: 'Request go-live',
+    description: 'Submit a go-live request so Power Admin can deploy your staging site to the main URL.',
     icon: FaRocket,
     anyOf: ['wc_request_deployments', 'wc_assign_website_templates'],
     exceptRoles: ['power_admin', 'finproms_admin'],

@@ -6,6 +6,7 @@ import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import {
   ComplianceAuditTrailCell,
   CompliancePersonCell,
+  ComplianceReportAuditPanel,
 } from '../components/ComplianceAuditTrail'
 import ComplianceStatusText from '../components/ComplianceStatusText'
 import WcStatusBadge from '../components/WebsiteComplianceUI'
@@ -17,13 +18,13 @@ export default function WebsiteComplianceReports() {
   const { can, loading: hubLoading, complianceStatusLabel, actingHubId } = useHub()
   const moduleOn = can('module_website_compliance')
   const canView = can('wc_view_platform_report')
-  const [tab, setTab] = useState('summary')
+  const [tab, setTab] = useState('audit')
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (hubLoading || !moduleOn || !canView || tab !== 'change-requests') {
+    if (hubLoading || !moduleOn || !canView || tab === 'summary') {
       return
     }
     let cancelled = false
@@ -182,7 +183,7 @@ export default function WebsiteComplianceReports() {
           <p className="eyebrow">Website Content Pre Approval</p>
           <h1>Reports</h1>
           <p className="muted">
-            Platform summary plus change-request audit trails (who submitted, assigned, and reviewed).
+            Full change-request audit trail (who submitted, assigned, reviewed) plus platform summary.
           </p>
         </div>
       </div>
@@ -190,17 +191,17 @@ export default function WebsiteComplianceReports() {
       <div className="tab-row">
         <button
           type="button"
-          className={`btn ghost ${tab === 'summary' ? 'active' : ''}`}
-          onClick={() => setTab('summary')}
+          className={`btn ghost ${tab === 'audit' ? 'active' : ''}`}
+          onClick={() => setTab('audit')}
         >
-          Summary
+          Audit trail
         </button>
         <button
           type="button"
-          className={`btn ghost ${tab === 'change-requests' ? 'active' : ''}`}
-          onClick={() => setTab('change-requests')}
+          className={`btn ghost ${tab === 'summary' ? 'active' : ''}`}
+          onClick={() => setTab('summary')}
         >
-          Change request audit
+          Platform summary
         </button>
       </div>
 
@@ -235,20 +236,33 @@ export default function WebsiteComplianceReports() {
                 </div>
               ) : null}
 
-              <DataGrid
-                columns={reportColumns}
+              <ComplianceReportAuditPanel
                 rows={report?.rows || []}
-                actions={(row) => (
-                  <DataGridIconBtn
-                    as={Link}
-                    to={`/my-dashboard/website-compliance/my-requests/${row.id}`}
-                    state={{ from: 'reports' }}
-                    label="Open"
-                  >
-                    <FaEye />
-                  </DataGridIconBtn>
-                )}
+                title="Full change-request audit history"
+                requestLabel="Change request"
+                requestPath={(id) => `/my-dashboard/website-compliance/my-requests/${id}`}
+                LinkComponent={Link}
               />
+
+              <div style={{ marginTop: 16 }}>
+                <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.05rem' }}>Change request rows</h2>
+                <DataGrid
+                  columns={reportColumns}
+                  rows={report?.rows || []}
+                  emptyMessage="No change requests found."
+                  pageSize={10}
+                  actions={(row) => (
+                    <DataGridIconBtn
+                      as={Link}
+                      to={`/my-dashboard/website-compliance/my-requests/${row.id}`}
+                      state={{ from: 'reports' }}
+                      label="Open"
+                    >
+                      <FaEye />
+                    </DataGridIconBtn>
+                  )}
+                />
+              </div>
             </>
           )}
         </>

@@ -7,6 +7,7 @@ import SmcStatusBadge, { SmcBarChart } from '../components/SocialMediaCompliance
 import {
   ComplianceAuditTrailCell,
   CompliancePersonCell,
+  ComplianceReportAuditPanel,
 } from '../components/ComplianceAuditTrail'
 import ComplianceStatusText from '../components/ComplianceStatusText'
 import { useAuth } from '../context/AuthContext'
@@ -18,7 +19,7 @@ const emptyFilters = { status: '', from: '', to: '', q: '' }
 export default function SocialMediaComplianceReports() {
   const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, complianceStatusLabel, actingHubId } = useHub()
-  const [tab, setTab] = useState('report')
+  const [tab, setTab] = useState('audit')
   const [filters, setFilters] = useState(emptyFilters)
   const [applied, setApplied] = useState(emptyFilters)
   const [report, setReport] = useState(null)
@@ -50,7 +51,7 @@ export default function SocialMediaComplianceReports() {
 
     const load = async () => {
       try {
-        if (tab === 'report') {
+        if (tab === 'report' || tab === 'audit') {
           const data = await api.socialMediaComplianceReport(params, { asPowerAdmin })
           if (!cancelled) setReport(data.report || null)
         } else if (tab === 'workload') {
@@ -242,7 +243,7 @@ export default function SocialMediaComplianceReports() {
             Filterable report with full audit trail, CSV export, and workload charts.
           </p>
         </div>
-        {tab === 'report' && (
+        {(tab === 'report' || tab === 'audit') && (
           <button className="btn ghost" onClick={exportCsv} disabled={exporting}>
             {exporting ? 'Exporting…' : 'Export CSV'}
           </button>
@@ -256,6 +257,13 @@ export default function SocialMediaComplianceReports() {
           onClick={() => setTab('report')}
         >
           Report
+        </button>
+        <button
+          type="button"
+          className={`btn ghost ${tab === 'audit' ? 'active' : ''}`}
+          onClick={() => setTab('audit')}
+        >
+          Audit trail
         </button>
         <button
           type="button"
@@ -326,9 +334,9 @@ export default function SocialMediaComplianceReports() {
       {error && <div className="alert">{error}</div>}
       {loading ? (
         <div className="state">Loading...</div>
-      ) : tab === 'report' ? (
+      ) : tab === 'report' || tab === 'audit' ? (
         <>
-          {summary && (
+          {tab === 'report' && summary ? (
             <div className="stat-grid">
               <div className="stat-card">
                 <strong>{summary.total}</strong>
@@ -351,24 +359,36 @@ export default function SocialMediaComplianceReports() {
                 <span>Multiple attempts</span>
               </div>
             </div>
-          )}
-          <div style={{ marginTop: 16 }}>
-            <DataGrid
-              columns={reportColumns}
-              rows={report?.rows || []}
-              emptyMessage="No report rows for the current filters."
-              pageSize={10}
-              actions={(row) => (
-                <DataGridIconBtn
-                  icon={FaEye}
-                  label="Open"
-                  as={Link}
-                  to={`/my-dashboard/social-media-compliance/${row.id}`}
-                  state={{ from: 'reports' }}
-                />
-              )}
-            />
-          </div>
+          ) : null}
+
+          <ComplianceReportAuditPanel
+            rows={report?.rows || []}
+            title="Full audit history"
+            requestLabel="Request"
+            requestPath={(id) => `/my-dashboard/social-media-compliance/${id}`}
+            LinkComponent={Link}
+          />
+
+          {tab === 'report' ? (
+            <div style={{ marginTop: 16 }}>
+              <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.05rem' }}>Request rows</h2>
+              <DataGrid
+                columns={reportColumns}
+                rows={report?.rows || []}
+                emptyMessage="No report rows for the current filters."
+                pageSize={10}
+                actions={(row) => (
+                  <DataGridIconBtn
+                    icon={FaEye}
+                    label="Open"
+                    as={Link}
+                    to={`/my-dashboard/social-media-compliance/${row.id}`}
+                    state={{ from: 'reports' }}
+                  />
+                )}
+              />
+            </div>
+          ) : null}
         </>
       ) : tab === 'workload' ? (
         <SmcBarChart

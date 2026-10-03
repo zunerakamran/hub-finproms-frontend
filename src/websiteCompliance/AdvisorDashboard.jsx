@@ -2191,7 +2191,7 @@ export default function AdvisorDashboard({
     if (isPowerAdminPublishMode) {
       setCheckedSectionIds(prev => [...new Set([...prev, section.id])])
       setSectionEdits(prev => ({ ...prev, [section.id]: editorContent }))
-      setMessage(`Section "${sectionDisplayName(section)}" selected for editing. Changes publish directly to the live site.`)
+      setMessage(`Section "${sectionDisplayName(section)}" selected for editing. Changes publish directly to the site (no approver review).`)
       return
     }
 
@@ -2578,7 +2578,7 @@ export default function AdvisorDashboard({
     try {
       if (isPowerAdminPublishMode) {
         await api.post(`/template-requests/${powerAdminDeploymentId}/publish-content`, { section_edits: batchPayload })
-        setMessage(`Published ${checkedSectionIds.length} section(s) directly to the live site.`)
+        setMessage(`Published ${checkedSectionIds.length} section(s) directly to the site (no approver review).`)
       } else {
         const rejectedCr = findOpenCrForCheckedSections(['rejected'])
         const awfCr = findOpenCrForCheckedSections(['approved_with_feedback'])
@@ -2781,7 +2781,7 @@ export default function AdvisorDashboard({
                 </h1>
                 <p className="text-gray-500 text-sm mt-2 max-w-xl">
                   {isPowerAdminPublishMode
-                    ? 'Edit section content for this deployed site. Changes are published directly to the live site without approver review.'
+                    ? 'Edit section content for this staging or live site. Changes are published directly without approver review.'
                     : 'Request multiple showcase sites, manage deployments, and edit content for each live site.'}
                 </p>
                 {isPowerAdminPublishMode && activeDeployment && (
@@ -2799,7 +2799,7 @@ export default function AdvisorDashboard({
                   className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold px-5 py-3 rounded-xl hover:bg-gray-50 transition shadow-sm"
                 >
                   <FaArrowLeft className="w-4 h-4" />
-                  Back to live sites
+                  Back to sites
                 </button>
               ) : canRequestDeployments ? (
                 <button
@@ -3398,7 +3398,7 @@ export default function AdvisorDashboard({
                   title={`Select Sections — ${selectedPage.title}`}
                   description={
                     isPowerAdminPublishMode
-                      ? 'Check sections to edit them. Changes publish directly to the live site when you click Publish to Live.'
+                      ? 'Check sections to edit them. Changes publish directly to this staging or live site when you click Publish.'
                       : revisionModeActive
                         ? (focusedRevisionCr
                           ? `Revising request #${focusedRevisionCr.id} (v${focusedRevisionCr.current_version || 1}). Only sections from that previous version are shown.`
@@ -5256,7 +5256,7 @@ export default function AdvisorDashboard({
                           className="inline-flex items-center gap-2 bg-[var(--brand)] text-white text-base font-extrabold px-8 py-3.5 rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] shadow-lg shadow-[color-mix(in_srgb,var(--brand-dark)_25%,transparent)] transition disabled:opacity-50"
                         >
                           <FaPaperPlane className="w-4 h-4" />
-                          {isSubmitting ? 'Publishing...' : 'Publish to Live'}
+                          {isSubmitting ? 'Publishing...' : 'Publish'}
                         </button>
                       </div>
                     )}

@@ -626,9 +626,9 @@ export const DASHBOARD_LINKS = [
   },
   {
     to: '/my-dashboard/website-compliance/publish-live',
-    label: 'Publish live content',
-    title: 'Publish live content',
-    description: 'Edit and publish live site content without approver review.',
+    label: 'Publish content',
+    title: 'Publish content',
+    description: 'Edit and publish staging or live site content without approver review.',
     capability: 'wc_publish_live_content',
     // Detail editor lives at /publish/:deploymentId (not under publish-live/).
     alsoMatch: ['/my-dashboard/website-compliance/publish/'],

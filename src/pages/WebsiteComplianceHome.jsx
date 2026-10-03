@@ -82,8 +82,8 @@ const WC_EDITOR_CARDS = [
   },
   {
     to: '/my-dashboard/website-compliance/publish-live',
-    title: 'Publish live content',
-    description: 'Edit and publish live site content without approver review.',
+    title: 'Publish content',
+    description: 'Edit and publish staging or live site content without approver review.',
     icon: FaEdit,
     anyOf: ['wc_publish_live_content'],
   },

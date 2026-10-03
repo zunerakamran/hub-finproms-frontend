@@ -8,6 +8,13 @@ import {
   FaExclamationTriangle,
   FaImage,
   FaRocket,
+  FaCheck,
+  FaChevronLeft,
+  FaChevronRight,
+  FaGlobe,
+  FaPalette,
+  FaLayerGroup,
+  FaBriefcase,
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
@@ -49,29 +56,141 @@ function AlertBanner({ type, message, onDismiss }) {
 
 // ─── Modal shell ──────────────────────────────────────────────────────────────
 
-function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' }) {
+function ModalShell({
+  title,
+  subtitle,
+  onClose,
+  children,
+  footer = null,
+  headerExtra = null,
+  maxWidth = 'max-w-lg',
+}) {
   return createPortal(
     <div className="wc-app wc-portal-root">
-      <div className="fixed inset-0 bg-[color-mix(in_srgb,var(--brand-dark)_60%,transparent)] backdrop-blur-sm flex items-center justify-center p-4 z-[80]">
+      <div className="fixed inset-0 bg-[color-mix(in_srgb,var(--brand-dark)_60%,transparent)] backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[80]">
         <div
-          className={`bg-white rounded-2xl ${maxWidth} w-full shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto`}
+          className={`bg-white rounded-2xl ${maxWidth} w-full shadow-2xl border border-gray-200 max-h-[92vh] flex flex-col overflow-hidden`}
           role="dialog"
           aria-modal="true"
         >
-          <div className="sticky top-0 bg-white z-10 flex items-start justify-between gap-4 p-6 border-b border-gray-100">
-            <div>
-              <h3 className="text-lg font-bold text-[var(--brand-dark)]">{title}</h3>
-              {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+          <div className="shrink-0 bg-white z-10 border-b border-gray-100">
+            <div className="flex items-start justify-between gap-4 px-5 sm:px-6 pt-5 pb-4">
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold text-[var(--brand-dark)]">{title}</h3>
+                {subtitle && <p className="text-xs text-gray-500 mt-1 leading-relaxed">{subtitle}</p>}
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-400 hover:text-gray-700 shrink-0"
+                aria-label="Close"
+              >
+                <FaTimes className="w-4 h-4" />
+              </button>
             </div>
-            <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-400 hover:text-gray-700 shrink-0">
-              <FaTimes className="w-4 h-4" />
-            </button>
+            {headerExtra}
           </div>
-          <div className="p-6">{children}</div>
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 sm:px-6 py-5">{children}</div>
+          {footer ? (
+            <div className="shrink-0 border-t border-gray-100 bg-slate-50/80 px-5 sm:px-6 py-4">
+              {footer}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>,
     document.body
+  )
+}
+
+function FormStepper({ steps, currentStep, onStepClick }) {
+  return (
+    <nav aria-label="Form steps" className="px-5 sm:px-6 pb-4">
+      <ol className="flex items-center gap-0 overflow-x-auto">
+        {steps.map((step, index) => {
+          const done = index < currentStep
+          const active = index === currentStep
+          const clickable = typeof onStepClick === 'function' && index < currentStep
+          return (
+            <li key={step.id} className="flex items-center flex-1 min-w-0">
+              <button
+                type="button"
+                disabled={!clickable}
+                onClick={() => clickable && onStepClick(index)}
+                className={`flex flex-col items-center gap-1.5 flex-1 min-w-[64px] ${
+                  clickable ? 'cursor-pointer' : 'cursor-default'
+                }`}
+              >
+                <span
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all ${
+                    done
+                      ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/25'
+                      : active
+                        ? 'bg-[var(--brand)] text-white shadow-md shadow-[color-mix(in_srgb,var(--brand)_30%,transparent)] ring-4 ring-[color-mix(in_srgb,var(--brand)_12%,transparent)]'
+                        : 'bg-gray-100 text-gray-400 border border-gray-200'
+                  }`}
+                >
+                  {done ? <FaCheck className="w-3 h-3" aria-hidden="true" /> : index + 1}
+                </span>
+                <span
+                  className={`text-[10px] sm:text-[11px] font-bold text-center leading-tight ${
+                    done || active ? 'text-[var(--brand-dark)]' : 'text-gray-400'
+                  }`}
+                >
+                  {step.label}
+                </span>
+              </button>
+              {index < steps.length - 1 && (
+                <div
+                  className={`h-0.5 flex-1 mx-1 rounded-full min-w-[12px] ${
+                    done ? 'bg-emerald-400' : 'bg-gray-200'
+                  }`}
+                  aria-hidden="true"
+                />
+              )}
+            </li>
+          )
+        })}
+      </ol>
+    </nav>
+  )
+}
+
+function FormSection({ icon: Icon, title, hint, children, tone = 'default' }) {
+  const toneClass =
+    tone === 'accent'
+      ? 'bg-gradient-to-br from-[color-mix(in_srgb,var(--brand)_6%,white)] to-white border-[color-mix(in_srgb,var(--brand)_18%,transparent)]'
+      : 'bg-white border-gray-200'
+  return (
+    <section className={`rounded-2xl border ${toneClass} overflow-hidden`}>
+      <div className="flex items-start gap-3 px-4 py-3.5 border-b border-gray-100/80 bg-white/60">
+        {Icon ? (
+          <div className="w-9 h-9 rounded-xl bg-[color-mix(in_srgb,var(--brand)_12%,white)] text-[var(--brand-dark)] flex items-center justify-center shrink-0">
+            <Icon className="w-4 h-4" aria-hidden="true" />
+          </div>
+        ) : null}
+        <div className="min-w-0">
+          <p className="text-sm font-extrabold text-[var(--brand-dark)]">{title}</p>
+          {hint ? <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{hint}</p> : null}
+        </div>
+      </div>
+      <div className="p-4 space-y-4">{children}</div>
+    </section>
+  )
+}
+
+function ReviewRow({ label, value, mono = false }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2.5 border-b border-gray-100 last:border-0">
+      <span className="text-xs font-semibold text-gray-500 shrink-0">{label}</span>
+      <span
+        className={`text-sm font-semibold text-[var(--brand-dark)] text-right break-all ${
+          mono ? 'font-mono text-xs' : ''
+        }`}
+      >
+        {value || <span className="text-gray-400 font-normal">Not set</span>}
+      </span>
+    </div>
   )
 }
 
@@ -159,13 +278,20 @@ function BrandingUploadField({
   )
 }
 
-export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onClose, onCreated }) {
+export function CreateDeploymentModal({
+  advisors = [],
+  canAssignAdvisor = false,
+  initialTemplateName = '',
+  onClose,
+  onCreated,
+}) {
   const { branding, hub, actingHub } = useHub()
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const domainPlaceholder = hubDomainPlaceholder(previewBase)
   const hubPrimary = branding?.primary_color || branding?.color_scheme?.primary || '#0f5c45'
   const hubSecondary = branding?.secondary_color || branding?.color_scheme?.secondary || '#0a3f30'
-  const [templateName, setTemplateName] = useState('template4')
+  const [step, setStep] = useState(0)
+  const [templateName, setTemplateName] = useState(initialTemplateName || 'template4')
   const [domainName, setDomainName] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
   const [whiteLogoUrl, setWhiteLogoUrl] = useState('')
@@ -190,6 +316,13 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
   const [error, setError] = useState('')
   const [serverTemplates, setServerTemplates] = useState([])
 
+  const steps = useMemo(() => ([
+    { id: 'basics', label: 'Basics' },
+    { id: 'branding', label: 'Branding' },
+    { id: 'content', label: 'Content' },
+    { id: 'review', label: 'Review' },
+  ]), [])
+
   const resetContentExtras = () => {
     const empty = emptyRequestContentState()
     setServices(empty.services)
@@ -199,38 +332,6 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
     setSelectedPages(empty.selectedPages)
     setPageContents(empty.pageContents)
   }
-
-  useEffect(() => {
-    api.get('/templates').then(res => {
-      const list = Array.isArray(res.data) ? res.data : res.data.data || []
-      if (list.length) {
-        setServerTemplates(list)
-        const first = list[0]
-        const slug = first.slug || first.name
-        if (slug) setTemplateName(slug)
-        const schemes = templateColorSchemes(first)
-        if (schemes.length) {
-          setColorSchemeKey('0')
-          setPrimaryColor(schemes[0].primary)
-          setSecondaryColor(schemes[0].secondary)
-        } else {
-          setColorSchemeKey('custom')
-          setPrimaryColor(hubPrimary)
-          setSecondaryColor(hubSecondary)
-        }
-        resetContentExtras()
-      }
-    }).catch(() => {})
-  }, [hubPrimary, hubSecondary])
-
-  const templateOptions = serverTemplates.length
-    ? serverTemplates.map(t => ({ value: t.slug || t.name, label: t.name, template: t }))
-    : TEMPLATES.map(t => ({ ...t, template: null }))
-
-  const selectedTemplate =
-    serverTemplates.find(t => (t.slug || t.name) === templateName) || null
-  const availableSchemes = templateColorSchemes(selectedTemplate)
-  const availablePages = templateAvailablePages(selectedTemplate)
 
   const applyTemplateDefaults = (tpl) => {
     const schemes = templateColorSchemes(tpl)
@@ -245,6 +346,39 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
     }
     resetContentExtras()
   }
+
+  useEffect(() => {
+    api.get('/templates').then(res => {
+      const list = Array.isArray(res.data) ? res.data : res.data.data || []
+      if (list.length) {
+        setServerTemplates(list)
+        const preferred =
+          list.find(t => (t.slug || t.name) === initialTemplateName) || list[0]
+        const slug = preferred.slug || preferred.name
+        if (slug) setTemplateName(slug)
+        applyTemplateDefaults(preferred)
+      }
+    }).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- init once when modal opens
+  }, [])
+
+  const templateOptions = serverTemplates.length
+    ? serverTemplates.map(t => ({ value: t.slug || t.name, label: t.name, template: t }))
+    : TEMPLATES.map(t => ({ ...t, template: null }))
+
+  const selectedTemplate =
+    serverTemplates.find(t => (t.slug || t.name) === templateName) || null
+  const availableSchemes = templateColorSchemes(selectedTemplate)
+  const availablePages = templateAvailablePages(selectedTemplate)
+  const selectedAdvisor = advisors.find(a => String(a.id) === String(assignedAdvisorId))
+  const contentSummary = buildRequestContentPayload({
+    services,
+    images,
+    contactDetails,
+    policies,
+    selectedPages,
+    pageContents,
+  })
 
   const uploadAsset = async (file, kind) => {
     const setters = {
@@ -272,11 +406,39 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
     }
   }
 
+  const validateStep = (index) => {
+    if (index === 0) {
+      if (!templateName) {
+        setError('Please choose a template.')
+        return false
+      }
+      if (!domainName.trim()) {
+        setError('Domain name is required.')
+        return false
+      }
+      if (canAssignAdvisor && !assignedAdvisorId) {
+        setError('Assign an advisor for content editing before continuing.')
+        return false
+      }
+    }
+    setError('')
+    return true
+  }
+
+  const goNext = () => {
+    if (!validateStep(step)) return
+    setStep(s => Math.min(s + 1, steps.length - 1))
+  }
+
+  const goBack = () => {
+    setError('')
+    setStep(s => Math.max(s - 1, 0))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!domainName.trim()) { setError('Domain name is required.'); return }
-    if (canAssignAdvisor && !assignedAdvisorId) {
-      setError('Assign an advisor for content editing before submitting.')
+    if (!validateStep(0)) {
+      setStep(0)
       return
     }
     setSubmitting(true)
@@ -291,14 +453,7 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         request_type: 'advisor_website',
-        ...buildRequestContentPayload({
-          services,
-          images,
-          contactDetails,
-          policies,
-          selectedPages,
-          pageContents,
-        }),
+        ...contentSummary,
       }
       if (canAssignAdvisor && assignedAdvisorId) {
         payload.assigned_advisor_id = Number(assignedAdvisorId)
@@ -314,169 +469,389 @@ export function CreateDeploymentModal({ advisors, canAssignAdvisor = false, onCl
 
   const labelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
   const inputClass = 'wc-field-input'
+  const uploading = uploadingLogo || uploadingWhiteLogo || uploadingFavicon
+  const templateLabel =
+    selectedTemplate?.name ||
+    templateOptions.find(t => t.value === templateName)?.label ||
+    templateName
+  const logoDisplay = logoPreview || (logoUrl ? websiteComplianceAssetUrl(logoUrl) : '')
+
+  const footer = (
+    <div className="flex items-center justify-between gap-3">
+      <button
+        type="button"
+        onClick={step === 0 ? onClose : goBack}
+        className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-white border border-transparent hover:border-gray-200 rounded-xl transition"
+      >
+        {step === 0 ? (
+          'Cancel'
+        ) : (
+          <>
+            <FaChevronLeft className="w-3 h-3" aria-hidden="true" />
+            Back
+          </>
+        )}
+      </button>
+      <div className="flex items-center gap-2">
+        <span className="hidden sm:inline text-[11px] font-semibold text-gray-400 mr-1">
+          Step {step + 1} of {steps.length}
+        </span>
+        {step < steps.length - 1 ? (
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={uploading}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
+          >
+            Continue
+            <FaChevronRight className="w-3 h-3" aria-hidden="true" />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            form="create-deployment-form"
+            disabled={submitting || uploading}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition disabled:opacity-50 shadow-md shadow-[color-mix(in_srgb,var(--brand)_25%,transparent)]"
+          >
+            <FaRocket className="w-3.5 h-3.5" aria-hidden="true" />
+            {submitting ? 'Submitting…' : 'Submit Request'}
+          </button>
+        )}
+      </div>
+    </div>
+  )
 
   return (
     <ModalShell
       title="Request New Deployment"
-      subtitle={
-        canAssignAdvisor
-          ? 'Choose a template, branding, services, pages, and assign an advisor for content editing after go-live.'
-          : 'Choose a template, branding, services, pages, and content for your new showcase site.'
-      }
+      subtitle="A short wizard to set up template, branding, and starter content for your showcase site."
       onClose={onClose}
       maxWidth="max-w-3xl"
+      headerExtra={<FormStepper steps={steps} currentStep={step} onStepClick={setStep} />}
+      footer={footer}
     >
       {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-4 space-y-4">
-          <div>
-            <p className="text-sm font-extrabold text-[var(--brand-dark)]">Basics</p>
-            <p className="text-[11px] text-gray-500 mt-0.5">Template, domain, and site branding.</p>
-          </div>
 
-          <div>
-            <label className={labelClass}>Template</label>
-            <select
-              value={templateName}
-              onChange={e => {
-                const next = e.target.value
-                setTemplateName(next)
-                const tpl = serverTemplates.find(t => (t.slug || t.name) === next)
-                applyTemplateDefaults(tpl)
-              }}
-              className={inputClass}
+      <form id="create-deployment-form" onSubmit={handleSubmit} className="space-y-4">
+        {step === 0 && (
+          <div className="space-y-4">
+            <FormSection
+              icon={FaLayerGroup}
+              title="Choose a template"
+              hint="Pick the showcase layout that best fits this deployment."
+              tone="accent"
             >
-              {templateOptions.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {templateOptions.map((t) => {
+                  const selected = templateName === t.value
+                  const desc = t.template?.description
+                  return (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => {
+                        setTemplateName(t.value)
+                        applyTemplateDefaults(t.template)
+                      }}
+                      className={`text-left rounded-xl border px-4 py-3.5 transition ${
+                        selected
+                          ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_8%,white)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--brand)_20%,transparent)]'
+                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-sm font-extrabold text-[var(--brand-dark)]">
+                          {t.label}
+                        </span>
+                        {selected ? (
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--brand)] text-white shrink-0">
+                            <FaCheck className="w-2.5 h-2.5" aria-hidden="true" />
+                          </span>
+                        ) : null}
+                      </div>
+                      {desc ? (
+                        <p className="text-[11px] text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
+                          {desc}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] font-mono text-gray-400 mt-1.5">{t.value}</p>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </FormSection>
+
+            <FormSection
+              icon={FaGlobe}
+              title="Target domain"
+              hint="The live domain this site will be deployed to."
+            >
+              <div>
+                <label className={labelClass}>
+                  <RequiredMark>Domain name</RequiredMark>
+                </label>
+                <input
+                  type="text"
+                  value={domainName}
+                  onChange={e => setDomainName(e.target.value)}
+                  placeholder={domainPlaceholder}
+                  className={inputClass}
+                  autoFocus
+                />
+                <p className="text-[11px] text-gray-500 mt-1.5">
+                  Example: <span className="font-mono">{domainPlaceholder}</span>
+                </p>
+              </div>
+            </FormSection>
+
+            {canAssignAdvisor && (
+              <FormSection
+                icon={FaUserCheck}
+                title="Assign advisor"
+                hint="Who will edit content after the site is deployed."
+              >
+                <div>
+                  <label className={labelClass}>
+                    <RequiredMark>Content advisor</RequiredMark>
+                  </label>
+                  <select
+                    value={assignedAdvisorId}
+                    onChange={e => setAssignedAdvisorId(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">— Select an advisor —</option>
+                    {advisors.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} ({a.email}){a.firm?.name ? ` — ${a.firm.name}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {advisors.length === 0 && (
+                    <p className="text-xs text-amber-700 mt-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                      No advisor accounts were found. Create an advisor user first.
+                    </p>
+                  )}
+                  <p className="text-[11px] text-gray-500 mt-1.5">
+                    This assigns the site for editing — it is not treated as the advisor&apos;s own request.
+                  </p>
+                </div>
+              </FormSection>
+            )}
           </div>
-
-          <div>
-            <label className={labelClass}>
-              <RequiredMark>Domain Name</RequiredMark>
-            </label>
-            <input
-              type="text"
-              value={domainName}
-              onChange={e => setDomainName(e.target.value)}
-              placeholder={domainPlaceholder}
-              required
-              className={inputClass}
-            />
-            <p className="text-[11px] text-gray-500 mt-1">The target domain for this advisor&apos;s site.</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <BrandingUploadField
-              id="deployment-branding-logo"
-              label="Site Logo"
-              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-              hint="Used on light backgrounds (header bar)."
-              value={logoUrl}
-              previewUrl={logoPreview}
-              uploading={uploadingLogo}
-              onUpload={(file) => uploadAsset(file, 'logo')}
-              onClear={() => { setLogoUrl(''); setLogoPreview('') }}
-            />
-            <BrandingUploadField
-              id="deployment-branding-white-logo"
-              label="White Logo"
-              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-              hint="Used on dark backgrounds (nav bar, footer)."
-              value={whiteLogoUrl}
-              previewUrl={whiteLogoPreview}
-              uploading={uploadingWhiteLogo}
-              onUpload={(file) => uploadAsset(file, 'white_logo')}
-              onClear={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
-              darkPreview
-            />
-            <BrandingUploadField
-              id="deployment-branding-favicon"
-              label="Favicon"
-              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
-              hint="Browser tab icon on the live advisor site."
-              value={faviconUrl}
-              previewUrl={faviconPreview}
-              uploading={uploadingFavicon}
-              onUpload={(file) => uploadAsset(file, 'favicon')}
-              onClear={() => { setFaviconUrl(''); setFaviconPreview('') }}
-            />
-          </div>
-
-          <ColorSchemePicker
-            schemes={availableSchemes}
-            selectionKey={colorSchemeKey}
-            onSelectionChange={setColorSchemeKey}
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
-            onPrimaryChange={setPrimaryColor}
-            onSecondaryChange={setSecondaryColor}
-            labelClass={labelClass}
-          />
-        </div>
-
-        <TemplateRequestContentFields
-          availablePages={availablePages}
-          services={services}
-          onServicesChange={setServices}
-          images={images}
-          onImagesChange={setImages}
-          contactDetails={contactDetails}
-          onContactDetailsChange={setContactDetails}
-          policies={policies}
-          onPoliciesChange={setPolicies}
-          selectedPages={selectedPages}
-          onSelectedPagesChange={setSelectedPages}
-          pageContents={pageContents}
-          onPageContentsChange={setPageContents}
-          labelClass={labelClass}
-        />
-
-        {canAssignAdvisor && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
-          <label className={labelClass}>
-            <RequiredMark>Assign Advisor for Content Editing</RequiredMark>
-          </label>
-          <select
-            value={assignedAdvisorId}
-            onChange={e => setAssignedAdvisorId(e.target.value)}
-            className={inputClass}
-            required
-          >
-            <option value="">— Select an advisor —</option>
-            {advisors.map(a => (
-              <option key={a.id} value={a.id}>
-                {a.name} ({a.email}){a.firm?.name ? ` — ${a.firm.name}` : ''}
-              </option>
-            ))}
-          </select>
-          {advisors.length === 0 && (
-            <p className="text-xs text-amber-700 mt-1">No advisor accounts were found. Create an advisor user first.</p>
-          )}
-          <p className="text-[11px] text-gray-500 mt-1">
-            Assigns this website to the advisor for editing (not their own site request). Hub sections are created only after Power Admin deploys the site.
-          </p>
-        </div>
         )}
 
-        <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
-          >
-            <FaRocket className="w-3.5 h-3.5" />
-            {submitting ? 'Submitting…' : 'Submit Request'}
-          </button>
-        </div>
+        {step === 1 && (
+          <div className="space-y-4">
+            <div
+              className="rounded-2xl border border-gray-200 overflow-hidden"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor || hubPrimary} 0%, ${secondaryColor || hubSecondary} 100%)`,
+              }}
+            >
+              <div className="px-5 py-6 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">Live preview</p>
+                  <p className="text-white font-extrabold text-base mt-1 truncate">
+                    {domainName.trim() || domainPlaceholder}
+                  </p>
+                  <p className="text-white/75 text-[11px] mt-0.5">{templateLabel}</p>
+                </div>
+                <div className="w-16 h-16 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center overflow-hidden shrink-0 backdrop-blur-sm">
+                  {logoDisplay ? (
+                    <img src={logoDisplay} alt="" className="w-full h-full object-contain p-1.5" />
+                  ) : (
+                    <FaImage className="w-6 h-6 text-white/50" aria-hidden="true" />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <FormSection
+              icon={FaImage}
+              title="Brand assets"
+              hint="Optional logos and favicon used across the live site."
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <BrandingUploadField
+                  id="deployment-branding-logo"
+                  label="Site Logo"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                  hint="Used on light backgrounds (header bar)."
+                  value={logoUrl}
+                  previewUrl={logoPreview}
+                  uploading={uploadingLogo}
+                  onUpload={(file) => uploadAsset(file, 'logo')}
+                  onClear={() => { setLogoUrl(''); setLogoPreview('') }}
+                />
+                <BrandingUploadField
+                  id="deployment-branding-white-logo"
+                  label="White Logo"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                  hint="Used on dark backgrounds (nav bar, footer)."
+                  value={whiteLogoUrl}
+                  previewUrl={whiteLogoPreview}
+                  uploading={uploadingWhiteLogo}
+                  onUpload={(file) => uploadAsset(file, 'white_logo')}
+                  onClear={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
+                  darkPreview
+                />
+                <BrandingUploadField
+                  id="deployment-branding-favicon"
+                  label="Favicon"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
+                  hint="Browser tab icon on the live advisor site."
+                  value={faviconUrl}
+                  previewUrl={faviconPreview}
+                  uploading={uploadingFavicon}
+                  onUpload={(file) => uploadAsset(file, 'favicon')}
+                  onClear={() => { setFaviconUrl(''); setFaviconPreview('') }}
+                />
+              </div>
+            </FormSection>
+
+            <FormSection
+              icon={FaPalette}
+              title="Colour scheme"
+              hint="Primary and secondary colours for this deployment."
+            >
+              <ColorSchemePicker
+                schemes={availableSchemes}
+                selectionKey={colorSchemeKey}
+                onSelectionChange={setColorSchemeKey}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+                onPrimaryChange={setPrimaryColor}
+                onSecondaryChange={setSecondaryColor}
+                labelClass={labelClass}
+              />
+            </FormSection>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-dashed border-gray-200 bg-slate-50/70 px-4 py-3">
+              <p className="text-sm font-bold text-[var(--brand-dark)]">Starter content</p>
+              <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                Everything here is optional — you can flesh out the site after deployment.
+              </p>
+            </div>
+            <TemplateRequestContentFields
+              availablePages={availablePages}
+              services={services}
+              onServicesChange={setServices}
+              images={images}
+              onImagesChange={setImages}
+              contactDetails={contactDetails}
+              onContactDetailsChange={setContactDetails}
+              policies={policies}
+              onPoliciesChange={setPolicies}
+              selectedPages={selectedPages}
+              onSelectedPagesChange={setSelectedPages}
+              pageContents={pageContents}
+              onPageContentsChange={setPageContents}
+              labelClass={labelClass}
+            />
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-4">
+            <FormSection
+              icon={FaRocket}
+              title="Ready to submit"
+              hint="Confirm the details below, then send this deployment request for review."
+              tone="accent"
+            >
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-1">
+                <ReviewRow label="Template" value={templateLabel} />
+                <ReviewRow label="Domain" value={domainName.trim()} mono />
+                {canAssignAdvisor && (
+                  <ReviewRow
+                    label="Advisor"
+                    value={
+                      selectedAdvisor
+                        ? `${selectedAdvisor.name}${selectedAdvisor.firm?.name ? ` — ${selectedAdvisor.firm.name}` : ''}`
+                        : ''
+                    }
+                  />
+                )}
+                <ReviewRow label="Primary colour" value={primaryColor} mono />
+                <ReviewRow label="Secondary colour" value={secondaryColor} mono />
+                <ReviewRow
+                  label="Brand assets"
+                  value={[
+                    logoUrl ? 'Logo' : null,
+                    whiteLogoUrl ? 'White logo' : null,
+                    faviconUrl ? 'Favicon' : null,
+                  ].filter(Boolean).join(' · ') || 'None uploaded'}
+                />
+                <ReviewRow
+                  label="Services"
+                  value={
+                    contentSummary.services?.length
+                      ? `${contentSummary.services.length} added`
+                      : 'None'
+                  }
+                />
+                <ReviewRow
+                  label="Images"
+                  value={
+                    contentSummary.images?.length
+                      ? `${contentSummary.images.length} added`
+                      : 'None'
+                  }
+                />
+                <ReviewRow
+                  label="Contact details"
+                  value={contentSummary.contact_details ? 'Provided' : 'None'}
+                />
+                <ReviewRow
+                  label="Policies"
+                  value={
+                    contentSummary.policies?.length
+                      ? `${contentSummary.policies.length} added`
+                      : 'None'
+                  }
+                />
+                <ReviewRow
+                  label="Pages"
+                  value={
+                    contentSummary.selected_pages?.length
+                      ? contentSummary.selected_pages.join(', ')
+                      : 'None selected'
+                  }
+                />
+              </div>
+            </FormSection>
+
+            <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 flex items-start gap-2.5">
+              <FaExclamationTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-xs text-amber-800 leading-relaxed">
+                Submitting queues this request for platform review. The site is not live until an administrator deploys it.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Edit basics', index: 0, icon: FaGlobe },
+                { label: 'Edit branding', index: 1, icon: FaPalette },
+                { label: 'Edit content', index: 2, icon: FaBriefcase },
+              ].map(({ label, index, icon: Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setStep(index)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-slate-50 transition"
+                >
+                  <Icon className="w-3 h-3" aria-hidden="true" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </form>
     </ModalShell>
   )

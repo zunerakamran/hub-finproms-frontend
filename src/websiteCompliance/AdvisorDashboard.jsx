@@ -1,32 +1,21 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { createPortal } from 'react-dom'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import api from './wcApi'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import ComplianceStatusText from '../components/ComplianceStatusText'
-import RequiredMark from '../components/RequiredMark'
 import RichTextDisplay from '../components/RichTextDisplay'
 import SectionIframePreview from './components/SectionIframePreview'
 import TemplateScrollPreview from './components/TemplateScrollPreview'
 import ImageFieldPicker from './components/ImageFieldPicker'
-import { ColorSchemePicker, templateColorSchemes } from './components/ColorSchemeFields'
-import {
-  TemplateRequestContentFields,
-  buildRequestContentPayload,
-  emptyContactDetails,
-  emptyRequestContentState,
-  templateAvailablePages,
-} from './components/TemplateRequestContentFields'
+import { CreateDeploymentModal } from './components/DeploymentRequestPanel'
 import { parseJson } from './utils/parseJson'
 import { sectionDisplayName, sectionTemplateKey } from './utils/sectionDisplay'
 import {
   absoluteAssetUrl,
   isUploadedAsset,
 } from './utils/imageAssets'
-import { hubDomainPlaceholder, resolveHubPreviewBase } from './utils/assetUrl'
 import { truncateRichText } from '../utils/richText'
-import FileDropzone from '../components/FileDropzone'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import { buildChangeRequestBody } from '../utils/complianceSupportingFiles'
 import {
@@ -76,27 +65,7 @@ import {
   FaCommentDots,
   FaRedo,
   FaUpload,
-  FaImage,
 } from 'react-icons/fa'
-
-function BrandingImmediateFileDropzone({ id, accept, hint, disabled, onUpload }) {
-  const [files, setFiles] = useState([])
-
-  return (
-    <FileDropzone
-      id={id}
-      accept={accept}
-      hint={hint}
-      disabled={disabled}
-      files={files}
-      onChange={(next) => {
-        setFiles(next)
-        const file = next[0]
-        if (file) onUpload(file)
-      }}
-    />
-  )
-}
 
 const SERVICE_ICON_OPTIONS = [
   { value: 'chart-pie', label: 'Chart pie', Icon: FaChartPie },
@@ -532,32 +501,6 @@ function AlertBanner({ type, message, onDismiss }) {
         <FaTimes className="w-4 h-4" />
       </button>
     </div>
-  )
-}
-
-function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' }) {
-  return createPortal(
-    <div className="wc-app wc-portal-root">
-      <div className="fixed inset-0 bg-[color-mix(in_srgb,var(--brand-dark)_60%,transparent)] backdrop-blur-sm flex items-center justify-center p-4 z-[80]">
-        <div
-          className={`bg-white rounded-2xl ${maxWidth} w-full shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto`}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="sticky top-0 bg-white z-10 flex items-start justify-between gap-4 p-6 border-b border-gray-100">
-            <div>
-              <h3 className="text-lg font-bold text-[var(--brand-dark)]">{title}</h3>
-              {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
-            </div>
-            <button type="button" onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition" aria-label="Close">
-              <FaTimes className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="p-6">{children}</div>
-        </div>
-      </div>
-    </div>,
-    document.body
   )
 }
 
@@ -1241,7 +1184,7 @@ export default function AdvisorDashboard({
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { can, hub, actingHub, roleLabel, complianceStatusLabel, effectiveAdvisorId, actingAdvisor } =
+  const { can, roleLabel, complianceStatusLabel, effectiveAdvisorId, actingAdvisor } =
     useHub()
   const getConsoleTitle = (r) =>
     actingAdvisor || r === 'advisor' ? `${roleLabel('advisor')} console` : 'Console'
@@ -1255,16 +1198,11 @@ export default function AdvisorDashboard({
     Boolean(section?.is_locked && section?.locked_by != null && lockOwnerIds.includes(Number(section.locked_by)))
   const isSectionLockedByOther = (section) =>
     Boolean(section?.is_locked && section?.locked_by != null && !lockOwnerIds.includes(Number(section.locked_by)))
-  const previewBase = resolveHubPreviewBase({ hub, actingHub })
-  const domainPlaceholder = hubDomainPlaceholder(previewBase)
   const canRequestDeployments = can('wc_request_deployments')
   const powerAdminLabel = roleLabel('power_admin')
   const advisorLabel = roleLabel('advisor')
   const isPowerAdminPublishMode = Boolean(powerAdminDeploymentId)
   const singleTabMode = Boolean(forcedTab) || isPowerAdminPublishMode
-  // Advisor website branding defaults (not hub dashboard greens / showcase chrome)
-  const sitePrimaryDefault = '#0B1B3D'
-  const siteSecondaryDefault = '#C8102E'
   const [pages, setPages] = useState([])
   const [selectedPageId, setSelectedPageId] = useState('')
   const [sections, setSections] = useState([])
@@ -1285,26 +1223,6 @@ export default function AdvisorDashboard({
   )
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [selectedTemplateName, setSelectedTemplateName] = useState('template4')
-  const [domainName, setDomainName] = useState('')
-  const [logoUrl, setLogoUrl] = useState('')
-  const [whiteLogoUrl, setWhiteLogoUrl] = useState('')
-  const [faviconUrl, setFaviconUrl] = useState('')
-  const [logoPreview, setLogoPreview] = useState('')
-  const [whiteLogoPreview, setWhiteLogoPreview] = useState('')
-  const [faviconPreview, setFaviconPreview] = useState('')
-  const [uploadingLogo, setUploadingLogo] = useState(false)
-  const [uploadingWhiteLogo, setUploadingWhiteLogo] = useState(false)
-  const [uploadingFavicon, setUploadingFavicon] = useState(false)
-  const [primaryColor, setPrimaryColor] = useState(sitePrimaryDefault)
-  const [secondaryColor, setSecondaryColor] = useState(siteSecondaryDefault)
-  const [colorSchemeKey, setColorSchemeKey] = useState('custom')
-  const [requestServices, setRequestServices] = useState([])
-  const [requestImages, setRequestImages] = useState([])
-  const [requestContactDetails, setRequestContactDetails] = useState(emptyContactDetails())
-  const [requestPolicies, setRequestPolicies] = useState([])
-  const [requestSelectedPages, setRequestSelectedPages] = useState([])
-  const [requestPageContents, setRequestPageContents] = useState({})
-  const [isSubmittingTemplate, setIsSubmittingTemplate] = useState(false)
   const [selectedDeploymentId, setSelectedDeploymentId] = useState(null)
   const [uploadingState, setUploadingState] = useState({})
   const [localPreviewUrls, setLocalPreviewUrls] = useState({})
@@ -2029,35 +1947,9 @@ export default function AdvisorDashboard({
     loadPages()
   }, [templateRequests, selectedDeploymentId])
 
-  const resetRequestContentExtras = () => {
-    const empty = emptyRequestContentState()
-    setRequestServices(empty.services)
-    setRequestImages(empty.images)
-    setRequestContactDetails(empty.contactDetails)
-    setRequestPolicies(empty.policies)
-    setRequestSelectedPages(empty.selectedPages)
-    setRequestPageContents(empty.pageContents)
-  }
-
   const openDeploymentModal = (templateSlug, switchToDeployments = false) => {
     const slug = templateSlug || selectedTemplateName
     if (slug) setSelectedTemplateName(slug)
-    const tpl =
-      availableTemplates.find((t) => t.slug === slug) ||
-      availableTemplates.find((t) => t.slug === selectedTemplateName) ||
-      availableTemplates[0] ||
-      null
-    const schemes = templateColorSchemes(tpl)
-    if (schemes.length) {
-      setColorSchemeKey('0')
-      setPrimaryColor(schemes[0].primary)
-      setSecondaryColor(schemes[0].secondary)
-    } else {
-      setColorSchemeKey('custom')
-      setPrimaryColor(sitePrimaryDefault)
-      setSecondaryColor(siteSecondaryDefault)
-    }
-    resetRequestContentExtras()
     // From content editor, send users to the dedicated request-site page
     if (forcedTab === 'editor' && switchToDeployments) {
       navigate(WC_TAB_ROUTES.templates)
@@ -2077,81 +1969,6 @@ export default function AdvisorDashboard({
         tpl.description?.toLowerCase().includes(q)
     )
   }, [availableTemplates, templateSearch])
-
-  const uploadBrandingAsset = async (file, kind) => {
-    if (!file) return
-    const setters = {
-      logo: { setUploading: setUploadingLogo, setUrl: setLogoUrl, setPreview: setLogoPreview },
-      white_logo: { setUploading: setUploadingWhiteLogo, setUrl: setWhiteLogoUrl, setPreview: setWhiteLogoPreview },
-      favicon: { setUploading: setUploadingFavicon, setUrl: setFaviconUrl, setPreview: setFaviconPreview },
-    }
-    const active = setters[kind] || setters.logo
-    active.setUploading(true)
-    setError('')
-    active.setPreview(URL.createObjectURL(file))
-    try {
-      const formData = new FormData()
-      formData.append('image', file)
-      const res = await api.post('upload-image', formData)
-      const uploadedUrl = storedUploadPath(res.data)
-      if (!uploadedUrl) {
-        setError('Upload succeeded but no image path was returned.')
-        active.setPreview('')
-        active.setUrl('')
-        return
-      }
-      active.setUrl(uploadedUrl)
-    } catch (err) {
-      active.setPreview('')
-      active.setUrl('')
-      setError(err.response?.data?.message || `Failed to upload ${kind.replace('_', ' ')}.`)
-    } finally {
-      active.setUploading(false)
-    }
-  }
-
-  const handleTemplateSubmit = async (e) => {
-    e.preventDefault()
-    if (!domainName) return
-    setIsSubmittingTemplate(true)
-    setError('')
-    try {
-      await api.post('/template-requests', {
-        template_name: selectedTemplateName,
-        domain_name: domainName,
-        logo_url: logoUrl || undefined,
-        white_logo_url: whiteLogoUrl || undefined,
-        favicon_url: faviconUrl || undefined,
-        primary_color: primaryColor,
-        secondary_color: secondaryColor,
-        request_type: 'advisor_website',
-        ...buildRequestContentPayload({
-          services: requestServices,
-          images: requestImages,
-          contactDetails: requestContactDetails,
-          policies: requestPolicies,
-          selectedPages: requestSelectedPages,
-          pageContents: requestPageContents,
-        }),
-      })
-      setMessage(`Deployment request submitted! ${powerAdminLabel} will review it. You can request additional deployments anytime.`)
-      setShowTemplateModal(false)
-      setDomainName('')
-      setLogoUrl('')
-      setWhiteLogoUrl('')
-      setFaviconUrl('')
-      setLogoPreview('')
-      setWhiteLogoPreview('')
-      setFaviconPreview('')
-      resetRequestContentExtras()
-      setActiveTab('deployments')
-      fetchTemplateRequests()
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit template request.')
-    } finally {
-      setIsSubmittingTemplate(false)
-    }
-  }
 
   const fetchAdvisorSections = async (pageId, advisorIdOverride = null, templateRequestId = null) => {
     const advisorId =
@@ -5442,225 +5259,19 @@ export default function AdvisorDashboard({
         )}
       </div>
 
-      {/* Template Deployment Request Modal */}
       {showTemplateModal && (
-        <ModalShell
-          title="Request New Deployment"
-          subtitle="Choose a template, branding, services, pages, and content for your showcase site"
+        <CreateDeploymentModal
+          initialTemplateName={selectedTemplateName}
           onClose={() => setShowTemplateModal(false)}
-          maxWidth="max-w-3xl"
-        >
-            <form onSubmit={handleTemplateSubmit} className="space-y-5">
-              <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-4 space-y-4">
-                <div>
-                  <p className="text-sm font-extrabold text-[var(--brand-dark)]">Basics</p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">Template, domain, and site branding.</p>
-                </div>
-
-                <div>
-                  <label className={labelClass}>Showcase Template</label>
-                  <select
-                    value={selectedTemplateName}
-                    onChange={e => {
-                      const next = e.target.value
-                      setSelectedTemplateName(next)
-                      const tpl = availableTemplates.find(t => t.slug === next)
-                      const schemes = templateColorSchemes(tpl)
-                      if (schemes.length) {
-                        setColorSchemeKey('0')
-                        setPrimaryColor(schemes[0].primary)
-                        setSecondaryColor(schemes[0].secondary)
-                      } else {
-                        setColorSchemeKey('custom')
-                        setPrimaryColor(sitePrimaryDefault)
-                        setSecondaryColor(siteSecondaryDefault)
-                      }
-                      resetRequestContentExtras()
-                    }}
-                    className={inputClass}
-                  >
-                    {availableTemplates.map(tpl => (
-                      <option key={tpl.id} value={tpl.slug}>
-                        {tpl.name} ({tpl.slug})
-                      </option>
-                    ))}
-                    {availableTemplates.length === 0 && (
-                      <option value="template4">Template 4 - Corporate Financial Advisory (template4)</option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className={labelClass}><RequiredMark>Target Domain Name</RequiredMark></label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={`e.g. ${domainPlaceholder}`}
-                    value={domainName}
-                    onChange={e => setDomainName(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelClass}>Site Logo <span className="text-gray-400 font-normal">(optional)</span></label>
-                    <div className="flex items-start gap-3">
-                      <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
-                        {(logoPreview || logoUrl) ? (
-                          <img
-                            src={logoPreview || absoluteAssetUrl(logoUrl)}
-                            alt=""
-                            className="w-full h-full object-contain p-1"
-                          />
-                        ) : (
-                          <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <BrandingImmediateFileDropzone
-                          id="advisor-dashboard-branding-logo"
-                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                          hint="Used on light backgrounds (header bar)."
-                          disabled={uploadingLogo}
-                          onUpload={(file) => uploadBrandingAsset(file, 'logo')}
-                        />
-                        {logoUrl && (
-                          <button
-                            type="button"
-                            onClick={() => { setLogoUrl(''); setLogoPreview('') }}
-                            className="block text-[11px] font-semibold text-rose-600 hover:underline"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className={labelClass}>White Logo <span className="text-gray-400 font-normal">(optional)</span></label>
-                    <div className="flex items-start gap-3">
-                      <div className="w-14 h-14 rounded-xl border border-gray-700 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
-                        {(whiteLogoPreview || whiteLogoUrl) ? (
-                          <img
-                            src={whiteLogoPreview || absoluteAssetUrl(whiteLogoUrl)}
-                            alt=""
-                            className="w-full h-full object-contain p-1"
-                          />
-                        ) : (
-                          <FaImage className="w-5 h-5 text-gray-500" aria-hidden="true" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <BrandingImmediateFileDropzone
-                          id="advisor-dashboard-branding-white-logo"
-                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                          hint="Used on dark backgrounds (nav, footer)."
-                          disabled={uploadingWhiteLogo}
-                          onUpload={(file) => uploadBrandingAsset(file, 'white_logo')}
-                        />
-                        {whiteLogoUrl && (
-                          <button
-                            type="button"
-                            onClick={() => { setWhiteLogoUrl(''); setWhiteLogoPreview('') }}
-                            className="block text-[11px] font-semibold text-rose-600 hover:underline"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className={labelClass}>Favicon <span className="text-gray-400 font-normal">(optional)</span></label>
-                    <div className="flex items-start gap-3">
-                      <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
-                        {(faviconPreview || faviconUrl) ? (
-                          <img
-                            src={faviconPreview || absoluteAssetUrl(faviconUrl)}
-                            alt=""
-                            className="w-full h-full object-contain p-1"
-                          />
-                        ) : (
-                          <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <BrandingImmediateFileDropzone
-                          id="advisor-dashboard-branding-favicon"
-                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon,.ico"
-                          hint="Browser tab icon on the advisor's live site."
-                          disabled={uploadingFavicon}
-                          onUpload={(file) => uploadBrandingAsset(file, 'favicon')}
-                        />
-                        {faviconUrl && (
-                          <button
-                            type="button"
-                            onClick={() => { setFaviconUrl(''); setFaviconPreview('') }}
-                            className="block text-[11px] font-semibold text-rose-600 hover:underline"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <ColorSchemePicker
-                  schemes={templateColorSchemes(
-                    availableTemplates.find((t) => t.slug === selectedTemplateName)
-                  )}
-                  selectionKey={colorSchemeKey}
-                  onSelectionChange={setColorSchemeKey}
-                  primaryColor={primaryColor}
-                  secondaryColor={secondaryColor}
-                  onPrimaryChange={setPrimaryColor}
-                  onSecondaryChange={setSecondaryColor}
-                  labelClass={labelClass}
-                />
-              </div>
-
-              <TemplateRequestContentFields
-                availablePages={templateAvailablePages(
-                  availableTemplates.find((t) => t.slug === selectedTemplateName)
-                )}
-                services={requestServices}
-                onServicesChange={setRequestServices}
-                images={requestImages}
-                onImagesChange={setRequestImages}
-                contactDetails={requestContactDetails}
-                onContactDetailsChange={setRequestContactDetails}
-                policies={requestPolicies}
-                onPoliciesChange={setRequestPolicies}
-                selectedPages={requestSelectedPages}
-                onSelectedPagesChange={setRequestSelectedPages}
-                pageContents={requestPageContents}
-                onPageContentsChange={setRequestPageContents}
-                labelClass={labelClass}
-              />
-
-              <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setShowTemplateModal(false)}
-                  className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingTemplate || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
-                >
-                  <FaRocket className="w-3.5 h-3.5" />
-                  {isSubmittingTemplate ? 'Submitting...' : 'Submit Request'}
-                </button>
-              </div>
-            </form>
-        </ModalShell>
+          onCreated={() => {
+            setShowTemplateModal(false)
+            setMessage(
+              `Deployment request submitted! ${powerAdminLabel} will review it. You can request additional deployments anytime.`
+            )
+            setActiveTab('deployments')
+            fetchTemplateRequests()
+          }}
+        />
       )}
     </>
   )

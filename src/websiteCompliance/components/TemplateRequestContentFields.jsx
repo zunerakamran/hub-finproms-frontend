@@ -388,7 +388,19 @@ export function TemplateRequestContentFields({
         }
       >
         {(services || []).length === 0 ? (
-          <p className="text-[11px] text-gray-500">No services added yet (optional).</p>
+          <button
+            type="button"
+            onClick={() => onServicesChange([...(services || []), emptyService()])}
+            className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-slate-50/60 hover:border-[color-mix(in_srgb,var(--brand)_35%,transparent)] transition px-4 py-7 text-center"
+          >
+            <FaBriefcase className="w-5 h-5 text-slate-300 mx-auto mb-2" aria-hidden="true" />
+            <p className="text-sm font-bold text-gray-600">No services yet</p>
+            <p className="text-[11px] text-gray-500 mt-1">Optional — add services to feature on the site.</p>
+            <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-[var(--brand-dark)]">
+              <FaPlus className="w-3 h-3" aria-hidden="true" />
+              Add first service
+            </span>
+          </button>
         ) : (
           (services || []).map((service, index) => (
             <div
@@ -454,7 +466,19 @@ export function TemplateRequestContentFields({
           </p>
         ) : null}
         {(images || []).length === 0 ? (
-          <p className="text-[11px] text-gray-500">No images added yet (optional).</p>
+          <button
+            type="button"
+            onClick={() => onImagesChange([...(images || []), emptyImage()])}
+            className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-slate-50/60 hover:border-[color-mix(in_srgb,var(--brand)_35%,transparent)] transition px-4 py-7 text-center"
+          >
+            <FaImage className="w-5 h-5 text-slate-300 mx-auto mb-2" aria-hidden="true" />
+            <p className="text-sm font-bold text-gray-600">No images yet</p>
+            <p className="text-[11px] text-gray-500 mt-1">Optional — hero, team, office, or other photos.</p>
+            <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-[var(--brand-dark)]">
+              <FaPlus className="w-3 h-3" aria-hidden="true" />
+              Add first image
+            </span>
+          </button>
         ) : (
           (images || []).map((image, index) => {
             const src = image.preview || (image.url ? websiteComplianceAssetUrl(image.url) : '')
@@ -582,7 +606,19 @@ export function TemplateRequestContentFields({
         }
       >
         {(policies || []).length === 0 ? (
-          <p className="text-[11px] text-gray-500">No policies added yet (optional).</p>
+          <button
+            type="button"
+            onClick={() => onPoliciesChange([...(policies || []), emptyPolicy()])}
+            className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-slate-50/60 hover:border-[color-mix(in_srgb,var(--brand)_35%,transparent)] transition px-4 py-7 text-center"
+          >
+            <FaFileContract className="w-5 h-5 text-slate-300 mx-auto mb-2" aria-hidden="true" />
+            <p className="text-sm font-bold text-gray-600">No policies yet</p>
+            <p className="text-[11px] text-gray-500 mt-1">Optional — privacy, terms, cookies, and similar.</p>
+            <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-[var(--brand-dark)]">
+              <FaPlus className="w-3 h-3" aria-hidden="true" />
+              Add first policy
+            </span>
+          </button>
         ) : (
           (policies || []).map((policy, index) => (
             <div

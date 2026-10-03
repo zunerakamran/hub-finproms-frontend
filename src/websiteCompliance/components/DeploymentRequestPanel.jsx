@@ -18,15 +18,26 @@ import {
   FaEye,
 } from 'react-icons/fa'
 import api from '../wcApi'
+import { useAuth } from '../../context/AuthContext'
 import { useHub } from '../../context/HubContext'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
 import WcStatusBadge from '../../components/WebsiteComplianceUI'
 import { websiteComplianceAssetUrl } from '../../api/client'
 import { formatDateTime } from '../../utils/dateFormat'
+import { reviewersForSubmitterFirm } from '../../utils/firmAssigneeFilter'
 import FileDropzone from '../../components/FileDropzone'
 import RequiredMark from '../../components/RequiredMark'
 import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
 import { ColorSchemePicker, templateColorSchemes } from './ColorSchemeFields'
+
+function advisorsForFirm(advisors, submitterFirm, actorRole) {
+  const role = String(actorRole || '')
+  // Power / FinProms admin creating without firm scope see the full list.
+  if ((role === 'power_admin' || role === 'finproms_admin') && !submitterFirm?.id) {
+    return Array.isArray(advisors) ? advisors : []
+  }
+  return reviewersForSubmitterFirm(advisors, submitterFirm)
+}
 import {
   TemplateRequestContentFields,
   TemplateRequestDetailsView,
@@ -287,7 +298,12 @@ export function CreateDeploymentModal({
   onClose,
   onCreated,
 }) {
+  const { user } = useAuth()
   const { branding, hub, actingHub } = useHub()
+  const eligibleAdvisors = useMemo(
+    () => advisorsForFirm(advisors, user?.firm, user?.role),
+    [advisors, user?.firm, user?.role]
+  )
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const domainPlaceholder = hubDomainPlaceholder(previewBase)
   const hubPrimary = branding?.primary_color || branding?.color_scheme?.primary || '#0f5c45'
@@ -372,7 +388,13 @@ export function CreateDeploymentModal({
     serverTemplates.find(t => (t.slug || t.name) === templateName) || null
   const availableSchemes = templateColorSchemes(selectedTemplate)
   const availablePages = templateAvailablePages(selectedTemplate)
-  const selectedAdvisor = advisors.find(a => String(a.id) === String(assignedAdvisorId))
+  const selectedAdvisor = eligibleAdvisors.find(a => String(a.id) === String(assignedAdvisorId))
+
+  useEffect(() => {
+    if (!assignedAdvisorId) return
+    if (eligibleAdvisors.some((a) => String(a.id) === String(assignedAdvisorId))) return
+    setAssignedAdvisorId('')
+  }, [assignedAdvisorId, eligibleAdvisors])
   const contentSummary = buildRequestContentPayload({
     services,
     images,
@@ -606,19 +628,19 @@ export function CreateDeploymentModal({
                     className={inputClass}
                   >
                     <option value="">— Select an advisor —</option>
-                    {advisors.map(a => (
+                    {eligibleAdvisors.map(a => (
                       <option key={a.id} value={a.id}>
                         {a.name} ({a.email}){a.firm?.name ? ` — ${a.firm.name}` : ''}
                       </option>
                     ))}
                   </select>
-                  {advisors.length === 0 && (
+                  {eligibleAdvisors.length === 0 && (
                     <p className="text-xs text-amber-700 mt-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                      No advisor accounts were found. Create an advisor user first.
+                      No advisors are available for your firm&apos;s visibility settings. Add advisors in your firm, or update firm compliance visibility.
                     </p>
                   )}
                   <p className="text-[11px] text-gray-500 mt-1.5">
-                    This assigns the site for editing — it is not treated as the advisor&apos;s own request.
+                    Only advisors from your firm (or firms allowed by your firm&apos;s visibility settings) are listed.
                   </p>
                 </div>
               </FormSection>
@@ -845,11 +867,24 @@ export function CreateDeploymentModal({
 // ─── Assign advisor modal (for existing request) ──────────────────────────────
 
 export function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
+  const { user } = useAuth()
+  const requester = request.requested_by || request.requestedBy
+  const submitterFirm = requester?.firm || user?.firm
+  const eligibleAdvisors = useMemo(
+    () => reviewersForSubmitterFirm(advisors, submitterFirm),
+    [advisors, submitterFirm]
+  )
   const [advisorId, setAdvisorId] = useState(
     String(request.assigned_advisor_id || request.advisor_id || '')
   )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!advisorId) return
+    if (eligibleAdvisors.some((a) => String(a.id) === String(advisorId))) return
+    setAdvisorId('')
+  }, [advisorId, eligibleAdvisors])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -862,7 +897,11 @@ export function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
       })
       onAssigned(res.data)
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to assign advisor.')
+      setError(
+        err.response?.data?.message
+        || err.response?.data?.errors?.assigned_advisor_id?.[0]
+        || 'Failed to assign advisor.'
+      )
     } finally {
       setSubmitting(false)
     }
@@ -884,15 +923,20 @@ export function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
             className="w-full text-sm p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] outline-none"
           >
             <option value="">— Select an advisor —</option>
-            {advisors.map(a => (
+            {eligibleAdvisors.map(a => (
               <option key={a.id} value={a.id}>
                 {a.name} ({a.email}){a.firm?.name ? ` — ${a.firm.name}` : ''}
               </option>
             ))}
           </select>
-          {advisors.length === 0 && (
-            <p className="text-xs text-amber-700 mt-1">No advisor accounts were found. Create an advisor user first.</p>
+          {eligibleAdvisors.length === 0 && (
+            <p className="text-xs text-amber-700 mt-1">
+              No advisors are available for this requester&apos;s firm visibility settings.
+            </p>
           )}
+          <p className="text-[11px] text-gray-500 mt-1.5">
+            Only advisors from the requester&apos;s firm (or firms allowed by that firm&apos;s visibility settings) are listed.
+          </p>
         </div>
 
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800">

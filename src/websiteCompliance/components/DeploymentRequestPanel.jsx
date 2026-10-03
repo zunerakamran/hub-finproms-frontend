@@ -541,44 +541,27 @@ export function CreateDeploymentModal({
               hint="Pick the showcase layout that best fits this deployment."
               tone="accent"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {templateOptions.map((t) => {
-                  const selected = templateName === t.value
-                  const desc = t.template?.description
-                  return (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => {
-                        setTemplateName(t.value)
-                        applyTemplateDefaults(t.template)
-                      }}
-                      className={`text-left rounded-xl border px-4 py-3.5 transition ${
-                        selected
-                          ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_8%,white)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--brand)_20%,transparent)]'
-                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm font-extrabold text-[var(--brand-dark)]">
-                          {t.label}
-                        </span>
-                        {selected ? (
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--brand)] text-white shrink-0">
-                            <FaCheck className="w-2.5 h-2.5" aria-hidden="true" />
-                          </span>
-                        ) : null}
-                      </div>
-                      {desc ? (
-                        <p className="text-[11px] text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
-                          {desc}
-                        </p>
-                      ) : (
-                        <p className="text-[10px] font-mono text-gray-400 mt-1.5">{t.value}</p>
-                      )}
-                    </button>
-                  )
-                })}
+              <div>
+                <label className={labelClass}>Template</label>
+                <select
+                  value={templateName}
+                  onChange={(e) => {
+                    const next = e.target.value
+                    setTemplateName(next)
+                    const tpl = serverTemplates.find(t => (t.slug || t.name) === next) || null
+                    applyTemplateDefaults(tpl)
+                  }}
+                  className={inputClass}
+                >
+                  {templateOptions.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+                {selectedTemplate?.description ? (
+                  <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed line-clamp-3">
+                    {String(selectedTemplate.description).replace(/<[^>]+>/g, '').trim()}
+                  </p>
+                ) : null}
               </div>
             </FormSection>
 

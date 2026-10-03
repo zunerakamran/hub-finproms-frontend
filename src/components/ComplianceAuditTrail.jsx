@@ -226,9 +226,13 @@ export function ComplianceReportAuditPanel({
         <div className="compliance-report-audit__empty">
           <p className="muted">
             No audit events yet. New submit / assign / review actions will appear here automatically.
-            If you expected history, confirm the backend migration
-            <code> compliance_audit_events </code>
-            has been run.
+          </p>
+          <p className="muted" style={{ marginTop: '0.5rem' }}>
+            To restore history for older requests, run on the backend:
+            <br />
+            <code>php artisan migrate</code>
+            {' '}then{' '}
+            <code>php artisan compliance:backfill-audit-trail</code>
           </p>
         </div>
       ) : (

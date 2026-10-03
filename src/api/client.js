@@ -1022,6 +1022,14 @@ export const api = {
   websiteComplianceReportSummary: () => request('/website-compliance/reports/summary'),
   websiteComplianceRefreshReportSummary: () =>
     request('/website-compliance/reports/summary/refresh', { method: 'POST' }),
+  websiteComplianceChangeRequestReport: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(
+      `/website-compliance/reports/change-requests${query ? `?${query}` : ''}`
+    )
+  },
   websiteComplianceReports: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')

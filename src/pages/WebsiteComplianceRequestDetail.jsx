@@ -10,6 +10,7 @@ import {
   FaUser,
 } from 'react-icons/fa'
 import { api } from '../api/client'
+import ComplianceAuditTrail from '../components/ComplianceAuditTrail'
 import ComplianceStatusText from '../components/ComplianceStatusText'
 import { DataGridDate } from '../components/DataGrid'
 import DateTimeText from '../components/DateTimeText'
@@ -254,13 +255,33 @@ export default function WebsiteComplianceRequestDetail() {
           {sectionLabel}
         </MetaItem>
         <MetaItem icon={FaUser} label="Submitted by">
-          {submittedBy}
+          <div>
+            {submittedBy}
+            {row.editor?.role ? (
+              <div className="muted">{roleLabel(row.editor.role)}</div>
+            ) : null}
+            {row.editor?.email ? (
+              <div className="muted">{row.editor.email}</div>
+            ) : null}
+          </div>
         </MetaItem>
         <MetaItem icon={FaBuilding} label="Firm">
           {row.editor?.firm?.name || '—'}
         </MetaItem>
         <MetaItem icon={FaClipboardCheck} label="Approver">
-          {row.approver?.name || <span className="muted">Unassigned</span>}
+          {row.approver?.name ? (
+            <div>
+              {row.approver.name}
+              {row.approver.role ? (
+                <div className="muted">{roleLabel(row.approver.role)}</div>
+              ) : null}
+              {row.approver.email ? (
+                <div className="muted">{row.approver.email}</div>
+              ) : null}
+            </div>
+          ) : (
+            <span className="muted">Unassigned</span>
+          )}
         </MetaItem>
         <MetaItem icon={FaCodeBranch} label="Version">
           v{row.current_version || 1}
@@ -421,6 +442,8 @@ export default function WebsiteComplianceRequestDetail() {
             defaultOpen
           />
         </div>
+
+        <ComplianceAuditTrail events={row.audit_trail} />
 
         <div className="wc-panel wc-detail-card wc-detail-versions">
           <div className="wc-detail-card__head">

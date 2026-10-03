@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import GcStatusBadge, { GcVersionCard, GcAttachmentList } from '../components/GeneralComplianceUI'
+import ComplianceAuditTrail from '../components/ComplianceAuditTrail'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import DateTimeText from '../components/DateTimeText'
 import RequiredMark from '../components/RequiredMark'
@@ -22,7 +23,7 @@ export default function GeneralComplianceRequestDetail() {
   const { id } = useParams()
   const location = useLocation()
   const { user, isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading, complianceStatusLabel, effectiveAdvisorId } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel, effectiveAdvisorId, roleLabel } = useHub()
 
   const [row, setRow] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -484,10 +485,26 @@ export default function GeneralComplianceRequestDetail() {
       {row.assignee ? (
         <p className="gc-banner">
           Assigned to <strong>{row.assignee.name}</strong>
+          {row.assignee.role ? (
+            <span className="muted"> · {roleLabel(row.assignee.role)}</span>
+          ) : null}
+          {row.assignee.email ? (
+            <span className="muted"> ({row.assignee.email})</span>
+          ) : null}
           {row.assigned_date ? (
             <>
               {' '}
               on <DateTimeText value={row.assigned_date} />
+            </>
+          ) : null}
+          {row.assigner?.name ? (
+            <>
+              <br />
+              <span className="muted">
+                Assigned by <strong>{row.assigner.name}</strong>
+                {row.assigner.role ? ` · ${roleLabel(row.assigner.role)}` : ''}
+                {row.assigner.email ? ` (${row.assigner.email})` : ''}
+              </span>
             </>
           ) : null}
         </p>
@@ -525,6 +542,8 @@ export default function GeneralComplianceRequestDetail() {
           </>
         ) : null}
       </div>
+
+      <ComplianceAuditTrail events={row.audit_trail} />
 
       <div className="gc-versions">
         {versions.map((ver) => (

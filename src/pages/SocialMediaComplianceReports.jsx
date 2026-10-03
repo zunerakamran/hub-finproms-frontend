@@ -4,6 +4,10 @@ import { FaEye } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import SmcStatusBadge, { SmcBarChart } from '../components/SocialMediaComplianceUI'
+import {
+  ComplianceAuditTrailCell,
+  CompliancePersonCell,
+} from '../components/ComplianceAuditTrail'
 import ComplianceStatusText from '../components/ComplianceStatusText'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -109,14 +113,20 @@ export default function SocialMediaComplianceReports() {
       key: 'submitted_by',
       label: 'Submitted by',
       render: (row) => (
-        <>
-          {row.on_behalf_by || row.on_behalf_of ? row.on_behalf_by || row.submitted_by : row.submitted_by}
-          <br />
-          <small className="muted">{row.submitter_email}</small>
-        </>
+        <CompliancePersonCell
+          name={
+            row.on_behalf_by || row.on_behalf_of
+              ? row.on_behalf_by || row.submitted_by
+              : row.submitted_by
+          }
+          email={row.submitter_email}
+          role={row.submitter_role}
+        />
       ),
       filterValue: (row) =>
-        [row.on_behalf_by, row.submitted_by, row.submitter_email].filter(Boolean).join(' '),
+        [row.on_behalf_by, row.submitted_by, row.submitter_email, row.submitter_role]
+          .filter(Boolean)
+          .join(' '),
     },
     {
       key: 'firm',
@@ -148,15 +158,47 @@ export default function SocialMediaComplianceReports() {
     },
     {
       key: 'assigned_to',
-      label: 'Assigned',
-      render: (row) => row.assigned_to || '—',
-      filterValue: (row) => row.assigned_to || '',
+      label: 'Assigned to',
+      render: (row) => (
+        <CompliancePersonCell
+          name={row.assigned_to}
+          email={row.assigned_to_email}
+          role={row.assigned_to_role}
+        />
+      ),
+      filterValue: (row) =>
+        [row.assigned_to, row.assigned_to_email, row.assigned_to_role].filter(Boolean).join(' '),
+    },
+    {
+      key: 'assigned_by',
+      label: 'Assigned by',
+      render: (row) => (
+        <CompliancePersonCell
+          name={row.assigned_by}
+          email={row.assigned_by_email}
+          role={row.assigned_by_role}
+        />
+      ),
+      filterValue: (row) =>
+        [row.assigned_by, row.assigned_by_email, row.assigned_by_role].filter(Boolean).join(' '),
     },
     {
       key: 'reviewed_by',
       label: 'Reviewed by',
       render: (row) => row.reviewed_by || '—',
       filterValue: (row) => row.reviewed_by || '',
+    },
+    {
+      key: 'audit_trail',
+      label: 'Audit trail',
+      render: (row) => (
+        <ComplianceAuditTrailCell
+          events={row.audit_trail}
+          summary={row.audit_trail_summary}
+        />
+      ),
+      filterValue: (row) => row.audit_trail_summary || '',
+      truncate: false,
     },
     {
       key: 'submitted',
@@ -196,7 +238,9 @@ export default function SocialMediaComplianceReports() {
         <div>
           <p className="eyebrow">Social Media Compliance</p>
           <h1>Reports</h1>
-          <p className="muted">Filterable report, CSV export, and workload charts.</p>
+          <p className="muted">
+            Filterable report with full audit trail, CSV export, and workload charts.
+          </p>
         </div>
         {tab === 'report' && (
           <button className="btn ghost" onClick={exportCsv} disabled={exporting}>

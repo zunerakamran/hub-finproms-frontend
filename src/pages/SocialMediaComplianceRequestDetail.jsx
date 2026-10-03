@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import SmcStatusBadge, { SmcVersionCard } from '../components/SocialMediaComplianceUI'
+import ComplianceAuditTrail from '../components/ComplianceAuditTrail'
 import FileDropzone from '../components/FileDropzone'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import DateTimeText from '../components/DateTimeText'
@@ -21,7 +22,7 @@ export default function SocialMediaComplianceRequestDetail() {
   const { id } = useParams()
   const location = useLocation()
   const { user, isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading, complianceStatusLabel, effectiveAdvisorId } = useHub()
+  const { can, loading: hubLoading, complianceStatusLabel, effectiveAdvisorId, roleLabel } = useHub()
 
   const [row, setRow] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -444,10 +445,26 @@ export default function SocialMediaComplianceRequestDetail() {
       {row.assignee ? (
         <p className="smc-banner">
           Assigned to <strong>{row.assignee.name}</strong>
+          {row.assignee.role ? (
+            <span className="muted"> · {roleLabel(row.assignee.role)}</span>
+          ) : null}
+          {row.assignee.email ? (
+            <span className="muted"> ({row.assignee.email})</span>
+          ) : null}
           {row.assigned_date ? (
             <>
               {' '}
               on <DateTimeText value={row.assigned_date} />
+            </>
+          ) : null}
+          {row.assigner?.name ? (
+            <>
+              <br />
+              <span className="muted">
+                Assigned by <strong>{row.assigner.name}</strong>
+                {row.assigner.role ? ` · ${roleLabel(row.assigner.role)}` : ''}
+                {row.assigner.email ? ` (${row.assigner.email})` : ''}
+              </span>
             </>
           ) : null}
         </p>
@@ -461,6 +478,8 @@ export default function SocialMediaComplianceRequestDetail() {
           )}
         </div>
       )}
+
+      <ComplianceAuditTrail events={row.audit_trail} />
 
       <div className="smc-versions">
         {versions.map((ver) => (

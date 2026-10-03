@@ -18,7 +18,7 @@ import {
 export default function SupportTicketDetail() {
   const { id } = useParams()
   const location = useLocation()
-  const { user, isPowerAdmin } = useAuth()
+  const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, effectiveAdvisorId } = useHub()
 
   const [row, setRow] = useState(null)
@@ -36,8 +36,8 @@ export default function SupportTicketDetail() {
   const moduleOn = can('support_tickets')
   const canChangeStatus = can('st_change_ticket_status')
   const canViewAll = can('st_view_all_tickets') || canChangeStatus
-  const canComment =
-    can('st_comment_on_tickets') || canChangeStatus || can('st_submit_ticket')
+  // Comment form is gated ONLY by st_comment_on_tickets (not submit/status).
+  const canComment = can('st_comment_on_tickets')
   const asPowerAdmin = isPowerAdmin
 
   const backFrom = location.state?.from
@@ -88,12 +88,6 @@ export default function SupportTicketDetail() {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, hubLoading, moduleOn, effectiveAdvisorId])
-
-  const isOwner =
-    row &&
-    user &&
-    (Number(row.user_id) === Number(user.id) ||
-      (effectiveAdvisorId != null && Number(row.user_id) === Number(effectiveAdvisorId)))
 
   const saveStatus = async (event) => {
     event.preventDefault()
@@ -293,7 +287,7 @@ export default function SupportTicketDetail() {
           </form>
         )}
 
-        {canComment && (isOwner || canViewAll || canChangeStatus) && (
+        {canComment && (
           <form className="admin-form card" style={{ padding: '1rem 1.25rem' }} onSubmit={saveComment}>
             <h2 style={{ marginTop: 0 }}>Add comment</h2>
             <div className="admin-field">

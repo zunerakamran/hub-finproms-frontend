@@ -328,8 +328,10 @@ export function ComplianceReportAuditPanel({
   requestLabel = 'Request',
   requestPath = (id) => String(id),
   LinkComponent = null,
+  pageSize = 10,
 }) {
   const { roleLabel, complianceStatusLabel } = useHub()
+  const [page, setPage] = useState(1)
 
   let events = []
   if (Array.isArray(eventsProp) && eventsProp.length > 0) {
@@ -358,6 +360,34 @@ export function ComplianceReportAuditPanel({
     if (aId !== bId) return bId - aId
     return String(b.created_at || '').localeCompare(String(a.created_at || ''))
   })
+
+  const size = Math.max(1, Number(pageSize) || 10)
+  const totalPages = Math.max(1, Math.ceil(events.length / size))
+  const safePage = Math.min(Math.max(1, page), totalPages)
+
+  useEffect(() => {
+    setPage(1)
+  }, [eventsProp, rows, size])
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage)
+  }, [page, safePage])
+
+  const start = (safePage - 1) * size
+  const pageEvents = events.slice(start, start + size)
+  const rangeStart = events.length === 0 ? 0 : start + 1
+  const rangeEnd = Math.min(start + size, events.length)
+
+  const pagerPages = []
+  if (events.length > 0 && totalPages > 1) {
+    const maxVisible = 5
+    let startPage = Math.max(1, safePage - Math.floor(maxVisible / 2))
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1)
+    if (endPage - startPage + 1 < maxVisible) {
+      startPage = Math.max(1, endPage - maxVisible + 1)
+    }
+    for (let i = startPage; i <= endPage; i++) pagerPages.push(i)
+  }
 
   return (
     <div className="compliance-report-audit">
@@ -391,67 +421,105 @@ export function ComplianceReportAuditPanel({
           </p>
         </div>
       ) : (
-        <ol className="compliance-report-audit__list">
-          {events.map((event) => {
-            const path = requestPath(event._requestId)
-            const RequestLink = LinkComponent
-            return (
-              <li
-                key={`${event._requestId}-${event.id || event.created_at}-${event.event_type}`}
-                className="compliance-report-audit__row"
-              >
-                <div className="compliance-report-audit__when">
-                  <DateTimeText value={event.created_at} />
-                </div>
-                <div className="compliance-report-audit__main">
-                  <div className="compliance-report-audit__title-row">
-                    <EventBadge type={event.event_type} />
-                    {event.version_number != null ? (
-                      <span className="compliance-audit-trail__version">v{event.version_number}</span>
-                    ) : null}
-                    {event._requestId != null ? (
-                      <span className="compliance-report-audit__req">
-                        {RequestLink ? (
-                          <RequestLink to={path}>
-                            {requestLabel} #{event._requestId}
-                          </RequestLink>
-                        ) : (
-                          <>
-                            {requestLabel} #{event._requestId}
-                          </>
-                        )}
-                      </span>
-                    ) : null}
+        <>
+          <ol className="compliance-report-audit__list">
+            {pageEvents.map((event) => {
+              const path = requestPath(event._requestId)
+              const RequestLink = LinkComponent
+              return (
+                <li
+                  key={`${event._requestId}-${event.id || event.created_at}-${event.event_type}`}
+                  className="compliance-report-audit__row"
+                >
+                  <div className="compliance-report-audit__when">
+                    <DateTimeText value={event.created_at} />
                   </div>
-                  {event.description ? (
-                    <p className="compliance-audit-trail__desc">{event.description}</p>
-                  ) : null}
-                  <StatusTransition
-                    fromStatus={event.from_status}
-                    toStatus={event.to_status}
-                    complianceStatusLabel={complianceStatusLabel}
-                  />
-                  <div className="compliance-audit-trail__actors">
-                    <div>
-                      <span className="compliance-audit-trail__actor-label">By</span>
-                      <PersonBlock person={event.actor} roleLabel={roleLabel} />
-                    </div>
-                    {event.related_user ? (
-                      <div>
-                        <span className="compliance-audit-trail__actor-label">
-                          {event.event_type === 'assigned' || event.event_type === 'unassigned'
-                            ? 'Assignee'
-                            : 'Related'}
+                  <div className="compliance-report-audit__main">
+                    <div className="compliance-report-audit__title-row">
+                      <EventBadge type={event.event_type} />
+                      {event.version_number != null ? (
+                        <span className="compliance-audit-trail__version">v{event.version_number}</span>
+                      ) : null}
+                      {event._requestId != null ? (
+                        <span className="compliance-report-audit__req">
+                          {RequestLink ? (
+                            <RequestLink to={path}>
+                              {requestLabel} #{event._requestId}
+                            </RequestLink>
+                          ) : (
+                            <>
+                              {requestLabel} #{event._requestId}
+                            </>
+                          )}
                         </span>
-                        <PersonBlock person={event.related_user} roleLabel={roleLabel} />
-                      </div>
+                      ) : null}
+                    </div>
+                    {event.description ? (
+                      <p className="compliance-audit-trail__desc">{event.description}</p>
                     ) : null}
+                    <StatusTransition
+                      fromStatus={event.from_status}
+                      toStatus={event.to_status}
+                      complianceStatusLabel={complianceStatusLabel}
+                    />
+                    <div className="compliance-audit-trail__actors">
+                      <div>
+                        <span className="compliance-audit-trail__actor-label">By</span>
+                        <PersonBlock person={event.actor} roleLabel={roleLabel} />
+                      </div>
+                      {event.related_user ? (
+                        <div>
+                          <span className="compliance-audit-trail__actor-label">
+                            {event.event_type === 'assigned' || event.event_type === 'unassigned'
+                              ? 'Assignee'
+                              : 'Related'}
+                          </span>
+                          <PersonBlock person={event.related_user} roleLabel={roleLabel} />
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              </li>
-            )
-          })}
-        </ol>
+                </li>
+              )
+            })}
+          </ol>
+
+          <div className="data-grid__footer compliance-report-audit__footer">
+            <span className="muted data-grid__count">
+              Showing {rangeStart}–{rangeEnd} of {events.length}
+            </span>
+            {totalPages > 1 ? (
+              <div className="data-grid__pager">
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={safePage <= 1}
+                  onClick={() => setPage(safePage - 1)}
+                >
+                  Previous
+                </button>
+                {pagerPages.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`btn ghost data-grid__page-btn${p === safePage ? ' is-active' : ''}`}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setPage(safePage + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </>
       )}
     </div>
   )

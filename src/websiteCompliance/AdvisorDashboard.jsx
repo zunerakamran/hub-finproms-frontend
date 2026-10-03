@@ -311,11 +311,11 @@ const REQUEST_STATUS_CONFIG = {
     cardClass: 'border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-white',
   },
   deployed: {
-    label: 'Deployed',
-    icon: FaCheckCircle,
-    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    dot: 'bg-emerald-500',
-    cardClass: 'border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-white',
+    label: 'On staging',
+    icon: FaGlobeAmericas,
+    className: 'bg-sky-50 text-sky-700 border-sky-200',
+    dot: 'bg-sky-500',
+    cardClass: 'border-sky-200 bg-gradient-to-br from-sky-50/70 to-white',
   },
   staging: {
     label: 'On staging',

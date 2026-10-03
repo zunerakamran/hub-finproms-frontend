@@ -6,7 +6,7 @@ export const DEFAULT_COMPLIANCE_STATUS_LABELS = {
   approved_with_feedback: 'Approved with Feedback',
   under_review: 'Under review',
   scheduled: 'Scheduled',
-  deployed: 'Deployed',
+  deployed: 'On staging', // legacy status key — display as staging
   staging: 'On staging',
   ready_for_live: 'Go-live requested',
   live: 'Live',

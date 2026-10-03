@@ -1,8 +1,9 @@
 /** Template-request / deployment lifecycle helpers. */
 
 export const DEPLOYMENT_ON_SITE_STATUSES = ['staging', 'ready_for_live', 'live', 'deployed']
-export const DEPLOYMENT_LIVE_STATUSES = ['live', 'deployed']
-export const DEPLOYMENT_STAGING_PHASE_STATUSES = ['staging', 'ready_for_live']
+export const DEPLOYMENT_LIVE_STATUSES = ['live']
+/** Legacy `deployed` rows are treated as staging, not live. */
+export const DEPLOYMENT_STAGING_PHASE_STATUSES = ['staging', 'ready_for_live', 'deployed']
 
 export function isDeploymentOnSite(status) {
   return DEPLOYMENT_ON_SITE_STATUSES.includes(String(status || '').toLowerCase())
@@ -18,7 +19,8 @@ export function isDeploymentStagingPhase(status) {
 
 export function canRequestGoLive(request, currentUserId) {
   if (!request || !currentUserId) return false
-  if (String(request.status || '').toLowerCase() !== 'staging') return false
+  const status = String(request.status || '').toLowerCase()
+  if (status !== 'staging' && status !== 'deployed') return false
   return Number(request.requested_by_id) === Number(currentUserId)
 }
 

@@ -212,6 +212,7 @@ export default function WebsiteComplianceRequestDetail() {
     (a, b) => Number(b.version_number || 0) - Number(a.version_number || 0)
   )
   const editorPath = `/my-dashboard/website-compliance/content-editor`
+  const reviseEditorPath = `${editorPath}?revise=${row.id}`
   const sectionLabel = wcSectionTitle(row) || '—'
   const submittedBy = row.attribution_label
     ? row.attribution_label
@@ -353,8 +354,8 @@ export default function WebsiteComplianceRequestDetail() {
             />
           </h2>
           <p className="muted">
-            Confirm as approved without changes, or open the content editor to revise only the
-            previous version&apos;s sections and publish.
+            Confirm as approved here, or open the editor to revise <strong>only the sections from
+            this request</strong> and publish. You can also start a new request for other sections.
           </p>
           <div className="wc-supporting-files-card" style={{ marginBottom: '1rem' }}>
             <p className="wc-supporting-files-card__title">Supporting files (optional)</p>
@@ -378,8 +379,11 @@ export default function WebsiteComplianceRequestDetail() {
             >
               {saving ? 'Publishing…' : 'Confirm approved'}
             </button>
+            <Link className="btn ghost" to={reviseEditorPath}>
+              Edit previous sections &amp; publish
+            </Link>
             <Link className="btn ghost" to={editorPath}>
-              Edit sections &amp; publish
+              Start new request
             </Link>
           </div>
         </div>
@@ -389,12 +393,15 @@ export default function WebsiteComplianceRequestDetail() {
         <div className="admin-form wc-panel wc-detail-card">
           <h2>Rejected — resubmit</h2>
           <p className="muted">
-            Only sections from the previous version can be edited. Open the content editor to revise
-            those sections and resubmit.
+            Open the content editor to revise <strong>only the sections edited in this request</strong>,
+            then resubmit. Or start a new request for any sections.
           </p>
           <div className="actions">
-            <Link className="btn primary" to={editorPath}>
-              Open content editor to resubmit
+            <Link className="btn primary" to={reviseEditorPath}>
+              Resubmit previous sections
+            </Link>
+            <Link className="btn ghost" to={editorPath}>
+              Start new request
             </Link>
           </div>
         </div>

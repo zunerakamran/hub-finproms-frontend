@@ -1205,7 +1205,7 @@ export default function AdvisorDashboard({
 } = {}) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { can, roleLabel, complianceStatusLabel, effectiveAdvisorId, actingAdvisor } =
     useHub()
   const getConsoleTitle = (r) =>
@@ -1254,7 +1254,8 @@ export default function AdvisorDashboard({
   const [expandedEditors, setExpandedEditors] = useState({})
   const [myChangeRequests, setMyChangeRequests] = useState([])
   const [crActionBusy, setCrActionBusy] = useState(null)
-  // When revising a rejected / approved-with-feedback request, only prior-version sections are editable.
+  // Optional: which returned request the user is acting on (resubmit / confirm).
+  // Does not block creating a brand-new change request.
   const [revisionFocusCrId, setRevisionFocusCrId] = useState(null)
 
   useEffect(() => {
@@ -1880,6 +1881,24 @@ export default function AdvisorDashboard({
     setSelectedDeploymentId(id)
   }, [forcedTab, isPowerAdminPublishMode, searchParams])
 
+  const clearReviseQueryParam = () => {
+    if (!searchParams.get('revise')) return
+    const next = new URLSearchParams(searchParams)
+    next.delete('revise')
+    setSearchParams(next, { replace: true })
+  }
+
+  // Deep-link resubmit / confirm for a returned request (?revise=<changeRequestId>)
+  useEffect(() => {
+    if (isPowerAdminPublishMode) return
+    const raw = searchParams.get('revise')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id) || id <= 0) return
+    setActiveTab('editor')
+    setRevisionFocusCrId(id)
+  }, [isPowerAdminPublishMode, searchParams])
+
   const goToTab = (tabId, opts = {}) => {
     if (forcedTab && WC_TAB_ROUTES[tabId] && tabId !== forcedTab) {
       const params = new URLSearchParams()
@@ -2144,15 +2163,13 @@ export default function AdvisorDashboard({
       return
     }
 
-    if (revisionModeActive) {
-      if (revisionNeedsFocus) {
-        setError('Select which change request to revise first. Only sections from that previous version are editable.')
-        return
-      }
-      if (revisionAllowedIdSet && !revisionAllowedIdSet.has(Number(section.id))) {
-        setError('Only sections from the previous version of this change request can be edited. New sections are not allowed.')
-        return
-      }
+    if (focusedRevisionSectionIdSet && !focusedRevisionSectionIdSet.has(Number(section.id))) {
+      setError(
+        focusedRevisionCr
+          ? `While resubmitting request #${focusedRevisionCr.id}, only sections from that previous version can be edited.`
+          : 'Only sections from the previous version of this request can be edited.'
+      )
+      return
     }
 
     if (!isPowerAdminPublishMode && section.is_locked && !isSectionLockedByMe(section)) {
@@ -2463,18 +2480,9 @@ export default function AdvisorDashboard({
     const outside = checkedSectionIds.filter((id) => !allowed.has(Number(id)))
     if (outside.length === 0) return true
     setError(
-      `Only sections from the previous version of request #${cr.id} can be edited. New sections are not allowed.`
+      `To resubmit/confirm request #${cr.id}, select only its previous sections (${[...allowed].join(', ')}). To edit other sections, use Submit All Section Edits to create a new request.`
     )
     return false
-  }
-
-  const findOpenCrForCheckedSections = (statuses) => {
-    const checked = new Set(checkedSectionIds.map(Number))
-    return myChangeRequests.find((cr) => {
-      if (!statuses.includes(cr.status)) return false
-      const ids = getCrEditableSectionIds(cr)
-      return ids.some((id) => checked.has(id))
-    }) || null
   }
 
   const refreshAfterCrAction = async () => {
@@ -2515,6 +2523,7 @@ export default function AdvisorDashboard({
       )
       setMessage('Change request resubmitted for review.')
       setRevisionFocusCrId(null)
+      clearReviseQueryParam()
       setSubmitSupportingFiles([])
       await refreshAfterCrAction()
     } catch (err) {
@@ -2549,6 +2558,7 @@ export default function AdvisorDashboard({
         ? 'Revised content confirmed and published.'
         : 'Approved content confirmed and published.')
       setRevisionFocusCrId(null)
+      clearReviseQueryParam()
       setSubmitSupportingFiles([])
       await refreshAfterCrAction()
     } catch (err) {
@@ -2579,44 +2589,40 @@ export default function AdvisorDashboard({
       if (isPowerAdminPublishMode) {
         await api.post(`/template-requests/${powerAdminDeploymentId}/publish-content`, { section_edits: batchPayload })
         setMessage(`Published ${checkedSectionIds.length} section(s) directly to the site (no approver review).`)
-      } else {
-        const rejectedCr = findOpenCrForCheckedSections(['rejected'])
-        const awfCr = findOpenCrForCheckedSections(['approved_with_feedback'])
-        if (rejectedCr) {
-          if (!assertCheckedWithinCr(rejectedCr)) {
-            setIsSubmitting(false)
-            return
-          }
-          await api.post(
-            `/change-requests/${rejectedCr.id}/resubmit`,
-            buildChangeRequestBody(batchPayload, submitSupportingFiles)
-          )
-          setMessage(`Resubmitted change request #${rejectedCr.id} (v${(rejectedCr.current_version || 1) + 1}) for review.`)
-          setRevisionFocusCrId(null)
-        } else if (awfCr) {
-          if (!assertCheckedWithinCr(awfCr)) {
-            setIsSubmitting(false)
-            return
-          }
-          await api.post(
-            `/change-requests/${awfCr.id}/confirm-feedback`,
-            buildChangeRequestBody(batchPayload, submitSupportingFiles)
-          )
-          setMessage(`Submitted revised edits and published change request #${awfCr.id}.`)
-          setRevisionFocusCrId(null)
-        } else if (actionChangeRequests.length > 0) {
-          setError(
-            'You have change requests needing action. Only sections from those previous versions can be edited until they are resolved.'
-          )
+      } else if (focusedRevisionCr?.status === 'rejected') {
+        if (!assertCheckedWithinCr(focusedRevisionCr)) {
           setIsSubmitting(false)
           return
-        } else {
-          await api.post(
-            '/change-requests',
-            buildChangeRequestBody(batchPayload, submitSupportingFiles)
-          )
-          setMessage(`🎉 Successfully submitted a single request containing edits for ${checkedSectionIds.length} section(s).`)
         }
+        await api.post(
+          `/change-requests/${focusedRevisionCr.id}/resubmit`,
+          buildChangeRequestBody(batchPayload, submitSupportingFiles)
+        )
+        setMessage(
+          `Resubmitted change request #${focusedRevisionCr.id} (v${(focusedRevisionCr.current_version || 1) + 1}) for review.`
+        )
+        setRevisionFocusCrId(null)
+        clearReviseQueryParam()
+      } else if (focusedRevisionCr?.status === 'approved_with_feedback') {
+        if (!assertCheckedWithinCr(focusedRevisionCr)) {
+          setIsSubmitting(false)
+          return
+        }
+        await api.post(
+          `/change-requests/${focusedRevisionCr.id}/confirm-feedback`,
+          buildChangeRequestBody(batchPayload, submitSupportingFiles)
+        )
+        setMessage(`Submitted revised edits and published change request #${focusedRevisionCr.id}.`)
+        setRevisionFocusCrId(null)
+        clearReviseQueryParam()
+      } else {
+        // No returned request selected — create a brand-new change request.
+        await api.post(
+          '/change-requests',
+          buildChangeRequestBody(batchPayload, submitSupportingFiles)
+        )
+        setMessage(`Successfully submitted a new request with edits for ${checkedSectionIds.length} section(s).`)
+        setRevisionFocusCrId(null)
       }
 
       setSubmitSupportingFiles([])
@@ -2701,61 +2707,51 @@ export default function AdvisorDashboard({
     [myChangeRequests]
   )
 
-  // Auto-focus the only actionable CR; clear focus when it disappears.
+  // Clear focus if the returned request is no longer actionable (after list has loaded).
   useEffect(() => {
     if (isPowerAdminPublishMode) {
       setRevisionFocusCrId(null)
       return
     }
-    if (actionChangeRequests.length === 1) {
-      setRevisionFocusCrId(actionChangeRequests[0].id)
-      return
-    }
-    if (actionChangeRequests.length === 0) {
-      setRevisionFocusCrId(null)
-      return
-    }
-    setRevisionFocusCrId((current) => (
-      current && actionChangeRequests.some((cr) => Number(cr.id) === Number(current))
+    if (myChangeRequests.length === 0) return
+    setRevisionFocusCrId((current) => {
+      if (!current) return null
+      return actionChangeRequests.some((cr) => Number(cr.id) === Number(current))
         ? current
         : null
-    ))
-  }, [actionChangeRequests, isPowerAdminPublishMode])
+    })
+  }, [actionChangeRequests, isPowerAdminPublishMode, myChangeRequests.length])
 
   const focusedRevisionCr = useMemo(
     () => actionChangeRequests.find((cr) => Number(cr.id) === Number(revisionFocusCrId)) || null,
     [actionChangeRequests, revisionFocusCrId]
   )
 
-  const revisionAllowedIdSet = useMemo(() => {
-    if (isPowerAdminPublishMode || actionChangeRequests.length === 0) return null
-    if (actionChangeRequests.length > 1 && !focusedRevisionCr) return new Set()
-    const source = focusedRevisionCr || actionChangeRequests[0]
-    return new Set(getCrEditableSectionIds(source).map(Number))
-  }, [isPowerAdminPublishMode, actionChangeRequests, focusedRevisionCr])
+  const focusedRevisionSectionIdSet = useMemo(() => {
+    if (!focusedRevisionCr) return null
+    return new Set(getCrEditableSectionIds(focusedRevisionCr).map(Number))
+  }, [focusedRevisionCr])
 
-  // Drop checked sections that are no longer allowed in revision mode.
+  // While resubmitting / confirming a returned request, only prior-version sections are editable.
+  const pickerSections = focusedRevisionSectionIdSet
+    ? visibleSections.filter((s) => focusedRevisionSectionIdSet.has(Number(s.id)))
+    : visibleSections
+
   useEffect(() => {
-    if (!revisionAllowedIdSet) return
+    if (!focusedRevisionSectionIdSet) return
     setCheckedSectionIds((prev) => {
-      const next = prev.filter((id) => revisionAllowedIdSet.has(Number(id)))
+      const next = prev.filter((id) => focusedRevisionSectionIdSet.has(Number(id)))
       return next.length === prev.length ? prev : next
     })
     setSectionEdits((prev) => {
-      const entries = Object.entries(prev).filter(([id]) => revisionAllowedIdSet.has(Number(id)))
+      const entries = Object.entries(prev).filter(([id]) => focusedRevisionSectionIdSet.has(Number(id)))
       if (entries.length === Object.keys(prev).length) return prev
       return Object.fromEntries(entries)
     })
-  }, [revisionAllowedIdSet])
-
-  const pickerSections = revisionAllowedIdSet
-    ? visibleSections.filter((s) => revisionAllowedIdSet.has(Number(s.id)))
-    : visibleSections
-
-  const revisionModeActive = !isPowerAdminPublishMode && actionChangeRequests.length > 0
-  const revisionNeedsFocus = revisionModeActive && actionChangeRequests.length > 1 && !focusedRevisionCr
+  }, [focusedRevisionSectionIdSet])
 
   const crStatusLabel = (status) => complianceStatusLabel(status)
+  const isResubmitMode = Boolean(focusedRevisionCr)
 
   const tabs = isPowerAdminPublishMode
     ? [{ id: 'editor', label: 'Content Editor', icon: FaEdit, count: checkedSectionIds.length }]
@@ -3189,13 +3185,15 @@ export default function AdvisorDashboard({
               <div className="mb-5 space-y-3">
                 <div className="flex items-center gap-2">
                   <FaExclamationTriangle className="w-4 h-4 text-amber-500" />
-                  <h3 className="text-sm font-extrabold text-[var(--brand-dark)]">My change requests needing action</h3>
+                  <h3 className="text-sm font-extrabold text-[var(--brand-dark)]">Returned requests (optional)</h3>
                 </div>
                 <p className="text-xs text-slate-600">
-                  While revising a previous version, only the sections from that version are shown and editable. New sections cannot be added until these requests are resolved.
+                  To resubmit or confirm a returned request, choose it below — only the sections
+                  edited in that request will be available. Clear selection to submit a new request for any sections.
                 </p>
                 {actionChangeRequests.map((cr) => {
                   const isFocused = Number(revisionFocusCrId) === Number(cr.id)
+                  const showFiles = isFocused || actionChangeRequests.length === 1
                   return (
                   <div
                     key={cr.id}
@@ -3215,7 +3213,7 @@ export default function AdvisorDashboard({
                           <span className="ml-2 text-xs font-bold text-slate-600">· {crStatusLabel(cr.status)}</span>
                           {isFocused && (
                             <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand)] text-white">
-                              Editing these sections
+                              Resubmit mode — previous sections only
                             </span>
                           )}
                         </p>
@@ -3236,8 +3234,8 @@ export default function AdvisorDashboard({
                         )}
                         <p className="text-[11px] text-slate-500 mt-1">
                           {isFocused
-                            ? 'Only the sections listed above appear in the editor. Select them below, then use the actions here.'
-                            : 'Click “Edit these sections” to revise this previous version.'}
+                            ? 'Only the sections listed above can be edited until you clear selection or finish this request.'
+                            : 'Choose this request to edit only its previous sections and resubmit / confirm.'}
                           {' '}
                           <Link
                             to={`/my-dashboard/website-compliance/my-requests/${cr.id}`}
@@ -3248,17 +3246,21 @@ export default function AdvisorDashboard({
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2 shrink-0">
-                        {actionChangeRequests.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => setRevisionFocusCrId(cr.id)}
-                            disabled={isFocused}
-                            className="inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg hover:border-[var(--brand)]/40 disabled:opacity-60"
-                          >
-                            <FaEdit className="w-3 h-3" />
-                            {isFocused ? 'Selected' : 'Edit these sections'}
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isFocused) {
+                              setRevisionFocusCrId(null)
+                              clearReviseQueryParam()
+                            } else {
+                              setRevisionFocusCrId(cr.id)
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg hover:border-[var(--brand)]/40"
+                        >
+                          <FaEdit className="w-3 h-3" />
+                          {isFocused ? 'Clear — allow new request' : 'Resubmit / confirm these sections'}
+                        </button>
                         {cr.status === 'rejected' && (
                           <button
                             type="button"
@@ -3303,7 +3305,7 @@ export default function AdvisorDashboard({
                         )}
                       </div>
                     </div>
-                    {(cr.status === 'rejected' || cr.status === 'approved_with_feedback') && isFocused ? (
+                    {(cr.status === 'rejected' || cr.status === 'approved_with_feedback') && showFiles ? (
                       <div className="wc-supporting-files-card mt-3">
                         <p className="wc-supporting-files-card__title">Supporting files (optional)</p>
                         <p className="wc-supporting-files-card__hint">
@@ -3399,11 +3401,9 @@ export default function AdvisorDashboard({
                   description={
                     isPowerAdminPublishMode
                       ? 'Check sections to edit them. Changes publish directly to this staging or live site when you click Publish.'
-                      : revisionModeActive
-                        ? (focusedRevisionCr
-                          ? `Revising request #${focusedRevisionCr.id} (v${focusedRevisionCr.current_version || 1}). Only sections from that previous version are shown.`
-                          : 'Select which change request to revise above. Only sections from that previous version will be shown.')
-                        : 'Check sections to lock them for editing. Locked sections appear in the editor below.'
+                      : isResubmitMode
+                        ? `Resubmitting request #${focusedRevisionCr.id} (v${focusedRevisionCr.current_version || 1}). Only sections from that previous version are shown.`
+                        : 'Check sections to lock them for editing. Locked sections appear in the editor below. Submit creates a new request.'
                   }
                   defaultOpen={checkedSectionIds.length === 0}
                   badge={
@@ -3415,13 +3415,11 @@ export default function AdvisorDashboard({
                     ) : null
                   }
                 >
-                  {revisionNeedsFocus ? (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                      You have multiple change requests needing action. Click <strong>Edit these sections</strong> on a request above to continue. New sections stay hidden until that previous version is resolved.
-                    </div>
-                  ) : pickerSections.length === 0 && revisionModeActive ? (
+                  {pickerSections.length === 0 ? (
                     <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                      No matching sections from the previous version were found on this page. Switch page or confirm the request without edits if content is already correct.
+                      {isResubmitMode
+                        ? 'No matching sections from the previous version were found on this page. Switch page, or clear selection to submit a new request.'
+                        : 'No editable sections were found on this page.'}
                     </div>
                   ) : (
                   <div className="grid sm:grid-cols-2 gap-3">
@@ -3432,6 +3430,7 @@ export default function AdvisorDashboard({
                         (section.is_locked && !section.locked_by) || isSectionLockedByOther(section)
                       )
                       const SecIcon = sectionIcon(sectionTemplateKey(section))
+                      const inFocusedReturnedRequest = focusedRevisionSectionIdSet?.has(Number(section.id))
 
                       return (
                         <label
@@ -3463,7 +3462,7 @@ export default function AdvisorDashboard({
                                 {section.is_visible === false && (
                                   <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-2 py-0.5 rounded-full">Hidden</span>
                                 )}
-                                {revisionModeActive && (
+                                {inFocusedReturnedRequest && (
                                   <span className="text-[10px] bg-violet-100 text-violet-800 font-bold px-2 py-0.5 rounded-full">
                                     Previous version
                                   </span>
@@ -5242,8 +5241,14 @@ export default function AdvisorDashboard({
                           >
                             <FaPaperPlane className="w-4 h-4" />
                             {isSubmitting
-                              ? 'Submitting...'
-                              : 'Submit All Section Edits'}
+                              ? (isResubmitMode
+                                ? (focusedRevisionCr?.status === 'approved_with_feedback' ? 'Publishing…' : 'Resubmitting…')
+                                : 'Submitting...')
+                              : (isResubmitMode
+                                ? (focusedRevisionCr?.status === 'approved_with_feedback'
+                                  ? 'Update & publish this request'
+                                  : `Resubmit request #${focusedRevisionCr.id}`)
+                                : 'Submit All Section Edits')}
                           </button>
                         </div>
                       </div>

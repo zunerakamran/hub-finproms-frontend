@@ -875,6 +875,38 @@ export const api = {
       method: 'DELETE',
     }),
 
+  // —— Support Tickets ——
+  supportTicketsOptions: () => request('/support-tickets/options'),
+  supportTicketsMine: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/support-tickets/mine${query ? `?${query}` : ''}`)
+  },
+  supportTicketsShow: (id) => request(`/support-tickets/${id}`),
+  supportTicketsSubmit: (formData) =>
+    request('/support-tickets', { method: 'POST', body: formData }),
+  supportTicketsComment: (id, formData) =>
+    request(`/support-tickets/${id}/comments`, { method: 'POST', body: formData }),
+  supportTicketsAdminList: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/support-tickets${query ? `?${query}` : ''}`)
+  },
+  supportTicketsAdminShow: (id, options = {}) =>
+    request(`${adminBase(options)}/support-tickets/${id}`),
+  supportTicketsChangeStatus: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/support-tickets/${id}/change-status`, {
+      method: 'POST',
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
+    }),
+  supportTicketsAdminComment: (id, formData, options = {}) =>
+    request(`${adminBase(options)}/support-tickets/${id}/comments`, {
+      method: 'POST',
+      body: formData,
+    }),
+
   // —— Website Template Library / Content Pre Approval ——
   websiteComplianceTemplates: (params = {}) => {
     const query = new URLSearchParams(

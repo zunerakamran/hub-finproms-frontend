@@ -53,6 +53,14 @@ const GC_NAV_ANY = [
   'gc_manage_content_types',
 ]
 
+const ST_NAV_ANY = [
+  'st_view_own_tickets',
+  'st_submit_ticket',
+  'st_view_all_tickets',
+  'st_change_ticket_status',
+  'st_comment_on_tickets',
+]
+
 const WTL_NAV_ANY = [
   'wc_request_deployments',
   'wc_assign_website_templates',
@@ -552,6 +560,38 @@ export const DASHBOARD_LINKS = [
     description: 'Generic content pre-approval reports, CSV export, and charts.',
     capability: 'gc_view_reports',
     group: 'gc',
+  },
+
+  // —— Support Tickets ——
+  {
+    kind: 'section',
+    label: 'Support Tickets',
+    anyOf: ST_NAV_ANY,
+  },
+  {
+    to: '/my-dashboard/support-tickets',
+    label: 'My tickets',
+    title: 'My tickets',
+    description: 'View issues you reported and track their status.',
+    anyOf: ['st_view_own_tickets', 'st_submit_ticket'],
+    end: true,
+    group: 'st',
+  },
+  {
+    to: '/my-dashboard/support-tickets/new',
+    label: 'New ticket',
+    title: 'New ticket',
+    description: 'Report a system error with module, description, and screenshots.',
+    capability: 'st_submit_ticket',
+    group: 'st',
+  },
+  {
+    to: '/my-dashboard/support-tickets/queue',
+    label: 'All tickets',
+    title: 'All tickets',
+    description: 'Developer inbox — review tickets and change their status.',
+    anyOf: ['st_view_all_tickets', 'st_change_ticket_status'],
+    group: 'st',
   },
 
   // —— Website Template Library ——

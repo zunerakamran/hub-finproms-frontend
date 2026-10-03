@@ -50,6 +50,10 @@ import GeneralComplianceReports from './pages/GeneralComplianceReports'
 import GeneralComplianceRequestDetail from './pages/GeneralComplianceRequestDetail'
 import GeneralComplianceSubmit from './pages/GeneralComplianceSubmit'
 import AdminGcContentTypes from './pages/AdminGcContentTypes'
+import SupportTicketsMyTickets from './pages/SupportTicketsMyTickets'
+import SupportTicketSubmit from './pages/SupportTicketSubmit'
+import SupportTicketsQueue from './pages/SupportTicketsQueue'
+import SupportTicketDetail from './pages/SupportTicketDetail'
 import WebsiteComplianceDeployments from './pages/WebsiteComplianceDeployments'
 import WebsiteComplianceHome from './pages/WebsiteComplianceHome'
 import WebsiteCompliancePublish from './pages/WebsiteCompliancePublish'
@@ -501,6 +505,46 @@ export default function App() {
                       ]}
                     >
                       <GeneralComplianceRequestDetail />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="support-tickets"
+                  element={
+                    <HubCapabilityRoute anyOf={['st_view_own_tickets', 'st_submit_ticket']}>
+                      <SupportTicketsMyTickets />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="support-tickets/new"
+                  element={
+                    <HubCapabilityRoute capability="st_submit_ticket">
+                      <SupportTicketSubmit />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="support-tickets/queue"
+                  element={
+                    <HubCapabilityRoute anyOf={['st_view_all_tickets', 'st_change_ticket_status']}>
+                      <SupportTicketsQueue />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="support-tickets/:id"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'st_view_own_tickets',
+                        'st_submit_ticket',
+                        'st_view_all_tickets',
+                        'st_change_ticket_status',
+                        'st_comment_on_tickets',
+                      ]}
+                    >
+                      <SupportTicketDetail />
                     </HubCapabilityRoute>
                   }
                 />

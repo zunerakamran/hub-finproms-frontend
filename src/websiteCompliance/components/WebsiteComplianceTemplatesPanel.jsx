@@ -31,6 +31,7 @@ import { ColorSchemesEditor, normalizeColorSchemes } from './ColorSchemeFields'
 import {
   AvailablePagesEditor,
   normalizeAvailablePages,
+  TemplateRequestDetailsView,
 } from './TemplateRequestContentFields'
 import {
   AssignAdvisorModal,
@@ -194,6 +195,8 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
   const [appliedStatus, setAppliedStatus] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [assignTarget, setAssignTarget] = useState(null)
+  const [detailsRequest, setDetailsRequest] = useState(null)
+  const [showDeployRequestDetails, setShowDeployRequestDetails] = useState(true)
 
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState(null)
@@ -484,7 +487,9 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
 
   const openDeployModal = (req) => {
     setBrandingOnlyRequest(null)
+    setDetailsRequest(null)
     setSelectedRequest(req)
+    setShowDeployRequestDetails(true)
     setCpanelDomain(resolveAdvisorSiteUrl(req))
     setCpanelDbHost(req.cpanel_db_host || 'localhost')
     setCpanelDbName(req.cpanel_db_name || '')
@@ -918,6 +923,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
               const showAssignAdvisor = canAssignAdvisor && !advisorOwned
               const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
               const hasAction =
+                canViewDeployments ||
                 showAssignAdvisor ||
                 (isDeployed && canPublishLive) ||
                 (isDeployed && canManageSections) ||
@@ -926,6 +932,16 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
               const compactBtn = { padding: '0.35rem 0.7rem', fontSize: '0.75rem', minHeight: 0 }
               return (
                 <span className="data-grid__actions-inner" style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
+                  {canViewDeployments ? (
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      style={compactBtn}
+                      onClick={() => setDetailsRequest(row)}
+                    >
+                      Details
+                    </button>
+                  ) : null}
                   {showAssignAdvisor ? (
                     <button
                       type="button"
@@ -1127,14 +1143,72 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
         </ModalShell>
       )}
 
+      {detailsRequest && (
+        <ModalShell
+          title="Deployment request details"
+          subtitle={`${detailsRequest.domain_name || 'Unnamed'} · ${requestRequesterName(detailsRequest)}`}
+          onClose={() => setDetailsRequest(null)}
+          maxWidth="max-w-3xl"
+        >
+          <TemplateRequestDetailsView request={detailsRequest} />
+          <div className="pt-4 mt-2 flex items-center justify-end gap-3 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => setDetailsRequest(null)}
+              className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+            >
+              Close
+            </button>
+            {canDeployWebsites ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const req = detailsRequest
+                  setDetailsRequest(null)
+                  openDeployModal(req)
+                }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-md"
+              >
+                <FaGlobe className="w-3.5 h-3.5" aria-hidden="true" />
+                {detailsRequest.status === 'deployed' ? 'Update deployment' : 'Deploy'}
+              </button>
+            ) : null}
+          </div>
+        </ModalShell>
+      )}
+
       {selectedRequest && (
         <ModalShell
           title={selectedRequest.status === 'deployed' ? 'Update deployment' : 'Deploy to cPanel'}
           subtitle={requestRequesterName(selectedRequest)}
           onClose={() => setSelectedRequest(null)}
-          maxWidth="max-w-2xl"
+          maxWidth="max-w-3xl"
         >
           <form onSubmit={handleDeploySubmit} className="space-y-5">
+            <div className="rounded-2xl border border-gray-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowDeployRequestDetails((v) => !v)}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100/80 transition text-left"
+              >
+                <span>
+                  <span className="block text-sm font-extrabold text-[var(--brand-dark)]">
+                    Requestor-submitted details
+                  </span>
+                  <span className="block text-[11px] text-gray-500 mt-0.5">
+                    Policies, contact, services, pages, and branding from the original request.
+                  </span>
+                </span>
+                <span className="text-xs font-bold text-[var(--brand-dark)] shrink-0">
+                  {showDeployRequestDetails ? 'Hide' : 'Show'}
+                </span>
+              </button>
+              {showDeployRequestDetails ? (
+                <div className="p-4 border-t border-gray-100 max-h-[40vh] overflow-y-auto">
+                  <TemplateRequestDetailsView request={selectedRequest} />
+                </div>
+              ) : null}
+            </div>
             {brandingFields}
             <div>
               <label className={fieldLabelClass} htmlFor="wc-deploy-domain">

@@ -15,6 +15,7 @@ import {
   FaPalette,
   FaLayerGroup,
   FaBriefcase,
+  FaEye,
 } from 'react-icons/fa'
 import api from '../wcApi'
 import { useHub } from '../../context/HubContext'
@@ -28,6 +29,7 @@ import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
 import { ColorSchemePicker, templateColorSchemes } from './ColorSchemeFields'
 import {
   TemplateRequestContentFields,
+  TemplateRequestDetailsView,
   buildRequestContentPayload,
   emptyContactDetails,
   emptyRequestContentState,
@@ -947,6 +949,7 @@ export default function DeploymentRequestPanel() {
   const [error, setError] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [assignTarget, setAssignTarget] = useState(null)
+  const [detailsRequest, setDetailsRequest] = useState(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [appliedStatus, setAppliedStatus] = useState('')
 
@@ -1171,14 +1174,23 @@ export default function DeploymentRequestPanel() {
           const advisorOwned = isRequestedByAdvisor(row)
           const showAssignAdvisor = canAssignAdvisor && !advisorOwned
           const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
-          if (!showAssignAdvisor) return <span className="muted">—</span>
           return (
-            <DataGridIconBtn
-              icon={FaUserCheck}
-              label={assignedAdvisor ? 'Reassign advisor' : 'Assign advisor'}
-              variant="primary"
-              onClick={() => setAssignTarget(row)}
-            />
+            <span className="inline-flex items-center gap-1.5">
+              <DataGridIconBtn
+                icon={FaEye}
+                label="View request details"
+                variant="ghost"
+                onClick={() => setDetailsRequest(row)}
+              />
+              {showAssignAdvisor ? (
+                <DataGridIconBtn
+                  icon={FaUserCheck}
+                  label={assignedAdvisor ? 'Reassign advisor' : 'Assign advisor'}
+                  variant="primary"
+                  onClick={() => setAssignTarget(row)}
+                />
+              ) : null}
+            </span>
           )
         }}
       />
@@ -1190,6 +1202,26 @@ export default function DeploymentRequestPanel() {
           onClose={() => setShowCreateModal(false)}
           onCreated={handleCreated}
         />
+      )}
+
+      {detailsRequest && (
+        <ModalShell
+          title="Deployment request details"
+          subtitle={detailsRequest.domain_name || 'Unnamed deployment'}
+          onClose={() => setDetailsRequest(null)}
+          maxWidth="max-w-3xl"
+        >
+          <TemplateRequestDetailsView request={detailsRequest} />
+          <div className="pt-4 mt-2 flex justify-end border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => setDetailsRequest(null)}
+              className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+            >
+              Close
+            </button>
+          </div>
+        </ModalShell>
       )}
 
       {assignTarget && canAssignAdvisor && !isRequestedByAdvisor(assignTarget) && (

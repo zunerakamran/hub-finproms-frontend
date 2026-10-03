@@ -7,6 +7,8 @@ import {
   FaPlus,
   FaTrash,
   FaFileContract,
+  FaGlobe,
+  FaPalette,
 } from 'react-icons/fa'
 import FileDropzone from '../../components/FileDropzone'
 import { websiteComplianceAssetUrl } from '../../api/client'
@@ -743,6 +745,221 @@ export function TemplateRequestContentFields({
           </div>
         )}
       </SectionCard>
+    </div>
+  )
+}
+
+function DetailBlock({ icon: Icon, title, children, empty }) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+      <div className="flex items-center gap-2.5 px-4 py-3 bg-slate-50 border-b border-gray-100">
+        {Icon ? (
+          <div className="w-8 h-8 rounded-lg bg-[color-mix(in_srgb,var(--brand)_12%,white)] text-[var(--brand-dark)] flex items-center justify-center shrink-0">
+            <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+          </div>
+        ) : null}
+        <p className="text-sm font-extrabold text-[var(--brand-dark)]">{title}</p>
+      </div>
+      <div className="p-4">
+        {empty ? (
+          <p className="text-[11px] text-gray-400 italic">Not provided</p>
+        ) : (
+          children
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DetailRow({ label, value, mono = false }) {
+  const display = value == null || value === '' ? null : value
+  return (
+    <div className="flex items-start justify-between gap-4 py-2 border-b border-gray-50 last:border-0">
+      <span className="text-xs font-semibold text-gray-500 shrink-0">{label}</span>
+      <span
+        className={`text-sm font-semibold text-[var(--brand-dark)] text-right break-words min-w-0 ${
+          mono ? 'font-mono text-xs' : ''
+        }`}
+      >
+        {display || <span className="text-gray-400 font-normal italic">—</span>}
+      </span>
+    </div>
+  )
+}
+
+/**
+ * Read-only view of requestor-filled deployment details for Power Admin / reviewers.
+ */
+export function TemplateRequestDetailsView({ request }) {
+  if (!request) return null
+
+  const services = Array.isArray(request.services) ? request.services : []
+  const images = Array.isArray(request.images) ? request.images : []
+  const policies = Array.isArray(request.policies) ? request.policies : []
+  const selectedPages = Array.isArray(request.selected_pages) ? request.selected_pages : []
+  const pageContents =
+    request.page_contents && typeof request.page_contents === 'object' ? request.page_contents : {}
+  const contact =
+    request.contact_details && typeof request.contact_details === 'object'
+      ? request.contact_details
+      : {}
+  const hasContact = ['phone', 'email', 'address', 'website'].some((k) => String(contact[k] || '').trim())
+  const requester =
+    request.requested_by || request.requestedBy || request.advisor || null
+  const assignedAdvisor = request.assigned_advisor || request.assignedAdvisor || null
+  const logoSrc = request.logo_url ? websiteComplianceAssetUrl(request.logo_url) : ''
+  const whiteLogoSrc = request.white_logo_url ? websiteComplianceAssetUrl(request.white_logo_url) : ''
+  const faviconSrc = request.favicon_url ? websiteComplianceAssetUrl(request.favicon_url) : ''
+
+  return (
+    <div className="space-y-4">
+      <DetailBlock icon={FaGlobe} title="Request summary">
+        <DetailRow label="Template" value={request.template_name} />
+        <DetailRow label="Domain" value={request.domain_name} mono />
+        <DetailRow label="Status" value={request.status} />
+        <DetailRow label="Requested by" value={requester?.name || requester?.email} />
+        <DetailRow
+          label="Content advisor"
+          value={
+            assignedAdvisor
+              ? `${assignedAdvisor.name || ''}${assignedAdvisor.email ? ` (${assignedAdvisor.email})` : ''}`.trim()
+              : null
+          }
+        />
+      </DetailBlock>
+
+      <DetailBlock icon={FaPalette} title="Branding">
+        <div className="flex flex-wrap gap-3 mb-3">
+          {[
+            { label: 'Logo', src: logoSrc },
+            { label: 'White logo', src: whiteLogoSrc, dark: true },
+            { label: 'Favicon', src: faviconSrc },
+          ].map(({ label, src, dark }) => (
+            <div key={label} className="text-center">
+              <div
+                className={`w-14 h-14 rounded-xl border overflow-hidden flex items-center justify-center ${
+                  dark ? 'border-gray-700 bg-slate-900' : 'border-gray-200 bg-gray-50'
+                }`}
+              >
+                {src ? (
+                  <img src={src} alt="" className="w-full h-full object-contain p-1" />
+                ) : (
+                  <FaImage className={`w-4 h-4 ${dark ? 'text-gray-500' : 'text-gray-300'}`} aria-hidden="true" />
+                )}
+              </div>
+              <p className="text-[10px] font-semibold text-gray-500 mt-1">{label}</p>
+            </div>
+          ))}
+        </div>
+        <DetailRow label="Primary colour" value={request.primary_color} mono />
+        <DetailRow label="Secondary colour" value={request.secondary_color} mono />
+        {(request.primary_color || request.secondary_color) && (
+          <div
+            className="mt-2 h-2.5 rounded-full overflow-hidden flex ring-1 ring-black/5"
+            aria-hidden="true"
+          >
+            <span className="flex-[2]" style={{ backgroundColor: request.primary_color || '#0B1B3D' }} />
+            <span className="flex-1" style={{ backgroundColor: request.secondary_color || '#C8102E' }} />
+          </div>
+        )}
+      </DetailBlock>
+
+      <DetailBlock icon={FaBriefcase} title="Services" empty={services.length === 0}>
+        <div className="space-y-3">
+          {services.map((service, index) => (
+            <div
+              key={`svc-view-${index}`}
+              className="rounded-xl border border-gray-100 bg-slate-50/50 px-3.5 py-3"
+            >
+              <p className="text-sm font-bold text-[var(--brand-dark)]">
+                {service.name || `Service ${index + 1}`}
+              </p>
+              {service.description ? (
+                <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap leading-relaxed">
+                  {service.description}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </DetailBlock>
+
+      <DetailBlock icon={FaImage} title="Images" empty={images.length === 0}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {images.map((image, index) => {
+            const src = image.url ? websiteComplianceAssetUrl(image.url) : ''
+            return (
+              <div
+                key={`img-view-${index}`}
+                className="rounded-xl border border-gray-100 overflow-hidden bg-slate-50"
+              >
+                <div className="aspect-video flex items-center justify-center bg-white">
+                  {src ? (
+                    <img src={src} alt={image.label || ''} className="w-full h-full object-cover" />
+                  ) : (
+                    <FaImage className="w-5 h-5 text-gray-300" aria-hidden="true" />
+                  )}
+                </div>
+                {image.label ? (
+                  <p className="px-2 py-1.5 text-[11px] font-semibold text-gray-600 truncate">
+                    {image.label}
+                  </p>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+      </DetailBlock>
+
+      <DetailBlock icon={FaEnvelope} title="Contact details" empty={!hasContact}>
+        <DetailRow label="Phone" value={contact.phone} />
+        <DetailRow label="Email" value={contact.email} />
+        <DetailRow label="Address" value={contact.address} />
+        <DetailRow label="Website" value={contact.website} mono />
+      </DetailBlock>
+
+      <DetailBlock icon={FaFileContract} title="Policies" empty={policies.length === 0}>
+        <div className="space-y-3">
+          {policies.map((policy, index) => (
+            <div
+              key={`pol-view-${index}`}
+              className="rounded-xl border border-gray-100 bg-slate-50/50 px-3.5 py-3"
+            >
+              <p className="text-sm font-bold text-[var(--brand-dark)]">
+                {policy.name || `Policy ${index + 1}`}
+              </p>
+              {policy.content ? (
+                <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                  {policy.content}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </DetailBlock>
+
+      <DetailBlock icon={FaFileAlt} title="Pages & content" empty={selectedPages.length === 0}>
+        <div className="space-y-3">
+          {selectedPages.map((slug) => {
+            const content = String(pageContents[slug] || '').trim()
+            return (
+              <div
+                key={`page-view-${slug}`}
+                className="rounded-xl border border-gray-100 bg-slate-50/50 px-3.5 py-3"
+              >
+                <p className="text-sm font-bold text-[var(--brand-dark)]">{slug}</p>
+                {content ? (
+                  <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                    {content}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-gray-400 italic mt-1">No content provided</p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </DetailBlock>
     </div>
   )
 }

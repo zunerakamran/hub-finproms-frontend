@@ -237,7 +237,9 @@ export default function WebsiteComplianceReports() {
               ) : null}
 
               <ComplianceReportAuditPanel
+                events={report?.audit_events}
                 rows={report?.rows || []}
+                hub={report?.hub}
                 title="Full change-request audit history"
                 requestLabel="Change request"
                 requestPath={(id) => `/my-dashboard/website-compliance/my-requests/${id}`}

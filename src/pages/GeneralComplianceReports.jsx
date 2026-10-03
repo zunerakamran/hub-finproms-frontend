@@ -375,7 +375,9 @@ export default function GeneralComplianceReports() {
           ) : null}
 
           <ComplianceReportAuditPanel
+            events={report?.audit_events}
             rows={report?.rows || []}
+            hub={report?.hub}
             title="Full audit history"
             requestLabel="Request"
             requestPath={(id) => `/my-dashboard/general-compliance/${id}`}

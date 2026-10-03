@@ -174,11 +174,13 @@ export function ComplianceAuditTrailCell({ events = [], summary = '' }) {
 }
 
 /**
- * Full report-level audit history built from report rows' audit_trail arrays.
- * Shown as a dedicated panel so it cannot be hidden by DataGrid column squeeze.
+ * Full report-level audit history.
+ * Prefer API `audit_events` (hub-scoped). Fall back to flattening row.audit_trail.
  */
 export function ComplianceReportAuditPanel({
+  events: eventsProp = null,
   rows = [],
+  hub = null,
   title = 'Full audit history',
   requestLabel = 'Request',
   requestPath = (id) => String(id),
@@ -186,16 +188,23 @@ export function ComplianceReportAuditPanel({
 }) {
   const { roleLabel, complianceStatusLabel } = useHub()
 
-  const events = []
-  for (const row of Array.isArray(rows) ? rows : []) {
-    const trail = Array.isArray(row.audit_trail) ? row.audit_trail : []
-    for (const event of trail) {
-      events.push({
-        ...event,
-        _requestId: row.id,
-        _requestStatus: row.status,
-        _submittedBy: row.submitted_by || row.on_behalf_by,
-      })
+  let events = []
+  if (Array.isArray(eventsProp) && eventsProp.length > 0) {
+    events = eventsProp.map((event) => ({
+      ...event,
+      _requestId: event.subject_id || event._requestId || null,
+    }))
+  } else {
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const trail = Array.isArray(row.audit_trail) ? row.audit_trail : []
+      for (const event of trail) {
+        events.push({
+          ...event,
+          _requestId: row.id,
+          _requestStatus: row.status,
+          _submittedBy: row.submitted_by || row.on_behalf_by,
+        })
+      }
     }
   }
 
@@ -225,14 +234,15 @@ export function ComplianceReportAuditPanel({
       {events.length === 0 ? (
         <div className="compliance-report-audit__empty">
           <p className="muted">
-            No audit events yet. New submit / assign / review actions will appear here automatically.
+            No audit events for{hub?.name ? ` “${hub.name}”` : ' this hub'} yet.
           </p>
           <p className="muted" style={{ marginTop: '0.5rem' }}>
-            To restore history for older requests, run on the backend:
-            <br />
-            <code>php artisan migrate</code>
-            {' '}then{' '}
-            <code>php artisan compliance:backfill-audit-trail</code>
+            If you ran <code>compliance:backfill-audit-trail</code> and still see this on
+            Central Hub, switch / act on the <strong>content hub</strong> where the compliance
+            requests were submitted — events are stored per hub.
+          </p>
+          <p className="muted" style={{ marginTop: '0.5rem' }}>
+            New submit / assign / review actions on this hub will appear here automatically.
           </p>
         </div>
       ) : (

@@ -36,6 +36,17 @@ export default function ActingHubSwitcher() {
     setError('')
     try {
       await setActingHub(next, { asPowerAdmin: isPowerAdmin })
+      // Full reload after hub switch so dashboard data matches the new hub.
+      // Also drop trailing numeric detail ids (/support-tickets/42 → /support-tickets)
+      // so we never keep another hub's resource open.
+      const path = (window.location.pathname || '/my-dashboard').replace(/\/$/, '') || '/my-dashboard'
+      const safePath = path.replace(/\/\d+$/, '') || '/my-dashboard'
+      const target = safePath.startsWith('/my-dashboard') ? safePath : '/my-dashboard'
+      if (target === path) {
+        window.location.reload()
+      } else {
+        window.location.assign(target)
+      }
     } catch (err) {
       setError(err.message || 'Could not switch hub')
     }

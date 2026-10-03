@@ -3,20 +3,26 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import {
   FaCheckCircle,
+  FaCog,
   FaEdit,
+  FaEye,
   FaEyeSlash,
   FaFileAlt,
   FaGlobe,
   FaImage,
+  FaLayerGroup,
   FaPalette,
+  FaPen,
   FaPlus,
+  FaRocket,
   FaSearch,
   FaSync,
   FaTimes,
   FaTrash,
+  FaUserCheck,
 } from 'react-icons/fa'
 import { useHub } from '../../context/HubContext'
-import DataGrid, { DataGridDate } from '../../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
 import FileDropzone from '../../components/FileDropzone'
 import RequiredMark from '../../components/RequiredMark'
 import RichTextEditor from '../../components/RichTextEditor'
@@ -575,7 +581,6 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
         cpanel_db_user: cpanelDbUser,
         cpanel_db_pass: cpanelDbPass,
         cpanel_api_key: cpanelApiKey,
-        ...brandingPayload(),
       })
       setMessage(
         res.data?.message ||
@@ -606,7 +611,6 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
         cpanel_db_user: cpanelDbUser,
         cpanel_db_pass: cpanelDbPass,
         cpanel_api_key: cpanelApiKey,
-        ...brandingPayload(),
       })
       setMessage(res.data?.message || `Go-live request deployed to ${cpanelDomain}.`)
       setPromoteRequest(null)
@@ -1011,7 +1015,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
             pageSize={10}
             emptyMessage="No deployment requests."
             actionsLabel="Actions"
-            actionsMinWidth="16rem"
+            actionsMinWidth="11rem"
             actions={(row) => {
               const onSite = isDeploymentOnSite(row.status)
               const isLive = isDeploymentLive(row.status)
@@ -1027,77 +1031,66 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                 (onSite && canManageSections) ||
                 canDeployWebsites
               if (!hasAction) return <span className="muted">—</span>
-              const compactBtn = { padding: '0.35rem 0.7rem', fontSize: '0.75rem', minHeight: 0 }
               return (
-                <span className="data-grid__actions-inner" style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
+                <span className="data-grid__actions-inner">
                   {canViewDeployments ? (
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      style={compactBtn}
+                    <DataGridIconBtn
+                      icon={FaEye}
+                      label="View request details"
                       onClick={() => setDetailsRequest(row)}
-                    >
-                      Details
-                    </button>
+                    />
                   ) : null}
                   {showAssignAdvisor ? (
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      style={compactBtn}
+                    <DataGridIconBtn
+                      icon={FaUserCheck}
+                      label={assignedAdvisor ? 'Reassign advisor' : 'Assign advisor'}
                       onClick={() => setAssignTarget(row)}
-                    >
-                      {assignedAdvisor ? 'Reassign' : 'Assign'}
-                    </button>
+                    />
                   ) : null}
                   {onSite && canPublishLive ? (
-                    <Link
-                      className="btn primary"
-                      style={compactBtn}
+                    <DataGridIconBtn
+                      as={Link}
                       to={`/my-dashboard/website-compliance/publish/${row.id}`}
-                    >
-                      Edit
-                    </Link>
+                      icon={FaPen}
+                      label="Edit & publish content"
+                      variant="primary"
+                    />
                   ) : null}
                   {onSite && canManageSections ? (
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      style={compactBtn}
+                    <DataGridIconBtn
+                      icon={FaLayerGroup}
+                      label="Manage sections"
                       onClick={() => openSectionManageModal(row)}
-                    >
-                      Sections
-                    </button>
+                    />
                   ) : null}
                   {canDeployWebsites && onSite ? (
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      style={compactBtn}
+                    <DataGridIconBtn
+                      icon={FaPalette}
+                      label="Update branding only"
                       onClick={() => openBrandingModal(row)}
-                    >
-                      Branding
-                    </button>
+                    />
                   ) : null}
                   {canDeployWebsites && promoteReady ? (
-                    <button
-                      type="button"
-                      className="btn primary"
-                      style={compactBtn}
+                    <DataGridIconBtn
+                      icon={FaRocket}
+                      label="Deploy go-live request to main URL"
+                      variant="primary"
                       onClick={() => openPromoteModal(row)}
-                    >
-                      Deploy live
-                    </button>
+                    />
                   ) : null}
                   {canDeployWebsites && !promoteReady ? (
-                    <button
-                      type="button"
-                      className="btn primary"
-                      style={compactBtn}
+                    <DataGridIconBtn
+                      icon={isLive || stagingPhase ? FaCog : FaRocket}
+                      label={
+                        isLive
+                          ? 'Update live hosting (URL / cPanel)'
+                          : stagingPhase
+                            ? 'Update staging hosting (URL / cPanel)'
+                            : 'Deploy to staging URL'
+                      }
+                      variant="primary"
                       onClick={() => openDeployModal(row)}
-                    >
-                      {isLive ? 'Update live' : stagingPhase ? 'Update staging' : 'Deploy staging'}
-                    </button>
+                    />
                   ) : null}
                 </span>
               )
@@ -1341,7 +1334,9 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                 </div>
               ) : null}
             </div>
-            {brandingFields}
+            <div className="rounded-xl border border-gray-100 bg-slate-50/80 px-4 py-3 text-[11px] text-gray-600">
+              Hosting only — URL, database, and API key. To change logos or colours, use the branding action.
+            </div>
             <div>
               <label className={fieldLabelClass} htmlFor="wc-deploy-domain">
                 <RequiredMark>
@@ -1425,15 +1420,15 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
               </button>
               <button
                 type="submit"
-                disabled={isDeploying || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
+                disabled={isDeploying}
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
               >
                 {isDeploying
                   ? (isDeploymentLive(selectedRequest.status) ? 'Updating…' : 'Deploying…')
                   : (isDeploymentLive(selectedRequest.status)
-                    ? 'Save & sync live'
+                    ? 'Save hosting'
                     : isDeploymentStagingPhase(selectedRequest.status)
-                      ? 'Save & sync staging'
+                      ? 'Save hosting'
                       : 'Deploy to staging')}
               </button>
             </div>
@@ -1466,7 +1461,9 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                 </p>
               ) : null}
             </div>
-            {brandingFields}
+            <div className="rounded-xl border border-gray-100 bg-slate-50/80 px-4 py-3 text-[11px] text-gray-600">
+              Hosting only — URL, database, and API key. Branding is managed separately.
+            </div>
             <div>
               <label className={fieldLabelClass} htmlFor="wc-promote-domain">
                 <RequiredMark>Live site URL / domain</RequiredMark>
@@ -1516,7 +1513,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
               </button>
               <button
                 type="submit"
-                disabled={isPromoting || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
+                disabled={isPromoting}
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition disabled:opacity-50 shadow-md"
               >
                 {isPromoting ? 'Deploying…' : 'Deploy to live'}
@@ -1528,12 +1525,18 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
 
       {brandingOnlyRequest && (
         <ModalShell
-          title="Update site branding"
-          subtitle={brandingOnlyRequest.domain_name || brandingOnlyRequest.domain || requestRequesterName(brandingOnlyRequest)}
+          title="Update branding"
+          subtitle={
+            (brandingOnlyRequest.domain_name || brandingOnlyRequest.domain || requestRequesterName(brandingOnlyRequest)) +
+            ' · logos & colours only'
+          }
           onClose={() => setBrandingOnlyRequest(null)}
           maxWidth="max-w-2xl"
         >
           <form onSubmit={handleBrandingSubmit} className="space-y-5">
+            <p className="text-xs text-gray-500 -mt-1">
+              Update logos, favicon, and colours. Hosting URL / cPanel settings are managed under Update deployment.
+            </p>
             {brandingFields}
             <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
               <button

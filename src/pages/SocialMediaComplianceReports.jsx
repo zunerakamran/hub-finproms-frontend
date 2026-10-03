@@ -192,10 +192,13 @@ export default function SocialMediaComplianceReports() {
     {
       key: 'audit_trail',
       label: 'Audit trail',
+      fit: true,
       render: (row) => (
         <ComplianceAuditTrailCell
           events={row.audit_trail}
           summary={row.audit_trail_summary}
+          requestLabel="Request"
+          requestId={row.id}
         />
       ),
       filterValue: (row) => row.audit_trail_summary || '',

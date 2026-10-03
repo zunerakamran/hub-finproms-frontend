@@ -1,3 +1,6 @@
+import { useEffect, useId, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { FaTimes } from 'react-icons/fa'
 import DateTimeText from './DateTimeText'
 import ComplianceStatusText from './ComplianceStatusText'
 import { useHub } from '../context/HubContext'
@@ -15,17 +18,121 @@ const EVENT_LABELS = {
   rejected: 'Rejected',
 }
 
+const EVENT_TONES = {
+  submitted: 'submit',
+  assigned: 'assign',
+  unassigned: 'neutral',
+  reviewed: 'review',
+  resubmitted: 'submit',
+  feedback_confirmed: 'review',
+  status_changed: 'change',
+  scheduled: 'schedule',
+  published: 'publish',
+  rejected: 'reject',
+}
+
+function eventLabel(type) {
+  return EVENT_LABELS[type] || type || 'Event'
+}
+
+function eventTone(type) {
+  return EVENT_TONES[type] || 'neutral'
+}
+
 function PersonBlock({ person, roleLabel }) {
   if (!person || (!person.name && !person.email)) return null
   const role = person.role ? roleLabel(person.role) : ''
+  const initial = (person.name || person.email || '?').trim().charAt(0).toUpperCase()
   return (
     <div className="compliance-audit-trail__person">
-      <div>
-        <strong>{person.name || 'Unknown'}</strong>
-        {role ? <span className="muted"> · {role}</span> : null}
+      <span className="compliance-audit-trail__avatar" aria-hidden>
+        {initial}
+      </span>
+      <div className="compliance-audit-trail__person-text">
+        <div>
+          <strong>{person.name || 'Unknown'}</strong>
+          {role ? <span className="muted"> · {role}</span> : null}
+        </div>
+        {person.email ? (
+          <div className="muted compliance-audit-trail__email">{person.email}</div>
+        ) : null}
       </div>
-      {person.email ? <div className="muted compliance-audit-trail__email">{person.email}</div> : null}
     </div>
+  )
+}
+
+function EventBadge({ type }) {
+  return (
+    <span className={`compliance-audit-trail__badge compliance-audit-trail__badge--${eventTone(type)}`}>
+      {eventLabel(type)}
+    </span>
+  )
+}
+
+function StatusTransition({ fromStatus, toStatus, complianceStatusLabel }) {
+  if (!fromStatus && !toStatus) return null
+  return (
+    <p className="compliance-audit-trail__status">
+      {fromStatus ? (
+        <ComplianceStatusText status={fromStatus} label={complianceStatusLabel(fromStatus)} />
+      ) : (
+        <span className="muted">—</span>
+      )}
+      <span className="compliance-audit-trail__arrow" aria-hidden>
+        →
+      </span>
+      {toStatus ? (
+        <ComplianceStatusText status={toStatus} label={complianceStatusLabel(toStatus)} />
+      ) : (
+        <span className="muted">—</span>
+      )}
+    </p>
+  )
+}
+
+function AuditEventItem({ event, roleLabel, complianceStatusLabel }) {
+  return (
+    <li className="compliance-audit-trail__item">
+      <div className="compliance-audit-trail__marker" aria-hidden />
+      <div className="compliance-audit-trail__body">
+        <div className="compliance-audit-trail__top">
+          <EventBadge type={event.event_type} />
+          {event.version_number != null ? (
+            <span className="compliance-audit-trail__version">v{event.version_number}</span>
+          ) : null}
+          <span className="compliance-audit-trail__when">
+            <DateTimeText value={event.created_at} />
+          </span>
+        </div>
+
+        {event.description ? (
+          <p className="compliance-audit-trail__desc">{event.description}</p>
+        ) : null}
+
+        <StatusTransition
+          fromStatus={event.from_status}
+          toStatus={event.to_status}
+          complianceStatusLabel={complianceStatusLabel}
+        />
+
+        <div className="compliance-audit-trail__actors">
+          <div>
+            <span className="compliance-audit-trail__actor-label">By</span>
+            <PersonBlock person={event.actor} roleLabel={roleLabel} />
+          </div>
+          {event.related_user ? (
+            <div>
+              <span className="compliance-audit-trail__actor-label">
+                {event.event_type === 'assigned' || event.event_type === 'unassigned'
+                  ? 'Assignee'
+                  : 'Related'}
+              </span>
+              <PersonBlock person={event.related_user} roleLabel={roleLabel} />
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </li>
   )
 }
 
@@ -68,70 +175,14 @@ export default function ComplianceAuditTrail({
       ) : null}
 
       <ol className="compliance-audit-trail__list">
-        {list.map((event) => {
-          const label = EVENT_LABELS[event.event_type] || event.event_type || 'Event'
-          const hasStatus = Boolean(event.from_status || event.to_status)
-
-          return (
-            <li key={event.id || `${event.event_type}-${event.created_at}`} className="compliance-audit-trail__item">
-              <div className="compliance-audit-trail__marker" aria-hidden />
-              <div className="compliance-audit-trail__body">
-                <div className="compliance-audit-trail__top">
-                  <span className="compliance-audit-trail__event">{label}</span>
-                  {event.version_number != null ? (
-                    <span className="compliance-audit-trail__version">v{event.version_number}</span>
-                  ) : null}
-                  <span className="compliance-audit-trail__when">
-                    <DateTimeText value={event.created_at} />
-                  </span>
-                </div>
-
-                {event.description ? (
-                  <p className="compliance-audit-trail__desc">{event.description}</p>
-                ) : null}
-
-                {hasStatus ? (
-                  <p className="compliance-audit-trail__status">
-                    {event.from_status ? (
-                      <ComplianceStatusText
-                        status={event.from_status}
-                        label={complianceStatusLabel(event.from_status)}
-                      />
-                    ) : (
-                      <span className="muted">—</span>
-                    )}
-                    <span className="muted"> → </span>
-                    {event.to_status ? (
-                      <ComplianceStatusText
-                        status={event.to_status}
-                        label={complianceStatusLabel(event.to_status)}
-                      />
-                    ) : (
-                      <span className="muted">—</span>
-                    )}
-                  </p>
-                ) : null}
-
-                <div className="compliance-audit-trail__actors">
-                  <div>
-                    <span className="compliance-audit-trail__actor-label">By</span>
-                    <PersonBlock person={event.actor} roleLabel={roleLabel} />
-                  </div>
-                  {event.related_user ? (
-                    <div>
-                      <span className="compliance-audit-trail__actor-label">
-                        {event.event_type === 'assigned' || event.event_type === 'unassigned'
-                          ? 'Assignee'
-                          : 'Related'}
-                      </span>
-                      <PersonBlock person={event.related_user} roleLabel={roleLabel} />
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </li>
-          )
-        })}
+        {list.map((event) => (
+          <AuditEventItem
+            key={event.id || `${event.event_type}-${event.created_at}`}
+            event={event}
+            roleLabel={roleLabel}
+            complianceStatusLabel={complianceStatusLabel}
+          />
+        ))}
       </ol>
     </div>
   )
@@ -156,20 +207,112 @@ export function CompliancePersonCell({ name, email, role }) {
   )
 }
 
-/** Expandable audit trail cell for report DataGrids. */
-export function ComplianceAuditTrailCell({ events = [], summary = '' }) {
+function AuditTrailModal({ open, onClose, title, subtitle, events }) {
+  const titleId = useId()
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open, onClose])
+
+  if (!open || typeof document === 'undefined') return null
+
+  return createPortal(
+    <div className="compliance-audit-modal" role="presentation">
+      <button
+        type="button"
+        className="compliance-audit-modal__backdrop"
+        aria-label="Close audit trail"
+        onClick={onClose}
+      />
+      <div
+        className="compliance-audit-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
+        <div className="compliance-audit-modal__head">
+          <div>
+            <h3 id={titleId}>{title}</h3>
+            {subtitle ? <p className="muted">{subtitle}</p> : null}
+          </div>
+          <button
+            type="button"
+            className="compliance-audit-modal__close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <FaTimes />
+          </button>
+        </div>
+        <div className="compliance-audit-modal__body">
+          <ComplianceAuditTrail events={events} compact title="" />
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+/**
+ * Compact table cell: event count chip that opens a modal (does not expand inside the grid).
+ */
+export function ComplianceAuditTrailCell({
+  events = [],
+  summary = '',
+  requestLabel = 'Request',
+  requestId = null,
+}) {
+  const [open, setOpen] = useState(false)
   const list = Array.isArray(events) ? events : []
+
   if (list.length === 0) {
-    return summary ? <span className="muted" title={summary}>{summary}</span> : '—'
+    return summary ? (
+      <span className="muted compliance-audit-trail-cell__empty" title={summary}>
+        No events
+      </span>
+    ) : (
+      <span className="muted">—</span>
+    )
   }
 
+  const last = list[list.length - 1]
+  const title =
+    requestId != null ? `${requestLabel} #${requestId}` : 'Audit trail'
+
   return (
-    <details className="compliance-audit-trail-details">
-      <summary>
-        {list.length} event{list.length === 1 ? '' : 's'}
-      </summary>
-      <ComplianceAuditTrail events={list} compact />
-    </details>
+    <div className="compliance-audit-trail-cell">
+      <button
+        type="button"
+        className="compliance-audit-trail-cell__btn"
+        onClick={() => setOpen(true)}
+        title={summary || undefined}
+      >
+        <span className="compliance-audit-trail-cell__count">
+          {list.length} event{list.length === 1 ? '' : 's'}
+        </span>
+        <span className="compliance-audit-trail-cell__last muted">
+          Last: {eventLabel(last?.event_type)}
+        </span>
+      </button>
+
+      <AuditTrailModal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={title}
+        subtitle={`${list.length} lifecycle event${list.length === 1 ? '' : 's'} · oldest → newest`}
+        events={list}
+      />
+    </div>
   )
 }
 
@@ -250,7 +393,6 @@ export function ComplianceReportAuditPanel({
       ) : (
         <ol className="compliance-report-audit__list">
           {events.map((event) => {
-            const label = EVENT_LABELS[event.event_type] || event.event_type || 'Event'
             const path = requestPath(event._requestId)
             const RequestLink = LinkComponent
             return (
@@ -263,46 +405,32 @@ export function ComplianceReportAuditPanel({
                 </div>
                 <div className="compliance-report-audit__main">
                   <div className="compliance-report-audit__title-row">
-                    <span className="compliance-audit-trail__event">{label}</span>
+                    <EventBadge type={event.event_type} />
                     {event.version_number != null ? (
                       <span className="compliance-audit-trail__version">v{event.version_number}</span>
                     ) : null}
-                    <span className="compliance-report-audit__req">
-                      {RequestLink ? (
-                        <RequestLink to={path}>
-                          {requestLabel} #{event._requestId}
-                        </RequestLink>
-                      ) : (
-                        <>
-                          {requestLabel} #{event._requestId}
-                        </>
-                      )}
-                    </span>
+                    {event._requestId != null ? (
+                      <span className="compliance-report-audit__req">
+                        {RequestLink ? (
+                          <RequestLink to={path}>
+                            {requestLabel} #{event._requestId}
+                          </RequestLink>
+                        ) : (
+                          <>
+                            {requestLabel} #{event._requestId}
+                          </>
+                        )}
+                      </span>
+                    ) : null}
                   </div>
                   {event.description ? (
                     <p className="compliance-audit-trail__desc">{event.description}</p>
                   ) : null}
-                  {(event.from_status || event.to_status) ? (
-                    <p className="compliance-audit-trail__status">
-                      {event.from_status ? (
-                        <ComplianceStatusText
-                          status={event.from_status}
-                          label={complianceStatusLabel(event.from_status)}
-                        />
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
-                      <span className="muted"> → </span>
-                      {event.to_status ? (
-                        <ComplianceStatusText
-                          status={event.to_status}
-                          label={complianceStatusLabel(event.to_status)}
-                        />
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
-                    </p>
-                  ) : null}
+                  <StatusTransition
+                    fromStatus={event.from_status}
+                    toStatus={event.to_status}
+                    complianceStatusLabel={complianceStatusLabel}
+                  />
                   <div className="compliance-audit-trail__actors">
                     <div>
                       <span className="compliance-audit-trail__actor-label">By</span>

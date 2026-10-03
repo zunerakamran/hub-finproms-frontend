@@ -120,10 +120,13 @@ export default function WebsiteComplianceReports() {
     {
       key: 'audit_trail',
       label: 'Audit trail',
+      fit: true,
       render: (row) => (
         <ComplianceAuditTrailCell
           events={row.audit_trail}
           summary={row.audit_trail_summary}
+          requestLabel="Change request"
+          requestId={row.id}
         />
       ),
       filterValue: (row) => row.audit_trail_summary || '',
@@ -246,8 +249,16 @@ export default function WebsiteComplianceReports() {
                 LinkComponent={Link}
               />
 
-              <div style={{ marginTop: 16 }}>
-                <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.05rem' }}>Change request rows</h2>
+              <div className="compliance-report-rows" style={{ marginTop: 16 }}>
+                <div className="page-head" style={{ marginBottom: '0.75rem' }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Change request rows</h2>
+                    <p className="muted" style={{ margin: '0.25rem 0 0' }}>
+                      Open a request’s audit trail from the column — it opens in a dialog, not inside
+                      the table.
+                    </p>
+                  </div>
+                </div>
                 <DataGrid
                   columns={reportColumns}
                   rows={report?.rows || []}

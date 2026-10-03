@@ -815,7 +815,9 @@ export function TemplateRequestDetailsView({ request }) {
     <div className="space-y-4">
       <DetailBlock icon={FaGlobe} title="Request summary">
         <DetailRow label="Template" value={request.template_name} />
-        <DetailRow label="Domain" value={request.domain_name} mono />
+        <DetailRow label="Intended live domain" value={request.domain_name} mono />
+        <DetailRow label="Staging URL" value={request.staging_domain} mono />
+        <DetailRow label="Active URL" value={request.cpanel_domain} mono />
         <DetailRow label="Status" value={request.status} />
         <DetailRow label="Requested by" value={requester?.name || requester?.email} />
         <DetailRow
@@ -825,6 +827,10 @@ export function TemplateRequestDetailsView({ request }) {
               ? `${assignedAdvisor.name || ''}${assignedAdvisor.email ? ` (${assignedAdvisor.email})` : ''}`.trim()
               : null
           }
+        />
+        <DetailRow
+          label="Go-live requested"
+          value={request.go_live_requested_at || null}
         />
       </DetailBlock>
 

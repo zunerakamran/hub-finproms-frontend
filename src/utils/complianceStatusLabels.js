@@ -7,6 +7,9 @@ export const DEFAULT_COMPLIANCE_STATUS_LABELS = {
   under_review: 'Under review',
   scheduled: 'Scheduled',
   deployed: 'Deployed',
+  staging: 'On staging',
+  ready_for_live: 'Ready for live',
+  live: 'Live',
 }
 
 /**

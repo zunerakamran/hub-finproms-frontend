@@ -574,6 +574,16 @@ export const DASHBOARD_LINKS = [
     group: 'wtl',
   },
   {
+    to: '/my-dashboard/website-compliance/go-live',
+    label: 'Ready for live',
+    title: 'Ready for live',
+    description:
+      'Ask Power Admin to move your completed staging website to the main/live URL.',
+    anyOf: ['wc_request_deployments', 'wc_assign_website_templates'],
+    exceptRoles: ['power_admin', 'finproms_admin'],
+    group: 'wtl',
+  },
+  {
     to: '/my-dashboard/website-compliance/deployments',
     label: 'Site operations',
     title: 'Site operations',

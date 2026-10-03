@@ -58,6 +58,7 @@ import WebsiteComplianceQueue from './pages/WebsiteComplianceQueue'
 import WebsiteComplianceReports from './pages/WebsiteComplianceReports'
 import WebsiteComplianceRequestSite from './pages/WebsiteComplianceRequestSite'
 import WebsiteComplianceMySites from './pages/WebsiteComplianceMySites'
+import WebsiteComplianceGoLive from './pages/WebsiteComplianceGoLive'
 import WebsiteComplianceContentEditor from './pages/WebsiteComplianceContentEditor'
 import WebsiteComplianceMyRequests from './pages/WebsiteComplianceMyRequests'
 import WebsiteComplianceRequestDetail from './pages/WebsiteComplianceRequestDetail'
@@ -546,6 +547,16 @@ export default function App() {
                       ]}
                     >
                       <WebsiteComplianceMySites />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="website-compliance/go-live"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={['wc_request_deployments', 'wc_assign_website_templates']}
+                    >
+                      <WebsiteComplianceGoLive />
                     </HubCapabilityRoute>
                   }
                 />

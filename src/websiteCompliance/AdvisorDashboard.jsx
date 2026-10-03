@@ -9,6 +9,7 @@ import SectionIframePreview from './components/SectionIframePreview'
 import TemplateScrollPreview from './components/TemplateScrollPreview'
 import ImageFieldPicker from './components/ImageFieldPicker'
 import { CreateDeploymentModal } from './components/DeploymentRequestPanel'
+import { isDeploymentOnSite } from './utils/deploymentStatus'
 import { parseJson } from './utils/parseJson'
 import { sectionDisplayName, sectionTemplateKey } from './utils/sectionDisplay'
 import {
@@ -302,12 +303,33 @@ function sectionIcon(name) {
 }
 
 const REQUEST_STATUS_CONFIG = {
+  live: {
+    label: 'Live',
+    icon: FaCheckCircle,
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    dot: 'bg-emerald-500',
+    cardClass: 'border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-white',
+  },
   deployed: {
     label: 'Deployed',
     icon: FaCheckCircle,
     className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     dot: 'bg-emerald-500',
     cardClass: 'border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-white',
+  },
+  staging: {
+    label: 'On staging',
+    icon: FaGlobeAmericas,
+    className: 'bg-sky-50 text-sky-700 border-sky-200',
+    dot: 'bg-sky-500',
+    cardClass: 'border-sky-200 bg-gradient-to-br from-sky-50/70 to-white',
+  },
+  ready_for_live: {
+    label: 'Ready for live',
+    icon: FaRocket,
+    className: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    dot: 'bg-indigo-500',
+    cardClass: 'border-indigo-200 bg-gradient-to-br from-indigo-50/70 to-white',
   },
   pending: {
     label: 'Pending',
@@ -387,7 +409,7 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
   const { roleLabel } = useHub()
   const powerAdminLabel = roleLabel('power_admin')
   const config = REQUEST_STATUS_CONFIG[request.status] || REQUEST_STATUS_CONFIG.pending
-  const isDeployed = request.status === 'deployed'
+  const isDeployed = isDeploymentOnSite(request.status)
   const assignedToYou = isAssignedDeployment(request)
   const yourOwnSite = isAdvisorOwnedDeployment(request)
 
@@ -1882,7 +1904,7 @@ export default function AdvisorDashboard({
 
   // Keep a valid deployed site selected when requests change
   useEffect(() => {
-    const deployed = templateRequests.filter(r => r.status === 'deployed')
+    const deployed = templateRequests.filter(r => isDeploymentOnSite(r.status))
     if (deployed.length === 0) {
       setSelectedDeploymentId(null)
       return
@@ -1908,8 +1930,8 @@ export default function AdvisorDashboard({
   // Fetch pages for the selected deployed site
   useEffect(() => {
     const activeDeployment = templateRequests.find(
-      r => r.status === 'deployed' && r.id === selectedDeploymentId
-    ) || templateRequests.find(r => r.status === 'deployed')
+      r => isDeploymentOnSite(r.status) && r.id === selectedDeploymentId
+    ) || templateRequests.find(r => isDeploymentOnSite(r.status))
 
     if (!activeDeployment) {
       setPages([])
@@ -2002,8 +2024,8 @@ export default function AdvisorDashboard({
     // Advisors and Power Admin both edit deployment-scoped sections
     // (template_request_id set) — never the NULL hub copies.
     const deployment = templateRequests.find(
-      r => r.id === (powerAdminDeploymentId || selectedDeploymentId) && r.status === 'deployed'
-    ) || templateRequests.find(r => r.status === 'deployed')
+      r => r.id === (powerAdminDeploymentId || selectedDeploymentId) && isDeploymentOnSite(r.status)
+    ) || templateRequests.find(r => isDeploymentOnSite(r.status))
     const deploymentId = powerAdminDeploymentId || deployment?.id || null
 
     if (deploymentId) {
@@ -2459,8 +2481,8 @@ export default function AdvisorDashboard({
     fetchMyChangeRequests()
     if (selectedPageId) {
       const deployment = templateRequests.find(
-        r => r.id === (powerAdminDeploymentId || selectedDeploymentId) && r.status === 'deployed'
-      ) || templateRequests.find(r => r.status === 'deployed')
+        r => r.id === (powerAdminDeploymentId || selectedDeploymentId) && isDeploymentOnSite(r.status)
+      ) || templateRequests.find(r => isDeploymentOnSite(r.status))
       const deploymentId = powerAdminDeploymentId || deployment?.id || null
       if (deploymentId) {
         const refreshed = await fetchDeploymentSections(deploymentId)
@@ -2613,7 +2635,7 @@ export default function AdvisorDashboard({
 
   const selectedPage = pages.find(p => p.id === Number(selectedPageId))
 
-  const deployedRequests = templateRequests.filter(r => r.status === 'deployed')
+  const deployedRequests = templateRequests.filter(r => isDeploymentOnSite(r.status))
   const pendingRequests = templateRequests.filter(r => r.status === 'pending')
   const rejectedRequests = templateRequests.filter(r => r.status === 'rejected')
   const activeDeployment = isPowerAdminPublishMode
@@ -3103,8 +3125,8 @@ export default function AdvisorDashboard({
                 <DeploymentRequestCard
                   key={req.id}
                   request={req}
-                  isActive={req.status === 'deployed' && req.id === activeDeployment?.id}
-                  onSelect={req.status === 'deployed' ? () => handleDeploymentSelect(req.id) : undefined}
+                  isActive={isDeploymentOnSite(req.status) && req.id === activeDeployment?.id}
+                  onSelect={isDeploymentOnSite(req.status) ? () => handleDeploymentSelect(req.id) : undefined}
                 />
               ))}
             </div>

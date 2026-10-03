@@ -38,6 +38,12 @@ import {
   CreateDeploymentModal,
   isRequestedByAdvisor,
 } from './DeploymentRequestPanel'
+import {
+  canPromoteToLive,
+  isDeploymentLive,
+  isDeploymentOnSite,
+  isDeploymentStagingPhase,
+} from '../utils/deploymentStatus'
 import api from '../wcApi'
 
 function normalizeSiteUrl(value) {
@@ -216,6 +222,8 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
   )
 
   const [selectedRequest, setSelectedRequest] = useState(null)
+  const [promoteRequest, setPromoteRequest] = useState(null)
+  const [isPromoting, setIsPromoting] = useState(false)
   const [brandingOnlyRequest, setBrandingOnlyRequest] = useState(null)
   const [cpanelDomain, setCpanelDomain] = useState('')
   const [cpanelDbHost, setCpanelDbHost] = useState('localhost')
@@ -327,15 +335,29 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
       },
       {
         key: 'domain_name',
-        label: 'Domain',
+        label: 'URLs',
         grow: true,
-        render: (row) => (
-          <span className="inline-flex items-center gap-1.5">
-            <FaGlobe className="w-3 h-3 text-gray-400 shrink-0" aria-hidden="true" />
-            {row.domain_name || row.domain || '—'}
-          </span>
-        ),
-        filterValue: (row) => row.domain_name || row.domain || '',
+        render: (row) => {
+          const intended = row.domain_name || row.domain || ''
+          const active = row.cpanel_domain || row.staging_domain || ''
+          return (
+            <span className="min-w-0">
+              <span className="inline-flex items-center gap-1.5">
+                <FaGlobe className="w-3 h-3 text-gray-400 shrink-0" aria-hidden="true" />
+                <span className="truncate">{intended || '—'}</span>
+              </span>
+              {active && active !== intended ? (
+                <span className="block text-[10px] text-gray-500 mt-0.5 truncate">
+                  Active: {active}
+                </span>
+              ) : null}
+            </span>
+          )
+        },
+        filterValue: (row) =>
+          [row.domain_name, row.domain, row.cpanel_domain, row.staging_domain]
+            .filter(Boolean)
+            .join(' '),
       },
       {
         key: 'status',
@@ -344,13 +366,26 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
         render: (row) => (
           <WcStatusBadge
             status={row.status}
-            at={row.deployed_at || row.updated_at || row.created_at}
+            at={
+              row.live_promoted_at ||
+              row.go_live_requested_at ||
+              row.deployed_at ||
+              row.updated_at ||
+              row.created_at
+            }
           />
         ),
         filterValue: (row) =>
           [
             complianceStatusLabel(row.status) || row.status || '',
-            formatDateTime(row.deployed_at || row.updated_at || row.created_at, ''),
+            formatDateTime(
+              row.live_promoted_at ||
+                row.go_live_requested_at ||
+                row.deployed_at ||
+                row.updated_at ||
+                row.created_at,
+              ''
+            ),
           ]
             .filter(Boolean)
             .join(' '),
@@ -488,13 +523,34 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
   const openDeployModal = (req) => {
     setBrandingOnlyRequest(null)
     setDetailsRequest(null)
+    setPromoteRequest(null)
     setSelectedRequest(req)
     setShowDeployRequestDetails(true)
-    setCpanelDomain(resolveAdvisorSiteUrl(req))
+    // Staging deploy: use existing staging/active host, not the intended live domain.
+    // Live update: use current live host (cpanel_domain).
+    const activeHost = isDeploymentLive(req.status)
+      ? resolveAdvisorSiteUrl(req)
+      : (req.cpanel_domain || req.staging_domain || '')
+    setCpanelDomain(activeHost)
     setCpanelDbHost(req.cpanel_db_host || 'localhost')
     setCpanelDbName(req.cpanel_db_name || '')
     setCpanelDbUser(req.cpanel_db_user || '')
-    setCpanelDbPass(req.cpanel_db_pass || '')
+    setCpanelDbPass(req.cpanel_db_pass || req.cpanel_db_password || '')
+    setCpanelApiKey(req.cpanel_api_key || '')
+    fillBrandingFromRequest(req)
+  }
+
+  const openPromoteModal = (req) => {
+    setBrandingOnlyRequest(null)
+    setDetailsRequest(null)
+    setSelectedRequest(null)
+    setPromoteRequest(req)
+    setShowDeployRequestDetails(true)
+    setCpanelDomain(req.domain_name || req.cpanel_domain || '')
+    setCpanelDbHost(req.cpanel_db_host || 'localhost')
+    setCpanelDbName(req.cpanel_db_name || '')
+    setCpanelDbUser(req.cpanel_db_user || '')
+    setCpanelDbPass(req.cpanel_db_pass || req.cpanel_db_password || '')
     setCpanelApiKey(req.cpanel_api_key || '')
     fillBrandingFromRequest(req)
   }
@@ -512,7 +568,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
     setMessage('')
     setError('')
     try {
-      await api.post(`/template-requests/${selectedRequest.id}/deploy`, {
+      const res = await api.post(`/template-requests/${selectedRequest.id}/deploy`, {
         cpanel_domain: cpanelDomain,
         cpanel_db_host: cpanelDbHost,
         cpanel_db_name: cpanelDbName,
@@ -522,9 +578,10 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
         ...brandingPayload(),
       })
       setMessage(
-        selectedRequest.status === 'deployed'
-          ? `Deployment settings and branding updated for ${cpanelDomain}.`
-          : `Template deployed to ${cpanelDomain}.`
+        res.data?.message ||
+          (isDeploymentLive(selectedRequest.status)
+            ? `Live deployment settings updated for ${cpanelDomain}.`
+            : `Site deployed to staging URL ${cpanelDomain}.`)
       )
       setSelectedRequest(null)
       fetchData(true)
@@ -532,6 +589,32 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
       setError(err.response?.data?.message || 'Failed to deploy template.')
     } finally {
       setIsDeploying(false)
+    }
+  }
+
+  const handlePromoteSubmit = async (e) => {
+    e.preventDefault()
+    if (!promoteRequest) return
+    setIsPromoting(true)
+    setMessage('')
+    setError('')
+    try {
+      const res = await api.post(`/template-requests/${promoteRequest.id}/promote-to-live`, {
+        cpanel_domain: cpanelDomain,
+        cpanel_db_host: cpanelDbHost,
+        cpanel_db_name: cpanelDbName,
+        cpanel_db_user: cpanelDbUser,
+        cpanel_db_pass: cpanelDbPass,
+        cpanel_api_key: cpanelApiKey,
+        ...brandingPayload(),
+      })
+      setMessage(res.data?.message || `Site promoted to live URL ${cpanelDomain}.`)
+      setPromoteRequest(null)
+      fetchData(true)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to promote site to live.')
+    } finally {
+      setIsPromoting(false)
     }
   }
 
@@ -882,7 +965,10 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
               <option value="">All statuses</option>
               <option value="pending">{complianceStatusLabel('pending') || 'Pending'}</option>
-              <option value="deployed">{complianceStatusLabel('deployed') || 'Deployed'}</option>
+              <option value="staging">{complianceStatusLabel('staging') || 'On staging'}</option>
+              <option value="ready_for_live">{complianceStatusLabel('ready_for_live') || 'Ready for live'}</option>
+              <option value="live">{complianceStatusLabel('live') || 'Live'}</option>
+              <option value="deployed">{complianceStatusLabel('deployed') || 'Deployed (legacy)'}</option>
               <option value="rejected">{complianceStatusLabel('rejected') || 'Rejected'}</option>
             </select>
             <button className="btn primary" type="submit">
@@ -918,15 +1004,18 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
             actionsLabel="Actions"
             actionsMinWidth="16rem"
             actions={(row) => {
-              const isDeployed = row.status === 'deployed'
+              const onSite = isDeploymentOnSite(row.status)
+              const isLive = isDeploymentLive(row.status)
+              const stagingPhase = isDeploymentStagingPhase(row.status)
+              const promoteReady = canPromoteToLive(row)
               const advisorOwned = isRequestedByAdvisor(row)
               const showAssignAdvisor = canAssignAdvisor && !advisorOwned
               const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
               const hasAction =
                 canViewDeployments ||
                 showAssignAdvisor ||
-                (isDeployed && canPublishLive) ||
-                (isDeployed && canManageSections) ||
+                (onSite && canPublishLive) ||
+                (onSite && canManageSections) ||
                 canDeployWebsites
               if (!hasAction) return <span className="muted">—</span>
               const compactBtn = { padding: '0.35rem 0.7rem', fontSize: '0.75rem', minHeight: 0 }
@@ -952,7 +1041,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                       {assignedAdvisor ? 'Reassign' : 'Assign'}
                     </button>
                   ) : null}
-                  {isDeployed && canPublishLive ? (
+                  {onSite && canPublishLive ? (
                     <Link
                       className="btn primary"
                       style={compactBtn}
@@ -961,7 +1050,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                       Edit
                     </Link>
                   ) : null}
-                  {isDeployed && canManageSections ? (
+                  {onSite && canManageSections ? (
                     <button
                       type="button"
                       className="btn ghost"
@@ -971,7 +1060,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                       Sections
                     </button>
                   ) : null}
-                  {canDeployWebsites && isDeployed ? (
+                  {canDeployWebsites && onSite ? (
                     <button
                       type="button"
                       className="btn ghost"
@@ -981,14 +1070,24 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                       Branding
                     </button>
                   ) : null}
-                  {canDeployWebsites ? (
+                  {canDeployWebsites && promoteReady ? (
+                    <button
+                      type="button"
+                      className="btn primary"
+                      style={compactBtn}
+                      onClick={() => openPromoteModal(row)}
+                    >
+                      Promote live
+                    </button>
+                  ) : null}
+                  {canDeployWebsites && !promoteReady ? (
                     <button
                       type="button"
                       className="btn primary"
                       style={compactBtn}
                       onClick={() => openDeployModal(row)}
                     >
-                      {isDeployed ? 'Update' : 'Deploy'}
+                      {isLive ? 'Update live' : stagingPhase ? 'Update staging' : 'Deploy staging'}
                     </button>
                   ) : null}
                 </span>
@@ -1165,12 +1264,19 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                 onClick={() => {
                   const req = detailsRequest
                   setDetailsRequest(null)
-                  openDeployModal(req)
+                  if (canPromoteToLive(req)) openPromoteModal(req)
+                  else openDeployModal(req)
                 }}
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition shadow-md"
               >
                 <FaGlobe className="w-3.5 h-3.5" aria-hidden="true" />
-                {detailsRequest.status === 'deployed' ? 'Update deployment' : 'Deploy'}
+                {canPromoteToLive(detailsRequest)
+                  ? 'Promote live'
+                  : isDeploymentLive(detailsRequest.status)
+                    ? 'Update live'
+                    : isDeploymentStagingPhase(detailsRequest.status)
+                      ? 'Update staging'
+                      : 'Deploy staging'}
               </button>
             ) : null}
           </div>
@@ -1179,12 +1285,29 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
 
       {selectedRequest && (
         <ModalShell
-          title={selectedRequest.status === 'deployed' ? 'Update deployment' : 'Deploy to cPanel'}
+          title={
+            isDeploymentLive(selectedRequest.status)
+              ? 'Update live deployment'
+              : isDeploymentStagingPhase(selectedRequest.status)
+                ? 'Update staging deployment'
+                : 'Deploy to staging URL'
+          }
           subtitle={requestRequesterName(selectedRequest)}
           onClose={() => setSelectedRequest(null)}
           maxWidth="max-w-3xl"
         >
           <form onSubmit={handleDeploySubmit} className="space-y-5">
+            <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs text-amber-900 leading-relaxed">
+              {isDeploymentLive(selectedRequest.status) ? (
+                <>Updating the <strong>live</strong> host. Compliance continues against this URL.</>
+              ) : (
+                <>
+                  Deploy to a <strong>temporary/staging</strong> URL first. Intended live domain:{' '}
+                  <span className="font-mono font-semibold">{selectedRequest.domain_name || 'not set'}</span>.
+                  Compliance runs on staging until the requester marks Ready for live.
+                </>
+              )}
+            </div>
             <div className="rounded-2xl border border-gray-200 overflow-hidden">
               <button
                 type="button"
@@ -1212,7 +1335,9 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
             {brandingFields}
             <div>
               <label className={fieldLabelClass} htmlFor="wc-deploy-domain">
-                <RequiredMark>Site URL / domain</RequiredMark>
+                <RequiredMark>
+                  {isDeploymentLive(selectedRequest.status) ? 'Live site URL / domain' : 'Staging URL / domain'}
+                </RequiredMark>
               </label>
               <input
                 id="wc-deploy-domain"
@@ -1295,8 +1420,84 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
               >
                 {isDeploying
-                  ? (selectedRequest.status === 'deployed' ? 'Updating…' : 'Deploying…')
-                  : (selectedRequest.status === 'deployed' ? 'Save & sync' : 'Deploy')}
+                  ? (isDeploymentLive(selectedRequest.status) ? 'Updating…' : 'Deploying…')
+                  : (isDeploymentLive(selectedRequest.status)
+                    ? 'Save & sync live'
+                    : isDeploymentStagingPhase(selectedRequest.status)
+                      ? 'Save & sync staging'
+                      : 'Deploy to staging')}
+              </button>
+            </div>
+          </form>
+        </ModalShell>
+      )}
+
+      {promoteRequest && (
+        <ModalShell
+          title="Promote to live URL"
+          subtitle={`${requestRequesterName(promoteRequest)} · staging ${promoteRequest.staging_domain || promoteRequest.cpanel_domain || '—'}`}
+          onClose={() => setPromoteRequest(null)}
+          maxWidth="max-w-3xl"
+        >
+          <form onSubmit={handlePromoteSubmit} className="space-y-5">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs text-emerald-900 leading-relaxed">
+              The requester marked this site ready for live. Enter (or confirm) the
+              <strong> main/live URL</strong>, then promote. Compliance will continue on the live host.
+            </div>
+            {brandingFields}
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-promote-domain">
+                <RequiredMark>Live site URL / domain</RequiredMark>
+              </label>
+              <input
+                id="wc-promote-domain"
+                className={fieldInputClass}
+                value={cpanelDomain}
+                onChange={(e) => setCpanelDomain(e.target.value)}
+                placeholder={promoteRequest.domain_name || hubPreviewPlaceholder}
+                required
+              />
+              <p className="text-[11px] text-gray-500 mt-1.5">
+                Defaults to the intended live domain from the original request
+                ({promoteRequest.domain_name || 'not set'}).
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className={fieldLabelClass} htmlFor="wc-promote-db-host">DB host</label>
+                <input id="wc-promote-db-host" className={fieldInputClass} value={cpanelDbHost} onChange={(e) => setCpanelDbHost(e.target.value)} />
+              </div>
+              <div>
+                <label className={fieldLabelClass} htmlFor="wc-promote-db-name">DB name</label>
+                <input id="wc-promote-db-name" className={fieldInputClass} value={cpanelDbName} onChange={(e) => setCpanelDbName(e.target.value)} />
+              </div>
+              <div>
+                <label className={fieldLabelClass} htmlFor="wc-promote-db-user">DB user</label>
+                <input id="wc-promote-db-user" className={fieldInputClass} value={cpanelDbUser} onChange={(e) => setCpanelDbUser(e.target.value)} />
+              </div>
+              <div>
+                <label className={fieldLabelClass} htmlFor="wc-promote-db-pass">DB pass</label>
+                <input id="wc-promote-db-pass" type="password" className={fieldInputClass} value={cpanelDbPass} onChange={(e) => setCpanelDbPass(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <label className={fieldLabelClass} htmlFor="wc-promote-api-key">cPanel API key</label>
+              <input id="wc-promote-api-key" className={fieldInputClass} value={cpanelApiKey} onChange={(e) => setCpanelApiKey(e.target.value)} />
+            </div>
+            <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setPromoteRequest(null)}
+                className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isPromoting || uploadingLogo || uploadingWhiteLogo || uploadingFavicon}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand)_85%,black)] transition disabled:opacity-50 shadow-md"
+              >
+                {isPromoting ? 'Promoting…' : 'Promote to live'}
               </button>
             </div>
           </form>

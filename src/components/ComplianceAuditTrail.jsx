@@ -237,12 +237,14 @@ export function ComplianceReportAuditPanel({
             No audit events for{hub?.name ? ` “${hub.name}”` : ' this hub'} yet.
           </p>
           <p className="muted" style={{ marginTop: '0.5rem' }}>
-            If you ran <code>compliance:backfill-audit-trail</code> and still see this on
-            Central Hub, switch / act on the <strong>content hub</strong> where the compliance
-            requests were submitted — events are stored per hub.
+            History lives on each content hub database. From Central Hub, use the{' '}
+            <strong>hub switcher</strong> to select that content hub, then open Reports → Audit
+            trail — you stay on Central, but read that hub’s history.
           </p>
           <p className="muted" style={{ marginTop: '0.5rem' }}>
-            New submit / assign / review actions on this hub will appear here automatically.
+            If the trail is still empty after a backfill, run{' '}
+            <code>php artisan compliance:backfill-audit-trail</code> on that content hub’s API,
+            then hard-refresh.
           </p>
         </div>
       ) : (

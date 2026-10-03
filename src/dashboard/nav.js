@@ -27,6 +27,7 @@ export const GENERAL_DASHBOARD_ANY = [
  *   controlPlaneOnly?: boolean, // Platform tools: only on Central Hub Controller
  *   hideWhenActingRemotely?: boolean, // Hide while Control hub switcher is on Shared/WL
  *   homeOnly?: boolean,
+ *   alwaysVisible?: boolean,
  *   exceptRoles?: string[],
  *   group?: string,
  * }} DashboardLink */
@@ -179,7 +180,15 @@ export const DASHBOARD_LINKS = [
   {
     kind: 'section',
     label: 'Account',
-    anyOf: ACCOUNT_ANY,
+    alwaysVisible: true,
+  },
+  {
+    to: '/my-dashboard/profile',
+    label: 'Update profile',
+    title: 'Update profile',
+    description: 'Change your name, email, profile picture, and two-factor authentication.',
+    alwaysVisible: true,
+    group: 'account',
   },
   {
     to: '/my-dashboard/subscription',
@@ -750,6 +759,7 @@ export function isDashboardLinkVisible(
     const role = String(userRole || '')
     if (role && link.exceptRoles.includes(role)) return false
   }
+  if (link.alwaysVisible) return true
   // Payment card is client_admin only when advisor billing is on.
   if (link.billingOnly) return Boolean(canManagePaymentCard)
   if (Array.isArray(link.anyOf) && link.anyOf.length > 0) {

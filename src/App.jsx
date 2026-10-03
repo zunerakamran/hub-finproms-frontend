@@ -72,6 +72,7 @@ import MyDashboard from './pages/MyDashboard'
 import MyInvoices from './pages/MyInvoices'
 import MyPurchases from './pages/MyPurchases'
 import MySubscription from './pages/MySubscription'
+import Profile from './pages/Profile'
 import PostDetail from './pages/PostDetail'
 import Posts from './pages/Posts'
 import PowerAdminCapabilities from './pages/PowerAdminCapabilities'
@@ -214,6 +215,7 @@ export default function App() {
             >
               <Route path="my-dashboard" element={<MyDashboardLayout />}>
                 <Route index element={<MyDashboard />} />
+                <Route path="profile" element={<Profile />} />
                 <Route
                   path="subscription"
                   element={

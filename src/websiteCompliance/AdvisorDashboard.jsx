@@ -63,8 +63,6 @@ import {
   FaGlobe,
   FaBalanceScale,
   FaStar,
-  FaCommentDots,
-  FaRedo,
   FaUpload,
 } from 'react-icons/fa'
 
@@ -2505,58 +2503,13 @@ export default function AdvisorDashboard({
     setSectionEdits({})
   }
 
-  const handleResubmitChangeRequest = async (crId) => {
-    if (checkedSectionIds.length === 0) {
-      setError('Select the section edits you want to resubmit, then click Resubmit.')
-      return
-    }
-    const cr = myChangeRequests.find((row) => Number(row.id) === Number(crId))
-    if (cr && !assertCheckedWithinCr(cr)) return
-
+  const handleConfirmChangeRequestFeedback = async (crId) => {
     setMessage('')
     setError('')
-    setCrActionBusy(`resubmit-${crId}`)
+    setCrActionBusy(`confirm-${crId}`)
     try {
-      await api.post(
-        `/change-requests/${crId}/resubmit`,
-        buildChangeRequestBody(buildBatchPayload(false), submitSupportingFiles)
-      )
-      setMessage('Change request resubmitted for review.')
-      setRevisionFocusCrId(null)
-      clearReviseQueryParam()
-      setSubmitSupportingFiles([])
-      await refreshAfterCrAction()
-    } catch (err) {
-      setError(crApiError(err, 'Failed to resubmit change request.'))
-    } finally {
-      setCrActionBusy(null)
-    }
-  }
-
-  const handleConfirmChangeRequestFeedback = async (crId, withEdits) => {
-    setMessage('')
-    setError('')
-    setCrActionBusy(`${withEdits ? 'update' : 'confirm'}-${crId}`)
-    try {
-      const body = withEdits
-        ? buildChangeRequestBody(buildBatchPayload(false), submitSupportingFiles)
-        : undefined
-      if (withEdits && checkedSectionIds.length === 0) {
-        setError('Select revised section edits before updating & publishing.')
-        setCrActionBusy(null)
-        return
-      }
-      if (withEdits) {
-        const cr = myChangeRequests.find((row) => Number(row.id) === Number(crId))
-        if (cr && !assertCheckedWithinCr(cr)) {
-          setCrActionBusy(null)
-          return
-        }
-      }
-      await api.post(`/change-requests/${crId}/confirm-feedback`, body)
-      setMessage(withEdits
-        ? 'Revised content confirmed and published.'
-        : 'Approved content confirmed and published.')
+      await api.post(`/change-requests/${crId}/confirm-feedback`)
+      setMessage('Approved content confirmed and published.')
       setRevisionFocusCrId(null)
       clearReviseQueryParam()
       setSubmitSupportingFiles([])
@@ -3188,12 +3141,11 @@ export default function AdvisorDashboard({
                   <h3 className="text-sm font-extrabold text-[var(--brand-dark)]">Returned requests (optional)</h3>
                 </div>
                 <p className="text-xs text-slate-600">
-                  To resubmit or confirm a returned request, choose it below — only the sections
-                  edited in that request will be available. Clear selection to submit a new request for any sections.
+                  Edit previous sections for a returned request, then use the submit button at the bottom.
+                  Cancel to create a new request instead.
                 </p>
                 {actionChangeRequests.map((cr) => {
                   const isFocused = Number(revisionFocusCrId) === Number(cr.id)
-                  const showFiles = isFocused || actionChangeRequests.length === 1
                   return (
                   <div
                     key={cr.id}
@@ -3213,7 +3165,7 @@ export default function AdvisorDashboard({
                           <span className="ml-2 text-xs font-bold text-slate-600">· {crStatusLabel(cr.status)}</span>
                           {isFocused && (
                             <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand)] text-white">
-                              Resubmit mode — previous sections only
+                              Editing previous sections
                             </span>
                           )}
                         </p>
@@ -3234,8 +3186,8 @@ export default function AdvisorDashboard({
                         )}
                         <p className="text-[11px] text-slate-500 mt-1">
                           {isFocused
-                            ? 'Only the sections listed above can be edited until you clear selection or finish this request.'
-                            : 'Choose this request to edit only its previous sections and resubmit / confirm.'}
+                            ? 'Edit the sections below, then submit at the bottom to finish this request.'
+                            : 'Open previous sections only, edit, then submit at the bottom.'}
                           {' '}
                           <Link
                             to={`/my-dashboard/website-compliance/my-requests/${cr.id}`}
@@ -3256,70 +3208,28 @@ export default function AdvisorDashboard({
                               setRevisionFocusCrId(cr.id)
                             }
                           }}
-                          className="inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg hover:border-[var(--brand)]/40"
+                          className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg ${
+                            isFocused
+                              ? 'bg-white border border-slate-200 text-slate-700 hover:border-[var(--brand)]/40'
+                              : 'bg-[var(--brand-dark)] text-white hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)]'
+                          }`}
                         >
                           <FaEdit className="w-3 h-3" />
-                          {isFocused ? 'Clear — allow new request' : 'Resubmit / confirm these sections'}
+                          {isFocused ? 'Cancel' : 'Edit previous sections'}
                         </button>
-                        {cr.status === 'rejected' && (
+                        {cr.status === 'approved_with_feedback' && !isFocused ? (
                           <button
                             type="button"
-                            onClick={() => {
-                              setRevisionFocusCrId(cr.id)
-                              handleResubmitChangeRequest(cr.id)
-                            }}
+                            onClick={() => handleConfirmChangeRequestFeedback(cr.id)}
                             disabled={!!crActionBusy || isSubmitting}
-                            className="inline-flex items-center gap-1.5 bg-rose-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-rose-700 disabled:opacity-60"
+                            className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-60"
                           >
-                            <FaRedo className="w-3 h-3" />
-                            {crActionBusy === `resubmit-${cr.id}` ? 'Resubmitting…' : 'Resubmit checked edits'}
+                            <FaCheckCircle className="w-3 h-3" />
+                            {crActionBusy === `confirm-${cr.id}` ? 'Publishing…' : 'Confirm as approved'}
                           </button>
-                        )}
-                        {cr.status === 'approved_with_feedback' && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRevisionFocusCrId(cr.id)
-                                handleConfirmChangeRequestFeedback(cr.id, false)
-                              }}
-                              disabled={!!crActionBusy || isSubmitting}
-                              className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-60"
-                            >
-                              <FaCheckCircle className="w-3 h-3" />
-                              {crActionBusy === `confirm-${cr.id}` ? 'Publishing…' : 'Confirm & publish'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRevisionFocusCrId(cr.id)
-                                handleConfirmChangeRequestFeedback(cr.id, true)
-                              }}
-                              disabled={!!crActionBusy || isSubmitting}
-                              className="inline-flex items-center gap-1.5 bg-violet-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-violet-700 disabled:opacity-60"
-                            >
-                              <FaCommentDots className="w-3 h-3" />
-                              {crActionBusy === `update-${cr.id}` ? 'Publishing…' : 'Update & publish'}
-                            </button>
-                          </>
-                        )}
+                        ) : null}
                       </div>
                     </div>
-                    {(cr.status === 'rejected' || cr.status === 'approved_with_feedback') && showFiles ? (
-                      <div className="wc-supporting-files-card mt-3">
-                        <p className="wc-supporting-files-card__title">Supporting files (optional)</p>
-                        <p className="wc-supporting-files-card__hint">
-                          Attach evidence with this resubmit / confirm action.
-                        </p>
-                        <SupportingFilesPicker
-                          id={`wc-action-supporting-files-${cr.id}`}
-                          files={submitSupportingFiles}
-                          onChange={setSubmitSupportingFiles}
-                          label={null}
-                          hint={null}
-                        />
-                      </div>
-                    ) : null}
                   </div>
                   )
                 })}

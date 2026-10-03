@@ -28,6 +28,7 @@ const ACTION_LABELS = {
   'auth.email_verified': 'Email verified',
   'auth.login_otp_sent': 'Login OTP sent',
   'auth.login_otp_verified': 'Login OTP verified',
+  'auth.profile_updated': 'Profile updated',
   'auth.terms_accepted': 'Accepted terms',
   'activity_logs.view': 'Viewed activity log',
   'activity_logs.report': 'Viewed activity report',

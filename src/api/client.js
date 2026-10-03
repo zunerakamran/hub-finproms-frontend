@@ -77,6 +77,13 @@ export const api = {
     request('/auth/resend-login-otp', { method: 'POST', body: JSON.stringify(payload) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
+  updateProfile: (payload) => {
+    const body = payload instanceof FormData ? payload : JSON.stringify(payload)
+    return request('/auth/profile', {
+      method: payload instanceof FormData ? 'POST' : 'PUT',
+      body,
+    })
+  },
   plans: () => request('/subscription-plans'),
   plan: (id) => request(`/subscription-plans/${id}`),
   settings: () => request('/settings'),

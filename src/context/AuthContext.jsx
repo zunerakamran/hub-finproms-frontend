@@ -20,7 +20,9 @@ function sameUser(a, b) {
     Boolean(a.is_discontinued) === Boolean(b.is_discontinued) &&
     Boolean(a.terms_accepted) === Boolean(b.terms_accepted) &&
     a.terms_accepted_version === b.terms_accepted_version &&
-    a.billing_subject_id === b.billing_subject_id
+    a.billing_subject_id === b.billing_subject_id &&
+    Boolean(a.two_factor_enabled) === Boolean(b.two_factor_enabled) &&
+    a.avatar_url === b.avatar_url
   )
 }
 

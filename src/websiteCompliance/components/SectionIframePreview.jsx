@@ -134,10 +134,11 @@ export default function SectionIframePreview({
       actingHub?.id != null && hub?.id != null && String(actingHub.id) !== String(hub.id)
         ? Number(actingHub.id)
         : 0
-    const hubQs = actingId > 0 ? `?hub_id=${actingId}` : ''
     const proxyApi =
       resolvedRequestId && API_BASE
-        ? `${API_BASE}/embed-site/${resolvedRequestId}/api.php${hubQs}`
+        ? actingId > 0
+          ? `${API_BASE}/embed-site/h/${actingId}/${resolvedRequestId}/api.php`
+          : `${API_BASE}/embed-site/${resolvedRequestId}/api.php`
         : null
     const directApi = liveSiteRoot ? `${liveSiteRoot}api.php` : null
     const apiUrl = proxyApi || directApi
@@ -178,10 +179,10 @@ export default function SectionIframePreview({
 
   const key = normalizeName(sectionName)
   const src = useMemo(() => {
-    const base = String(templateBase || '')
+    const base = String(templateBase || '').replace(/\?.*$/, '')
     if (!base) return ''
-    const joiner = base.includes('?') ? '&' : '?'
-    return `${base}${joiner}section=${encodeURIComponent(key)}`
+    const root = base.endsWith('/') ? base : `${base}/`
+    return `${root}?section=${encodeURIComponent(key)}`
   }, [templateBase, key])
   // Live site wins; otherwise use saved deployment colours so Submission preview updates.
   const brandingForPreview = liveBranding || deploymentBranding

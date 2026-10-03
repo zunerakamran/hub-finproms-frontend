@@ -117,9 +117,12 @@ export function resolveAdvisorPreviewUrl({
 
   // Prefer embed proxy whenever we have a deployment id + live site URL.
   // Direct iframe of advisers.fin-proms.com is blocked (X-Frame-Options: SAMEORIGIN).
+  // Use path-based /h/{hubId}/ so iframe ?section= stays clean for template scripts.
   if (id > 0 && live && API_BASE) {
-    const base = `${API_BASE}/embed-site/${id}/`
-    return resolvedHubId > 0 ? `${base}?hub_id=${resolvedHubId}` : base
+    if (resolvedHubId > 0) {
+      return `${API_BASE}/embed-site/h/${resolvedHubId}/${id}/`
+    }
+    return `${API_BASE}/embed-site/${id}/`
   }
 
   // Legacy: try live URL only if no deployment id (will still fail if XFO is set).

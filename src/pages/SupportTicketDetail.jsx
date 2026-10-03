@@ -33,7 +33,7 @@ export default function SupportTicketDetail() {
   const [commentBody, setCommentBody] = useState('')
   const [commentFiles, setCommentFiles] = useState([])
 
-  const moduleOn = can('module_support_tickets')
+  const moduleOn = can('support_tickets')
   const canChangeStatus = can('st_change_ticket_status')
   const canViewAll = can('st_view_all_tickets') || canChangeStatus
   const canComment =
@@ -153,7 +153,7 @@ export default function SupportTicketDetail() {
           <div>
             <p className="eyebrow">Support Tickets</p>
             <h1>Ticket</h1>
-            <p className="muted">Support Tickets module is off for this hub.</p>
+            <p className="muted">Support Tickets functionality is off for this hub.</p>
           </div>
         </div>
       </section>

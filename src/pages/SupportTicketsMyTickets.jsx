@@ -13,7 +13,7 @@ export default function SupportTicketsMyTickets() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const moduleOn = can('module_support_tickets')
+  const moduleOn = can('support_tickets')
   const canSubmit = can('st_submit_ticket')
   const canView = can('st_view_own_tickets') || canSubmit
 
@@ -105,7 +105,8 @@ export default function SupportTicketsMyTickets() {
             <p className="eyebrow">Support Tickets</p>
             <h1>My tickets</h1>
             <p className="muted">
-              Support Tickets is not enabled for this hub. Ask Power Admin to enable it under Modules.
+              Support Tickets is not enabled for this hub. Ask Power Admin to enable it under
+              Functionalities.
             </p>
           </div>
         </div>

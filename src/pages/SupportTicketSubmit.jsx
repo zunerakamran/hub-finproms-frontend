@@ -23,7 +23,7 @@ export default function SupportTicketSubmit() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const moduleOn = can('module_support_tickets')
+  const moduleOn = can('support_tickets')
   const canSubmit = can('st_submit_ticket')
 
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function SupportTicketSubmit() {
             <h1>New ticket</h1>
             <p className="muted">
               {!moduleOn
-                ? 'Support Tickets module is off for this hub.'
+                ? 'Support Tickets functionality is off for this hub.'
                 : 'You do not have permission to submit support tickets.'}
             </p>
           </div>

@@ -19,7 +19,7 @@ export default function SupportTicketsQueue() {
   const [error, setError] = useState('')
 
   const asPowerAdmin = isPowerAdmin
-  const moduleOn = can('module_support_tickets')
+  const moduleOn = can('support_tickets')
   const canViewAll = can('st_view_all_tickets')
   const canChangeStatus = can('st_change_ticket_status')
   const enabled = moduleOn && (canViewAll || canChangeStatus)
@@ -115,7 +115,7 @@ export default function SupportTicketsQueue() {
             <h1>All tickets</h1>
             <p className="muted">
               {!moduleOn
-                ? 'Support Tickets module is off for this hub.'
+                ? 'Support Tickets functionality is off for this hub.'
                 : 'You do not have permission to view the support ticket queue.'}
             </p>
           </div>

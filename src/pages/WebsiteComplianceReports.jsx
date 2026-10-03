@@ -264,15 +264,16 @@ export default function WebsiteComplianceReports() {
                   rows={report?.rows || []}
                   emptyMessage="No change requests found."
                   pageSize={10}
+                  actionsLabel="Actions"
+                  actionsMinWidth="4.5rem"
                   actions={(row) => (
                     <DataGridIconBtn
                       as={Link}
                       to={`/my-dashboard/website-compliance/my-requests/${row.id}`}
                       state={{ from: 'reports' }}
-                      label="Open"
-                    >
-                      <FaEye />
-                    </DataGridIconBtn>
+                      icon={FaEye}
+                      label="Open request"
+                    />
                   )}
                 />
               </div>

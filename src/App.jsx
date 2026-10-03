@@ -602,6 +602,7 @@ export default function App() {
                         'wc_review_change_requests',
                         'wc_change_request_status',
                         'wc_assign_change_requests',
+                        'wc_view_platform_report',
                       ]}
                     >
                       <WebsiteComplianceRequestDetail />

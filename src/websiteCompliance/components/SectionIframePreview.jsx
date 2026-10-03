@@ -130,9 +130,14 @@ export default function SectionIframePreview({
 
   // Pull live colours via hub embed proxy (avoids CORS) when possible.
   useEffect(() => {
+    const actingId =
+      actingHub?.id != null && hub?.id != null && String(actingHub.id) !== String(hub.id)
+        ? Number(actingHub.id)
+        : 0
+    const hubQs = actingId > 0 ? `?hub_id=${actingId}` : ''
     const proxyApi =
       resolvedRequestId && API_BASE
-        ? `${API_BASE}/embed-site/${resolvedRequestId}/api.php`
+        ? `${API_BASE}/embed-site/${resolvedRequestId}/api.php${hubQs}`
         : null
     const directApi = liveSiteRoot ? `${liveSiteRoot}api.php` : null
     const apiUrl = proxyApi || directApi
@@ -169,10 +174,15 @@ export default function SectionIframePreview({
     return () => {
       cancelled = true
     }
-  }, [liveSiteRoot, resolvedRequestId])
+  }, [liveSiteRoot, resolvedRequestId, hub?.id, actingHub?.id])
 
   const key = normalizeName(sectionName)
-  const src = `${templateBase}?section=${encodeURIComponent(key)}`
+  const src = useMemo(() => {
+    const base = String(templateBase || '')
+    if (!base) return ''
+    const joiner = base.includes('?') ? '&' : '?'
+    return `${base}${joiner}section=${encodeURIComponent(key)}`
+  }, [templateBase, key])
   // Live site wins; otherwise use saved deployment colours so Submission preview updates.
   const brandingForPreview = liveBranding || deploymentBranding
 

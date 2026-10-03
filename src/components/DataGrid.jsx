@@ -234,6 +234,7 @@ export function DataGridIconBtn({
   variant = 'ghost',
   as: As = 'button',
   className = '',
+  children = null,
   ...rest
 }) {
   const classes = [
@@ -243,6 +244,8 @@ export function DataGridIconBtn({
   ]
     .filter(Boolean)
     .join(' ')
+
+  const content = Icon ? <Icon aria-hidden="true" /> : children
 
   const shared = {
     className: classes,
@@ -254,14 +257,14 @@ export function DataGridIconBtn({
   if (As === 'button') {
     return (
       <button type="button" onClick={onClick} disabled={disabled} {...shared}>
-        {Icon ? <Icon aria-hidden="true" /> : null}
+        {content}
       </button>
     )
   }
 
   return (
     <As onClick={onClick} {...shared}>
-      {Icon ? <Icon aria-hidden="true" /> : null}
+      {content}
     </As>
   )
 }

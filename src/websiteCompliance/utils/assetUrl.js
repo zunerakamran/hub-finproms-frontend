@@ -91,6 +91,9 @@ export function resolveAdvisorLiveSiteUrl({
 /**
  * Hub reverse-proxy URL that loads the advisor's live site without X-Frame-Options.
  * Falls back to hub catalog template when undeployed.
+ *
+ * When viewing from Central while acting on a content hub, pass hubId so the
+ * embed proxy can resolve TemplateRequest on that hub's remote database.
  */
 export function resolveAdvisorPreviewUrl({
   siteUrl,
@@ -99,14 +102,24 @@ export function resolveAdvisorPreviewUrl({
   templateSlug = 'template4',
   hub,
   actingHub,
+  hubId = null,
 } = {}) {
   const live = String(siteUrl || cpanelDomain || '').trim()
   const id = Number(templateRequestId) > 0 ? Number(templateRequestId) : 0
+  const resolvedHubId =
+    Number(hubId) > 0
+      ? Number(hubId)
+      : Number(actingHub?.id) > 0 &&
+          hub?.id != null &&
+          String(actingHub.id) !== String(hub.id)
+        ? Number(actingHub.id)
+        : 0
 
   // Prefer embed proxy whenever we have a deployment id + live site URL.
   // Direct iframe of advisers.fin-proms.com is blocked (X-Frame-Options: SAMEORIGIN).
   if (id > 0 && live && API_BASE) {
-    return `${API_BASE}/embed-site/${id}/`
+    const base = `${API_BASE}/embed-site/${id}/`
+    return resolvedHubId > 0 ? `${base}?hub_id=${resolvedHubId}` : base
   }
 
   // Legacy: try live URL only if no deployment id (will still fail if XFO is set).

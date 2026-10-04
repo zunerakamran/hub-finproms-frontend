@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
+import PageLoader from '../components/PageLoader'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import {
@@ -41,8 +42,8 @@ const GROUP_FALLBACK_LABELS = {
 }
 
 export default function PowerAdminCapabilities() {
-  const { canPower, setPowerCapabilities, refreshUser } = useAuth()
-  const { refreshHub, actingHubId, actingHub, hub, isActingOnWhiteLabel, isActingRemotely } = useHub()
+  const { canPower, setPowerCapabilities } = useAuth()
+  const { actingHubId, actingHub, hub, isActingOnWhiteLabel, isActingRemotely } = useHub()
   const allowed = canPower('pa_manage_power_capabilities')
 
   const selectedHubId = actingHubId || hub?.id || ''
@@ -53,6 +54,7 @@ export default function PowerAdminCapabilities() {
   const [groupOrder, setGroupOrder] = useState(DEFAULT_GROUP_ORDER)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [reloading, setReloading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [query, setQuery] = useState('')
@@ -154,7 +156,7 @@ export default function PowerAdminCapabilities() {
 
   const onSave = async (e) => {
     e.preventDefault()
-    if (!allowed || !selectedHubId) return
+    if (!allowed || !selectedHubId || saving || reloading) return
     setSaving(true)
     setError('')
     setMessage('')
@@ -179,14 +181,28 @@ export default function PowerAdminCapabilities() {
         matrix: matrixPayload,
       })
       applyMatrix(data.matrix, data.resolved)
-      setMessage(data.message || 'Capabilities matrix saved.')
-      await refreshUser()
-      await refreshHub({ withLoader: true })
+      setMessage(data.message || 'Capabilities matrix saved. Refreshing dashboard…')
+      setReloading(true)
+      // Hard reload so the dashboard shell (Website button, nav, etc.) picks up
+      // fresh effective_capabilities — soft refreshHub could reuse a stale cache.
+      window.setTimeout(() => {
+        window.location.reload()
+      }, 200)
     } catch (err) {
       setError(err.message)
-    } finally {
       setSaving(false)
     }
+  }
+
+  if (reloading) {
+    return (
+      <section className="capabilities-matrix-page">
+        <div className="alert success">
+          {message || 'Capabilities matrix saved. Refreshing dashboard…'}
+        </div>
+        <PageLoader />
+      </section>
+    )
   }
 
   return (
@@ -376,8 +392,8 @@ export default function PowerAdminCapabilities() {
 
           {allowed && roles.length > 0 && (
             <div className="actions">
-              <button className="btn primary" disabled={saving}>
-                {saving ? 'Saving...' : 'Save capabilities'}
+              <button className="btn primary" disabled={saving || reloading}>
+                {saving || reloading ? 'Saving…' : 'Save capabilities'}
               </button>
             </div>
           )}

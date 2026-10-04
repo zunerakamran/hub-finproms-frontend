@@ -2,6 +2,7 @@
 export const DEFAULT_COMPLIANCE_STATUS_LABELS = {
   pending: 'Pending',
   approved: 'Approved',
+  published: 'Published',
   rejected: 'Rejected',
   approved_with_feedback: 'Approved with Feedback',
   under_review: 'Under review',

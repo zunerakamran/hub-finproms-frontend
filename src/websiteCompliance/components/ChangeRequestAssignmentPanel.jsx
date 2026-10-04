@@ -41,6 +41,7 @@ const PREVIOUS_STATUSES = new Set([
   'under_review',
   'scheduled',
   'approved',
+  'published',
   'rejected',
   'approved_with_feedback',
 ])

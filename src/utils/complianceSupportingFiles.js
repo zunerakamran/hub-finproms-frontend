@@ -61,7 +61,9 @@ export function compliancePostBody(fields, files) {
   if (!picked.length) return fields
   const form = new FormData()
   Object.entries(fields || {}).forEach(([key, value]) => {
-    if (value != null && value !== '') form.append(key, value)
+    if (value == null || value === '') return
+    // Booleans must serialize explicitly for Laravel $request->boolean().
+    form.append(key, typeof value === 'boolean' ? (value ? '1' : '0') : value)
   })
   appendSupportingFiles(form, picked)
   return form

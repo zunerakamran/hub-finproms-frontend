@@ -96,6 +96,7 @@ const STATUS_TONE = {
   under_review: 'brand',
   scheduled: 'violet',
   approved: 'emerald',
+  published: 'emerald',
   rejected: 'rose',
   approved_with_feedback: 'violet',
 }
@@ -105,6 +106,7 @@ const STATUS_BAR = {
   under_review: 'bg-blue-500',
   scheduled: 'bg-purple-500',
   approved: 'bg-emerald-500',
+  published: 'bg-teal-500',
   rejected: 'bg-rose-500',
   approved_with_feedback: 'bg-violet-500',
 }
@@ -112,9 +114,10 @@ const STATUS_BAR = {
 const CR_STATUS_ORDER = [
   'pending',
   'under_review',
+  'approved',
   'scheduled',
   'approved_with_feedback',
-  'approved',
+  'published',
   'rejected',
 ]
 

@@ -134,9 +134,9 @@ export default function WebsiteComplianceRequestDetail() {
     (Number(row.editor_id) === Number(user.id) ||
       (effectiveAdvisorId != null && Number(row.editor_id) === Number(effectiveAdvisorId)))
 
-  const statusLocked = row?.status === 'approved' || row?.status === 'scheduled'
-  const canShowReviewActions =
-    (canReview || canChangeStatus) && row && !statusLocked
+  // Locked once published live or once a publish schedule is set (approved-only still allows scheduling).
+  const statusLocked = row?.status === 'published' || row?.status === 'scheduled'
+  const canShowReviewActions = (canReview || canChangeStatus) && row && !statusLocked
   const canShowAssign =
     canAssign &&
     row &&
@@ -152,7 +152,7 @@ export default function WebsiteComplianceRequestDetail() {
       const data = await api.websiteComplianceConfirmChangeRequestFeedback(id, body)
       setRow(data?.change_request || data)
       setConfirmSupportingFiles([])
-      setMessage('Request confirmed as Approved.')
+      setMessage('Request confirmed and published.')
     } catch (err) {
       setError(err.message || err.data?.message || 'Confirm failed.')
     } finally {

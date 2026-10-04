@@ -12,6 +12,7 @@ export const WC_STATUSES = [
   'under_review',
   'scheduled',
   'approved',
+  'published',
   'rejected',
   'approved_with_feedback',
 ]
@@ -35,6 +36,7 @@ export function wcStatusLabel(status, hubOrLabels = null) {
 export function wcStatusClass(status) {
   const s = String(status || 'pending').toLowerCase()
   if (s.includes('approved_with') || s.includes('approved with')) return 'wc-status wc-status--awf'
+  if (s === 'published' || s.includes('publish')) return 'wc-status wc-status--ok'
   if (s.includes('approved') || s.includes('deploy')) return 'wc-status wc-status--ok'
   if (s.includes('reject')) return 'wc-status wc-status--bad'
   if (s.includes('schedul')) return 'wc-status wc-status--scheduled'

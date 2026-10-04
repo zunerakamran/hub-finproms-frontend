@@ -309,7 +309,7 @@ export function preferStoredPreview(apiPreview, storedPreview) {
 }
 
 export function isHistoricalRequest(req) {
-  return ['approved', 'rejected', 'scheduled', 'approved_with_feedback'].includes(req?.status)
+  return ['approved', 'published', 'rejected', 'scheduled', 'approved_with_feedback'].includes(req?.status)
 }
 
 async function fetchRequestDetail(api, req) {

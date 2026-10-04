@@ -5,6 +5,7 @@ import {
   FaCheckCircle,
   FaCommentDots,
   FaHandPointer,
+  FaRocket,
   FaTimesCircle,
 } from 'react-icons/fa'
 import { api } from '../../api/client'
@@ -22,7 +23,7 @@ import { compliancePostBody } from '../../utils/complianceSupportingFiles'
 import wcApi from '../wcApi'
 
 /**
- * Pickup + approve / schedule / approve-with-feedback / reject for detail page.
+ * Pickup + approve / approve&publish / schedule / approve-with-feedback / reject.
  * Shown for assignees, view-all managers, and change-status managers (same options).
  */
 export default function ChangeRequestReviewActions({
@@ -47,10 +48,11 @@ export default function ChangeRequestReviewActions({
   const isAssignedToMe = Number(request.approver_id) === Number(user.id)
   const isPendingLike =
     request.status === 'under_review' || request.status === 'pending'
+  const isApprovedAwaitingPublish = request.status === 'approved'
   const isOverrideableTerminal =
     request.status === 'rejected' || request.status === 'approved_with_feedback'
   const isLocked =
-    request.status === 'approved' || request.status === 'scheduled'
+    request.status === 'published' || request.status === 'scheduled'
   const showPickBanner =
     request.status === 'pending' && !request.approver_id && !canOverrideStatus && !canViewAll
 
@@ -62,8 +64,10 @@ export default function ChangeRequestReviewActions({
     canDecide &&
     !isLocked &&
     (isPendingLike || (canOverrideStatus && isOverrideableTerminal))
+  // After approve-only, show scheduler (+ optional publish now).
+  const showSchedulePanel = canDecide && isApprovedAwaitingPublish
 
-  if (!showPickBanner && !showReviewPanel) return null
+  if (!showPickBanner && !showReviewPanel && !showSchedulePanel) return null
 
   const snapshotBeforeDecision = async () => {
     try {
@@ -72,6 +76,20 @@ export default function ChangeRequestReviewActions({
     } catch {
       // Snapshot is best-effort; decision APIs still proceed.
     }
+  }
+
+  const parseScheduleIso = () => {
+    if (!scheduleDate) return null
+    const local = new Date(scheduleDate)
+    if (Number.isNaN(local.getTime())) {
+      onError?.('Invalid schedule time. Please pick a valid date and time.')
+      return false
+    }
+    if (local.getTime() <= Date.now() + 60_000) {
+      onError?.('Schedule time must be at least 1 minute in the future.')
+      return false
+    }
+    return local.toISOString()
   }
 
   const handleAssign = async () => {
@@ -95,35 +113,75 @@ export default function ChangeRequestReviewActions({
     }
   }
 
-  const handleApprove = async (isScheduledPublish = false) => {
+  const handleApproveOnly = async () => {
     setBusy('approve')
     onError?.('')
     onMessage?.('')
+    try {
+      await snapshotBeforeDecision()
+      const body = compliancePostBody({}, reviewSupportingFiles)
+      const data = await api.websiteComplianceApproveChangeRequest(request.id, body)
+      onUpdated?.({
+        ...request,
+        ...(data?.change_request || data || {}),
+        status: data?.status || 'approved',
+        scheduled_at: null,
+      })
+      onMessage?.(
+        'Request approved. Use the scheduler below to publish later, or publish now.'
+      )
+      setReviewSupportingFiles([])
+    } catch (err) {
+      onError?.(err.message || err.data?.message || 'Failed to approve request.')
+    } finally {
+      setBusy(null)
+    }
+  }
 
-    let scheduledTime = null
-    if (isScheduledPublish && scheduleDate) {
-      // datetime-local is local wall-clock; convert explicitly to UTC ISO for the API.
-      const local = new Date(scheduleDate)
-      if (Number.isNaN(local.getTime())) {
-        onError?.('Invalid schedule time. Please pick a valid date and time.')
-        setBusy(null)
-        return
-      }
-      if (local.getTime() <= Date.now() + 60_000) {
-        onError?.(
-          'Schedule time must be at least 1 minute in the future. Clear the schedule field to publish now.'
-        )
-        setBusy(null)
-        return
-      }
-      scheduledTime = local.toISOString()
+  const handleApproveAndPublish = async () => {
+    setBusy('publish')
+    onError?.('')
+    onMessage?.('')
+    try {
+      await snapshotBeforeDecision()
+      const body = compliancePostBody({ publish_now: true }, reviewSupportingFiles)
+      const data = await api.websiteComplianceApproveChangeRequest(request.id, body)
+      onUpdated?.({
+        ...request,
+        ...(data?.change_request || data || {}),
+        status: data?.status || 'published',
+        scheduled_at: null,
+      })
+      onMessage?.('Request approved and published to the website.')
+      setReviewSupportingFiles([])
+    } catch (err) {
+      onError?.(err.message || err.data?.message || 'Failed to approve and publish.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleSchedulePublish = async () => {
+    setBusy('schedule')
+    onError?.('')
+    onMessage?.('')
+
+    const scheduledTime = parseScheduleIso()
+    if (scheduledTime === false) {
+      setBusy(null)
+      return
+    }
+    if (!scheduledTime) {
+      onError?.('Please pick a date and time to schedule publish.')
+      setBusy(null)
+      return
     }
 
     try {
       await snapshotBeforeDecision()
-      const body = compliancePostBody({ scheduled_at: scheduledTime || '' }, reviewSupportingFiles)
+      const body = compliancePostBody({ scheduled_at: scheduledTime }, reviewSupportingFiles)
       const data = await api.websiteComplianceApproveChangeRequest(request.id, body)
-      const status = data?.status || (scheduledTime ? 'scheduled' : 'approved')
+      const status = data?.status || 'scheduled'
       const savedScheduledAt = data?.scheduled_at || scheduledTime
       onUpdated?.({
         ...request,
@@ -131,16 +189,13 @@ export default function ChangeRequestReviewActions({
         status,
         scheduled_at: savedScheduledAt,
       })
-      if (status === 'scheduled' && savedScheduledAt) {
-        onMessage?.(
-          `Request approved and scheduled for publication at ${formatDateTime(savedScheduledAt)}.`
-        )
-      } else {
-        onMessage?.('Request approved. All sections in this request have been published live.')
-      }
+      onMessage?.(
+        `Publish scheduled for ${formatDateTime(savedScheduledAt)}. Status can no longer be changed.`
+      )
       setReviewSupportingFiles([])
+      setScheduleDate('')
     } catch (err) {
-      onError?.(err.message || err.data?.message || 'Failed to approve request.')
+      onError?.(err.message || err.data?.message || 'Failed to schedule publish.')
     } finally {
       setBusy(null)
     }
@@ -230,6 +285,87 @@ export default function ChangeRequestReviewActions({
         </div>
       ) : null}
 
+      {showSchedulePanel ? (
+        <div className={`wc-review-decision${showPickBanner ? ' wc-review-decision--spaced' : ''}`}>
+          <div>
+            <h2 className="wc-review-decision__heading">Publish schedule</h2>
+            <p className="muted" style={{ marginTop: 4 }}>
+              This request is approved but not live yet. Schedule a publish time, or publish now.
+            </p>
+          </div>
+
+          <div className="wc-supporting-files-card" style={{ marginBottom: '1rem' }}>
+            <p className="wc-supporting-files-card__title">Supporting files (optional)</p>
+            <p className="wc-supporting-files-card__hint">
+              Attach PDF, Office, images, or ZIP with your publish decision.
+            </p>
+            <SupportingFilesPicker
+              id="wc-schedule-supporting-files"
+              files={reviewSupportingFiles}
+              onChange={setReviewSupportingFiles}
+              label={null}
+              hint={null}
+            />
+          </div>
+
+          <div className="wc-review-pane wc-review-pane--approve">
+            <label className="wc-review-pane__label">
+              <FaCalendarAlt className="inline w-3 h-3 mr-1.5 text-purple-500" />
+              Schedule publish
+              <input
+                type="datetime-local"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+              />
+            </label>
+            {scheduleDate ? (
+              <p className="wc-review-schedule-note">
+                Will publish at{' '}
+                <DataGridDate
+                  value={(() => {
+                    const d = new Date(scheduleDate)
+                    return Number.isNaN(d.getTime()) ? scheduleDate : d.toISOString()
+                  })()}
+                />{' '}
+                <span className="muted">(your local time)</span>
+              </p>
+            ) : null}
+            <div className="actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={handleSchedulePublish}
+                disabled={!!busy || !scheduleDate}
+                className="btn wc-review-btn--schedule"
+              >
+                {busy === 'schedule' ? (
+                  'Scheduling…'
+                ) : (
+                  <>
+                    <FaCalendarCheck className="w-3.5 h-3.5" style={{ marginRight: 6 }} />
+                    Schedule Publish
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleApproveAndPublish}
+                disabled={!!busy}
+                className="btn primary"
+              >
+                {busy === 'publish' ? (
+                  'Publishing…'
+                ) : (
+                  <>
+                    <FaRocket className="w-3.5 h-3.5" style={{ marginRight: 6 }} />
+                    Publish Now
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {showReviewPanel ? (
         <div className={`wc-review-decision${showPickBanner ? ' wc-review-decision--spaced' : ''}`}>
           <div>
@@ -287,50 +423,44 @@ export default function ChangeRequestReviewActions({
           {decision === 'approve' ? (
             <div className="wc-review-pane wc-review-pane--approve">
               <div>
-                <p className="wc-review-pane__title">Approve &amp; publish</p>
-                <p className="muted">Publish now, or optionally schedule a later publish time.</p>
-              </div>
-              <label className="wc-review-pane__label">
-                <FaCalendarAlt className="inline w-3 h-3 mr-1.5 text-purple-500" />
-                Schedule publish <span className="muted">(optional)</span>
-                <input
-                  type="datetime-local"
-                  value={scheduleDate}
-                  onChange={(e) => setScheduleDate(e.target.value)}
-                />
-              </label>
-              {scheduleDate ? (
-                <p className="wc-review-schedule-note">
-                  Will publish at{' '}
-                  <DataGridDate
-                    value={(() => {
-                      const d = new Date(scheduleDate)
-                      return Number.isNaN(d.getTime()) ? scheduleDate : d.toISOString()
-                    })()}
-                  />{' '}
-                  <span className="muted">(your local time)</span>
+                <p className="wc-review-pane__title">Approve</p>
+                <p className="muted">
+                  Approve &amp; publish goes live immediately. Approve only marks it approved so you
+                  can schedule publish next.
                 </p>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => handleApprove(!!scheduleDate)}
-                disabled={!!busy}
-                className={`btn${scheduleDate ? ' wc-review-btn--schedule' : ' primary'}`}
-              >
-                {busy === 'approve' ? (
-                  'Processing…'
-                ) : scheduleDate ? (
-                  <>
-                    <FaCalendarCheck className="w-3.5 h-3.5" style={{ marginRight: 6 }} />
-                    Schedule Publish
-                  </>
-                ) : (
-                  <>
-                    <FaCheckCircle className="w-3.5 h-3.5" style={{ marginRight: 6 }} />
-                    Approve &amp; Publish Now
-                  </>
-                )}
-              </button>
+              </div>
+              <div className="actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={handleApproveAndPublish}
+                  disabled={!!busy}
+                  className="btn primary"
+                >
+                  {busy === 'publish' ? (
+                    'Publishing…'
+                  ) : (
+                    <>
+                      <FaRocket className="w-3.5 h-3.5" style={{ marginRight: 6 }} />
+                      Approve &amp; Publish
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApproveOnly}
+                  disabled={!!busy}
+                  className="btn ghost"
+                >
+                  {busy === 'approve' ? (
+                    'Approving…'
+                  ) : (
+                    <>
+                      <FaCheckCircle className="w-3.5 h-3.5" style={{ marginRight: 6 }} />
+                      Approve
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           ) : decision === 'awf' ? (
             <div className="wc-review-pane wc-review-pane--awf">

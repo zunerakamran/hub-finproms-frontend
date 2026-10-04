@@ -56,6 +56,25 @@ function DataGridPagination({ page, totalPages, totalItems, pageSize, onPageChan
   )
 }
 
+/** Shared pager used by DataGrid (client or server-driven). */
+export function DataGridPager({
+  page,
+  totalItems,
+  pageSize,
+  onPageChange,
+}) {
+  const totalPages = Math.max(1, Math.ceil((totalItems || 0) / (pageSize || 1)))
+  return (
+    <DataGridPagination
+      page={page}
+      totalPages={totalPages}
+      totalItems={totalItems}
+      pageSize={pageSize}
+      onPageChange={onPageChange}
+    />
+  )
+}
+
 /**
  * Resolve layout flags for a column.
  *
@@ -271,6 +290,7 @@ export function DataGridIconBtn({
 
 /**
  * Reusable data grid with per-column search, sorting, and client-side pagination.
+ * Pass `serverPagination` to keep the footer pager but drive pages from the API.
  */
 export default function DataGrid({
   columns = [],
@@ -280,6 +300,12 @@ export default function DataGrid({
   pageSize = 10,
   /** When true, render all filtered rows and omit the client pager (use server paging outside). */
   hidePagination = false,
+  /**
+   * Server-driven pager rendered inside the grid footer.
+   * When set, client-side paging is disabled and these values control the footer.
+   * @type {{ page: number, totalItems: number, pageSize?: number, onPageChange: (page: number) => void } | null}
+   */
+  serverPagination = null,
   getRowKey = (row) => row.id,
   rowLink,
   rowLinkState,
@@ -310,8 +336,10 @@ export default function DataGrid({
     : columns
 
   const layouts = allColumns.map((col) => resolveColumnLayout(col))
+  const useServerPager = Boolean(serverPagination)
   const grid = useClientDataGrid(rows, allColumns, {
-    pageSize: hidePagination ? Math.max(rows?.length || 1, pageSize) : pageSize,
+    pageSize:
+      hidePagination || useServerPager ? Math.max(rows?.length || 1, pageSize) : pageSize,
   })
 
   if (loading) {
@@ -483,7 +511,7 @@ export default function DataGrid({
         </table>
       </div>
 
-      {hidePagination ? null : (
+      {!hidePagination && !useServerPager ? (
         <DataGridPagination
           page={grid.page}
           totalPages={grid.totalPages}
@@ -491,7 +519,16 @@ export default function DataGrid({
           pageSize={grid.pageSize}
           onPageChange={grid.setPage}
         />
-      )}
+      ) : null}
+
+      {useServerPager ? (
+        <DataGridPager
+          page={Number(serverPagination.page) || 1}
+          totalItems={Number(serverPagination.totalItems) || 0}
+          pageSize={serverPagination.pageSize || pageSize}
+          onPageChange={serverPagination.onPageChange}
+        />
+      ) : null}
     </div>
   )
 }

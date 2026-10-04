@@ -6,7 +6,6 @@ import { useAuth } from '../../context/AuthContext'
 import { useHub } from '../../context/HubContext'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
 import WcStatusBadge from '../../components/WebsiteComplianceUI'
-import Pagination from './Pagination'
 import { formatDateTime, complianceStatusChangedAt } from '../../utils/dateFormat'
 import { gridActorName } from '../../utils/submissionAttribution'
 
@@ -244,7 +243,12 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
         rows={filteredRequests}
         loading={loading}
         pageSize={PAGE_SIZE}
-        hidePagination
+        serverPagination={{
+          page: meta.current_page || page,
+          totalItems: meta.total || 0,
+          pageSize: meta.per_page || PAGE_SIZE,
+          onPageChange: (next) => setPage(next),
+        }}
         emptyMessage={
           variant === 'history'
             ? canViewAll
@@ -276,13 +280,6 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
             </>
           )
         }}
-      />
-
-      <Pagination
-        currentPage={meta.current_page || page}
-        totalItems={meta.total || 0}
-        pageSize={meta.per_page || PAGE_SIZE}
-        onPageChange={(next) => setPage(next)}
       />
     </div>
   )

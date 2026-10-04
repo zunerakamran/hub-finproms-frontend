@@ -34,7 +34,7 @@ export default function SupportTicketsQueue() {
     setError('')
     api
       .supportTicketsAdminList(
-        { per_page: 100, status: appliedStatus || undefined },
+        { per_page: 50, status: appliedStatus || undefined },
         { asPowerAdmin }
       )
       .then((data) => {

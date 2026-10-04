@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, setToken } from '../api/client'
+import { authQueryKey, hubBootQueryKey, queryClient } from '../queryClient'
 
 const AuthContext = createContext(null)
 
@@ -54,9 +55,16 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async ({ force = false } = {}) => {
     try {
-      const data = await api.me()
+      if (force) {
+        await queryClient.invalidateQueries({ queryKey: authQueryKey })
+      }
+      const data = await queryClient.fetchQuery({
+        queryKey: authQueryKey,
+        queryFn: () => api.me(),
+        staleTime: 60_000,
+      })
       setUser(data.user)
       if (data.power_admin_capabilities) {
         setPowerCapabilities(data.power_admin_capabilities)
@@ -78,6 +86,7 @@ export function AuthProvider({ children }) {
         setToken(null)
         setUser(null)
         setPowerCapabilities({})
+        queryClient.removeQueries({ queryKey: authQueryKey })
       }
       return null
     }
@@ -89,6 +98,12 @@ export function AuthProvider({ children }) {
       setLoading(false)
       return
     }
+    // Prefetch hub in parallel with /auth/me so boot waits on max(me, hub), not me+hub.
+    queryClient.prefetchQuery({
+      queryKey: hubBootQueryKey,
+      queryFn: () => api.currentHub(),
+      staleTime: 60_000,
+    })
     refreshUser().finally(() => setLoading(false))
   }, [refreshUser])
 
@@ -99,6 +114,7 @@ export function AuthProvider({ children }) {
     }
     setToken(data.token)
     setUser(data.user)
+    queryClient.setQueryData(authQueryKey, data)
     if (data.user?.role === 'power_admin') {
       try {
         const caps = await api.powerAdminCapabilitiesMe()
@@ -116,6 +132,7 @@ export function AuthProvider({ children }) {
     const data = await api.verifyLoginOtp(payload)
     setToken(data.token)
     setUser(data.user)
+    queryClient.setQueryData(authQueryKey, data)
     if (data.user?.role === 'power_admin') {
       try {
         const caps = await api.powerAdminCapabilitiesMe()
@@ -135,6 +152,7 @@ export function AuthProvider({ children }) {
     if (data?.token) {
       setToken(data.token)
       setUser(data.user)
+      queryClient.setQueryData(authQueryKey, data)
       setPowerCapabilities({})
     }
     return data
@@ -144,6 +162,7 @@ export function AuthProvider({ children }) {
     const data = await api.verifyEmail(payload)
     setToken(data.token)
     setUser(data.user)
+    queryClient.setQueryData(authQueryKey, data)
     setPowerCapabilities({})
     return data.user
   }, [setUser, setPowerCapabilities])
@@ -157,6 +176,7 @@ export function AuthProvider({ children }) {
     setToken(null)
     setUser(null)
     setPowerCapabilities({})
+    queryClient.clear()
   }, [setUser, setPowerCapabilities])
 
   const canPower = useCallback(

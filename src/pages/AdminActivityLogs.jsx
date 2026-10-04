@@ -242,7 +242,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           const data = await api.activityLogReport(queryParams(), apiOpts)
           if (!cancelled) setReport(data.report || null)
         } else {
-          const data = await api.activityLogs({ ...queryParams(), per_page: 100, page: 1 }, apiOpts)
+          const data = await api.activityLogs({ ...queryParams(), per_page: 50, page: 1 }, apiOpts)
           if (!cancelled) {
             setLogs(data.data || [])
             setMeta(data.meta || null)

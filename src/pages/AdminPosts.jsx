@@ -90,7 +90,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
     try {
       const [postsRes, typesRes, catsRes, tagsRes] = isActingRemotely
         ? await Promise.all([
-            api.hubContentPosts({ per_page: 100 }, apiOpts),
+            api.hubContentPosts({ per_page: 50 }, apiOpts),
             api.hubContentTypes(apiOpts),
             api.hubContentCategories(apiOpts),
             api.hubContentTags(apiOpts),
@@ -98,7 +98,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
         : await Promise.all([
             api.adminPosts(
               {
-                per_page: 100,
+                per_page: 50,
                 ...(isCentralPosts && statusFilter !== 'all' ? { status: statusFilter } : {}),
                 ...(isCentralPosts && sourceFilter ? { source: sourceFilter } : {}),
                 ...(isCentralPosts && typeFilter ? { type: typeFilter } : {}),

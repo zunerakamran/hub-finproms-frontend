@@ -28,6 +28,34 @@ function copyHtaccess() {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), copyHtaccess()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react-quill') || id.includes('quill')) {
+              return 'quill'
+            }
+            if (id.includes('dompurify')) {
+              return 'dompurify'
+            }
+            if (
+              id.includes('react-dom')
+              || id.includes('react-router')
+              || id.includes('/react/')
+              || id.includes('\\react\\')
+            ) {
+              return 'react-vendor'
+            }
+          }
+          if (id.includes('/src/websiteCompliance/') || id.includes('\\src\\websiteCompliance\\')) {
+            return 'website-compliance'
+          }
+          return undefined
+        },
+      },
+    },
+  },
   server: {
     // Desktop / OneDrive / antivirus often touch file mtimes and force full page reloads.
     watch: {

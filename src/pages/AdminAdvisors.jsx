@@ -126,7 +126,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     }
     setUploading(true)
     setError('')
-    setMessage('')
+    setMessage('Import queued… processing in the background.')
     setResult(null)
     setQuote(null)
     setBankResult(null)

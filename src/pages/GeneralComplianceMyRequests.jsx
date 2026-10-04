@@ -27,7 +27,7 @@ export default function GeneralComplianceMyRequests() {
     setLoading(true)
     setError('')
     api
-      .generalComplianceMine({ per_page: 100 })
+      .generalComplianceMine({ per_page: 50 })
       .then((data) => {
         if (!cancelled) setItems(data.data || [])
       })

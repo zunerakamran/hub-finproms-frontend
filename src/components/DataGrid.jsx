@@ -278,6 +278,8 @@ export default function DataGrid({
   loading = false,
   emptyMessage = 'No records found.',
   pageSize = 10,
+  /** When true, render all filtered rows and omit the client pager (use server paging outside). */
+  hidePagination = false,
   getRowKey = (row) => row.id,
   rowLink,
   rowLinkState,
@@ -308,7 +310,9 @@ export default function DataGrid({
     : columns
 
   const layouts = allColumns.map((col) => resolveColumnLayout(col))
-  const grid = useClientDataGrid(rows, allColumns, { pageSize })
+  const grid = useClientDataGrid(rows, allColumns, {
+    pageSize: hidePagination ? Math.max(rows?.length || 1, pageSize) : pageSize,
+  })
 
   if (loading) {
     return <div className="state">Loading...</div>
@@ -479,13 +483,15 @@ export default function DataGrid({
         </table>
       </div>
 
-      <DataGridPagination
-        page={grid.page}
-        totalPages={grid.totalPages}
-        totalItems={grid.totalItems}
-        pageSize={grid.pageSize}
-        onPageChange={grid.setPage}
-      />
+      {hidePagination ? null : (
+        <DataGridPagination
+          page={grid.page}
+          totalPages={grid.totalPages}
+          totalItems={grid.totalItems}
+          pageSize={grid.pageSize}
+          onPageChange={grid.setPage}
+        />
+      )}
     </div>
   )
 }

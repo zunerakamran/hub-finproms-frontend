@@ -1,3 +1,5 @@
+import { pollJobStatus } from './pollJob'
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
 
 function getToken() {
@@ -274,13 +276,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({}),
     }),
-  importCentralLibraryPosts: (file, options = {}) => {
+  importCentralLibraryPosts: async (file, options = {}) => {
+    const base = adminBase(options)
     const formData = new FormData()
     formData.append('file', file)
-    return request(`${adminBase(options)}/central-library/posts/import`, {
+    const queued = await request(`${base}/central-library/posts/import`, {
       method: 'POST',
       body: formData,
     })
+    if (!queued?.queued || !queued?.job_id) return queued
+    return pollJobStatus(() => request(`${base}/central-library/posts/import/${queued.job_id}`))
   },
   centralLibraryTemplateUrl: (options = {}) => {
     const basePath = adminBase(options)
@@ -291,11 +296,15 @@ export const api = {
     request(`${adminBase(options)}/central-library/ai`),
   centralLibraryTargets: (options = {}) =>
     request(`${adminBase(options)}/central-library/targets`),
-  distributeCentralLibraryPosts: (payload, options = {}) =>
-    request(`${adminBase(options)}/central-library/distribute`, {
+  distributeCentralLibraryPosts: async (payload, options = {}) => {
+    const base = adminBase(options)
+    const queued = await request(`${base}/central-library/distribute`, {
       method: 'POST',
       body: JSON.stringify(payload),
-    }),
+    })
+    if (!queued?.queued || !queued?.job_id) return queued
+    return pollJobStatus(() => request(`${base}/central-library/distribute/${queued.job_id}`))
+  },
 
   contentPushTargets: (options = {}) =>
     request(`${adminBase(options)}/content-push/targets`),
@@ -307,11 +316,15 @@ export const api = {
   },
   contentPushRecent: (options = {}) =>
     request(`${adminBase(options)}/content-push/recent`),
-  contentPush: (payload, options = {}) =>
-    request(`${adminBase(options)}/content-push`, {
+  contentPush: async (payload, options = {}) => {
+    const base = adminBase(options)
+    const queued = await request(`${base}/content-push`, {
       method: 'POST',
       body: JSON.stringify(payload),
-    }),
+    })
+    if (!queued?.queued || !queued?.job_id) return queued
+    return pollJobStatus(() => request(`${base}/content-push/${queued.job_id}`))
+  },
   contentPushTestConnection: (hubId, options = {}) =>
     request(`${adminBase(options)}/content-push/hubs/${hubId}/test-connection`, {
       method: 'POST',
@@ -519,11 +532,19 @@ export const api = {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/advisors/${advisorId}/discontinue`, { method: 'POST' })
   },
-  importAdvisors: (file, options = {}) => {
+  importAdvisors: async (file, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const formData = new FormData()
     formData.append('file', file)
-    return request(`${base}/advisors/import`, { method: 'POST', body: formData })
+    const queued = await request(`${base}/advisors/import`, { method: 'POST', body: formData })
+    if (!queued?.queued || !queued?.job_id) {
+      return queued
+    }
+    return pollJobStatus(() => request(`${base}/advisors/import/${queued.job_id}`))
+  },
+  advisorImportStatus: (jobId, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/advisors/import/${jobId}`)
   },
   advisorTemplateUrl: (options = {}) => {
     const basePath = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN

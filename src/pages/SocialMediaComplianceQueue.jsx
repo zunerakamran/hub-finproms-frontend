@@ -43,7 +43,7 @@ export default function SocialMediaComplianceQueue() {
     setError('')
 
     const params = {
-      per_page: 100,
+      per_page: 50,
       status: appliedStatus || undefined,
     }
 

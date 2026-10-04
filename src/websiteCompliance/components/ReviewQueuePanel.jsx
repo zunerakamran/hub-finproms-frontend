@@ -6,8 +6,11 @@ import { useAuth } from '../../context/AuthContext'
 import { useHub } from '../../context/HubContext'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGrid'
 import WcStatusBadge from '../../components/WebsiteComplianceUI'
+import Pagination from './Pagination'
 import { formatDateTime, complianceStatusChangedAt } from '../../utils/dateFormat'
 import { gridActorName } from '../../utils/submissionAttribution'
+
+const PAGE_SIZE = 20
 
 function getRequestSections(req) {
   if (req.section?.name) {
@@ -47,44 +50,61 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
     String(user?.role || '') !== 'approver'
 
   const [requests, setRequests] = useState([])
+  const [meta, setMeta] = useState({ current_page: 1, last_page: 1, per_page: PAGE_SIZE, total: 0 })
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [pickingId, setPickingId] = useState(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  const fetchRequests = useCallback(async (isRefresh = false) => {
+  useEffect(() => {
+    setPage(1)
+  }, [variant])
+
+  const fetchRequests = useCallback(async (isRefresh = false, pageArg = page) => {
     if (isRefresh) setRefreshing(true)
     else setLoading(true)
     setError('')
     try {
-      const res = await api.get('/change-requests')
-      setRequests(res.data)
+      const params =
+        variant === 'active'
+          ? { unassigned_only: 1, per_page: PAGE_SIZE, page: pageArg }
+          : {
+              history_only: 1,
+              per_page: PAGE_SIZE,
+              page: pageArg,
+              ...(canViewAll ? {} : { mine_as_approver: 1 }),
+            }
+      const res = await api.get('/change-requests', { params })
+      setRequests(Array.isArray(res.data) ? res.data : res.data?.data || [])
+      setMeta(
+        res.meta || {
+          current_page: pageArg,
+          last_page: 1,
+          per_page: PAGE_SIZE,
+          total: Array.isArray(res.data) ? res.data.length : 0,
+        }
+      )
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load requests.')
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [variant, page, canViewAll])
 
   useEffect(() => {
-    fetchRequests()
-  }, [fetchRequests])
+    fetchRequests(false, page)
+  }, [fetchRequests, page])
 
   const filteredRequests = useMemo(() => {
-    // Review: unassigned pending only. History: picked / in-progress / completed.
-    let list =
-      variant === 'history'
-        ? requests.filter((r) => !isPickupPool(r))
-        : requests.filter((r) => isPickupPool(r))
-
-    if (variant === 'history' && !canViewAll) {
-      list = list.filter((r) => Number(r.approver_id) === Number(user?.id))
+    // Server already scopes active/history; keep a light safety filter for active.
+    if (variant === 'active') {
+      return requests.filter((r) => isPickupPool(r))
     }
-
-    return list
-  }, [requests, variant, canViewAll, user?.id])
+    return requests
+  }, [requests, variant])
 
   const handlePick = useCallback(
     async (req) => {
@@ -156,41 +176,23 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
         filterValue: (row) => gridActorName(row, 'editor'),
       },
       {
-        key: 'firm',
-        label: 'Firm',
-        render: (row) => row.editor?.firm?.name || '—',
-        filterValue: (row) => row.editor?.firm?.name || '',
-      },
-      {
         key: 'status',
         label: 'Status',
-        fit: true,
         render: (row) => (
-          <WcStatusBadge
-            status={row.status}
-            at={
-              complianceStatusChangedAt(row) ||
-              row.reviewed_at ||
-              row.scheduled_at ||
-              row.updated_at ||
-              row.created_at
-            }
-          />
+          <WcStatusBadge status={row.status} label={complianceStatusLabel(row.status)} />
         ),
-        filterValue: (row) =>
-          [
-            complianceStatusLabel(row.status) || row.status,
-            formatDateTime(
-              complianceStatusChangedAt(row) ||
-                row.reviewed_at ||
-                row.scheduled_at ||
-                row.updated_at ||
-                row.created_at,
-              ''
-            ),
-          ]
-            .filter(Boolean)
-            .join(' '),
+        filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
+      },
+      {
+        key: 'status_changed',
+        label: 'Status changed',
+        date: true,
+        render: (row) => <DataGridDate value={complianceStatusChangedAt(row)} />,
+        filterValue: (row) => formatDateTime(complianceStatusChangedAt(row), ''),
+        sortValue: (row) => {
+          const v = complianceStatusChangedAt(row)
+          return v ? new Date(v).getTime() : 0
+        },
         truncate: false,
       },
       {
@@ -229,7 +231,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
         <button
           type="button"
           className="btn ghost"
-          onClick={() => fetchRequests(true)}
+          onClick={() => fetchRequests(true, page)}
           disabled={refreshing || loading}
         >
           <FaSync aria-hidden style={{ marginRight: 6 }} />
@@ -241,7 +243,8 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
         columns={columns}
         rows={filteredRequests}
         loading={loading}
-        pageSize={10}
+        pageSize={PAGE_SIZE}
+        hidePagination
         emptyMessage={
           variant === 'history'
             ? canViewAll
@@ -273,6 +276,13 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
             </>
           )
         }}
+      />
+
+      <Pagination
+        currentPage={meta.current_page || page}
+        totalItems={meta.total || 0}
+        pageSize={meta.per_page || PAGE_SIZE}
+        onPageChange={(next) => setPage(next)}
       />
     </div>
   )

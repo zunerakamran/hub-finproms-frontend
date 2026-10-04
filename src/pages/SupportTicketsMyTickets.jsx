@@ -26,7 +26,7 @@ export default function SupportTicketsMyTickets() {
     setLoading(true)
     setError('')
     api
-      .supportTicketsMine({ per_page: 100 })
+      .supportTicketsMine({ per_page: 50 })
       .then((data) => {
         if (!cancelled) setItems(data.data || [])
       })

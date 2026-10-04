@@ -589,7 +589,7 @@ export default function ChangeRequestAssignmentPanel({
   )
 
   const fetchRequests = useCallback(async () => {
-    const data = await hubApi.websiteComplianceChangeRequests()
+    const data = await hubApi.websiteComplianceChangeRequests({ per_page: 100 })
     const list = Array.isArray(data) ? data : data?.data || []
     setRequests(list)
     return list

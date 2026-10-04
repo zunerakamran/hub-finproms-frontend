@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
+import { hubBootQueryKey, hubQueryKey, queryClient } from '../queryClient'
 import { useAuth } from './AuthContext'
 import { roleLabel as resolveRoleLabel, roleLabelsMap } from '../utils/roleLabels'
 import {
@@ -73,7 +74,7 @@ export function HubProvider({ children }) {
     })
   }, [])
 
-  const refreshHub = useCallback(async ({ silent = false, withLoader = false } = {}) => {
+  const refreshHub = useCallback(async ({ silent = false, withLoader = false, force = false } = {}) => {
     // Keep existing UI mounted during background refreshes.
     if (withLoader) {
       setHubRefreshing(true)
@@ -81,35 +82,61 @@ export function HubProvider({ children }) {
       setLoading(true)
     }
     try {
-      const data = await api.currentHub()
-      let nextHub = data.hub
-
-      // Head of Firm / member grants: always reconcile from my-rights so Documents
-      // unlocks for any role (manager, advisor, approver, …) even if /hub omitted rights.
-      if (user) {
-        try {
-          const mine = await api.firmDocumentsMyRights()
-          if (mine?.rights) {
-            const rights = mine.rights
-            const caps = { ...(nextHub.effective_capabilities || {}) }
-            // Appointment as Head (or grants / matrix) unlocks Firm documents.
-            if (rights.is_firm_head || rights.can_view) caps.firm_documents_view = true
-            if (rights.is_firm_head || rights.can_add) caps.firm_documents_add = true
-            if (rights.is_firm_head || rights.can_delete) caps.firm_documents_delete = true
-            if (rights.is_firm_head || rights.can_archive) caps.firm_documents_archive = true
-            nextHub = {
-              ...nextHub,
-              firm_document_rights: rights,
-              effective_capabilities: caps,
-            }
-          }
-        } catch {
-          // Hub payload alone is enough when my-rights is unavailable.
-        }
+      const key = hubQueryKey(user?.id ?? 'guest')
+      if (force) {
+        await queryClient.invalidateQueries({ queryKey: key })
+        await queryClient.invalidateQueries({ queryKey: hubBootQueryKey })
       }
 
+      const data = await queryClient.fetchQuery({
+        queryKey: key,
+        queryFn: async () => {
+          // Reuse boot prefetch when present so /hub is not waited on after /auth/me.
+          return queryClient.ensureQueryData({
+            queryKey: hubBootQueryKey,
+            queryFn: () => api.currentHub(),
+            staleTime: 60_000,
+          })
+        },
+        staleTime: withLoader || force ? 0 : 60_000,
+      })
+
+      // Keep boot cache aligned after forced refreshes (hub switch / checklist saves).
+      queryClient.setQueryData(hubBootQueryKey, { hub: data.hub })
+
+      const nextHub = data.hub
       setHub(nextHub)
       setError('')
+
+      // Firm-document rights must not block first paint / AppBootGate.
+      if (user) {
+        void api
+          .firmDocumentsMyRights()
+          .then((mine) => {
+            if (!mine?.rights) return
+            const rights = mine.rights
+            setHub((prev) => {
+              if (!prev) return prev
+              const caps = { ...(prev.effective_capabilities || {}) }
+              if (rights.is_firm_head || rights.can_view) caps.firm_documents_view = true
+              if (rights.is_firm_head || rights.can_add) caps.firm_documents_add = true
+              if (rights.is_firm_head || rights.can_delete) caps.firm_documents_delete = true
+              if (rights.is_firm_head || rights.can_archive) caps.firm_documents_archive = true
+              const merged = {
+                ...prev,
+                firm_document_rights: rights,
+                effective_capabilities: caps,
+              }
+              queryClient.setQueryData(key, { hub: merged })
+              queryClient.setQueryData(hubBootQueryKey, { hub: merged })
+              return merged
+            })
+          })
+          .catch(() => {
+            // Hub payload alone is enough when my-rights is unavailable.
+          })
+      }
+
       return nextHub
     } catch (err) {
       setError(err.message || 'Failed to load hub')
@@ -123,6 +150,18 @@ export function HubProvider({ children }) {
   }, [setHub, user])
 
   useEffect(() => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null
+
+    // With a session token, start hub load immediately (parallel with /auth/me).
+    if (authLoading && !token) return
+
+    if (token && authLoading && !user) {
+      if (lastIdentityRef.current === 'pending' && hubRef.current) return
+      lastIdentityRef.current = 'pending'
+      refreshHub({ silent: Boolean(hubRef.current) })
+      return
+    }
+
     if (authLoading) return
 
     const identity = `${user?.id ?? 'guest'}:${user?.role ?? ''}`
@@ -133,7 +172,7 @@ export function HubProvider({ children }) {
     lastIdentityRef.current = identity
 
     refreshHub({ silent: Boolean(hubRef.current) })
-  }, [refreshHub, authLoading, user?.id, user?.role])
+  }, [refreshHub, authLoading, user?.id, user?.role, user])
 
   // Apply hub branding (colour scheme from Settings) across the whole app.
   useEffect(() => {
@@ -356,9 +395,9 @@ export function HubProvider({ children }) {
             }
           })
           // Reload so firm_document_rights / Head unlock track the selected hub.
-          await refreshHub({ silent: true })
+          await refreshHub({ silent: true, force: true })
         } else {
-          await refreshHub({ silent: true })
+          await refreshHub({ silent: true, force: true })
         }
         return data
       } finally {
@@ -438,7 +477,7 @@ export function HubProvider({ children }) {
           hub?.effective_role || actingAdvisorSwitcher?.effective_role || user?.role || null,
         setActingAdvisor: async (advisorId) => {
           const data = await api.setActingAdvisor(advisorId)
-          await refreshHub({ silent: true })
+          await refreshHub({ silent: true, force: true })
           return data
         },
       }

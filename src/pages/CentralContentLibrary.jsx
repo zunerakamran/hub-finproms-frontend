@@ -63,7 +63,7 @@ export default function CentralContentLibrary() {
     setError('')
     try {
       const [postsRes, typesRes, catsRes, tagsRes, targetsRes] = await Promise.all([
-        api.centralLibraryPosts({ per_page: 100 }, apiOpts),
+        api.centralLibraryPosts({ per_page: 50 }, apiOpts),
         api.listTypes().catch(() => ({ types: [] })),
         api.listCategories().catch(() => ({ categories: [] })),
         api.listTags().catch(() => ({ tags: [] })),
@@ -185,7 +185,7 @@ export default function CentralContentLibrary() {
     setError('')
     setMessage('')
     try {
-      const data = await api.importCentralLibraryPosts(file, apiOpts)
+      const data = await api.importCentralLibraryPosts(file, apiOpts) // polls queued job
       setMessage(data.message || 'Import finished.')
       setFile(null)
       setTab('distribute')

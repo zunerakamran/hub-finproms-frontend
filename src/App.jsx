@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import HubCapabilityRoute from './components/HubCapabilityRoute'
 import Layout from './components/Layout'
@@ -8,94 +9,97 @@ import { AuthProvider } from './context/AuthContext'
 import { HubProvider } from './context/HubContext'
 import AppBootGate from './components/AppBootGate'
 import TermsGate from './components/TermsGate'
-import AdminBankTransfers from './pages/AdminBankTransfers'
-import AdminAdvisors from './pages/AdminAdvisors'
-import AdminActivityLogs from './pages/AdminActivityLogs'
-import AdminActiveSessions from './pages/AdminActiveSessions'
-import AdminAdvisorInvoices from './pages/AdminAdvisorInvoices'
-import AdminAdvisorRenewal from './pages/AdminAdvisorRenewal'
-import AdminModuleInvoices from './pages/AdminModuleInvoices'
-import AdminModulePricing from './pages/AdminModulePricing'
-import AdminSubscriberCredits from './pages/AdminSubscriberCredits'
-import AdminBundles from './pages/AdminBundles'
-import AdminCategories from './pages/AdminCategories'
-import AdminFirms from './pages/AdminFirms'
-import FirmDocuments from './pages/FirmDocuments'
-import AdminPaymentCard from './pages/AdminPaymentCard'
-import AdminPaymentCardSuccess from './pages/AdminPaymentCardSuccess'
-import AdminPlans from './pages/AdminPlans'
-import AdminPosts from './pages/AdminPosts'
-import CentralContentLibrary from './pages/CentralContentLibrary'
-import AdminSettings from './pages/AdminSettings'
-import AdminTerms from './pages/AdminTerms'
-import AdminRoleDisplayNames from './pages/AdminRoleDisplayNames'
-import AdminComplianceStatusDisplayNames from './pages/AdminComplianceStatusDisplayNames'
-import AdminEmailTemplates from './pages/AdminEmailTemplates'
-import AdminEmailTemplateEdit from './pages/AdminEmailTemplateEdit'
-import AdminTags from './pages/AdminTags'
-import AdminTypes from './pages/AdminTypes'
-import AdvisorBillingSuccess from './pages/AdvisorBillingSuccess'
-import BankTransferPending from './pages/BankTransferPending'
-import BundleDetail from './pages/BundleDetail'
-import Bundles from './pages/Bundles'
-import ContentPurchaseSuccess from './pages/ContentPurchaseSuccess'
-import SocialMediaComplianceMyRequests from './pages/SocialMediaComplianceMyRequests'
-import SocialMediaComplianceQueue from './pages/SocialMediaComplianceQueue'
-import SocialMediaComplianceReports from './pages/SocialMediaComplianceReports'
-import SocialMediaComplianceRequestDetail from './pages/SocialMediaComplianceRequestDetail'
-import SocialMediaComplianceSubmit from './pages/SocialMediaComplianceSubmit'
-import GeneralComplianceMyRequests from './pages/GeneralComplianceMyRequests'
-import GeneralComplianceQueue from './pages/GeneralComplianceQueue'
-import GeneralComplianceReports from './pages/GeneralComplianceReports'
-import GeneralComplianceRequestDetail from './pages/GeneralComplianceRequestDetail'
-import GeneralComplianceSubmit from './pages/GeneralComplianceSubmit'
-import AdminGcContentTypes from './pages/AdminGcContentTypes'
-import SupportTicketsMyTickets from './pages/SupportTicketsMyTickets'
-import SupportTicketSubmit from './pages/SupportTicketSubmit'
-import SupportTicketsQueue from './pages/SupportTicketsQueue'
-import SupportTicketDetail from './pages/SupportTicketDetail'
-import WebsiteComplianceDeployments from './pages/WebsiteComplianceDeployments'
-import WebsiteComplianceHome from './pages/WebsiteComplianceHome'
-import WebsiteCompliancePublish from './pages/WebsiteCompliancePublish'
-import WebsiteCompliancePublishLive from './pages/WebsiteCompliancePublishLive'
-import WebsiteComplianceQueue from './pages/WebsiteComplianceQueue'
-import WebsiteComplianceReports from './pages/WebsiteComplianceReports'
-import WebsiteComplianceRequestSite from './pages/WebsiteComplianceRequestSite'
-import WebsiteComplianceMySites from './pages/WebsiteComplianceMySites'
-import WebsiteComplianceGoLive from './pages/WebsiteComplianceGoLive'
-import WebsiteComplianceContentEditor from './pages/WebsiteComplianceContentEditor'
-import WebsiteComplianceMyRequests from './pages/WebsiteComplianceMyRequests'
-import WebsiteComplianceRequestDetail from './pages/WebsiteComplianceRequestDetail'
-import WebsiteComplianceAssignRequests from './pages/WebsiteComplianceAssignRequests'
-import WebsiteComplianceReviewQueue from './pages/WebsiteComplianceReviewQueue'
-import WebsiteComplianceRequestHistory from './pages/WebsiteComplianceRequestHistory'
-import InvoiceDetail from './pages/InvoiceDetail'
-import Login from './pages/Login'
-import MyCredits from './pages/MyCredits'
-import MyDashboard from './pages/MyDashboard'
-import MyInvoices from './pages/MyInvoices'
-import MyPurchases from './pages/MyPurchases'
-import MySubscription from './pages/MySubscription'
-import Profile from './pages/Profile'
-import PostDetail from './pages/PostDetail'
-import Posts from './pages/Posts'
-import PowerAdminCapabilities from './pages/PowerAdminCapabilities'
-import PowerAdminChecklist from './pages/PowerAdminChecklist'
-import PowerAdminModules from './pages/PowerAdminModules'
-import PowerAdminHubDetail from './pages/PowerAdminHubDetail'
-import PowerAdminHubs from './pages/PowerAdminHubs'
-import PowerAdminPaymentMethods from './pages/PowerAdminPaymentMethods'
-import PowerAdminUsers from './pages/PowerAdminUsers'
-import Register from './pages/Register'
-import ForgotPassword from './pages/ForgotPassword'
-import ResetPassword from './pages/ResetPassword'
-import VerifyEmail from './pages/VerifyEmail'
-import SubscriptionDetail from './pages/SubscriptionDetail'
-import SubscriptionSuccess from './pages/SubscriptionSuccess'
-import Subscriptions from './pages/Subscriptions'
-import HomeRoute from './components/HomeRoute'
 import './App.css'
 import './shell.css'
+import PageLoader from './components/PageLoader'
+
+const AdminBankTransfers = lazy(() => import('./pages/AdminBankTransfers'))
+const AdminAdvisors = lazy(() => import('./pages/AdminAdvisors'))
+const AdminActivityLogs = lazy(() => import('./pages/AdminActivityLogs'))
+const AdminActiveSessions = lazy(() => import('./pages/AdminActiveSessions'))
+const AdminAdvisorInvoices = lazy(() => import('./pages/AdminAdvisorInvoices'))
+const AdminAdvisorRenewal = lazy(() => import('./pages/AdminAdvisorRenewal'))
+const AdminModuleInvoices = lazy(() => import('./pages/AdminModuleInvoices'))
+const AdminModulePricing = lazy(() => import('./pages/AdminModulePricing'))
+const AdminSubscriberCredits = lazy(() => import('./pages/AdminSubscriberCredits'))
+const AdminBundles = lazy(() => import('./pages/AdminBundles'))
+const AdminCategories = lazy(() => import('./pages/AdminCategories'))
+const AdminFirms = lazy(() => import('./pages/AdminFirms'))
+const FirmDocuments = lazy(() => import('./pages/FirmDocuments'))
+const AdminPaymentCard = lazy(() => import('./pages/AdminPaymentCard'))
+const AdminPaymentCardSuccess = lazy(() => import('./pages/AdminPaymentCardSuccess'))
+const AdminPlans = lazy(() => import('./pages/AdminPlans'))
+const AdminPosts = lazy(() => import('./pages/AdminPosts'))
+const CentralContentLibrary = lazy(() => import('./pages/CentralContentLibrary'))
+const AdminSettings = lazy(() => import('./pages/AdminSettings'))
+const AdminTerms = lazy(() => import('./pages/AdminTerms'))
+const AdminRoleDisplayNames = lazy(() => import('./pages/AdminRoleDisplayNames'))
+const AdminComplianceStatusDisplayNames = lazy(() => import('./pages/AdminComplianceStatusDisplayNames'))
+const AdminEmailTemplates = lazy(() => import('./pages/AdminEmailTemplates'))
+const AdminEmailTemplateEdit = lazy(() => import('./pages/AdminEmailTemplateEdit'))
+const AdminTags = lazy(() => import('./pages/AdminTags'))
+const AdminTypes = lazy(() => import('./pages/AdminTypes'))
+const AdvisorBillingSuccess = lazy(() => import('./pages/AdvisorBillingSuccess'))
+const BankTransferPending = lazy(() => import('./pages/BankTransferPending'))
+const BundleDetail = lazy(() => import('./pages/BundleDetail'))
+const Bundles = lazy(() => import('./pages/Bundles'))
+const ContentPurchaseSuccess = lazy(() => import('./pages/ContentPurchaseSuccess'))
+const SocialMediaComplianceMyRequests = lazy(() => import('./pages/SocialMediaComplianceMyRequests'))
+const SocialMediaComplianceQueue = lazy(() => import('./pages/SocialMediaComplianceQueue'))
+const SocialMediaComplianceReports = lazy(() => import('./pages/SocialMediaComplianceReports'))
+const SocialMediaComplianceRequestDetail = lazy(() => import('./pages/SocialMediaComplianceRequestDetail'))
+const SocialMediaComplianceSubmit = lazy(() => import('./pages/SocialMediaComplianceSubmit'))
+const GeneralComplianceMyRequests = lazy(() => import('./pages/GeneralComplianceMyRequests'))
+const GeneralComplianceQueue = lazy(() => import('./pages/GeneralComplianceQueue'))
+const GeneralComplianceReports = lazy(() => import('./pages/GeneralComplianceReports'))
+const GeneralComplianceRequestDetail = lazy(() => import('./pages/GeneralComplianceRequestDetail'))
+const GeneralComplianceSubmit = lazy(() => import('./pages/GeneralComplianceSubmit'))
+const AdminGcContentTypes = lazy(() => import('./pages/AdminGcContentTypes'))
+const SupportTicketsMyTickets = lazy(() => import('./pages/SupportTicketsMyTickets'))
+const SupportTicketSubmit = lazy(() => import('./pages/SupportTicketSubmit'))
+const SupportTicketsQueue = lazy(() => import('./pages/SupportTicketsQueue'))
+const SupportTicketDetail = lazy(() => import('./pages/SupportTicketDetail'))
+const WebsiteComplianceDeployments = lazy(() => import('./pages/WebsiteComplianceDeployments'))
+const WebsiteComplianceHome = lazy(() => import('./pages/WebsiteComplianceHome'))
+const WebsiteCompliancePublish = lazy(() => import('./pages/WebsiteCompliancePublish'))
+const WebsiteCompliancePublishLive = lazy(() => import('./pages/WebsiteCompliancePublishLive'))
+const WebsiteComplianceQueue = lazy(() => import('./pages/WebsiteComplianceQueue'))
+const WebsiteComplianceReports = lazy(() => import('./pages/WebsiteComplianceReports'))
+const WebsiteComplianceRequestSite = lazy(() => import('./pages/WebsiteComplianceRequestSite'))
+const WebsiteComplianceMySites = lazy(() => import('./pages/WebsiteComplianceMySites'))
+const WebsiteComplianceGoLive = lazy(() => import('./pages/WebsiteComplianceGoLive'))
+const WebsiteComplianceContentEditor = lazy(() => import('./pages/WebsiteComplianceContentEditor'))
+const WebsiteComplianceMyRequests = lazy(() => import('./pages/WebsiteComplianceMyRequests'))
+const WebsiteComplianceRequestDetail = lazy(() => import('./pages/WebsiteComplianceRequestDetail'))
+const WebsiteComplianceAssignRequests = lazy(() => import('./pages/WebsiteComplianceAssignRequests'))
+const WebsiteComplianceReviewQueue = lazy(() => import('./pages/WebsiteComplianceReviewQueue'))
+const WebsiteComplianceRequestHistory = lazy(() => import('./pages/WebsiteComplianceRequestHistory'))
+const InvoiceDetail = lazy(() => import('./pages/InvoiceDetail'))
+const Login = lazy(() => import('./pages/Login'))
+const MyCredits = lazy(() => import('./pages/MyCredits'))
+const MyDashboard = lazy(() => import('./pages/MyDashboard'))
+const MyInvoices = lazy(() => import('./pages/MyInvoices'))
+const MyPurchases = lazy(() => import('./pages/MyPurchases'))
+const MySubscription = lazy(() => import('./pages/MySubscription'))
+const Profile = lazy(() => import('./pages/Profile'))
+const PostDetail = lazy(() => import('./pages/PostDetail'))
+const Posts = lazy(() => import('./pages/Posts'))
+const PowerAdminCapabilities = lazy(() => import('./pages/PowerAdminCapabilities'))
+const PowerAdminChecklist = lazy(() => import('./pages/PowerAdminChecklist'))
+const PowerAdminModules = lazy(() => import('./pages/PowerAdminModules'))
+const PowerAdminHubDetail = lazy(() => import('./pages/PowerAdminHubDetail'))
+const PowerAdminHubs = lazy(() => import('./pages/PowerAdminHubs'))
+const PowerAdminPaymentMethods = lazy(() => import('./pages/PowerAdminPaymentMethods'))
+const PowerAdminUsers = lazy(() => import('./pages/PowerAdminUsers'))
+const Register = lazy(() => import('./pages/Register'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
+const SubscriptionDetail = lazy(() => import('./pages/SubscriptionDetail'))
+const SubscriptionSuccess = lazy(() => import('./pages/SubscriptionSuccess'))
+const Subscriptions = lazy(() => import('./pages/Subscriptions'))
+const HomeRoute = lazy(() => import('./components/HomeRoute'))
+
 
 function LegacyInvoiceRedirect() {
   const { id } = useParams()
@@ -121,6 +125,7 @@ export default function App() {
         <AppBootGate>
           <TermsGate>
           <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
             <Routes>
             {/* Home — public on shared hubs; login required on white-labelled */}
             <Route element={<Layout />}>
@@ -926,6 +931,7 @@ export default function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+            </Suspense>
         </BrowserRouter>
         </TermsGate>
         </AppBootGate>

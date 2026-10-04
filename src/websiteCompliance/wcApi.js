@@ -3,9 +3,12 @@
  * Ported dashboard code expects `res.data` and `err.response?.data`.
  */
 import { api as hubApi } from '../api/client'
+import { asList, listMeta } from '../utils/apiList'
 
-function wrap(data) {
-  return { data }
+function wrap(data, meta = null) {
+  const res = { data }
+  if (meta) res.meta = meta
+  return res
 }
 
 function rethrow(err) {
@@ -53,7 +56,13 @@ async function get(path, config = {}) {
       return wrap(await hubApi.websiteCompliancePageSections(p.split('/')[1], params))
     }
     if (/^sections\/\d+$/.test(p)) return wrap(await hubApi.websiteComplianceSection(p.split('/')[1]))
-    if (p === 'change-requests') return wrap(await hubApi.websiteComplianceChangeRequests(params))
+    if (p === 'change-requests') {
+      const payload = await hubApi.websiteComplianceChangeRequests({
+        per_page: params.per_page ?? 50,
+        ...params,
+      })
+      return wrap(asList(payload), listMeta(payload))
+    }
     if (/^change-requests\/\d+$/.test(p)) {
       return wrap(await hubApi.websiteComplianceShowChangeRequest(p.split('/')[1]))
     }
@@ -61,7 +70,13 @@ async function get(path, config = {}) {
       const id = p.split('/')[1]
       return wrap(await hubApi.websiteComplianceChangeRequestPreview(id, params))
     }
-    if (p === 'template-requests') return wrap(await hubApi.websiteComplianceTemplateRequests(params))
+    if (p === 'template-requests') {
+      const payload = await hubApi.websiteComplianceTemplateRequests({
+        per_page: 100,
+        ...params,
+      })
+      return wrap(asList(payload))
+    }
     if (/^template-requests\/\d+\/sections$/.test(p)) {
       return wrap(await hubApi.websiteComplianceTemplateRequestSections(p.split('/')[1]))
     }

@@ -1816,17 +1816,17 @@ export default function AdvisorDashboard({
   }
 
   const fetchTemplateRequests = () => {
-    api.get('/template-requests')
-      .then(res => setTemplateRequests(res.data))
+    api.get('/template-requests', { params: { per_page: 100 } })
+      .then((res) => setTemplateRequests(Array.isArray(res.data) ? res.data : res.data?.data || []))
       .catch(() => {})
   }
 
   const fetchMyChangeRequests = () => {
     if (isPowerAdminPublishMode) return
     const ownerId = effectiveAdvisorId ?? user?.id
-    api.get('/change-requests')
+    api.get('/change-requests', { params: { per_page: 100 } })
       .then((res) => {
-        const list = Array.isArray(res.data) ? res.data : []
+        const list = Array.isArray(res.data) ? res.data : res.data?.data || []
         setMyChangeRequests(
           list.filter(
             (cr) =>

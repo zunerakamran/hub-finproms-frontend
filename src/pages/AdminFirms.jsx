@@ -12,7 +12,7 @@ const emptyForm = {
   compliance_visible_to_firm_id: '',
 }
 
-const PER_PAGE = 100
+const PER_PAGE = 50
 
 function visibilityFromFirm(firm) {
   const vis = firm?.compliance_visibility || {}

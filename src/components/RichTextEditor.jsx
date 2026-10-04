@@ -1,132 +1,32 @@
-import { useMemo, useRef } from 'react'
-import ReactQuill, { Quill } from 'react-quill'
-import 'react-quill/dist/quill.snow.css'
+import { lazy, Suspense } from 'react'
 import { isRichTextEmpty, plainTextFromHtml } from '../utils/richText'
 
-// Wider default size options (closer to Word / Google Docs style editors).
-const Size = Quill.import('formats/size')
-Size.whitelist = ['small', false, 'large', 'huge']
-Quill.register(Size, true)
-
-const FULL_TOOLBAR = [
-  [{ header: [1, 2, 3, 4, false] }],
-  [{ size: ['small', false, 'large', 'huge'] }],
-  ['bold', 'italic', 'underline', 'strike'],
-  [{ color: [] }, { background: [] }],
-  [{ script: 'sub' }, { script: 'super' }],
-  [{ list: 'ordered' }, { list: 'bullet' }],
-  [{ indent: '-1' }, { indent: '+1' }],
-  [{ align: [] }],
-  ['blockquote', 'code-block'],
-  ['link', 'image'],
-  ['clean'],
-]
-
-const FULL_FORMATS = [
-  'header',
-  'size',
-  'bold',
-  'italic',
-  'underline',
-  'strike',
-  'color',
-  'background',
-  'script',
-  'list',
-  'bullet',
-  'indent',
-  'align',
-  'blockquote',
-  'code-block',
-  'link',
-  'image',
-]
+const RichTextEditorInner = lazy(() => import('./RichTextEditorInner'))
 
 /**
  * Shared rich-text editor used across the product (posts, compliance, terms, etc.).
- * Full Quill toolbar: headings, sizes, colors, lists, alignment, links, images.
- * Value is HTML string; empty Quill docs normalize to ''.
+ * Quill is code-split and only downloaded when an editor mounts.
  */
-export default function RichTextEditor({
-  value = '',
-  onChange,
-  placeholder = '',
-  rows = 4,
-  required = false,
-  className = '',
-  id,
-  disabled = false,
-}) {
-  const quillRef = useRef(null)
-  const minHeight = Math.max(120, Number(rows) * 24)
-
-  const modules = useMemo(
-    () => ({
-      toolbar: {
-        container: FULL_TOOLBAR,
-        handlers: {
-          image() {
-            const url = window.prompt('Paste image URL')
-            if (!url) return
-            const editor = quillRef.current?.getEditor?.()
-            if (!editor) return
-            const range = editor.getSelection(true)
-            editor.insertEmbed(range?.index ?? 0, 'image', url.trim(), 'user')
-            editor.setSelection((range?.index ?? 0) + 1)
-          },
-        },
-      },
-      clipboard: {
-        matchVisual: false,
-      },
-    }),
-    []
-  )
-
-  const handleChange = (html) => {
-    if (!onChange) return
-    onChange(isRichTextEmpty(html) ? '' : html)
-  }
-
-  // Quill pickers (heading/size/color/align) open then instantly close when the
-  // editor sits inside a <label>: label activation steals focus on mousedown.
-  // preventDefault stops that without blocking Quill's own click handlers.
-  const stopLabelActivation = (event) => {
-    if (event.target?.closest?.('.ql-toolbar')) {
-      event.preventDefault()
-    }
-  }
+export default function RichTextEditor(props) {
+  const minHeight = Math.max(120, Number(props.rows || 4) * 24)
 
   return (
-    <div
-      className={`rich-text-editor rich-text-editor--full ${className}`.trim()}
-      id={id}
-      data-required={required || undefined}
-      data-empty={isRichTextEmpty(value) ? 'true' : 'false'}
-      onMouseDown={stopLabelActivation}
-    >
-      <ReactQuill
-        ref={quillRef}
-        theme="snow"
-        value={value || ''}
-        onChange={handleChange}
-        modules={modules}
-        formats={FULL_FORMATS}
-        placeholder={placeholder}
-        readOnly={disabled}
-        style={{ minHeight }}
-      />
-      {required ? (
-        <input
-          tabIndex={-1}
-          aria-hidden="true"
-          className="rich-text-editor__required-proxy"
-          value={isRichTextEmpty(value) ? '' : '1'}
-          onChange={() => {}}
-          required
+    <Suspense
+      fallback={
+        <textarea
+          className={`rich-text-editor rich-text-editor--fallback ${props.className || ''}`.trim()}
+          id={props.id}
+          value={props.value || ''}
+          placeholder={props.placeholder || 'Loading editor…'}
+          disabled
+          readOnly
+          rows={props.rows || 4}
+          style={{ minHeight, width: '100%' }}
         />
-      ) : null}
-    </div>
+      }
+    >
+      <RichTextEditorInner {...props} />
+    </Suspense>
   )
 }
 

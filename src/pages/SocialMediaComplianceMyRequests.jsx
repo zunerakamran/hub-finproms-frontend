@@ -27,7 +27,7 @@ export default function SocialMediaComplianceMyRequests() {
     setLoading(true)
     setError('')
     api
-      .socialMediaComplianceMine({ per_page: 100 })
+      .socialMediaComplianceMine({ per_page: 50 })
       .then((data) => {
         if (!cancelled) setItems(data.data || [])
       })

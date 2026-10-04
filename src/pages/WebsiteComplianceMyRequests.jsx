@@ -7,6 +7,7 @@ import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import WcStatusBadge from '../components/WebsiteComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { asList } from '../utils/apiList'
 import { formatDateTime, complianceStatusChangedAt } from '../utils/dateFormat'
 import { gridActorName } from '../utils/submissionAttribution'
 import { wcSectionTitle } from '../utils/websiteCompliance'
@@ -34,10 +35,10 @@ export default function WebsiteComplianceMyRequests() {
     setLoading(true)
     setError('')
     api
-      .websiteComplianceChangeRequests()
+      .websiteComplianceChangeRequests({ per_page: 100 })
       .then((data) => {
         if (cancelled) return
-        const list = Array.isArray(data) ? data : []
+        const list = asList(data)
         // Admin-staff acting as an advisor: editor_id is the advisor; also include
         // anything they submitted on behalf of that advisor.
         const mine = list.filter((cr) => {

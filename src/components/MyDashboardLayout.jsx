@@ -24,6 +24,20 @@ export default function MyDashboardLayout() {
   const topbarRef = useRef(null)
   const dashMainRef = useRef(null)
 
+  // WC CSS is large — load only when a Website Compliance route is open.
+  useEffect(() => {
+    if (!location.pathname.includes('/website-compliance')) return undefined
+    let cancelled = false
+    import('../websiteCompliance/wc.css').catch(() => {
+      if (!cancelled) {
+        // Styles are best-effort; page remains usable without them.
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [location.pathname])
+
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = brandLogoUrl(branding, { onDark: true })
   // Remount the white content panel when the controlled hub changes so page data reloads.

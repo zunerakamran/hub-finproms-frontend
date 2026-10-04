@@ -79,7 +79,7 @@ export default function FirmDocuments() {
 
       let list = []
       try {
-        const data = await api.listFirms({ page: 1, per_page: 100 })
+        const data = await api.listFirms({ page: 1, per_page: 50 })
         list = data.firms || []
       } catch {
         list = []

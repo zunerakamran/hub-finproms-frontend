@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import DataGrid from '../components/DataGrid'
 import FileDropzone from '../components/FileDropzone'
 import MultiSelectField from '../components/MultiSelectField'
 import RequiredMark from '../components/RequiredMark'
@@ -24,13 +25,41 @@ const TABS = [
   { id: 'create', label: 'Create' },
   { id: 'ai', label: 'AI posts' },
   { id: 'distribute', label: 'Distribute' },
+  { id: 'archive', label: 'Archive' },
 ]
+
+const POSTS_PAGE_SIZE = 50
 
 function normalizeNames(list) {
   if (!Array.isArray(list)) return []
   return list
     .map((item) => (typeof item === 'string' ? item : item?.name))
     .filter((name) => typeof name === 'string' && name.trim() !== '')
+}
+
+function hubTypeLabel(type) {
+  if (type === 'white_label') return 'White-labelled'
+  if (type === 'shared') return 'Shared'
+  return type || '—'
+}
+
+function isArchivedPost(post) {
+  return Boolean(post?.archived_at || post?.is_archived)
+}
+
+function SelectCell({ checked, disabled, onChange, label }) {
+  return (
+    <label className="library-select-cell" title={label}>
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={onChange}
+        aria-label={label}
+        onClick={(e) => e.stopPropagation()}
+      />
+    </label>
+  )
 }
 
 export default function CentralContentLibrary() {
@@ -41,6 +70,8 @@ export default function CentralContentLibrary() {
   const [tab, setTab] = useState('create')
   const [createMode, setCreateMode] = useState('one')
   const [posts, setPosts] = useState([])
+  const [postsMeta, setPostsMeta] = useState({ total: 0, current_page: 1, last_page: 1 })
+  const [postsPage, setPostsPage] = useState(1)
   const [types, setTypes] = useState([])
   const [categories, setCategories] = useState([])
   const [tags, setTags] = useState([])
@@ -50,41 +81,110 @@ export default function CentralContentLibrary() {
   const [selectedHubIds, setSelectedHubIds] = useState([])
   const [archiveRemarks, setArchiveRemarks] = useState({})
   const [file, setFile] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loadingMeta, setLoadingMeta] = useState(true)
+  const [loadingPosts, setLoadingPosts] = useState(false)
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const [distributing, setDistributing] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
-  const formRef = useRef(null)
 
-  const load = async () => {
-    setLoading(true)
+  const [postSearch, setPostSearch] = useState('')
+  const [postSearchInput, setPostSearchInput] = useState('')
+  const [postSource, setPostSource] = useState('')
+  const [hubSearchInput, setHubSearchInput] = useState('')
+  const [hubsReadyOnly, setHubsReadyOnly] = useState(true)
+  const [hubTypeFilter, setHubTypeFilter] = useState('')
+  const [archiveSearch, setArchiveSearch] = useState('')
+  const [archiveSearchInput, setArchiveSearchInput] = useState('')
+  const [archiveStatus, setArchiveStatus] = useState('all')
+
+  const formRef = useRef(null)
+  const metaLoadedRef = useRef(false)
+
+  const targetHubs = useMemo(() => (Array.isArray(targets) ? targets : []), [targets])
+  const selectableTargets = useMemo(
+    () => targetHubs.filter((item) => item.eligible),
+    [targetHubs]
+  )
+
+  const filteredHubs = useMemo(() => {
+    const q = hubSearchInput.trim().toLowerCase()
+    return targetHubs.filter((item) => {
+      if (hubsReadyOnly && !item.eligible) return false
+      if (hubTypeFilter && item.type !== hubTypeFilter) return false
+      if (!q) return true
+      const hay = `${item.name || ''} ${item.type || ''} ${item.reason || ''}`.toLowerCase()
+      return hay.includes(q)
+    })
+  }, [targetHubs, hubSearchInput, hubsReadyOnly, hubTypeFilter])
+
+  const filteredSelectableHubIds = useMemo(
+    () => filteredHubs.filter((item) => item.eligible).map((item) => item.id),
+    [filteredHubs]
+  )
+
+  const loadMeta = useCallback(async () => {
+    setLoadingMeta(true)
     setError('')
     try {
-      const [postsRes, typesRes, catsRes, tagsRes, targetsRes] = await Promise.all([
-        api.centralLibraryPosts({ per_page: 50 }, apiOpts),
+      const opts = { asPowerAdmin: isPowerAdmin }
+      const [typesRes, catsRes, tagsRes, targetsRes] = await Promise.all([
         api.listTypes().catch(() => ({ types: [] })),
         api.listCategories().catch(() => ({ categories: [] })),
         api.listTags().catch(() => ({ tags: [] })),
-        api.centralLibraryTargets(apiOpts),
+        api.centralLibraryTargets(opts),
       ])
-      setPosts(postsRes.data || [])
       setTypes(typesRes.types || [])
       setCategories(catsRes.categories || [])
       setTags(tagsRes.tags || [])
       const nextTargets = targetsRes.hubs || []
       setTargets(nextTargets)
-      const readyIds = new Set(
-        nextTargets.filter((hub) => hub.eligible).map((hub) => hub.id)
-      )
+      const readyIds = new Set(nextTargets.filter((item) => item.eligible).map((item) => item.id))
       setSelectedHubIds((prev) => prev.filter((id) => readyIds.has(id)))
+      metaLoadedRef.current = true
     } catch (err) {
       setError(err.message)
     } finally {
-      setLoading(false)
+      setLoadingMeta(false)
     }
-  }
+  }, [isPowerAdmin])
+
+  const loadPosts = useCallback(
+    async (overrideTab) => {
+      const activeTab = overrideTab || tab
+      if (activeTab !== 'distribute' && activeTab !== 'archive') return
+      setLoadingPosts(true)
+      setError('')
+      try {
+        const opts = { asPowerAdmin: isPowerAdmin }
+        const params = {
+          per_page: POSTS_PAGE_SIZE,
+          page: postsPage,
+        }
+        if (activeTab === 'distribute') {
+          params.status = 'active'
+          if (postSearch.trim()) params.search = postSearch.trim()
+          if (postSource) params.source = postSource
+        } else {
+          if (archiveStatus !== 'all') params.status = archiveStatus
+          if (archiveSearch.trim()) params.search = archiveSearch.trim()
+        }
+        const postsRes = await api.centralLibraryPosts(params, opts)
+        setPosts(postsRes.data || [])
+        setPostsMeta({
+          total: postsRes.total ?? (postsRes.data || []).length,
+          current_page: postsRes.current_page ?? postsPage,
+          last_page: postsRes.last_page ?? 1,
+        })
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoadingPosts(false)
+      }
+    },
+    [tab, postsPage, postSearch, postSource, archiveSearch, archiveStatus, isPowerAdmin]
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -105,23 +205,39 @@ export default function CentralContentLibrary() {
   useEffect(() => {
     if (isActingRemotely) return
     if (!can('dashboard_central_content_library')) return
-    load()
+    loadMeta()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, isActingRemotely, hub?.effective_capabilities?.dashboard_central_content_library])
+  }, [isActingRemotely, hub?.effective_capabilities?.dashboard_central_content_library])
 
-  const archivedPosts = useMemo(
-    () => posts.filter((post) => post.archived_at || post.is_archived),
-    [posts]
-  )
-  const livePosts = useMemo(
-    () => posts.filter((post) => !post.archived_at && !post.is_archived),
-    [posts]
-  )
-  const targetHubs = useMemo(() => (Array.isArray(targets) ? targets : []), [targets])
-  const selectableTargets = useMemo(
-    () => targetHubs.filter((hub) => hub.eligible),
-    [targetHubs]
-  )
+  useEffect(() => {
+    if (isActingRemotely) return
+    if (!can('dashboard_central_content_library')) return
+    if (tab !== 'distribute' && tab !== 'archive') return
+    loadPosts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, postsPage, postSearch, postSource, archiveSearch, archiveStatus, isActingRemotely])
+
+  useEffect(() => {
+    if (tab !== 'distribute') return
+    const timer = setTimeout(() => {
+      setPostsPage(1)
+      setPostSearch(postSearchInput.trim())
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [postSearchInput, tab])
+
+  useEffect(() => {
+    if (tab !== 'archive') return
+    const timer = setTimeout(() => {
+      setPostsPage(1)
+      setArchiveSearch(archiveSearchInput.trim())
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [archiveSearchInput, tab])
+
+  useEffect(() => {
+    setPostsPage(1)
+  }, [tab, postSource, archiveStatus])
 
   const toFormData = () => {
     const fd = new FormData()
@@ -146,8 +262,9 @@ export default function CentralContentLibrary() {
       const data = await api.createCentralLibraryPost(toFormData(), apiOpts)
       setMessage(data.message || 'Post created in Central library.')
       setForm(emptyForm)
+      setPostsPage(1)
       setTab('distribute')
-      await load()
+      await loadPosts('distribute')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -191,11 +308,12 @@ export default function CentralContentLibrary() {
     setError('')
     setMessage('')
     try {
-      const data = await api.importCentralLibraryPosts(file, apiOpts) // polls queued job
+      const data = await api.importCentralLibraryPosts(file, apiOpts)
       setMessage(data.message || 'Import finished.')
       setFile(null)
+      setPostsPage(1)
       setTab('distribute')
-      await load()
+      await loadPosts('distribute')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -220,7 +338,7 @@ export default function CentralContentLibrary() {
         return next
       })
       setSelectedIds((prev) => prev.filter((id) => id !== post.id))
-      await load()
+      await loadPosts()
     } catch (err) {
       setError(err.message)
     }
@@ -232,7 +350,7 @@ export default function CentralContentLibrary() {
     try {
       const data = await api.unarchiveCentralLibraryPost(post.id, apiOpts)
       setMessage(data.message || 'Post unarchived. It can be distributed again.')
-      await load()
+      await loadPosts()
     } catch (err) {
       setError(err.message)
     }
@@ -249,6 +367,19 @@ export default function CentralContentLibrary() {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     )
   }
+
+  const selectAllPostsOnPage = () => {
+    const ids = posts.map((post) => post.id)
+    setSelectedIds((prev) => Array.from(new Set([...prev, ...ids])))
+  }
+
+  const clearPostSelection = () => setSelectedIds([])
+
+  const selectAllFilteredHubs = () => {
+    setSelectedHubIds((prev) => Array.from(new Set([...prev, ...filteredSelectableHubIds])))
+  }
+
+  const clearHubSelection = () => setSelectedHubIds([])
 
   const onDistribute = async (e) => {
     e.preventDefault()
@@ -277,6 +408,183 @@ export default function CentralContentLibrary() {
       setDistributing(false)
     }
   }
+
+  const distributePostColumns = useMemo(
+    () => [
+      {
+        key: 'select',
+        label: 'Select',
+        filterable: false,
+        sortable: false,
+        width: 72,
+        truncate: false,
+        render: (row) => (
+          <SelectCell
+            checked={selectedIds.includes(row.id)}
+            onChange={() => toggleSelected(row.id)}
+            label={`Select ${row.title}`}
+          />
+        ),
+      },
+      {
+        key: 'title',
+        label: 'Post',
+        grow: true,
+        filterValue: (row) => row.title,
+        render: (row) => (
+          <div className="library-grid-title">
+            <strong>{row.title}</strong>
+            <span className="muted">
+              {row.type || '—'} · {row.credits_cost ?? '—'} credits
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'creation_source',
+        label: 'Source',
+        width: 110,
+        filterValue: (row) => row.creation_source || 'manual',
+        render: (row) => row.creation_source || 'manual',
+      },
+      {
+        key: 'updated_at',
+        label: 'Updated',
+        width: 150,
+        filterValue: (row) => row.updated_at || '',
+        render: (row) =>
+          row.updated_at ? new Date(row.updated_at).toLocaleDateString() : '—',
+      },
+    ],
+    [selectedIds]
+  )
+
+  const distributeHubColumns = useMemo(
+    () => [
+      {
+        key: 'select',
+        label: 'Select',
+        filterable: false,
+        sortable: false,
+        width: 72,
+        truncate: false,
+        render: (row) => (
+          <SelectCell
+            checked={Boolean(row.eligible) && selectedHubIds.includes(row.id)}
+            disabled={!row.eligible}
+            onChange={() => {
+              if (!row.eligible) return
+              toggleHub(row.id)
+            }}
+            label={`Select ${row.name}`}
+          />
+        ),
+      },
+      {
+        key: 'name',
+        label: 'Hub',
+        grow: true,
+        filterValue: (row) => row.name,
+        render: (row) => (
+          <div className="library-grid-title">
+            <strong>{row.name}</strong>
+            {!row.eligible && row.reason ? (
+              <span className="muted">{row.reason}</span>
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        key: 'type',
+        label: 'Type',
+        width: 130,
+        filterValue: (row) => hubTypeLabel(row.type),
+        render: (row) => hubTypeLabel(row.type),
+      },
+      {
+        key: 'channels',
+        label: 'Channels',
+        width: 120,
+        filterable: false,
+        sortable: false,
+        render: (row) => {
+          const parts = []
+          if (row.manual_posts) parts.push('Manual')
+          if (row.ai_posts) parts.push('AI')
+          return parts.length ? parts.join(', ') : '—'
+        },
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        width: 110,
+        filterValue: (row) => (row.eligible ? 'Ready' : 'Not ready'),
+        render: (row) => (
+          <span className={`library-pill${row.eligible ? ' is-ready' : ' is-blocked'}`}>
+            {row.eligible ? 'Ready' : 'Not ready'}
+          </span>
+        ),
+      },
+    ],
+    [selectedHubIds]
+  )
+
+  const archiveColumns = useMemo(
+    () => [
+      {
+        key: 'title',
+        label: 'Post',
+        grow: true,
+        filterValue: (row) => row.title,
+        render: (row) => (
+          <div className="library-grid-title">
+            <strong>{row.title}</strong>
+            <span className="muted">
+              {row.creation_source || 'manual'} · {row.type || '—'}
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        width: 110,
+        filterValue: (row) => (isArchivedPost(row) ? 'Archived' : 'Ready'),
+        render: (row) => (
+          <span className={`library-pill${isArchivedPost(row) ? ' is-blocked' : ' is-ready'}`}>
+            {isArchivedPost(row) ? 'Archived' : 'Ready'}
+          </span>
+        ),
+      },
+      {
+        key: 'remarks',
+        label: 'Remarks',
+        grow: true,
+        filterable: false,
+        sortable: false,
+        truncate: false,
+        wrap: true,
+        render: (row) =>
+          isArchivedPost(row) ? (
+            <span className="muted">{row.archive_remarks || '—'}</span>
+          ) : (
+            <input
+              className="library-remarks-input"
+              value={archiveRemarks[row.id] || ''}
+              onChange={(e) =>
+                setArchiveRemarks((prev) => ({
+                  ...prev,
+                  [row.id]: e.target.value,
+                }))
+              }
+              placeholder="Why this post is being archived"
+              aria-label={`Archive remarks for ${row.title}`}
+            />
+          ),
+      },
+    ],
+    [archiveRemarks]
+  )
 
   if (isActingRemotely) {
     return (
@@ -316,6 +624,8 @@ export default function CentralContentLibrary() {
     )
   }
 
+  const postsLoading = loadingPosts || (loadingMeta && !metaLoadedRef.current)
+
   return (
     <section className="central-library">
       <div className="page-head">
@@ -323,9 +633,9 @@ export default function CentralContentLibrary() {
           <p className="eyebrow">Central</p>
           <h1>Content library</h1>
           <p className="muted">
-            Create posts here (one-by-one or Excel), then distribute ready copies to Shared /
-            White-labelled hubs. Browse, edit, archive, and see which hubs received each post on{' '}
-            <Link to="/my-dashboard/posts">Posts / reels</Link>.
+            Create posts here (one-by-one or Excel), distribute ready copies to Shared /
+            White-labelled hubs, or archive / unarchive from the Archive tab. Browse, edit, and see
+            which hubs received each post on <Link to="/my-dashboard/posts">Posts / reels</Link>.
           </p>
         </div>
         <div className="actions" style={{ gap: 8 }}>
@@ -531,98 +841,188 @@ export default function CentralContentLibrary() {
 
       {tab === 'distribute' && (
         <div className="library-distribute">
-          <form className="settings-block" onSubmit={onDistribute}>
-            <h2>1. Distribute ready posts</h2>
-            <p className="muted" style={{ marginTop: 0 }}>
-              Select non-archived library posts and target hubs. Manual → Manual posts hubs; AI → AI
-              posts hubs. Archived posts stay in the library but cannot be distributed.
-            </p>
-
-            <div className="library-distribute__columns">
-              <div>
-                <h3>Ready posts</h3>
-                {livePosts.length === 0 ? (
-                  <p className="muted">No ready posts to distribute. Create posts in the library first.</p>
-                ) : (
-                  <ul className="library-checklist">
-                    {livePosts.map((post) => (
-                      <li key={post.id}>
-                        <label className="checkbox-row">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(post.id)}
-                            onChange={() => toggleSelected(post.id)}
-                          />
-                          <span>
-                            {post.title}{' '}
-                            <span className="muted">({post.creation_source || 'manual'})</span>
-                          </span>
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div>
-                <h3>Target hubs</h3>
-                <p className="muted" style={{ marginTop: 0 }}>
-                  Shared and white-labelled hubs. Only hubs that are ready for distribute can be
-                  selected ({selectableTargets.length} of {targetHubs.length} ready).
-                </p>
-                {targetHubs.length === 0 ? (
-                  <p className="muted">
-                    No content hubs in the registry. Add Shared or White-labelled hubs under Power
-                    Admin → Hubs.
-                  </p>
-                ) : (
-                  <ul className="library-checklist">
-                    {targetHubs.map((hub) => {
-                      const ready = Boolean(hub.eligible)
-                      const typeLabel =
-                        hub.type === 'white_label'
-                          ? 'white-labelled'
-                          : hub.type === 'shared'
-                            ? 'shared'
-                            : hub.type
-                      return (
-                        <li key={hub.id}>
-                          <label
-                            className="checkbox-row"
-                            title={ready ? undefined : hub.reason || 'Not ready for distribution'}
-                          >
-                            <input
-                              type="checkbox"
-                              disabled={!ready}
-                              checked={ready && selectedHubIds.includes(hub.id)}
-                              onChange={() => {
-                                if (!ready) return
-                                toggleHub(hub.id)
-                              }}
-                            />
-                            <span>
-                              {hub.name}{' '}
-                              <span className="muted">
-                                ({typeLabel}
-                                {hub.manual_posts ? ', manual' : ''}
-                                {hub.ai_posts ? ', AI' : ''}
-                                {!ready ? ', not ready' : ''})
-                              </span>
-                              {!ready && hub.reason ? (
-                                <span className="muted" style={{ display: 'block', fontSize: '0.9em' }}>
-                                  {hub.reason}
-                                </span>
-                              ) : null}
-                            </span>
-                          </label>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                )}
-              </div>
+          <form className="library-picker" onSubmit={onDistribute}>
+            <div className="library-picker__intro">
+              <h2>Distribute ready posts</h2>
+              <p className="muted" style={{ marginTop: 0 }}>
+                Search and page through the library, then pick target hubs. Selection is kept while
+                you move between pages. Manual posts go to Manual hubs; AI posts go to AI hubs.
+              </p>
             </div>
 
-            <div className="actions sticky-actions">
+            <div className="library-picker__panel">
+              <div className="library-picker__panel-head">
+                <div>
+                  <h3>Ready posts</h3>
+                  <p className="muted library-picker__meta">
+                    {postsMeta.total} match{postsMeta.total === 1 ? '' : 'es'}
+                    {selectedIds.length > 0 ? ` · ${selectedIds.length} selected` : ''}
+                  </p>
+                </div>
+                <div className="library-picker__actions">
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    onClick={selectAllPostsOnPage}
+                    disabled={posts.length === 0}
+                  >
+                    Select page
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    onClick={clearPostSelection}
+                    disabled={selectedIds.length === 0}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <div className="library-picker__toolbar">
+                <input
+                  type="search"
+                  className="library-picker__search"
+                  placeholder="Search posts by title or description…"
+                  value={postSearchInput}
+                  onChange={(e) => setPostSearchInput(e.target.value)}
+                  aria-label="Search ready posts"
+                />
+                <div className="library-toolbar__filters" role="group" aria-label="Post source">
+                  {[
+                    { id: '', label: 'All sources' },
+                    { id: 'manual', label: 'Manual' },
+                    { id: 'ai', label: 'AI' },
+                  ].map((item) => (
+                    <button
+                      key={item.id || 'all'}
+                      type="button"
+                      className={`library-chip${postSource === item.id ? ' is-active' : ''}`}
+                      onClick={() => setPostSource(item.id)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <DataGrid
+                columns={distributePostColumns}
+                rows={posts}
+                loading={postsLoading}
+                emptyMessage="No ready posts match. Create posts or clear filters."
+                pageSize={10}
+                getRowKey={(row) => row.id}
+              />
+
+              {postsMeta.last_page > 1 ? (
+                <div className="library-server-pager">
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    disabled={postsPage <= 1 || loadingPosts}
+                    onClick={() => setPostsPage((p) => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </button>
+                  <span className="muted">
+                    Server page {postsMeta.current_page} of {postsMeta.last_page}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    disabled={postsPage >= postsMeta.last_page || loadingPosts}
+                    onClick={() => setPostsPage((p) => p + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="library-picker__panel">
+              <div className="library-picker__panel-head">
+                <div>
+                  <h3>Target hubs</h3>
+                  <p className="muted library-picker__meta">
+                    {filteredSelectableHubIds.length} ready of {targetHubs.length}
+                    {selectedHubIds.length > 0 ? ` · ${selectedHubIds.length} selected` : ''}
+                  </p>
+                </div>
+                <div className="library-picker__actions">
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    onClick={selectAllFilteredHubs}
+                    disabled={filteredSelectableHubIds.length === 0}
+                  >
+                    Select filtered ready
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    onClick={clearHubSelection}
+                    disabled={selectedHubIds.length === 0}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <div className="library-picker__toolbar">
+                <input
+                  type="search"
+                  className="library-picker__search"
+                  placeholder="Search hubs…"
+                  value={hubSearchInput}
+                  onChange={(e) => setHubSearchInput(e.target.value)}
+                  aria-label="Search target hubs"
+                />
+                <div className="library-toolbar__filters" role="group" aria-label="Hub filters">
+                  <button
+                    type="button"
+                    className={`library-chip${hubsReadyOnly ? ' is-active' : ''}`}
+                    onClick={() => setHubsReadyOnly((v) => !v)}
+                  >
+                    Ready only
+                  </button>
+                  {[
+                    { id: '', label: 'All types' },
+                    { id: 'shared', label: 'Shared' },
+                    { id: 'white_label', label: 'White-labelled' },
+                  ].map((item) => (
+                    <button
+                      key={item.id || 'all-types'}
+                      type="button"
+                      className={`library-chip${hubTypeFilter === item.id ? ' is-active' : ''}`}
+                      onClick={() => setHubTypeFilter(item.id)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <DataGrid
+                columns={distributeHubColumns}
+                rows={filteredHubs}
+                loading={loadingMeta}
+                emptyMessage="No hubs match these filters."
+                pageSize={10}
+                getRowKey={(row) => row.id}
+              />
+            </div>
+
+            <div className="library-picker__summary sticky-actions">
+              <div className="library-picker__summary-text">
+                <strong>
+                  {selectedIds.length} post{selectedIds.length === 1 ? '' : 's'}
+                </strong>
+                <span className="muted">→</span>
+                <strong>
+                  {selectedHubIds.length} hub{selectedHubIds.length === 1 ? '' : 's'}
+                </strong>
+              </div>
               <button
                 className="btn primary"
                 type="submit"
@@ -634,83 +1034,103 @@ export default function CentralContentLibrary() {
               </button>
             </div>
           </form>
+        </div>
+      )}
 
-          <div className="settings-block">
-            <h2>2. Archive / unarchive (optional)</h2>
-            <p className="muted" style={{ marginTop: 0 }}>
-              Archive retires a post from distribution (remarks required). Unarchive clears remarks
-              and restores it to the ready pool. Posts stay listed either way.
-            </p>
-            {livePosts.length === 0 && archivedPosts.length === 0 ? (
-              <p className="muted">No posts yet.</p>
-            ) : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Post</th>
-                      <th>Remarks</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {livePosts.map((post) => (
-                      <tr key={post.id}>
-                        <td>
-                          <strong>{post.title}</strong>
-                          <div className="muted" style={{ fontSize: '0.85em' }}>
-                            {post.creation_source || 'manual'} · Ready
-                          </div>
-                        </td>
-                        <td>
-                          <input
-                            value={archiveRemarks[post.id] || ''}
-                            onChange={(e) =>
-                              setArchiveRemarks((prev) => ({
-                                ...prev,
-                                [post.id]: e.target.value,
-                              }))
-                            }
-                            placeholder="Why this post is being archived"
-                          />
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="btn ghost"
-                            onClick={() => onArchive(post)}
-                          >
-                            Archive
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {archivedPosts.map((post) => (
-                      <tr key={post.id}>
-                        <td>
-                          <strong>{post.title}</strong>
-                          <div className="muted" style={{ fontSize: '0.85em' }}>
-                            {post.creation_source || 'manual'} · Archived
-                          </div>
-                        </td>
-                        <td>
-                          <span className="muted">{post.archive_remarks || '—'}</span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="btn ghost"
-                            onClick={() => onUnarchive(post)}
-                          >
-                            Unarchive
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+      {tab === 'archive' && (
+        <div className="library-archive">
+          <div className="library-picker">
+            <div className="library-picker__intro">
+              <h2>Archive / unarchive</h2>
+              <p className="muted" style={{ marginTop: 0 }}>
+                Search the full library, filter by status, and archive with remarks — or restore
+                archived posts to the distribute pool.
+              </p>
+            </div>
+
+            <div className="library-picker__panel">
+              <div className="library-picker__panel-head">
+                <div>
+                  <h3>Library posts</h3>
+                  <p className="muted library-picker__meta">
+                    {postsMeta.total} match{postsMeta.total === 1 ? '' : 'es'}
+                  </p>
+                </div>
               </div>
-            )}
+
+              <div className="library-picker__toolbar">
+                <input
+                  type="search"
+                  className="library-picker__search"
+                  placeholder="Search posts by title or description…"
+                  value={archiveSearchInput}
+                  onChange={(e) => setArchiveSearchInput(e.target.value)}
+                  aria-label="Search archive posts"
+                />
+                <div className="library-toolbar__filters" role="group" aria-label="Archive status">
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'active', label: 'Ready' },
+                    { id: 'archived', label: 'Archived' },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`library-chip${archiveStatus === item.id ? ' is-active' : ''}`}
+                      onClick={() => setArchiveStatus(item.id)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <DataGrid
+                columns={archiveColumns}
+                rows={posts}
+                loading={postsLoading}
+                emptyMessage="No posts match. Create posts or clear filters."
+                pageSize={10}
+                getRowKey={(row) => row.id}
+                actions={(row) =>
+                  isArchivedPost(row) ? (
+                    <button type="button" className="btn ghost" onClick={() => onUnarchive(row)}>
+                      Unarchive
+                    </button>
+                  ) : (
+                    <button type="button" className="btn ghost" onClick={() => onArchive(row)}>
+                      Archive
+                    </button>
+                  )
+                }
+                actionsLabel="Action"
+                actionsWidth={120}
+              />
+
+              {postsMeta.last_page > 1 ? (
+                <div className="library-server-pager">
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    disabled={postsPage <= 1 || loadingPosts}
+                    onClick={() => setPostsPage((p) => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </button>
+                  <span className="muted">
+                    Server page {postsMeta.current_page} of {postsMeta.last_page}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    disabled={postsPage >= postsMeta.last_page || loadingPosts}
+                    onClick={() => setPostsPage((p) => p + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       )}

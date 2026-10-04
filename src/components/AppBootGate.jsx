@@ -16,6 +16,9 @@ export default function AppBootGate({ children }) {
   if (error) {
     return (
       <div className="page-loader" role="alert">
+        <p className="page-loader__message" style={{ marginBottom: '1rem', textAlign: 'center', maxWidth: 420 }}>
+          {error}
+        </p>
         <button type="button" className="btn primary" onClick={() => window.location.reload()}>
           Retry
         </button>

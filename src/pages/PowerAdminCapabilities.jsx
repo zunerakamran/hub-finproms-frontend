@@ -207,6 +207,14 @@ export default function PowerAdminCapabilities() {
             . Columns are roles present on this hub (or added under{' '}
             <strong>Manage roles</strong>). Add / rename roles on the Manage roles page. Hub
             Functionalities are configured separately under Hub checklists.
+            {(hub?.type === 'central' || hub?.is_central || hub?.is_control_plane) && (
+              <>
+                {' '}
+                The dashboard <strong>Website</strong> button follows{' '}
+                <strong>View website pages (outside Dashboard)</strong> for Power Admin / FinProms
+                Admin on Central (even if another hub is selected in the switcher).
+              </>
+            )}
           </p>
         </div>
       </div>

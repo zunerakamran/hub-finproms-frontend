@@ -83,28 +83,33 @@ export function HubProvider({ children }) {
     }
     try {
       const key = hubQueryKey(user?.id ?? 'guest')
+
+      // After hub switch / checklist save, always hit the network.
+      // Never reuse boot prefetch here — stale boot was overwriting the acting hub
+      // and then /hub-content/* returned 422 ("select a hub" / credentials).
+      let hubData
       if (force) {
-        await queryClient.invalidateQueries({ queryKey: key })
-        await queryClient.invalidateQueries({ queryKey: hubBootQueryKey })
+        queryClient.removeQueries({ queryKey: hubBootQueryKey })
+        queryClient.removeQueries({ queryKey: key })
+        hubData = await api.currentHub()
+        queryClient.setQueryData(hubBootQueryKey, hubData)
+        queryClient.setQueryData(key, hubData)
+      } else {
+        hubData = await queryClient.fetchQuery({
+          queryKey: key,
+          queryFn: async () => {
+            return queryClient.ensureQueryData({
+              queryKey: hubBootQueryKey,
+              queryFn: () => api.currentHub(),
+              staleTime: 60_000,
+            })
+          },
+          staleTime: 60_000,
+        })
+        queryClient.setQueryData(hubBootQueryKey, hubData)
       }
 
-      const data = await queryClient.fetchQuery({
-        queryKey: key,
-        queryFn: async () => {
-          // Reuse boot prefetch when present so /hub is not waited on after /auth/me.
-          return queryClient.ensureQueryData({
-            queryKey: hubBootQueryKey,
-            queryFn: () => api.currentHub(),
-            staleTime: 60_000,
-          })
-        },
-        staleTime: withLoader || force ? 0 : 60_000,
-      })
-
-      // Keep boot cache aligned after forced refreshes (hub switch / checklist saves).
-      queryClient.setQueryData(hubBootQueryKey, { hub: data.hub })
-
-      const nextHub = data.hub
+      const nextHub = hubData.hub
       setHub(nextHub)
       setError('')
 

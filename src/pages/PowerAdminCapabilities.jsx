@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
-import PageLoader from '../components/PageLoader'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import {
@@ -54,7 +53,6 @@ export default function PowerAdminCapabilities() {
   const [groupOrder, setGroupOrder] = useState(DEFAULT_GROUP_ORDER)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [reloading, setReloading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [query, setQuery] = useState('')
@@ -156,7 +154,7 @@ export default function PowerAdminCapabilities() {
 
   const onSave = async (e) => {
     e.preventDefault()
-    if (!allowed || !selectedHubId || saving || reloading) return
+    if (!allowed || !selectedHubId || saving) return
     setSaving(true)
     setError('')
     setMessage('')
@@ -176,33 +174,17 @@ export default function PowerAdminCapabilities() {
         }
       }
 
-      const data = await api.updatePowerAdminCapabilitiesMatrix({
+      await api.updatePowerAdminCapabilitiesMatrix({
         hub_id: Number(selectedHubId),
         matrix: matrixPayload,
       })
-      applyMatrix(data.matrix, data.resolved)
-      setMessage(data.message || 'Capabilities matrix saved. Refreshing dashboard…')
-      setReloading(true)
-      // Hard reload so the dashboard shell (Website button, nav, etc.) picks up
-      // fresh effective_capabilities — soft refreshHub could reuse a stale cache.
-      window.setTimeout(() => {
-        window.location.reload()
-      }, 200)
+      // Full page reload → AppBootGate white-screen loader. Do not show an
+      // in-page loader here (that stacked two spinners).
+      window.location.reload()
     } catch (err) {
       setError(err.message)
       setSaving(false)
     }
-  }
-
-  if (reloading) {
-    return (
-      <section className="capabilities-matrix-page">
-        <div className="alert success">
-          {message || 'Capabilities matrix saved. Refreshing dashboard…'}
-        </div>
-        <PageLoader />
-      </section>
-    )
   }
 
   return (
@@ -392,8 +374,8 @@ export default function PowerAdminCapabilities() {
 
           {allowed && roles.length > 0 && (
             <div className="actions">
-              <button className="btn primary" disabled={saving || reloading}>
-                {saving || reloading ? 'Saving…' : 'Save capabilities'}
+              <button className="btn primary" disabled={saving}>
+                {saving ? 'Saving…' : 'Save capabilities'}
               </button>
             </div>
           )}

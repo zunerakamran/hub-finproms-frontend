@@ -17,6 +17,7 @@ import { formatDate, formatDateTime } from '../utils/dateFormat'
 import { SmcBarChart } from '../components/SocialMediaComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { plainTextFromHtml, truncateRichText } from '../utils/richText'
 
 const ACTION_LABELS = {
   'auth.login': 'Signed in',
@@ -377,8 +378,8 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
       {
         key: 'description',
         label: 'Description',
-        filterValue: (row) => row.description || '',
-        render: (row) => row.description || '—',
+        filterValue: (row) => plainTextFromHtml(row.description || ''),
+        render: (row) => truncateRichText(row.description, 180) || '—',
       },
       {
         key: 'path',

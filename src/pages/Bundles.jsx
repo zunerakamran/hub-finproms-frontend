@@ -5,6 +5,7 @@ import PageLoader from '../components/PageLoader'
 import PostMetrics from '../components/PostMetrics'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { truncateRichText } from '../utils/richText'
 
 export default function Bundles() {
   const { user } = useAuth()
@@ -98,7 +99,9 @@ export default function Bundles() {
                 </span>
                 <h2>{bundle.title}</h2>
                 <PostMetrics post={bundle} />
-                <p className="bundle-card__desc">{bundle.description || 'No description.'}</p>
+                <p className="bundle-card__desc">
+                  {truncateRichText(bundle.description, 140) || 'No description.'}
+                </p>
                 <div className="tool-card__meta">
                   <strong>{bundle.credits_cost} credits</strong>
                   {bundle.is_purchased && <span className="badge ok">Owned</span>}

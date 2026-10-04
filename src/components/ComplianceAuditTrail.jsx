@@ -4,6 +4,7 @@ import { FaTimes } from 'react-icons/fa'
 import DateTimeText from './DateTimeText'
 import ComplianceStatusText from './ComplianceStatusText'
 import { useHub } from '../context/HubContext'
+import { plainTextFromHtml } from '../utils/richText'
 
 const EVENT_LABELS = {
   submitted: 'Submitted',
@@ -106,7 +107,9 @@ function AuditEventItem({ event, roleLabel, complianceStatusLabel }) {
         </div>
 
         {event.description ? (
-          <p className="compliance-audit-trail__desc">{event.description}</p>
+          <p className="compliance-audit-trail__desc">
+            {plainTextFromHtml(event.description)}
+          </p>
         ) : null}
 
         <StatusTransition
@@ -455,7 +458,9 @@ export function ComplianceReportAuditPanel({
                       ) : null}
                     </div>
                     {event.description ? (
-                      <p className="compliance-audit-trail__desc">{event.description}</p>
+                      <p className="compliance-audit-trail__desc">
+                        {plainTextFromHtml(event.description)}
+                      </p>
                     ) : null}
                     <StatusTransition
                       fromStatus={event.from_status}

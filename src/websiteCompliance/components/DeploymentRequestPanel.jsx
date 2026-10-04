@@ -29,6 +29,7 @@ import FileDropzone from '../../components/FileDropzone'
 import RequiredMark from '../../components/RequiredMark'
 import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
 import { ColorSchemePicker, templateColorSchemes } from './ColorSchemeFields'
+import { truncateRichText } from '../../utils/richText'
 
 function advisorsForFirm(advisors, submitterFirm, actorRole) {
   const role = String(actorRole || '')
@@ -583,7 +584,7 @@ export function CreateDeploymentModal({
                 </select>
                 {selectedTemplate?.description ? (
                   <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed line-clamp-3">
-                    {String(selectedTemplate.description).replace(/<[^>]+>/g, '').trim()}
+                    {truncateRichText(selectedTemplate.description, 180)}
                   </p>
                 ) : null}
               </div>

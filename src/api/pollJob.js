@@ -1,11 +1,20 @@
 /**
  * Poll a background job status endpoint until completed/failed.
  */
-export async function pollJobStatus(fetchStatus, { intervalMs = 1000, maxMs = 5 * 60 * 1000 } = {}) {
+export async function pollJobStatus(
+  fetchStatus,
+  { intervalMs = 800, maxMs = 5 * 60 * 1000, immediate = true } = {}
+) {
   const started = Date.now()
+  let waitFirst = !immediate
 
   while (Date.now() - started < maxMs) {
-    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+    if (waitFirst) {
+      await new Promise((resolve) => setTimeout(resolve, intervalMs))
+    } else {
+      waitFirst = true
+    }
+
     const status = await fetchStatus()
     if (status?.status === 'completed') {
       return status

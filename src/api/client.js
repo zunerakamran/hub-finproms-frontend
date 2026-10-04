@@ -296,6 +296,13 @@ export const api = {
     request(`${adminBase(options)}/central-library/ai`),
   centralLibraryTargets: (options = {}) =>
     request(`${adminBase(options)}/central-library/targets`),
+  queueCentralLibraryDistribute: (payload, options = {}) =>
+    request(`${adminBase(options)}/central-library/distribute`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  centralLibraryDistributeStatus: (jobId, options = {}) =>
+    request(`${adminBase(options)}/central-library/distribute/${jobId}`),
   distributeCentralLibraryPosts: async (payload, options = {}) => {
     const base = adminBase(options)
     const queued = await request(`${base}/central-library/distribute`, {
@@ -303,7 +310,10 @@ export const api = {
       body: JSON.stringify(payload),
     })
     if (!queued?.queued || !queued?.job_id) return queued
-    return pollJobStatus(() => request(`${base}/central-library/distribute/${queued.job_id}`))
+    return pollJobStatus(
+      () => request(`${base}/central-library/distribute/${queued.job_id}`),
+      { intervalMs: 700, immediate: true }
+    )
   },
 
   contentPushTargets: (options = {}) =>

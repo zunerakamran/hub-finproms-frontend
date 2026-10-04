@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import { pollJobStatus } from '../api/pollJob'
 import DataGrid from '../components/DataGrid'
 import FileDropzone from '../components/FileDropzone'
 import MultiSelectField from '../components/MultiSelectField'
@@ -381,6 +382,15 @@ export default function CentralContentLibrary() {
 
   const clearHubSelection = () => setSelectedHubIds([])
 
+  const formatDistributeResult = (data) => {
+    if (data?.message) return data.message
+    const parts = []
+    if ((data?.pushed ?? 0) > 0) parts.push(`Distributed ${data.pushed} post(s)`)
+    if ((data?.skipped ?? 0) > 0) parts.push(`${data.skipped} already on hub (skipped)`)
+    if ((data?.failed ?? 0) > 0) parts.push(`${data.failed} failed`)
+    return parts.length ? `${parts.join('. ')}.` : 'Distribution finished.'
+  }
+
   const onDistribute = async (e) => {
     e.preventDefault()
     if (selectedIds.length === 0) {
@@ -393,18 +403,48 @@ export default function CentralContentLibrary() {
     }
     setDistributing(true)
     setError('')
-    setMessage('')
+    setMessage('Queuing distribution…')
+    const postIds = [...selectedIds]
+    const hubIds = [...selectedHubIds]
     try {
-      const data = await api.distributeCentralLibraryPosts(
-        { post_ids: selectedIds, hub_ids: selectedHubIds },
+      const queued = await api.queueCentralLibraryDistribute(
+        { post_ids: postIds, hub_ids: hubIds },
         apiOpts
       )
-      setMessage(data.message || 'Distribution finished.')
+      if (!queued?.queued || !queued?.job_id) {
+        setMessage(formatDistributeResult(queued))
+        setSelectedIds([])
+        setSelectedHubIds([])
+        setDistributing(false)
+        return
+      }
+
+      setMessage(
+        queued.message ||
+          'Distribution started in the background. You can keep working — this updates when finished.'
+      )
       setSelectedIds([])
       setSelectedHubIds([])
+      setDistributing(false)
+
+      const jobId = queued.job_id
+      ;(async () => {
+        try {
+          const data = await pollJobStatus(
+            () => api.centralLibraryDistributeStatus(jobId, apiOpts),
+            { intervalMs: 700, immediate: true }
+          )
+          setMessage(formatDistributeResult(data))
+          if (tab === 'distribute') {
+            await loadPosts('distribute')
+          }
+        } catch (err) {
+          setError(err.message)
+        }
+      })()
     } catch (err) {
       setError(err.message)
-    } finally {
+      setMessage('')
       setDistributing(false)
     }
   }
@@ -431,14 +471,26 @@ export default function CentralContentLibrary() {
         label: 'Post',
         grow: true,
         filterValue: (row) => row.title,
-        render: (row) => (
-          <div className="library-grid-title">
-            <strong>{row.title}</strong>
-            <span className="muted">
-              {row.type || '—'} · {row.credits_cost ?? '—'} credits
-            </span>
-          </div>
-        ),
+        render: (row) => {
+          const hubs = Array.isArray(row.distributed_hubs) ? row.distributed_hubs : []
+          const hubNames = hubs.map((h) => h.hub_name).filter(Boolean)
+          return (
+            <div className="library-grid-title">
+              <strong>{row.title}</strong>
+              <span className="muted">
+                {row.type || '—'} · {row.credits_cost ?? '—'} credits
+              </span>
+              {hubNames.length > 0 ? (
+                <span className="library-already-on" title={hubNames.join(', ')}>
+                  Already on: {hubNames.slice(0, 3).join(', ')}
+                  {hubNames.length > 3 ? ` +${hubNames.length - 3}` : ''}
+                </span>
+              ) : (
+                <span className="muted">Not distributed yet</span>
+              )}
+            </div>
+          )
+        },
       },
       {
         key: 'creation_source',
@@ -845,8 +897,9 @@ export default function CentralContentLibrary() {
             <div className="library-picker__intro">
               <h2>Distribute ready posts</h2>
               <p className="muted" style={{ marginTop: 0 }}>
-                Search and page through the library, then pick target hubs. Selection is kept while
-                you move between pages. Manual posts go to Manual hubs; AI posts go to AI hubs.
+                Search and page through the library, then pick target hubs. Distribution runs in the
+                background so the page stays usable. If a hub already has a post, that copy is
+                skipped (no duplicate). Manual posts go to Manual hubs; AI posts go to AI hubs.
               </p>
             </div>
 

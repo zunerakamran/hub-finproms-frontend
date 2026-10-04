@@ -107,12 +107,19 @@ export function AuthProvider({ children }) {
     refreshUser().finally(() => setLoading(false))
   }, [refreshUser])
 
+  const clearHubCaches = useCallback(() => {
+    // Drop guest / pre-login hub payloads so nav gets effective_capabilities after auth.
+    queryClient.removeQueries({ queryKey: hubBootQueryKey })
+    queryClient.removeQueries({ queryKey: ['hub', 'current'] })
+  }, [])
+
   const login = useCallback(async (payload) => {
     const data = await api.login(payload)
     if (data?.otp_required) {
       return data
     }
     setToken(data.token)
+    clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)
     if (data.user?.role === 'power_admin') {
@@ -126,11 +133,12 @@ export function AuthProvider({ children }) {
       setPowerCapabilities({})
     }
     return data
-  }, [setUser, setPowerCapabilities])
+  }, [setUser, setPowerCapabilities, clearHubCaches])
 
   const verifyLoginOtp = useCallback(async (payload) => {
     const data = await api.verifyLoginOtp(payload)
     setToken(data.token)
+    clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)
     if (data.user?.role === 'power_admin') {
@@ -144,28 +152,30 @@ export function AuthProvider({ children }) {
       setPowerCapabilities({})
     }
     return data.user
-  }, [setUser, setPowerCapabilities])
+  }, [setUser, setPowerCapabilities, clearHubCaches])
 
   const register = useCallback(async (payload) => {
     const data = await api.register(payload)
     // Self-registration requires email verification — no session token yet.
     if (data?.token) {
       setToken(data.token)
+      clearHubCaches()
       setUser(data.user)
       queryClient.setQueryData(authQueryKey, data)
       setPowerCapabilities({})
     }
     return data
-  }, [setUser, setPowerCapabilities])
+  }, [setUser, setPowerCapabilities, clearHubCaches])
 
   const completeEmailVerification = useCallback(async (payload) => {
     const data = await api.verifyEmail(payload)
     setToken(data.token)
+    clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)
     setPowerCapabilities({})
     return data.user
-  }, [setUser, setPowerCapabilities])
+  }, [setUser, setPowerCapabilities, clearHubCaches])
 
   const logout = useCallback(async () => {
     try {

@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
+import { lazyWithRetry as lazy } from './lazyWithRetry'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import HubCapabilityRoute from './components/HubCapabilityRoute'
 import Layout from './components/Layout'
@@ -12,6 +13,12 @@ import TermsGate from './components/TermsGate'
 import './App.css'
 import './shell.css'
 import PageLoader from './components/PageLoader'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import VerifyEmail from './pages/VerifyEmail'
+import HomeRoute from './components/HomeRoute'
 
 const AdminBankTransfers = lazy(() => import('./pages/AdminBankTransfers'))
 const AdminAdvisors = lazy(() => import('./pages/AdminAdvisors'))
@@ -75,7 +82,6 @@ const WebsiteComplianceAssignRequests = lazy(() => import('./pages/WebsiteCompli
 const WebsiteComplianceReviewQueue = lazy(() => import('./pages/WebsiteComplianceReviewQueue'))
 const WebsiteComplianceRequestHistory = lazy(() => import('./pages/WebsiteComplianceRequestHistory'))
 const InvoiceDetail = lazy(() => import('./pages/InvoiceDetail'))
-const Login = lazy(() => import('./pages/Login'))
 const MyCredits = lazy(() => import('./pages/MyCredits'))
 const MyDashboard = lazy(() => import('./pages/MyDashboard'))
 const MyInvoices = lazy(() => import('./pages/MyInvoices'))
@@ -91,14 +97,9 @@ const PowerAdminHubDetail = lazy(() => import('./pages/PowerAdminHubDetail'))
 const PowerAdminHubs = lazy(() => import('./pages/PowerAdminHubs'))
 const PowerAdminPaymentMethods = lazy(() => import('./pages/PowerAdminPaymentMethods'))
 const PowerAdminUsers = lazy(() => import('./pages/PowerAdminUsers'))
-const Register = lazy(() => import('./pages/Register'))
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
-const ResetPassword = lazy(() => import('./pages/ResetPassword'))
-const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
 const SubscriptionDetail = lazy(() => import('./pages/SubscriptionDetail'))
 const SubscriptionSuccess = lazy(() => import('./pages/SubscriptionSuccess'))
 const Subscriptions = lazy(() => import('./pages/Subscriptions'))
-const HomeRoute = lazy(() => import('./components/HomeRoute'))
 
 
 function LegacyInvoiceRedirect() {

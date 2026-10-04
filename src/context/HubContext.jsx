@@ -174,9 +174,21 @@ export function HubProvider({ children }) {
     if (lastIdentityRef.current === identity && hubRef.current) {
       return
     }
+
+    const previous = lastIdentityRef.current
     lastIdentityRef.current = identity
 
-    refreshHub({ silent: Boolean(hubRef.current) })
+    // Guest/pending hub payloads have no effective_capabilities — force a fresh
+    // /hub after login so dashboard nav options appear without a hard refresh.
+    const becameAuthed = Boolean(
+      user &&
+        (previous === 'pending' ||
+          previous == null ||
+          String(previous).startsWith('guest') ||
+          String(previous).split(':')[0] !== String(user.id))
+    )
+
+    refreshHub({ silent: Boolean(hubRef.current), force: becameAuthed })
   }, [refreshHub, authLoading, user?.id, user?.role, user])
 
   // Apply hub branding (colour scheme from Settings) across the whole app.

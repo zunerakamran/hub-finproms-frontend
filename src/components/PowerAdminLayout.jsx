@@ -90,7 +90,7 @@ const links = [
 
 export default function PowerAdminLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, branding, hub, roleLabel } = useHub()
+  const { can, branding, hub, roleLabel, canViewSitePages } = useHub()
   const navigate = useNavigate()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const powerAdminTitle = roleLabel('power_admin')
@@ -142,7 +142,9 @@ export default function PowerAdminLayout() {
         </nav>
 
         <div className="dash-sidebar__footer">
-          <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
+          {canViewSitePages ? (
+            <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
+          ) : null}
           <div className="dash-user-row">
             <span className="dash-user-avatar" aria-hidden="true">
               {String(user?.name || 'U').charAt(0).toUpperCase()}
@@ -164,7 +166,9 @@ export default function PowerAdminLayout() {
             <h1 className="dash-topbar__title">Platform control</h1>
           </div>
           <div className="dash-topbar__links">
-            <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
+            {canViewSitePages ? (
+              <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
+            ) : null}
             <NavLink to="/power-admin" className="dash-top-link" end>
               Home
             </NavLink>

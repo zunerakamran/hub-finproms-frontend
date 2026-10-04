@@ -7,7 +7,7 @@ import { brandLogoUrl } from '../utils/brandLogo'
 
 export default function ClientAdminLayout() {
   const { user, logout } = useAuth()
-  const { branding, hub, roleLabel } = useHub()
+  const { branding, hub, roleLabel, canViewSitePages } = useHub()
   const navigate = useNavigate()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const logoUrl = brandLogoUrl(branding, { onDark: true })
@@ -37,7 +37,9 @@ export default function ClientAdminLayout() {
         </div>
         <AdminSubnav />
         <div className="dash-sidebar__footer">
-          <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
+          {canViewSitePages ? (
+            <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
+          ) : null}
           <div className="dash-user-row">
             <span className="dash-user-avatar" aria-hidden="true">
               {String(user?.name || 'U').charAt(0).toUpperCase()}
@@ -58,7 +60,9 @@ export default function ClientAdminLayout() {
             <h1 className="dash-topbar__title">{shellTitle}</h1>
           </div>
           <div className="dash-topbar__links">
-            <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
+            {canViewSitePages ? (
+              <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
+            ) : null}
             <NavLink to="/client-admin" className="dash-top-link" end>
               Home
             </NavLink>

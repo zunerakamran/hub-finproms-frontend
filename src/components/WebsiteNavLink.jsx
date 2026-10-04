@@ -3,19 +3,16 @@ import { useHub } from '../context/HubContext'
 
 /**
  * Dashboard "Website" / "Back to website" link.
- * While remotely controlling a Shared or White-labelled hub, open that hub's
- * live site (frontend_url) instead of Central's own public site.
+ * Always opens THIS deploy's public site (`/`). Never opens a selected Shared /
+ * White-label frontend_url from the hub switcher — that cross-origin hop
+ * broke login (flicker → blank screen). Hidden unless the user has
+ * member_view_site_pages on this hub.
  */
 export default function WebsiteNavLink({ children, className }) {
-  const { isActingRemotely, actingHub } = useHub()
-  const href = String(actingHub?.frontend_url || '').trim().replace(/\/$/, '')
+  const { canViewSitePages } = useHub()
 
-  if (isActingRemotely && href) {
-    return (
-      <a href={href} className={className} rel="noreferrer">
-        {children}
-      </a>
-    )
+  if (!canViewSitePages) {
+    return null
   }
 
   return (

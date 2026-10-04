@@ -435,8 +435,8 @@ export function HubProvider({ children }) {
           ? Number(user.id)
           : null
 
-      // Public/member website chrome follows member_view_site_pages.
-      // While remotely controlling a content hub, WebsiteNavLink opens that hub's URL.
+      // Public/member website chrome follows THIS deploy's member_view_site_pages
+      // (control-plane matrix while on Central — not the selected remote hub).
       const canViewSitePages = can('member_view_site_pages')
 
       return {

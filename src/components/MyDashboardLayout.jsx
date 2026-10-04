@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import ActingHubSwitcher from './ActingHubSwitcher'
 import ActingAdvisorSwitcher from './ActingAdvisorSwitcher'
+import PageLoader from './PageLoader'
 import WebsiteNavLink from './WebsiteNavLink'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -164,8 +165,13 @@ export default function MyDashboardLayout() {
     navigate('/login', { replace: true })
   }
 
+  // Hub switch / caps refresh: one full-screen white loader only (no sidebar + content spinners).
+  if (navBusy) {
+    return <PageLoader />
+  }
+
   return (
-    <div className={`dash-shell${navOpen ? ' is-nav-open' : ''}${navBusy ? ' is-hub-refreshing' : ''}`}>
+    <div className={`dash-shell${navOpen ? ' is-nav-open' : ''}`}>
       <button
         type="button"
         className="dash-nav-backdrop"
@@ -204,13 +210,6 @@ export default function MyDashboardLayout() {
           <div className="dash-acting-pill">
             On behalf of {actingAdvisor.name} — acting as {roleLabel('advisor') || 'Advisor'} (
             {roleLabel('admin_staff') || 'Admin-staff'})
-          </div>
-        ) : null}
-
-        {navBusy ? (
-          <div className="dash-sidebar__refresh" aria-live="polite" aria-label="Updating navigation">
-            <div className="page-loader__spinner" />
-            <span>Updating menu…</span>
           </div>
         ) : null}
 
@@ -285,15 +284,7 @@ export default function MyDashboardLayout() {
             ) : null}
           </div>
         </header>
-        <main
-          className={`dash-content${navBusy ? ' is-hub-switching' : ''}`}
-          aria-busy={navBusy || undefined}
-        >
-          {navBusy ? (
-            <div className="dash-content-refresh-overlay" aria-live="polite" aria-label="Updating dashboard">
-              <div className="page-loader__spinner" />
-            </div>
-          ) : null}
+        <main className="dash-content">
           <Outlet key={contentKey} />
         </main>
       </div>

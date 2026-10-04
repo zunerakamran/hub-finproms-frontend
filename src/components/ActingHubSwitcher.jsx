@@ -35,7 +35,8 @@ export default function ActingHubSwitcher() {
     const next = e.target.value
     setError('')
     try {
-      await setActingHub(next, { asPowerAdmin: isPowerAdmin })
+      // Keep full-screen white loader up until hard navigation (no sidebar/content spinners).
+      await setActingHub(next, { asPowerAdmin: isPowerAdmin, persistSwitching: true })
       // Full reload after hub switch so dashboard data matches the new hub.
       // Also drop trailing numeric detail ids (/support-tickets/42 → /support-tickets)
       // so we never keep another hub's resource open.

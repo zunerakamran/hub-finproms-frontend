@@ -380,7 +380,7 @@ export function HubProvider({ children }) {
   }, [user, hasHubDashboardAccess, hasGeneralDashboardAccess])
 
   const setActingHub = useCallback(
-    async (hubId, { asPowerAdmin = false } = {}) => {
+    async (hubId, { asPowerAdmin = false, persistSwitching = false } = {}) => {
       setActingHubSwitching(true)
       try {
         const data = await api.setActingHub(hubId, { asPowerAdmin })
@@ -405,8 +405,14 @@ export function HubProvider({ children }) {
           await refreshHub({ silent: true, force: true })
         }
         return data
-      } finally {
+      } catch (err) {
         setActingHubSwitching(false)
+        throw err
+      } finally {
+        // Keep the full-screen loader up when the caller will hard-reload next.
+        if (!persistSwitching) {
+          setActingHubSwitching(false)
+        }
       }
     },
     [refreshHub, setHub]

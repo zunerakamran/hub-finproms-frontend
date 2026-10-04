@@ -73,7 +73,12 @@ export default function CentralContentLibrary() {
       setTypes(typesRes.types || [])
       setCategories(catsRes.categories || [])
       setTags(tagsRes.tags || [])
-      setTargets(targetsRes.hubs || [])
+      const nextTargets = targetsRes.hubs || []
+      setTargets(nextTargets)
+      const readyIds = new Set(
+        nextTargets.filter((hub) => hub.eligible).map((hub) => hub.id)
+      )
+      setSelectedHubIds((prev) => prev.filter((id) => readyIds.has(id)))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -112,9 +117,10 @@ export default function CentralContentLibrary() {
     () => posts.filter((post) => !post.archived_at && !post.is_archived),
     [posts]
   )
-  const eligibleTargets = useMemo(
-    () => targets.filter((hub) => hub.eligible),
-    [targets]
+  const targetHubs = useMemo(() => (Array.isArray(targets) ? targets : []), [targets])
+  const selectableTargets = useMemo(
+    () => targetHubs.filter((hub) => hub.eligible),
+    [targetHubs]
   )
 
   const toFormData = () => {
@@ -559,32 +565,58 @@ export default function CentralContentLibrary() {
               </div>
               <div>
                 <h3>Target hubs</h3>
-                {eligibleTargets.length === 0 ? (
+                <p className="muted" style={{ marginTop: 0 }}>
+                  Shared and white-labelled hubs. Only hubs that are ready for distribute can be
+                  selected ({selectableTargets.length} of {targetHubs.length} ready).
+                </p>
+                {targetHubs.length === 0 ? (
                   <p className="muted">
-                    No eligible hubs. Need Receive content from Central, remote DB, and Manual or AI
-                    posts.
+                    No content hubs in the registry. Add Shared or White-labelled hubs under Power
+                    Admin → Hubs.
                   </p>
                 ) : (
                   <ul className="library-checklist">
-                    {eligibleTargets.map((hub) => (
-                      <li key={hub.id}>
-                        <label className="checkbox-row">
-                          <input
-                            type="checkbox"
-                            checked={selectedHubIds.includes(hub.id)}
-                            onChange={() => toggleHub(hub.id)}
-                          />
-                          <span>
-                            {hub.name}{' '}
-                            <span className="muted">
-                              ({hub.type}
-                              {hub.manual_posts ? ', manual' : ''}
-                              {hub.ai_posts ? ', AI' : ''})
+                    {targetHubs.map((hub) => {
+                      const ready = Boolean(hub.eligible)
+                      const typeLabel =
+                        hub.type === 'white_label'
+                          ? 'white-labelled'
+                          : hub.type === 'shared'
+                            ? 'shared'
+                            : hub.type
+                      return (
+                        <li key={hub.id}>
+                          <label
+                            className="checkbox-row"
+                            title={ready ? undefined : hub.reason || 'Not ready for distribution'}
+                          >
+                            <input
+                              type="checkbox"
+                              disabled={!ready}
+                              checked={ready && selectedHubIds.includes(hub.id)}
+                              onChange={() => {
+                                if (!ready) return
+                                toggleHub(hub.id)
+                              }}
+                            />
+                            <span>
+                              {hub.name}{' '}
+                              <span className="muted">
+                                ({typeLabel}
+                                {hub.manual_posts ? ', manual' : ''}
+                                {hub.ai_posts ? ', AI' : ''}
+                                {!ready ? ', not ready' : ''})
+                              </span>
+                              {!ready && hub.reason ? (
+                                <span className="muted" style={{ display: 'block', fontSize: '0.9em' }}>
+                                  {hub.reason}
+                                </span>
+                              ) : null}
                             </span>
-                          </span>
-                        </label>
-                      </li>
-                    ))}
+                          </label>
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </div>

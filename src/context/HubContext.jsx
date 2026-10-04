@@ -155,12 +155,14 @@ export function HubProvider({ children }) {
   }, [setHub, user])
 
   useEffect(() => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null
+    const maybeAuthed = typeof sessionStorage !== 'undefined'
+      ? sessionStorage.getItem('hub_auth_session') === '1'
+      : false
 
-    // With a session token, start hub load immediately (parallel with /auth/me).
-    if (authLoading && !token) return
+    // With a cookie session hint, start hub load immediately (parallel with /auth/me).
+    if (authLoading && !maybeAuthed) return
 
-    if (token && authLoading && !user) {
+    if (maybeAuthed && authLoading && !user) {
       if (lastIdentityRef.current === 'pending' && hubRef.current) return
       lastIdentityRef.current = 'pending'
       refreshHub({ silent: Boolean(hubRef.current) })

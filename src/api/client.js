@@ -1,33 +1,120 @@
 import { pollJobStatus } from './pollJob'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
+const API_ORIGIN = API_URL.replace(/\/api\/?$/, '') || ''
+const AUTH_FLAG = 'hub_auth_session'
 
-function getToken() {
-  return localStorage.getItem('token')
+// Migrate away from XSS-readable Bearer tokens in localStorage.
+try {
+  localStorage.removeItem('token')
+} catch {
+  //
 }
 
+function readCookie(name) {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/[$()*+.?[\\\]^{|}-]/g, '\\$&')}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
+function xsrfHeader() {
+  // readCookie already decodeURIComponent's the cookie value.
+  return readCookie('XSRF-TOKEN')
+}
+
+/** @returns {boolean} soft “maybe signed in” hint for boot (not a secret). */
+export function hasAuthSession() {
+  try {
+    return sessionStorage.getItem(AUTH_FLAG) === '1'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Session marker only — the real credential is the httpOnly session cookie.
+ * Kept as setToken() so existing AuthContext call sites keep working.
+ */
 export function setToken(token) {
-  if (token) localStorage.setItem('token', token)
-  else localStorage.removeItem('token')
+  try {
+    if (token) sessionStorage.setItem(AUTH_FLAG, '1')
+    else sessionStorage.removeItem(AUTH_FLAG)
+  } catch {
+    //
+  }
+  try {
+    localStorage.removeItem('token')
+  } catch {
+    //
+  }
 }
 
-async function request(path, options = {}) {
+/** @deprecated use hasAuthSession — no Bearer token is stored in JS anymore */
+export function getToken() {
+  return hasAuthSession() ? 'cookie' : null
+}
+
+let csrfPromise = null
+
+export async function ensureCsrfCookie() {
+  if (!csrfPromise) {
+    csrfPromise = fetch(`${API_ORIGIN}/sanctum/csrf-cookie`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    })
+      .catch((err) => {
+        csrfPromise = null
+        throw err
+      })
+      .then((res) => {
+        if (!res.ok) {
+          csrfPromise = null
+          throw new Error('Could not initialise secure session (CSRF cookie).')
+        }
+        return res
+      })
+  }
+  return csrfPromise
+}
+
+function buildHeaders(options = {}) {
   const headers = new Headers(options.headers || {})
   const isFormData = options.body instanceof FormData
+  const method = String(options.method || 'GET').toUpperCase()
 
   if (!isFormData && !headers.has('Content-Type') && options.body) {
     headers.set('Content-Type', 'application/json')
   }
-  headers.set('Accept', 'application/json')
+  headers.set('Accept', headers.get('Accept') || 'application/json')
+  headers.set('X-Requested-With', 'XMLHttpRequest')
 
-  const token = getToken()
-  if (token) headers.set('Authorization', `Bearer ${token}`)
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    const xsrf = xsrfHeader()
+    if (xsrf) headers.set('X-XSRF-TOKEN', xsrf)
+  }
+
+  return headers
+}
+
+async function request(path, options = {}) {
+  const method = String(options.method || 'GET').toUpperCase()
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    try {
+      await ensureCsrfCookie()
+    } catch {
+      // Continue — server may still accept if cookie already present.
+    }
+  }
+
+  const headers = buildHeaders(options)
 
   let response
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...options,
       headers,
+      credentials: 'include',
     })
   } catch (err) {
     const error = new Error(err?.message === 'Failed to fetch'
@@ -36,6 +123,17 @@ async function request(path, options = {}) {
     error.status = 0
     error.data = null
     throw error
+  }
+
+  // CSRF cookie stale — refresh once and retry.
+  if (response.status === 419) {
+    csrfPromise = null
+    await ensureCsrfCookie()
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: buildHeaders(options),
+      credentials: 'include',
+    })
   }
 
   const text = await response.text()
@@ -47,6 +145,9 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401 && !String(path).includes('/auth/login')) {
+      setToken(null)
+    }
     const error = new Error(data?.message || 'Request failed')
     error.status = response.status
     error.data = data
@@ -771,12 +872,10 @@ export const api = {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
     ).toString()
-    const headers = new Headers({ Accept: 'text/csv' })
-    const token = getToken()
-    if (token) headers.set('Authorization', `Bearer ${token}`)
+    await ensureCsrfCookie().catch(() => {})
     const response = await fetch(
       `${API_URL}${adminBase(options)}/social-media-compliance/reports/export${query ? `?${query}` : ''}`,
-      { headers }
+      { headers: buildHeaders({ headers: { Accept: 'text/csv' } }), credentials: 'include' }
     )
     if (!response.ok) {
       const error = new Error('Export failed')
@@ -858,12 +957,10 @@ export const api = {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
     ).toString()
-    const headers = new Headers({ Accept: 'text/csv' })
-    const token = getToken()
-    if (token) headers.set('Authorization', `Bearer ${token}`)
+    await ensureCsrfCookie().catch(() => {})
     const response = await fetch(
       `${API_URL}${adminBase(options)}/general-compliance/reports/export${query ? `?${query}` : ''}`,
-      { headers }
+      { headers: buildHeaders({ headers: { Accept: 'text/csv' } }), credentials: 'include' }
     )
     if (!response.ok) {
       const error = new Error('Export failed')

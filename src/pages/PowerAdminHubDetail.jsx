@@ -29,6 +29,9 @@ export default function PowerAdminHubDetail() {
     db_username: '',
     db_password: '',
     clear_db_password: false,
+    db_ssl_mode: 'disabled',
+    db_ssl_ca: '',
+    clear_db_ssl_ca: false,
     is_active: true,
   })
 
@@ -52,6 +55,9 @@ export default function PowerAdminHubDetail() {
         db_username: next.deploy?.database?.username || '',
         db_password: '',
         clear_db_password: false,
+        db_ssl_mode: next.deploy?.database?.ssl_mode || 'disabled',
+        db_ssl_ca: '',
+        clear_db_ssl_ca: false,
         is_active: Boolean(next.is_active),
       })
     } catch (err) {
@@ -89,6 +95,13 @@ export default function PowerAdminHubDetail() {
       if (meta.clear_db_password) {
         payload.clear_db_password = true
       }
+      payload.db_ssl_mode = meta.db_ssl_mode || 'disabled'
+      if (meta.db_ssl_ca.trim()) {
+        payload.db_ssl_ca = meta.db_ssl_ca.trim()
+      }
+      if (meta.clear_db_ssl_ca) {
+        payload.clear_db_ssl_ca = true
+      }
       if (hub?.type !== 'shared') {
         payload.slug = meta.slug.trim()
       }
@@ -98,6 +111,9 @@ export default function PowerAdminHubDetail() {
         ...prev,
         db_password: '',
         clear_db_password: false,
+        db_ssl_ca: '',
+        clear_db_ssl_ca: false,
+        db_ssl_mode: data.hub.deploy?.database?.ssl_mode || prev.db_ssl_mode,
         db_driver: data.hub.deploy?.database?.driver || prev.db_driver,
         db_host: data.hub.deploy?.database?.host || '',
         db_port:
@@ -322,6 +338,61 @@ export default function PowerAdminHubDetail() {
                 />
                 <span>Clear stored database password</span>
               </label>
+            )}
+            <h3 style={{ margin: '0.75rem 0 0' }}>Remote DB TLS</h3>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Prefer TLS for Central → hub database traffic. Use{' '}
+              <code>required</code> when the remote MySQL/MariaDB host supports SSL.
+              {hub.deploy?.database?.ssl_ca_set
+                ? ' A CA path is currently stored.'
+                : ' No CA path stored yet.'}
+            </p>
+            <label>
+              SSL mode
+              <select
+                value={meta.db_ssl_mode}
+                onChange={(e) => setMeta({ ...meta, db_ssl_mode: e.target.value })}
+              >
+                <option value="disabled">Disabled</option>
+                <option value="preferred">Preferred</option>
+                <option value="required">Required</option>
+                <option value="verify_ca">Verify CA</option>
+              </select>
+            </label>
+            {meta.db_ssl_mode !== 'disabled' && (
+              <>
+                <label>
+                  SSL CA file path (on Central server)
+                  <input
+                    value={meta.db_ssl_ca}
+                    onChange={(e) =>
+                      setMeta({ ...meta, db_ssl_ca: e.target.value, clear_db_ssl_ca: false })
+                    }
+                    placeholder={
+                      hub.deploy?.database?.ssl_ca_set
+                        ? 'Leave blank to keep current CA path'
+                        : '/path/to/ca.pem'
+                    }
+                    autoComplete="off"
+                  />
+                </label>
+                {hub.deploy?.database?.ssl_ca_set && (
+                  <label className="toggle-row">
+                    <input
+                      type="checkbox"
+                      checked={meta.clear_db_ssl_ca}
+                      onChange={(e) =>
+                        setMeta({
+                          ...meta,
+                          clear_db_ssl_ca: e.target.checked,
+                          db_ssl_ca: e.target.checked ? '' : meta.db_ssl_ca,
+                        })
+                      }
+                    />
+                    <span>Clear stored SSL CA path</span>
+                  </label>
+                )}
+              </>
             )}
           </>
         )}

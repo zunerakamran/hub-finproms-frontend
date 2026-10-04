@@ -32,6 +32,8 @@ export function buildDeployPreview(hub, meta) {
       database: dbDatabase || null,
       username: dbUsername || null,
       password_set: passwordSet,
+      ssl_mode: meta?.db_ssl_mode || hub?.deploy?.database?.ssl_mode || 'disabled',
+      ssl_ca_set: Boolean(hub?.deploy?.database?.ssl_ca_set) || Boolean((meta?.db_ssl_ca || '').trim()),
     },
     hub_slug_env: slug,
     ready,

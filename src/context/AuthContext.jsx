@@ -93,18 +93,17 @@ export function AuthProvider({ children }) {
   }, [setUser, setPowerCapabilities])
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      setLoading(false)
-      return
-    }
-    // Prefetch hub in parallel with /auth/me so boot waits on max(me, hub), not me+hub.
+    // Cookie session may still be valid even without the soft sessionStorage flag.
     queryClient.prefetchQuery({
       queryKey: hubBootQueryKey,
       queryFn: () => api.currentHub(),
       staleTime: 60_000,
     })
-    refreshUser().finally(() => setLoading(false))
+    refreshUser()
+      .then((user) => {
+        if (user) setToken('1')
+      })
+      .finally(() => setLoading(false))
   }, [refreshUser])
 
   const clearHubCaches = useCallback(() => {
@@ -118,7 +117,7 @@ export function AuthProvider({ children }) {
     if (data?.otp_required) {
       return data
     }
-    setToken(data.token)
+    setToken('1')
     clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)
@@ -137,7 +136,7 @@ export function AuthProvider({ children }) {
 
   const verifyLoginOtp = useCallback(async (payload) => {
     const data = await api.verifyLoginOtp(payload)
-    setToken(data.token)
+    setToken('1')
     clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)
@@ -157,8 +156,8 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (payload) => {
     const data = await api.register(payload)
     // Self-registration requires email verification — no session token yet.
-    if (data?.token) {
-      setToken(data.token)
+    if (data?.user || data?.token || data?.auth_mode === 'cookie') {
+      setToken('1')
       clearHubCaches()
       setUser(data.user)
       queryClient.setQueryData(authQueryKey, data)
@@ -169,7 +168,7 @@ export function AuthProvider({ children }) {
 
   const completeEmailVerification = useCallback(async (payload) => {
     const data = await api.verifyEmail(payload)
-    setToken(data.token)
+    setToken('1')
     clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)

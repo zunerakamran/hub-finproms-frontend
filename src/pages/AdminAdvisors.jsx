@@ -90,11 +90,11 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const downloadTemplate = async () => {
     setError('')
     try {
-      const token = localStorage.getItem('token')
       const response = await fetch(api.advisorTemplateUrl(apiOpts), {
+        credentials: 'include',
         headers: {
           Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'X-Requested-With': 'XMLHttpRequest',
         },
       })
       if (!response.ok) {

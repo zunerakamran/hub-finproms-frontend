@@ -541,8 +541,9 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
     setCpanelDbHost(req.cpanel_db_host || 'localhost')
     setCpanelDbName(req.cpanel_db_name || '')
     setCpanelDbUser(req.cpanel_db_user || '')
-    setCpanelDbPass(req.cpanel_db_pass || req.cpanel_db_password || '')
-    setCpanelApiKey(req.cpanel_api_key || '')
+    // Secrets are never returned by the API — leave blank to keep existing values.
+    setCpanelDbPass('')
+    setCpanelApiKey('')
     fillBrandingFromRequest(req)
   }
 
@@ -556,8 +557,9 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
     setCpanelDbHost(req.cpanel_db_host || 'localhost')
     setCpanelDbName(req.cpanel_db_name || '')
     setCpanelDbUser(req.cpanel_db_user || '')
-    setCpanelDbPass(req.cpanel_db_pass || req.cpanel_db_password || '')
-    setCpanelApiKey(req.cpanel_api_key || '')
+    // Secrets are never returned by the API — leave blank to keep existing values.
+    setCpanelDbPass('')
+    setCpanelApiKey('')
     fillBrandingFromRequest(req)
   }
 
@@ -574,14 +576,15 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
     setMessage('')
     setError('')
     try {
-      const res = await api.post(`/template-requests/${selectedRequest.id}/deploy`, {
+      const payload = {
         cpanel_domain: cpanelDomain,
         cpanel_db_host: cpanelDbHost,
         cpanel_db_name: cpanelDbName,
         cpanel_db_user: cpanelDbUser,
-        cpanel_db_pass: cpanelDbPass,
-        cpanel_api_key: cpanelApiKey,
-      })
+      }
+      if (cpanelDbPass.trim()) payload.cpanel_db_pass = cpanelDbPass.trim()
+      if (cpanelApiKey.trim()) payload.cpanel_api_key = cpanelApiKey.trim()
+      const res = await api.post(`/template-requests/${selectedRequest.id}/deploy`, payload)
       setMessage(
         res.data?.message ||
           (isDeploymentLive(selectedRequest.status)
@@ -604,14 +607,15 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
     setMessage('')
     setError('')
     try {
-      const res = await api.post(`/template-requests/${promoteRequest.id}/promote-to-live`, {
+      const payload = {
         cpanel_domain: cpanelDomain,
         cpanel_db_host: cpanelDbHost,
         cpanel_db_name: cpanelDbName,
         cpanel_db_user: cpanelDbUser,
-        cpanel_db_pass: cpanelDbPass,
-        cpanel_api_key: cpanelApiKey,
-      })
+      }
+      if (cpanelDbPass.trim()) payload.cpanel_db_pass = cpanelDbPass.trim()
+      if (cpanelApiKey.trim()) payload.cpanel_api_key = cpanelApiKey.trim()
+      const res = await api.post(`/template-requests/${promoteRequest.id}/promote-to-live`, payload)
       setMessage(res.data?.message || `Go-live request deployed to ${cpanelDomain}.`)
       setPromoteRequest(null)
       fetchData(true)
@@ -1396,7 +1400,12 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                   className={fieldInputClass}
                   value={cpanelDbPass}
                   onChange={(e) => setCpanelDbPass(e.target.value)}
+                  placeholder={selectedRequest?.cpanel_db_password_set ? 'Leave blank to keep current' : ''}
+                  autoComplete="new-password"
                 />
+                {selectedRequest?.cpanel_db_password_set ? (
+                  <p className="text-[11px] text-gray-500 mt-1">A password is already stored (encrypted).</p>
+                ) : null}
               </div>
             </div>
             <div>
@@ -1405,10 +1414,16 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
               </label>
               <input
                 id="wc-deploy-api-key"
+                type="password"
                 className={fieldInputClass}
                 value={cpanelApiKey}
                 onChange={(e) => setCpanelApiKey(e.target.value)}
+                placeholder={selectedRequest?.cpanel_api_key_set ? 'Leave blank to keep current' : ''}
+                autoComplete="new-password"
               />
+              {selectedRequest?.cpanel_api_key_set ? (
+                <p className="text-[11px] text-gray-500 mt-1">An API key is already stored (encrypted).</p>
+              ) : null}
             </div>
             <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
               <button
@@ -1496,12 +1511,28 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
               </div>
               <div>
                 <label className={fieldLabelClass} htmlFor="wc-promote-db-pass">DB pass</label>
-                <input id="wc-promote-db-pass" type="password" className={fieldInputClass} value={cpanelDbPass} onChange={(e) => setCpanelDbPass(e.target.value)} />
+                <input
+                  id="wc-promote-db-pass"
+                  type="password"
+                  className={fieldInputClass}
+                  value={cpanelDbPass}
+                  onChange={(e) => setCpanelDbPass(e.target.value)}
+                  placeholder={promoteRequest?.cpanel_db_password_set ? 'Leave blank to keep current' : ''}
+                  autoComplete="new-password"
+                />
               </div>
             </div>
             <div>
               <label className={fieldLabelClass} htmlFor="wc-promote-api-key">cPanel API key</label>
-              <input id="wc-promote-api-key" className={fieldInputClass} value={cpanelApiKey} onChange={(e) => setCpanelApiKey(e.target.value)} />
+              <input
+                id="wc-promote-api-key"
+                type="password"
+                className={fieldInputClass}
+                value={cpanelApiKey}
+                onChange={(e) => setCpanelApiKey(e.target.value)}
+                placeholder={promoteRequest?.cpanel_api_key_set ? 'Leave blank to keep current' : ''}
+                autoComplete="new-password"
+              />
             </div>
             <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
               <button

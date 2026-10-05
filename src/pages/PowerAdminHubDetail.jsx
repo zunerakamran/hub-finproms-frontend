@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import HubBackupPanel from '../components/HubBackupPanel'
 import HubDeployChecklist from '../components/HubDeployChecklist'
 import { buildDeployPreview } from '../utils/hubDeploy'
 
@@ -404,6 +405,8 @@ export default function PowerAdminHubDetail() {
         </div>
         <HubDeployChecklist deploy={buildDeployPreview(hub, meta)} slug={hub.slug} />
       </form>
+
+      <HubBackupPanel hubId={hubId} hubName={hub.name} />
     </section>
   )
 }

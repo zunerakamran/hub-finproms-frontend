@@ -632,6 +632,42 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ checklist }),
     }),
+  powerAdminHubBackups: (hubId) => request(`/power-admin/hubs/${hubId}/backups`),
+  updatePowerAdminHubBackupSchedule: (hubId, payload) =>
+    request(`/power-admin/hubs/${hubId}/backups/schedule`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  createPowerAdminHubBackup: (hubId) =>
+    request(`/power-admin/hubs/${hubId}/backups`, { method: 'POST', body: JSON.stringify({}) }),
+  restorePowerAdminHubBackup: (hubId, backupId) =>
+    request(`/power-admin/hubs/${hubId}/backups/${backupId}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ confirm: true }),
+    }),
+  deletePowerAdminHubBackup: (hubId, backupId) =>
+    request(`/power-admin/hubs/${hubId}/backups/${backupId}`, { method: 'DELETE' }),
+  downloadPowerAdminHubBackup: async (hubId, backupId, filename = 'backup.zip') => {
+    await ensureCsrfCookie().catch(() => {})
+    const response = await fetch(`${API_URL}/power-admin/hubs/${hubId}/backups/${backupId}/download`, {
+      headers: buildHeaders({ headers: { Accept: 'application/zip' } }),
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      const error = new Error('Download failed')
+      error.status = response.status
+      throw error
+    }
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  },
   advisors: (params = {}, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const query = new URLSearchParams(

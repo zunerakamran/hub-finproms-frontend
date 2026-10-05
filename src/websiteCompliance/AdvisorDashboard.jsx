@@ -1842,12 +1842,15 @@ export default function AdvisorDashboard({
   const fetchAvailableTemplates = () => {
     api.get('/templates')
       .then(res => {
-        setAvailableTemplates(res.data)
-        if (res.data.length > 0 && !selectedTemplateName) {
-          setSelectedTemplateName(res.data[0].slug)
+        const list = Array.isArray(res.data) ? res.data : res.data?.data || []
+        setAvailableTemplates(list)
+        if (list.length > 0 && !selectedTemplateName) {
+          setSelectedTemplateName(list[0].slug || list[0].name || '')
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setAvailableTemplates([])
+      })
   }
 
   useEffect(() => {

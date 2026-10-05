@@ -356,7 +356,7 @@ export default function WebsiteComplianceReports() {
               <div className="compliance-report-rows" style={{ marginTop: 16 }}>
                 <div className="page-head" style={{ marginBottom: '0.75rem' }}>
                   <div>
-                    <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Change request rows</h2>
+                    <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Website Compliance request</h2>
                     <p className="muted" style={{ margin: '0.25rem 0 0' }}>
                       Open a request’s audit trail from the column — it opens in a dialog, not inside
                       the table.

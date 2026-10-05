@@ -376,7 +376,7 @@ export default function SocialMediaComplianceReports() {
 
           {tab === 'report' ? (
             <div style={{ marginTop: 16 }}>
-              <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.05rem' }}>Request rows</h2>
+              <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.05rem' }}>SM Compliance request</h2>
               <DataGrid
                 columns={reportColumns}
                 rows={report?.rows || []}

@@ -210,13 +210,6 @@ function ReviewRow({ label, value, mono = false }) {
 
 // ─── Create deployment request modal ─────────────────────────────────────────
 
-const TEMPLATES = [
-  { value: 'template4', label: 'Template 4 (Default)' },
-  { value: 'template1', label: 'Template 1' },
-  { value: 'template2', label: 'Template 2' },
-  { value: 'template3', label: 'Template 3' },
-]
-
 function storedUploadPath(data) {
   const path = data?.relative_url || data?.url || ''
   if (!path || /^data:/i.test(path)) return ''
@@ -310,7 +303,7 @@ export function CreateDeploymentModal({
   const hubPrimary = branding?.primary_color || branding?.color_scheme?.primary || '#0f5c45'
   const hubSecondary = branding?.secondary_color || branding?.color_scheme?.secondary || '#0a3f30'
   const [step, setStep] = useState(0)
-  const [templateName, setTemplateName] = useState(initialTemplateName || 'template4')
+  const [templateName, setTemplateName] = useState(initialTemplateName || '')
   const [domainName, setDomainName] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
   const [whiteLogoUrl, setWhiteLogoUrl] = useState('')
@@ -376,14 +369,22 @@ export function CreateDeploymentModal({
         const slug = preferred.slug || preferred.name
         if (slug) setTemplateName(slug)
         applyTemplateDefaults(preferred)
+      } else {
+        setServerTemplates([])
+        setTemplateName('')
       }
-    }).catch(() => {})
+    }).catch(() => {
+      setServerTemplates([])
+      setTemplateName('')
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once when modal opens
   }, [])
 
-  const templateOptions = serverTemplates.length
-    ? serverTemplates.map(t => ({ value: t.slug || t.name, label: t.name, template: t }))
-    : TEMPLATES.map(t => ({ ...t, template: null }))
+  const templateOptions = serverTemplates.map(t => ({
+    value: t.slug || t.name,
+    label: t.name || t.slug,
+    template: t,
+  }))
 
   const selectedTemplate =
     serverTemplates.find(t => (t.slug || t.name) === templateName) || null
@@ -568,20 +569,27 @@ export function CreateDeploymentModal({
             >
               <div>
                 <label className={labelClass}>Template</label>
-                <select
-                  value={templateName}
-                  onChange={(e) => {
-                    const next = e.target.value
-                    setTemplateName(next)
-                    const tpl = serverTemplates.find(t => (t.slug || t.name) === next) || null
-                    applyTemplateDefaults(tpl)
-                  }}
-                  className={inputClass}
-                >
-                  {templateOptions.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
+                {templateOptions.length === 0 ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
+                    No showcase templates are available on this hub yet. Ask an administrator to deploy
+                    or register the hub&apos;s website templates, then try again.
+                  </div>
+                ) : (
+                  <select
+                    value={templateName}
+                    onChange={(e) => {
+                      const next = e.target.value
+                      setTemplateName(next)
+                      const tpl = serverTemplates.find(t => (t.slug || t.name) === next) || null
+                      applyTemplateDefaults(tpl)
+                    }}
+                    className={inputClass}
+                  >
+                    {templateOptions.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                )}
                 {selectedTemplate?.description ? (
                   <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed line-clamp-3">
                     {truncateRichText(selectedTemplate.description, 180)}

@@ -201,7 +201,7 @@ export default function AdminComplianceAuditTrail({ shell = 'client-admin' }) {
               <input
                 value={filters.q}
                 onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-                placeholder="Actor, description, status…"
+                placeholder="User, modules, status…"
               />
             </label>
             <label>

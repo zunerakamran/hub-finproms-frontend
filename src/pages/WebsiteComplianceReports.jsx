@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FaEye } from 'react-icons/fa'
 import { api } from '../api/client'
@@ -8,11 +8,58 @@ import {
   CompliancePersonCell,
   ComplianceReportAuditPanel,
 } from '../components/ComplianceAuditTrail'
-import ComplianceStatusText from '../components/ComplianceStatusText'
+import CompliancePieChart, { statusPieSegments } from '../components/CompliancePieChart'
 import WcStatusBadge from '../components/WebsiteComplianceUI'
 import { useHub } from '../context/HubContext'
 import PlatformSummaryReport from '../websiteCompliance/components/PlatformSummaryReport'
 import { formatDateTime, complianceStatusChangedAt } from '../utils/dateFormat'
+
+const emptyFilters = { status: '', from: '', to: '', q: '' }
+
+function dayStamp(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10)
+  return date.toISOString().slice(0, 10)
+}
+
+function filterRows(rows, filters) {
+  const q = (filters.q || '').trim().toLowerCase()
+  return (Array.isArray(rows) ? rows : []).filter((row) => {
+    if (filters.status && String(row.status) !== String(filters.status)) return false
+    const submitted = dayStamp(row.submission_date)
+    if (filters.from && submitted && submitted < filters.from) return false
+    if (filters.to && submitted && submitted > filters.to) return false
+    if (q) {
+      const hay = [
+        row.id,
+        row.submitted_by,
+        row.on_behalf_by,
+        row.submitter_email,
+        row.firm_name,
+        row.section_name,
+        row.status,
+        row.assigned_to,
+        row.reviewed_by,
+        row.audit_trail_summary,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (!hay.includes(q)) return false
+    }
+    return true
+  })
+}
+
+function summaryFromRows(rows) {
+  const byStatus = {}
+  for (const row of rows) {
+    const status = String(row.status || 'unknown')
+    byStatus[status] = (byStatus[status] || 0) + 1
+  }
+  return { total: rows.length, by_status: byStatus }
+}
 
 export default function WebsiteComplianceReports() {
   const { can, loading: hubLoading, complianceStatusLabel, actingHubId } = useHub()
@@ -22,6 +69,8 @@ export default function WebsiteComplianceReports() {
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [filters, setFilters] = useState(emptyFilters)
+  const [applied, setApplied] = useState(emptyFilters)
 
   useEffect(() => {
     if (hubLoading || !moduleOn || !canView || tab === 'summary') {
@@ -45,6 +94,26 @@ export default function WebsiteComplianceReports() {
       cancelled = true
     }
   }, [hubLoading, moduleOn, canView, tab, actingHubId])
+
+  const filteredRows = useMemo(
+    () => filterRows(report?.rows || [], applied),
+    [report?.rows, applied]
+  )
+
+  const filteredSummary = useMemo(() => summaryFromRows(filteredRows), [filteredRows])
+
+  const filteredAuditEvents = useMemo(() => {
+    const ids = new Set(filteredRows.map((row) => Number(row.id)))
+    const events = Array.isArray(report?.audit_events) ? report.audit_events : []
+    if (ids.size === 0) return []
+    return events.filter((event) => ids.has(Number(event.subject_id)))
+  }, [filteredRows, report?.audit_events])
+
+  const statusOptions = useMemo(() => {
+    const fromSummary = Object.keys(report?.summary?.by_status || {})
+    if (fromSummary.length) return fromSummary
+    return Array.from(new Set((report?.rows || []).map((row) => row.status).filter(Boolean)))
+  }, [report])
 
   const reportColumns = [
     {
@@ -177,8 +246,6 @@ export default function WebsiteComplianceReports() {
     )
   }
 
-  const summary = report?.summary
-
   return (
     <section>
       <div className="page-head">
@@ -214,34 +281,71 @@ export default function WebsiteComplianceReports() {
         </div>
       ) : (
         <>
+          <form
+            className="filters-row"
+            onSubmit={(e) => {
+              e.preventDefault()
+              setApplied({ ...filters })
+            }}
+          >
+            <input
+              type="search"
+              placeholder="Search…"
+              value={filters.q}
+              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+            />
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
+            >
+              <option value="">All statuses</option>
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {complianceStatusLabel(status) || status}
+                </option>
+              ))}
+            </select>
+            <input
+              type="date"
+              value={filters.from}
+              onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
+            />
+            <input
+              type="date"
+              value={filters.to}
+              onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
+            />
+            <button className="btn primary" type="submit">
+              Filter
+            </button>
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={() => {
+                setFilters(emptyFilters)
+                setApplied(emptyFilters)
+              }}
+            >
+              Reset
+            </button>
+          </form>
+
           {error ? <div className="alert">{error}</div> : null}
           {loading ? (
             <div className="state">Loading...</div>
           ) : (
             <>
-              {summary ? (
-                <div className="stat-grid">
-                  <div className="stat-card">
-                    <strong>{summary.total}</strong>
-                    <span>Total</span>
-                  </div>
-                  {Object.entries(summary.by_status || {}).map(([status, count]) => (
-                    <div className="stat-card" key={status}>
-                      <strong>{count}</strong>
-                      <span>
-                        <ComplianceStatusText
-                          status={status}
-                          label={complianceStatusLabel(status)}
-                        />
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
+              <div className="compliance-pie-row">
+                <CompliancePieChart
+                  title="By status"
+                  total={filteredSummary.total}
+                  segments={statusPieSegments(filteredSummary.by_status, complianceStatusLabel)}
+                />
+              </div>
 
               <ComplianceReportAuditPanel
-                events={report?.audit_events}
-                rows={report?.rows || []}
+                events={filteredAuditEvents}
+                rows={filteredRows}
                 hub={report?.hub}
                 title="Full change-request audit history"
                 requestLabel="Change request"
@@ -261,7 +365,7 @@ export default function WebsiteComplianceReports() {
                 </div>
                 <DataGrid
                   columns={reportColumns}
-                  rows={report?.rows || []}
+                  rows={filteredRows}
                   emptyMessage="No change requests found."
                   pageSize={10}
                   actionsLabel="Actions"

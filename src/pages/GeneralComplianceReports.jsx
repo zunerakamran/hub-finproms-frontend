@@ -9,7 +9,7 @@ import {
   CompliancePersonCell,
   ComplianceReportAuditPanel,
 } from '../components/ComplianceAuditTrail'
-import ComplianceStatusText from '../components/ComplianceStatusText'
+import CompliancePieChart, { statusPieSegments } from '../components/CompliancePieChart'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatDateTime, complianceStatusChangedAt } from '../utils/dateFormat'
@@ -353,27 +353,27 @@ export default function GeneralComplianceReports() {
       ) : tab === 'report' || tab === 'audit' ? (
         <>
           {tab === 'report' && summary ? (
-            <div className="stat-grid">
-              <div className="stat-card">
-                <strong>{summary.total}</strong>
-                <span>Total</span>
-              </div>
-              {Object.entries(summary.by_status || {}).map(([status, count]) => (
-                <div className="stat-card" key={status}>
-                  <strong>{count}</strong>
-                  <span>
-                    <ComplianceStatusText status={status} label={complianceStatusLabel(status)} />
-                  </span>
-                </div>
-              ))}
-              <div className="stat-card">
-                <strong>{summary.approved_right_first_time}</strong>
-                <span>Right first time</span>
-              </div>
-              <div className="stat-card">
-                <strong>{summary.approved_multiple_attempts}</strong>
-                <span>Multiple attempts</span>
-              </div>
+            <div className="compliance-pie-row">
+              <CompliancePieChart
+                title="By status"
+                total={summary.total}
+                segments={statusPieSegments(summary.by_status, complianceStatusLabel)}
+              />
+              <CompliancePieChart
+                title="Approval quality"
+                segments={[
+                  {
+                    key: 'rft',
+                    label: 'Right first time',
+                    value: summary.approved_right_first_time,
+                  },
+                  {
+                    key: 'multi',
+                    label: 'Multiple attempts',
+                    value: summary.approved_multiple_attempts,
+                  },
+                ]}
+              />
             </div>
           ) : null}
 

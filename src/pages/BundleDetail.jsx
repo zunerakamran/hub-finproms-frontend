@@ -181,7 +181,7 @@ export default function BundleDetail() {
             <span>Bundle</span>
             <span>{bundle.posts_count ?? bundle.posts?.length ?? 0} posts</span>
             <span>
-              {bundle.credits_cost} credits · £{bundle.credits_cost}
+              {bundle.credits_cost} credits
             </span>
             {bundle.is_purchased ? <span className="badge ok">Owned</span> : null}
           </div>
@@ -203,7 +203,7 @@ export default function BundleDetail() {
           ) : canBuy ? (
             <div className="unlock-box">
               <p>
-                Buy this bundle for {bundle.credits_cost} credits (£{bundle.credits_cost}).
+                Buy this bundle for {bundle.credits_cost} credits.
                 {oneOffEnabled ? ' No subscription required.' : ''}
               </p>
               <p className="muted">

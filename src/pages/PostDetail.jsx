@@ -183,16 +183,22 @@ export default function PostDetail() {
 
           <div className="locked-gate-body">
             <div className="locked-gate-meta">
-              <span className="locked-pill">{post.type}</span>
-              <span className="locked-pill">{post.category}</span>
-              <span className="locked-pill cost">{post.credits_cost} credits · £{post.credits_cost}</span>
+              <div className="locked-gate-meta__row">
+                <span className="locked-pill">{post.type}</span>
+                <span className="locked-pill cost">{post.credits_cost} credits</span>
+              </div>
+              {post.category ? (
+                <div className="locked-gate-meta__row">
+                  <span className="locked-pill">{post.category}</span>
+                </div>
+              ) : null}
             </div>
 
             <h1>{post.title}</h1>
             <p className="locked-gate-lead">
               {t(
                 'locked_lead',
-                'Sign in to preview this post and buy it with credits — no subscription required. 1 credit = £1.'
+                'Sign in to preview this post and buy it with credits — no subscription required.'
               )}
             </p>
 
@@ -211,7 +217,7 @@ export default function PostDetail() {
                   <p>
                     {t(
                       'step2_body',
-                      'Subscribe for a pack, or top up as you go (1 credit = £1).'
+                      'Subscribe for a pack, or top up as you go.'
                     )}
                   </p>
                 </div>
@@ -263,17 +269,22 @@ export default function PostDetail() {
             ) : (
               <img src={post.cover_url} alt={post.title} />
             )}
+            <PostMetrics post={post} className="post-metrics detail-media__metrics" />
           </div>
         ) : null}
 
         <div className="detail-body">
-          <div className="post-meta">
-            <span>{post.type}</span>
-            <span>{post.category}</span>
-            <span>
-              {post.credits_cost} credits · £{post.credits_cost}
-            </span>
-            {post.is_new && <span className="badge new-inline">NEW</span>}
+          <div className="post-meta post-meta--detail">
+            <div className="post-meta__row">
+              <span>{post.type}</span>
+              <span>{post.credits_cost} credits</span>
+              {post.is_new && <span className="badge new-inline">NEW</span>}
+            </div>
+            {post.category ? (
+              <div className="post-meta__row post-meta__row--category">
+                <span>{post.category}</span>
+              </div>
+            ) : null}
           </div>
           <h1>{post.title}</h1>
           <p className="muted">
@@ -281,7 +292,9 @@ export default function PostDetail() {
               date: formatDateTime(post.last_updated || post.updated_at),
             })}
           </p>
-          <PostMetrics post={post} className="post-metrics detail-metrics" />
+          {!hasMedia ? (
+            <PostMetrics post={post} className="post-metrics detail-metrics" />
+          ) : null}
 
           <RichTextDisplay
             html={post.description}
@@ -301,7 +314,7 @@ export default function PostDetail() {
           {unlocked ? (
             <div className="unlock-box">
               <p className="badge ok">{t('unlocked', 'Unlocked')}</p>
-              <div className="actions">
+              <div className="actions unlock-box__actions">
                 {canPreview && post.attachment_url ? (
                   <button
                     type="button"
@@ -309,7 +322,6 @@ export default function PostDetail() {
                     onClick={() => setPreviewOpen(true)}
                   >
                     {t('download', 'Preview')}
-                    {post.attachment_name ? ` (${post.attachment_name})` : ''}
                   </button>
                 ) : canPreview ? (
                   <p className="muted">
@@ -345,7 +357,7 @@ export default function PostDetail() {
             <div className="unlock-box">
               <p>
                 {fillPageText(
-                  t('buy_intro', 'Buy this post for {credits} credits (£{credits}).'),
+                  t('buy_intro', 'Buy this post for {credits} credits.'),
                   { credits: post.credits_cost }
                 )}
                 {oneOffEnabled

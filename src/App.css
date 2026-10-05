@@ -1234,6 +1234,21 @@ h2,
   margin: 0.35rem 0 0.85rem;
 }
 
+.detail-media__metrics {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 2;
+  margin: 0;
+  padding: 0.4rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  gap: 0.65rem 0.85rem;
+  max-width: calc(100% - 1.5rem);
+}
+
 .badge.new-inline {
   background: #c4512a;
   color: #fff;
@@ -1406,8 +1421,16 @@ h2,
 
 .locked-gate-meta {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.locked-gate-meta__row {
+  display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: center;
 }
 
 .locked-pill {
@@ -2481,6 +2504,23 @@ label {
   font-size: 0.85rem;
 }
 
+.post-meta--detail {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.post-meta__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.post-meta__row--category {
+  width: 100%;
+}
+
 .detail .tags,
 .detail-body .tags {
   margin-bottom: 0.85rem;
@@ -2586,6 +2626,19 @@ label {
 .unlock-box {
   margin-top: 1.25rem;
   padding: 1rem;
+}
+
+.unlock-box__actions {
+  align-items: stretch;
+}
+
+.unlock-box__actions > .btn {
+  flex: 1 1 12rem;
+  min-width: 12rem;
+  min-height: 2.85rem;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .admin-list {

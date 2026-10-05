@@ -226,11 +226,11 @@ export default function Posts() {
             {isReelsPage
               ? t(
                   'lead_reels',
-                  'Browse short-form reels, unlock with credits, and preview the assets you need. 1 credit = £1.'
+                  'Browse short-form reels, unlock with credits, and preview the assets you need.'
                 )
               : t(
                   'lead_posts',
-                  'Browse promo posts, unlock with credits, and preview the assets you need. 1 credit = £1.'
+                  'Browse promo posts, unlock with credits, and preview the assets you need.'
                 )}
           </p>
         </div>
@@ -278,7 +278,7 @@ export default function Posts() {
             <p className="muted">
               {t(
                 'lock_body',
-                'Log in to preview posts and buy them with credits (1 credit = £1).'
+                'Log in to preview posts and buy them with credits.'
               )}
             </p>
           </div>

@@ -240,24 +240,6 @@ export default function MyDashboardLayout() {
             )
           )}
         </nav>
-
-        <div className="dash-sidebar__footer">
-          {canViewSitePages ? (
-            <WebsiteNavLink className="dash-site-link">← Back to website</WebsiteNavLink>
-          ) : null}
-          <div className="dash-user-row">
-            <span className="dash-user-avatar" aria-hidden="true">
-              {String(user?.name || 'U').charAt(0).toUpperCase()}
-            </span>
-            <div className="dash-user-row__meta">
-              <strong>{user?.name}</strong>
-              <span className="muted">{user?.email || roleLabel(user?.role)}</span>
-            </div>
-          </div>
-          <button type="button" className="btn ghost full" onClick={onLogout}>
-            Log out
-          </button>
-        </div>
       </aside>
 
       <div className="dash-main" ref={dashMainRef}>
@@ -281,10 +263,18 @@ export default function MyDashboardLayout() {
             </div>
             <ActingAdvisorSwitcher />
           </div>
-          <div className="dash-topbar__links">
+          <div className="dash-topbar__session">
             {canViewSitePages ? (
-              <WebsiteNavLink className="dash-top-link">Website</WebsiteNavLink>
+              <WebsiteNavLink className="dash-back-link">Back to website</WebsiteNavLink>
             ) : null}
+            <p className="dash-session-welcome">
+              <span>Welcome</span>
+              <strong>{user?.name || 'there'}</strong>
+              {user?.email ? <span className="dash-session-email">{user.email}</span> : null}
+            </p>
+            <button type="button" className="dash-logout-link" onClick={onLogout}>
+              Log out
+            </button>
           </div>
         </header>
         <main className="dash-content">

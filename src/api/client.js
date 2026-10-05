@@ -705,6 +705,22 @@ export const api = {
     ).toString()
     return request(`${base}/advisors/import-history${query ? `?${query}` : ''}`)
   },
+  submitAdvisorImportSheet: async (file, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const formData = new FormData()
+    formData.append('file', file)
+    return request(`${base}/advisors/submit`, { method: 'POST', body: formData })
+  },
+  importAdvisorSubmission: async (batchId, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const queued = await request(`${base}/advisors/import-submissions/${batchId}/import`, {
+      method: 'POST',
+    })
+    if (!queued?.queued || !queued?.job_id) {
+      return queued
+    }
+    return pollJobStatus(() => request(`${base}/advisors/import/${queued.job_id}`))
+  },
   advisorBillingCheckout: (billingId, paymentMethod, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/advisor-billings/${billingId}/checkout`, {

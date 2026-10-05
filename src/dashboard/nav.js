@@ -133,6 +133,7 @@ const MODULES_ANY = [
 const ADVISOR_ANY = [
   'advisor_excel_import',
   'advisor_excel_template',
+  'advisor_excel_submit',
   'dashboard_manage_advisor_pricing',
   'dashboard_manage_advisor_renewal',
   'dashboard_manage_subscriber_credits',
@@ -601,8 +602,8 @@ export const DASHBOARD_LINKS = [
     label: 'Import Users',
     title: 'Import Users',
     description:
-      'Download the Excel template and/or import filled sheets. Discontinue users from Hub → Users.',
-    anyOf: ['advisor_excel_import', 'advisor_excel_template'],
+      'Download template, submit a filled sheet for import, or import users. Discontinue users from Hub → Users.',
+    anyOf: ['advisor_excel_import', 'advisor_excel_template', 'advisor_excel_submit'],
     group: 'advisors',
   },
   {

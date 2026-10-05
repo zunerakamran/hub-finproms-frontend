@@ -19,15 +19,26 @@ function formatMoney(amount, currency = 'gbp') {
 }
 
 function ImportBatchDetails({ batch }) {
-  const sections = [
-    { key: 'created', label: 'Created', rows: batch.created || [] },
-    { key: 'updated', label: 'Updated', rows: batch.updated || [] },
-    { key: 'reactivated', label: 'Reactivated', rows: batch.reactivated || [] },
-  ]
+  const isPending = batch.status === 'pending'
+  const pendingUsers = batch.pending_users || []
+  const sections = isPending
+    ? [{ key: 'pending_users', label: 'Users in sheet', rows: pendingUsers }]
+    : [
+        { key: 'created', label: 'Created', rows: batch.created || [] },
+        { key: 'updated', label: 'Updated', rows: batch.updated || [] },
+        { key: 'reactivated', label: 'Reactivated', rows: batch.reactivated || [] },
+      ]
 
   return (
     <div className="import-block" style={{ marginTop: '0.75rem' }}>
       {batch.message ? <p className="muted">{batch.message}</p> : null}
+      {isPending ? (
+        <p>
+          <strong>{batch.user_count ?? batch.submitted_user_count ?? pendingUsers.length}</strong> user
+          {(batch.user_count ?? batch.submitted_user_count ?? pendingUsers.length) === 1 ? '' : 's'} in
+          this submitted sheet (pending import).
+        </p>
+      ) : null}
       {sections.map((section) =>
         section.rows.length > 0 ? (
           <div key={section.key} style={{ marginBottom: '0.75rem' }}>
@@ -74,6 +85,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const [message, setMessage] = useState('')
   const [result, setResult] = useState(null)
   const [file, setFile] = useState(null)
+  const [submitFile, setSubmitFile] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [importingSubmissionId, setImportingSubmissionId] = useState(null)
   const [quote, setQuote] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('stripe')
   const [paying, setPaying] = useState(false)
@@ -82,8 +96,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
 
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const canImport = can('advisor_excel_import')
-  const canDownloadTemplate = can('advisor_excel_template') || canImport
-  const enabled = canImport || can('advisor_excel_template')
+  const canSubmit = can('advisor_excel_submit')
+  const canDownloadTemplate = can('advisor_excel_template') || canImport || canSubmit
+  const enabled = canImport || can('advisor_excel_template') || canSubmit
   const billingEnabled = advisorBillingEnabled
   const canViewInvoices = can('dashboard_view_advisor_invoices')
   const eyebrow = 'Advisors & billing'
@@ -181,6 +196,60 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     }
   }
 
+  const onSubmitSheet = async (e) => {
+    e.preventDefault()
+    if (!submitFile) {
+      setError('Choose a filled Excel (.xlsx) file to send for import.')
+      return
+    }
+    const name = (submitFile.name || '').toLowerCase()
+    if (!name.endsWith('.xlsx')) {
+      setError('Only Excel (.xlsx) files are supported. Download the template and fill it in.')
+      return
+    }
+    setSubmitting(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.submitAdvisorImportSheet(submitFile, apiOpts)
+      setMessage(data.message || 'Excel sheet sent for import.')
+      setSubmitFile(null)
+      await loadHistory()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const onImportSubmission = async (batch) => {
+    if (!batch?.id) return
+    const ok = window.confirm(
+      `Import the sheet “${batch.original_filename || 'submission'}” with ${batch.user_count ?? batch.submitted_user_count ?? 0} pending user(s)?`
+    )
+    if (!ok) return
+
+    setImportingSubmissionId(batch.id)
+    setError('')
+    setMessage('Importing submitted sheet…')
+    setResult(null)
+    setQuote(null)
+    try {
+      const data = await api.importAdvisorSubmission(batch.id, apiOpts)
+      setMessage(data.message || 'Submitted sheet imported.')
+      setResult(data)
+      setQuote(data.quote || null)
+      if (data.quote?.error) {
+        setError(data.quote.error)
+      }
+      await loadHistory()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setImportingSubmissionId(null)
+    }
+  }
+
   const onPay = async () => {
     const billingId = quote?.billing?.id
     if (!billingId) {
@@ -231,8 +300,8 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
             <h1>Import Users</h1>
             <p className="muted">
               Advisor import tools are disabled for your role on this hub. Enable
-              &quot;Import advisors&quot; and/or &quot;Download import Excel template&quot; under Power
-              Admin → Capabilities.
+              &quot;Import advisors&quot;, &quot;Download import Excel template&quot;, and/or
+              &quot;Submit filled Excel for import&quot; under Power Admin → Capabilities.
             </p>
           </div>
         </div>
@@ -248,18 +317,22 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     () => [
       {
         key: 'created_at',
-        label: 'Imported',
+        label: 'When',
         render: (row) => <DataGridDate value={row.created_at} />,
       },
       {
         key: 'imported_by',
-        label: 'Imported by',
+        label: 'By',
         filterValue: (row) =>
-          [row.imported_by?.name, row.imported_by?.email].filter(Boolean).join(' '),
-        render: (row) =>
-          row.imported_by?.name
-            ? `${row.imported_by.name}${row.imported_by.email ? ` (${row.imported_by.email})` : ''}`
-            : '—',
+          [row.submitted_by?.name || row.imported_by?.name, row.submitted_by?.email || row.imported_by?.email]
+            .filter(Boolean)
+            .join(' '),
+        render: (row) => {
+          const person = row.submitted_by || row.imported_by
+          return person?.name
+            ? `${person.name}${person.email ? ` (${person.email})` : ''}`
+            : '—'
+        },
       },
       {
         key: 'original_filename',
@@ -268,20 +341,28 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       },
       {
         key: 'summary',
-        label: 'Summary',
+        label: 'Users / summary',
         filterValue: (row) =>
-          `created ${row.summary?.created ?? 0} updated ${row.summary?.updated ?? 0} reactivated ${row.summary?.reactivated ?? 0} skipped ${row.summary?.skipped ?? 0}`,
+          row.status === 'pending'
+            ? `pending ${row.user_count ?? row.submitted_user_count ?? 0} users`
+            : `created ${row.summary?.created ?? 0} updated ${row.summary?.updated ?? 0} reactivated ${row.summary?.reactivated ?? 0} skipped ${row.summary?.skipped ?? 0}`,
         render: (row) =>
-          `${row.summary?.created ?? 0} created · ${row.summary?.updated ?? 0} updated · ${row.summary?.reactivated ?? 0} reactivated · ${row.summary?.skipped ?? 0} skipped`,
+          row.status === 'pending'
+            ? `${row.user_count ?? row.submitted_user_count ?? 0} users (sent for import)`
+            : `${row.summary?.created ?? 0} created · ${row.summary?.updated ?? 0} updated · ${row.summary?.reactivated ?? 0} reactivated · ${row.summary?.skipped ?? 0} skipped`,
       },
       {
         key: 'status',
         label: 'Status',
-        render: (row) => (
-          <span className={`badge ${row.status === 'completed' ? 'ok' : ''}`}>
-            {row.status === 'completed' ? 'Completed' : row.status || '—'}
-          </span>
-        ),
+        render: (row) => {
+          const pending = row.status === 'pending'
+          const label = pending
+            ? 'Pending'
+            : row.status === 'completed'
+              ? 'Completed'
+              : row.status || '—'
+          return <span className={`badge ${row.status === 'completed' ? 'ok' : ''}`}>{label}</span>
+        },
       },
     ],
     []
@@ -293,15 +374,21 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   )
 
   const pageDescription = (() => {
-    if (canImport && canDownloadTemplate) {
+    if (canImport && canSubmit) {
       return billingEnabled
-        ? 'Download the Excel template, fill it, then upload here. New advisors are created only after you click Pay now.'
-        : 'Download the Excel template, fill it (or receive a filled sheet), then upload here to create advisors.'
+        ? 'Download the template, send a filled sheet for import, or import directly. New advisors are created only after Pay now when billing applies.'
+        : 'Download the template, send a filled sheet for an importer, or import a sheet yourself.'
     }
-    if (canDownloadTemplate) {
+    if (canSubmit) {
+      return 'Download the Excel template, fill in the users, then send the completed sheet here. An importer will process it (status Pending until then).'
+    }
+    if (canDownloadTemplate && !canImport) {
       return 'Download the Excel template, fill in the users, then send the completed sheet to a colleague who can Import advisors.'
     }
-    return 'Upload a filled Excel sheet of users for this white-labelled hub.'
+    if (canImport) {
+      return 'Upload a filled Excel sheet of users for this white-labelled hub.'
+    }
+    return 'Import user tools for this white-labelled hub.'
   })()
 
   return (
@@ -341,13 +428,36 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
-      {canDownloadTemplate && !canImport && (
+      {canSubmit && (
+        <form className="admin-form advisor-import-form" onSubmit={onSubmitSheet}>
+          <h2>Send filled Excel for import</h2>
+          <p className="muted">
+            Upload the completed sheet. It is queued as <strong>Pending</strong> with the user count
+            for someone who has &quot;Import advisors&quot;. Users are not created until they import it.
+          </p>
+          <FileDropzone
+            id="admin-advisors-submit-xlsx"
+            label="Filled Excel file (.xlsx)"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            files={submitFile ? [submitFile] : []}
+            onChange={(next) => setSubmitFile(next[0] || null)}
+            disabled={submitting}
+          />
+          <div className="actions">
+            <button className="btn primary" disabled={submitting || !submitFile}>
+              {submitting ? 'Sending…' : 'Send for import'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {canDownloadTemplate && !canImport && !canSubmit && (
         <div className="import-result">
           <h2>Fill the Excel template</h2>
           <p className="muted">
             Download the blank template (role, firm, and modules dropdowns included), complete the
-            rows for each user, then send the file to someone with the &quot;Import advisors&quot;
-            capability. You cannot upload the sheet yourself with your current permissions.
+            rows for each user, then ask an admin to enable &quot;Submit filled Excel for import&quot;
+            so you can send it, or send the file outside the app to someone with Import advisors.
           </p>
           <div className="actions">
             <button type="button" className="btn primary" onClick={downloadTemplate}>
@@ -359,10 +469,10 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
 
       {canImport && (
         <form className="admin-form advisor-import-form" onSubmit={onImport}>
-          <h2>Upload users</h2>
+          <h2>Import users now</h2>
           <p className="muted">
-            Use the Download Excel template button above if you need a blank sheet. Accepts a filled
-            .xlsx from you or from a colleague who prepared it.
+            Import a filled .xlsx yourself, or use <strong>Import submitted sheet</strong> on a
+            Pending row in history below.
           </p>
           <FileDropzone
             id="admin-advisors-import-xlsx"
@@ -570,36 +680,48 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       <div className="advisor-list-block">
         <h2>Import history</h2>
         <p className="muted">
-          Previous Excel imports on this hub
-          {historyMeta?.total != null ? ` · ${historyMeta.total} total` : ''}. Click Details on a
-          row to see created / updated / reactivated users.
+          Submitted sheets show as <strong>Pending</strong> with how many users are in the file.
+          Completed imports list created / updated / skipped counts
+          {historyMeta?.total != null ? ` · ${historyMeta.total} total` : ''}.
         </p>
         <DataGrid
           columns={historyColumns}
           rows={batches}
           loading={loading}
-          emptyMessage="No imports recorded yet."
+          emptyMessage="No imports or submissions recorded yet."
           pageSize={10}
           getRowKey={(row) => row.id}
           actions={(batch) => (
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() =>
-                setExpandedBatchId((current) => (current === batch.id ? null : batch.id))
-              }
-            >
-              {expandedBatchId === batch.id ? <FaChevronDown /> : <FaChevronRight />}
-              <span style={{ marginLeft: '0.35rem' }}>
-                {expandedBatchId === batch.id ? 'Hide' : 'Details'}
-              </span>
-            </button>
+            <div className="actions" style={{ gap: '0.35rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() =>
+                  setExpandedBatchId((current) => (current === batch.id ? null : batch.id))
+                }
+              >
+                {expandedBatchId === batch.id ? <FaChevronDown /> : <FaChevronRight />}
+                <span style={{ marginLeft: '0.35rem' }}>
+                  {expandedBatchId === batch.id ? 'Hide' : 'Details'}
+                </span>
+              </button>
+              {canImport && batch.can_import_submission ? (
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={importingSubmissionId === batch.id}
+                  onClick={() => onImportSubmission(batch)}
+                >
+                  {importingSubmissionId === batch.id ? 'Importing…' : 'Import submitted sheet'}
+                </button>
+              ) : null}
+            </div>
           )}
         />
         {expandedBatch ? (
           <div className="import-result" style={{ marginTop: '1rem' }}>
             <h3>
-              Import details
+              {expandedBatch.status === 'pending' ? 'Submission details' : 'Import details'}
               {expandedBatch.original_filename ? ` · ${expandedBatch.original_filename}` : ''}
             </h3>
             <ImportBatchDetails batch={expandedBatch} />

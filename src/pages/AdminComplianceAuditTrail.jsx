@@ -10,27 +10,27 @@ import { useHub } from '../context/HubContext'
 const TABS = [
   {
     key: 'smc',
-    label: 'Social Media Compliance',
-    shortLabel: 'SMC',
+    label: 'SM Compliance',
+    shortLabel: 'SM Compliance',
     moduleCapability: 'module_social_media_compliance',
     requestLabel: 'Request',
     requestPath: (id) => `/my-dashboard/social-media-compliance/${id}`,
   },
   {
-    key: 'gc',
-    label: 'General Compliance',
-    shortLabel: 'GC',
-    moduleCapability: 'module_general_compliance',
-    requestLabel: 'Request',
-    requestPath: (id) => `/my-dashboard/general-compliance/${id}`,
-  },
-  {
     key: 'wc',
-    label: 'Website Content Pre Approval',
-    shortLabel: 'WC',
+    label: 'Website Compliance',
+    shortLabel: 'Website Compliance',
     moduleCapability: 'module_website_compliance',
     requestLabel: 'Change request',
     requestPath: (id) => `/my-dashboard/website-compliance/my-requests/${id}`,
+  },
+  {
+    key: 'gc',
+    label: 'Generic Compliance',
+    shortLabel: 'Generic Compliance',
+    moduleCapability: 'module_general_compliance',
+    requestLabel: 'Request',
+    requestPath: (id) => `/my-dashboard/general-compliance/${id}`,
   },
 ]
 

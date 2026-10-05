@@ -20,9 +20,9 @@ export default function WebsiteComplianceDeployments() {
     canViewAll ||
     can('wc_publish_live_content')
   const canAdmin = canManageTemplates || canDeployWebsites
-  // Managers who assign/request always get the request panel (browse templates + assign advisor).
-  // Deploy-hub DataGrid still shows when they also have view/deploy rights.
-  const showRequestPanel = canRequest || (canViewAll && !canViewDeployHub)
+  // Managers who assign/request: request list + template catalog live here.
+  const showRequestPanel = canRequest || canViewAll
+  const showTemplatesPanel = canAdmin || canViewDeployHub || canAssign || canRequest
   const canAccessPage =
     canViewAll ||
     canDeployWebsites ||
@@ -69,23 +69,31 @@ export default function WebsiteComplianceDeployments() {
           <h1>Site operations</h1>
           <p className="muted">
             {canAssign
-              ? 'Browse showcase templates, request a deployment on behalf of an advisor, and track requests.'
-              : 'Manage templates, review deployment requests, and manually deploy to the respective cPanel.'}{' '}
-            Advisors requesting their own site should use{' '}
-            <Link to="/my-dashboard/website-compliance/request-site">Request a site</Link>.
+              ? 'Browse showcase templates, request a deployment on behalf of an advisor, assign the site editor, and track requests.'
+              : 'Manage templates, review deployment requests, and manually deploy to the respective cPanel.'}
+            {!canAssign ? (
+              <>
+                {' '}
+                Advisors requesting their own site should use{' '}
+                <Link to="/my-dashboard/website-compliance/request-site">Request a site</Link>.
+              </>
+            ) : null}
           </p>
         </div>
       </div>
 
       {/* DataGrid / filters-row must stay OUTSIDE .wc-app — WC resets break .btn and icon actions. */}
       <div className="space-y-8">
-        {showRequestPanel ? <DeploymentRequestPanel /> : null}
-        {(canAdmin || canViewDeployHub) ? (
+        {showTemplatesPanel ? (
           <WebsiteComplianceTemplatesPanel
-            includeRequestActions={canRequest && !showRequestPanel}
+            includeRequestActions={canRequest}
           />
         ) : null}
-        {!hubLoading && !showRequestPanel && !canAdmin && !canViewDeployHub ? (
+        {/* Assign-only / request staff without deploy-hub still need the simpler request queue. */}
+        {showRequestPanel && !canViewDeployHub ? (
+          <DeploymentRequestPanel />
+        ) : null}
+        {!hubLoading && !showRequestPanel && !showTemplatesPanel ? (
           <p className="muted text-sm">
             You do not have site operations capabilities for Website Template Library.
           </p>

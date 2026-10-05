@@ -29,6 +29,7 @@ export const GENERAL_DASHBOARD_ANY = [
  *   homeOnly?: boolean,
  *   alwaysVisible?: boolean,
  *   exceptRoles?: string[],
+ *   exceptCapabilities?: string[],
  *   group?: string,
  * }} DashboardLink */
 
@@ -774,7 +775,10 @@ export const DASHBOARD_LINKS = [
     label: 'Request a site',
     title: 'Request a site',
     description: 'Browse website templates and request one by filling the deployment form.',
-    anyOf: ['wc_request_deployments', 'wc_assign_website_templates'],
+    capability: 'wc_request_deployments',
+    // Managers who assign sites use Site operations instead of the advisor console.
+    exceptCapabilities: ['wc_assign_website_templates'],
+    exceptRoles: ['power_admin', 'finproms_admin'],
     group: 'wtl',
   },
   {
@@ -969,6 +973,9 @@ export function isDashboardLinkVisible(
   if (Array.isArray(link.exceptRoles) && link.exceptRoles.length > 0) {
     const role = String(userRole || '')
     if (role && link.exceptRoles.includes(role)) return false
+  }
+  if (Array.isArray(link.exceptCapabilities) && link.exceptCapabilities.length > 0) {
+    if (link.exceptCapabilities.some((flag) => Boolean(can(flag)))) return false
   }
   if (link.alwaysVisible) return true
   // Payment card is client_admin only when advisor billing is on.

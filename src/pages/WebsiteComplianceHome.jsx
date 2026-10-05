@@ -39,7 +39,21 @@ const WTL_CARDS = [
     description: 'Browse website templates and request one by filling the deployment form.',
     icon: FaRocket,
     anyOf: ['wc_request_deployments'],
+    exceptCapabilities: ['wc_assign_website_templates'],
     exceptRoles: ['power_admin', 'finproms_admin'],
+  },
+  {
+    to: '/my-dashboard/website-compliance/deployments',
+    title: 'Site operations',
+    description:
+      'Browse showcase templates, request a deployment for an advisor, and track assignment requests.',
+    icon: FaServer,
+    anyOf: [
+      'wc_assign_website_templates',
+      'wc_view_all_deployments',
+      'wc_deploy_websites',
+      'wc_manage_templates',
+    ],
   },
   {
     to: '/my-dashboard/website-compliance/my-sites',
@@ -51,6 +65,7 @@ const WTL_CARDS = [
       'wc_edit_sections',
       'wc_submit_change_requests',
     ],
+    exceptCapabilities: ['wc_assign_website_templates'],
     exceptRoles: ['power_admin', 'finproms_admin'],
   },
   {
@@ -144,6 +159,12 @@ function CardGrid({ cards }) {
 function filterCards(cards, role, can) {
   return cards.filter((card) => {
     if (Array.isArray(card.exceptRoles) && card.exceptRoles.includes(role)) return false
+    if (
+      Array.isArray(card.exceptCapabilities) &&
+      card.exceptCapabilities.some((cap) => can(cap))
+    ) {
+      return false
+    }
     return card.anyOf.some((cap) => can(cap))
   })
 }
@@ -220,7 +241,7 @@ export default function WebsiteComplianceHome() {
               Website Template Library
             </p>
             {wtlCards.length > 0 && <CardGrid cards={wtlCards} />}
-            {canStaffOps && (
+            {canStaffOps && !wtlCards.some((c) => c.to.includes('/deployments')) && (
               <div className="flex flex-wrap gap-2">
                 <Link
                   to="/my-dashboard/website-compliance/deployments"

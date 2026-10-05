@@ -146,13 +146,18 @@ const PLATFORM_PA_ANY = [
 
 /** Human-readable group labels for home + nav. */
 export const DASHBOARD_GROUPS = {
+  dashboard: 'Dashboard',
   account: 'Account',
   content: 'SM Template',
   hub: 'Hub',
+  hub_central: 'Central Hub',
+  hub_shared: 'Shared hub',
+  hub_white_label: 'White-labelled hub',
   modules: 'Modules',
   advisors: 'Advisors & billing',
   smc: 'Social Media Compliance',
   gc: 'General Compliance',
+  st: 'Support Tickets',
   wtl: 'Website Template Library',
   wc: 'Website Content Pre Approval',
   platform: 'Platform',
@@ -161,19 +166,48 @@ export const DASHBOARD_GROUPS = {
 /**
  * Resolve a dashboard group / section label for the current hub context.
  * The "Hub" separator becomes Central Hub / Shared hub / White-labelled hub.
+ * Optional `dashboardNav.sections` overrides come from hub Settings.
  */
 export function resolveDashboardGroupLabel(
   groupOrLabel,
-  { isWhiteLabelHub = false, isControlPlane = false, isActingRemotely = false } = {}
+  {
+    isWhiteLabelHub = false,
+    isControlPlane = false,
+    isActingRemotely = false,
+    dashboardNav = null,
+  } = {}
 ) {
+  const sections = dashboardNav?.sections || {}
   const key = groupOrLabel === 'Hub' ? 'hub' : groupOrLabel
+
   if (key === 'hub') {
-    if (isControlPlane && !isActingRemotely) return 'Central Hub'
-    if (isActingRemotely && isWhiteLabelHub) return 'White-labelled hub'
-    if (isActingRemotely) return 'Shared hub'
-    return isWhiteLabelHub ? 'White-labelled hub' : 'Shared hub'
+    if (isControlPlane && !isActingRemotely) {
+      return sections.hub_central || DASHBOARD_GROUPS.hub_central
+    }
+    if (isActingRemotely && isWhiteLabelHub) {
+      return sections.hub_white_label || DASHBOARD_GROUPS.hub_white_label
+    }
+    if (isActingRemotely) {
+      return sections.hub_shared || DASHBOARD_GROUPS.hub_shared
+    }
+    return isWhiteLabelHub
+      ? sections.hub_white_label || DASHBOARD_GROUPS.hub_white_label
+      : sections.hub_shared || DASHBOARD_GROUPS.hub_shared
   }
+
+  if (sections[key]) return sections[key]
   return DASHBOARD_GROUPS[key] || groupOrLabel
+}
+
+/** Apply hub Settings overrides to a nav link (menu label + title). */
+export function applyDashboardNavLabel(link, dashboardNav = null) {
+  if (!link) return link
+  if (link.kind === 'section') {
+    return link
+  }
+  const custom = dashboardNav?.items?.[link.to]
+  if (!custom) return link
+  return { ...link, label: custom, title: custom }
 }
 
 /** @type {DashboardLink[]} */
@@ -187,6 +221,7 @@ export const DASHBOARD_LINKS = [
   // —— Account ——
   {
     kind: 'section',
+    id: 'account',
     label: 'Account',
     alwaysVisible: true,
   },
@@ -234,6 +269,7 @@ export const DASHBOARD_LINKS = [
   // —— SM Template ——
   {
     kind: 'section',
+    id: 'content',
     label: 'SM Template',
     anyOf: CONTENT_ANY,
   },
@@ -296,6 +332,7 @@ export const DASHBOARD_LINKS = [
   // —— Hub ——
   {
     kind: 'section',
+    id: 'hub',
     label: 'Hub',
     anyOf: [...HUB_OPS_ANY],
   },
@@ -398,6 +435,7 @@ export const DASHBOARD_LINKS = [
   // —— Modules ——
   {
     kind: 'section',
+    id: 'modules',
     label: 'Modules',
     anyOf: MODULES_ANY,
   },
@@ -429,6 +467,7 @@ export const DASHBOARD_LINKS = [
   // —— Advisors & billing ——
   {
     kind: 'section',
+    id: 'advisors',
     label: 'Advisors & billing',
     anyOf: ADVISOR_ANY,
     // Also show when billing card is available (billingOnly link has no capability).
@@ -477,6 +516,7 @@ export const DASHBOARD_LINKS = [
   // —— Social Media Compliance ——
   {
     kind: 'section',
+    id: 'smc',
     label: 'Social Media Compliance',
     anyOf: SMC_NAV_ANY,
   },
@@ -517,6 +557,7 @@ export const DASHBOARD_LINKS = [
   // —— General Compliance ——
   {
     kind: 'section',
+    id: 'gc',
     label: 'General Compliance',
     anyOf: GC_NAV_ANY,
   },
@@ -565,6 +606,7 @@ export const DASHBOARD_LINKS = [
   // —— Support Tickets ——
   {
     kind: 'section',
+    id: 'st',
     label: 'Support Tickets',
     anyOf: ST_NAV_ANY,
   },
@@ -597,6 +639,7 @@ export const DASHBOARD_LINKS = [
   // —— Website Template Library ——
   {
     kind: 'section',
+    id: 'wtl',
     label: 'Website Template Library',
     anyOf: WTL_NAV_ANY,
   },
@@ -649,6 +692,7 @@ export const DASHBOARD_LINKS = [
   // —— Website Content Pre Approval ——
   {
     kind: 'section',
+    id: 'wc',
     label: 'Website Content Pre Approval',
     anyOf: WC_NAV_ANY,
   },
@@ -724,6 +768,7 @@ export const DASHBOARD_LINKS = [
   // —— Platform (Power Admin — Central Hub Controller only) ——
   {
     kind: 'section',
+    id: 'platform',
     label: 'Platform',
     paAnyOf: PLATFORM_PA_ANY,
     controlPlaneOnly: true,
@@ -821,7 +866,7 @@ export function isDashboardLinkVisible(
  */
 export function getVisibleDashboardNav(ctx) {
   const filtered = DASHBOARD_LINKS.filter((link) => {
-    if (link.kind === 'section' && link.label === 'Advisors & billing') {
+    if (link.kind === 'section' && link.id === 'advisors') {
       return isDashboardLinkVisible(link, ctx) || Boolean(ctx.canManagePaymentCard)
     }
     return isDashboardLinkVisible(link, ctx)

@@ -7,6 +7,7 @@ import WebsiteNavLink from './WebsiteNavLink'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import {
+  applyDashboardNavLabel,
   findActiveDashboardLink,
   getVisibleDashboardNav,
   isDashboardLinkVisible,
@@ -18,6 +19,7 @@ import { brandLogoUrl } from '../utils/brandLogo'
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
   const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, actingHub, actingHubId, actingHubSwitching, hubRefreshing, actingAdvisor, roleLabel, canViewSitePages } = useHub()
+  const dashboardNav = hub?.dashboard_nav || null
   const navBusy = Boolean(hubRefreshing || actingHubSwitching)
   const navigate = useNavigate()
   const location = useLocation()
@@ -72,10 +74,11 @@ export default function MyDashboardLayout() {
     isWhiteLabelHub,
     isControlPlane,
     isActingRemotely,
+    dashboardNav,
   }
   const sectionLabel = isOverview
-    ? 'Dashboard'
-    : resolveDashboardGroupLabel(activeLink?.group || 'Dashboard', groupLabelOpts)
+    ? resolveDashboardGroupLabel('dashboard', groupLabelOpts)
+    : resolveDashboardGroupLabel(activeLink?.group || 'dashboard', groupLabelOpts)
 
   // Leave pages that are unavailable for the selected hub (e.g. White-labelled hubs while controlling a WL tenant).
   useEffect(() => {
@@ -217,11 +220,11 @@ export default function MyDashboardLayout() {
           {visible.map((link) =>
             link.kind === 'section' ? (
               <p
-                key={`section-${link.label}`}
+                key={`section-${link.id || link.label}`}
                 className="dash-nav__section"
                 role="presentation"
               >
-                {resolveDashboardGroupLabel(link.label, groupLabelOpts)}
+                {resolveDashboardGroupLabel(link.id || link.label, groupLabelOpts)}
               </p>
             ) : (
               <NavLink
@@ -232,7 +235,7 @@ export default function MyDashboardLayout() {
                   isDashboardNavActive(link, location.pathname) ? 'is-active' : undefined
                 }
               >
-                {link.label}
+                {applyDashboardNavLabel(link, dashboardNav).label}
               </NavLink>
             )
           )}

@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import FileDropzone from '../components/FileDropzone'
 import { useHub } from '../context/HubContext'
+import {
+  DASHBOARD_NAV_DEFAULTS,
+  DASHBOARD_NAV_SECTION_FIELDS,
+  fillDashboardNavFromSettings,
+} from '../utils/dashboardNav'
 import { PAGE_CONTENT_FIELDS } from '../utils/pageContent'
 
 function emptyPageContent() {
@@ -41,6 +46,8 @@ export default function AdminSettings() {
   const [accentColor, setAccentColor] = useState('')
   const [pageContent, setPageContent] = useState(emptyPageContent)
   const [pageSection, setPageSection] = useState('home')
+  const [dashboardNav, setDashboardNav] = useState(fillDashboardNavFromSettings)
+  const [dashNavTab, setDashNavTab] = useState('sections')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -77,6 +84,7 @@ export default function AdminSettings() {
       }
     }
     setPageContent(next)
+    setDashboardNav(fillDashboardNavFromSettings(settings?.dashboard_nav))
   }
 
   const setPageField = (section, key, value) => {
@@ -84,6 +92,16 @@ export default function AdminSettings() {
       ...prev,
       [section]: {
         ...(prev[section] || {}),
+        [key]: value,
+      },
+    }))
+  }
+
+  const setDashNavField = (bucket, key, value) => {
+    setDashboardNav((prev) => ({
+      ...prev,
+      [bucket]: {
+        ...(prev[bucket] || {}),
         [key]: value,
       },
     }))
@@ -190,6 +208,7 @@ export default function AdminSettings() {
       fd.append('color_scheme[secondary]', secondaryColor.trim())
       fd.append('color_scheme[accent]', accentColor.trim())
       fd.append('page_content', JSON.stringify(pageContent))
+      fd.append('dashboard_nav', JSON.stringify(dashboardNav))
       if (logoFile) {
         fd.append('logo', logoFile)
       }
@@ -559,6 +578,60 @@ export default function AdminSettings() {
                   {field.hint ? <span className="muted form-hint">{field.hint}</span> : null}
                 </label>
               ))}
+            </div>
+          </div>
+
+          <div className="settings-block">
+            <h2>Dashboard menu</h2>
+            <p className="muted form-hint">
+              Rename sidebar separators and menu items for this hub. Hub separator has separate
+              labels for Central / Shared / White-labelled context.
+            </p>
+
+            <div className="page-content-tabs" role="tablist" aria-label="Dashboard menu sections">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={dashNavTab === 'sections'}
+                className={`page-content-tabs__btn${dashNavTab === 'sections' ? ' is-active' : ''}`}
+                onClick={() => setDashNavTab('sections')}
+              >
+                Separators
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={dashNavTab === 'items'}
+                className={`page-content-tabs__btn${dashNavTab === 'items' ? ' is-active' : ''}`}
+                onClick={() => setDashNavTab('items')}
+              >
+                Menu items
+              </button>
+            </div>
+
+            <div className="page-content-fields">
+              {dashNavTab === 'sections'
+                ? DASHBOARD_NAV_SECTION_FIELDS.map((field) => (
+                    <label key={`section-${field.key}`}>
+                      {field.label}
+                      <input
+                        value={dashboardNav?.sections?.[field.key] ?? ''}
+                        onChange={(e) => setDashNavField('sections', field.key, e.target.value)}
+                        placeholder={DASHBOARD_NAV_DEFAULTS.sections[field.key] || ''}
+                      />
+                    </label>
+                  ))
+                : Object.entries(DASHBOARD_NAV_DEFAULTS.items).map(([path, defaultLabel]) => (
+                    <label key={`item-${path}`}>
+                      {defaultLabel}
+                      <span className="muted form-hint">{path}</span>
+                      <input
+                        value={dashboardNav?.items?.[path] ?? ''}
+                        onChange={(e) => setDashNavField('items', path, e.target.value)}
+                        placeholder={defaultLabel}
+                      />
+                    </label>
+                  ))}
             </div>
           </div>
 

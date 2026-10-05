@@ -44,6 +44,7 @@ function sameHub(a, b) {
     JSON.stringify(a.firm_document_rights) === JSON.stringify(b.firm_document_rights) &&
     JSON.stringify(a.branding) === JSON.stringify(b.branding) &&
     JSON.stringify(a.page_content) === JSON.stringify(b.page_content) &&
+    JSON.stringify(a.dashboard_nav) === JSON.stringify(b.dashboard_nav) &&
     JSON.stringify(a.auth) === JSON.stringify(b.auth) &&
     JSON.stringify(a.hub_switcher) === JSON.stringify(b.hub_switcher) &&
     JSON.stringify(a.acting_hub) === JSON.stringify(b.acting_hub) &&

@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import {
+  applyDashboardNavLabel,
   DASHBOARD_LINKS,
   isDashboardHomeCard,
   isDashboardLinkVisible,
@@ -26,6 +27,7 @@ const GROUP_ORDER = ['account', 'content', 'hub', 'advisors', 'smc', 'gc', 'wc',
 export default function MyDashboard() {
   const { user, canPower } = useAuth()
   const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, effectiveAdvisorId, actingAdvisor, actingHubId, actingHub, canViewSitePages } = useHub()
+  const dashboardNav = hub?.dashboard_nav || null
   const [data, setData] = useState(null)
   const [panelLoading, setPanelLoading] = useState(true)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
@@ -74,7 +76,8 @@ export default function MyDashboard() {
         })
       )
       .map((link) => {
-        let description = link.description || ''
+        const labeled = applyDashboardNavLabel(link, dashboardNav)
+        let description = labeled.description || ''
 
         if (link.to === '/my-dashboard/credits' && credits) {
           const balanceLabel = credits.has_unlimited_credits
@@ -110,10 +113,10 @@ export default function MyDashboard() {
         }
 
         return {
-          to: link.to,
-          title: link.title || link.label,
+          to: labeled.to,
+          title: labeled.title || labeled.label,
           description,
-          group: link.group || 'hub',
+          group: labeled.group || 'hub',
         }
       })
 
@@ -123,10 +126,11 @@ export default function MyDashboard() {
         isWhiteLabelHub,
         isControlPlane,
         isActingRemotely,
+        dashboardNav,
       }),
       cards: cards.filter((c) => c.group === key),
     })).filter((g) => g.cards.length > 0)
-  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, actingAdvisor, user?.role])
+  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, dashboardNav, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, actingAdvisor, user?.role])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
   const showBrowseCatalog = canViewSitePages

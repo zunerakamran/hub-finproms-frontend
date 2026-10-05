@@ -272,11 +272,22 @@ export default function MyDashboardLayout() {
             {canViewSitePages ? (
               <WebsiteNavLink className="dash-back-link">Back to website</WebsiteNavLink>
             ) : null}
-            <p className="dash-session-welcome">
-              <span>Welcome</span>
-              <strong>{user?.name || 'there'}</strong>
-              {user?.email ? <span className="dash-session-email">{user.email}</span> : null}
-            </p>
+            <div className="dash-session-welcome">
+              {user?.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt=""
+                  className="dash-session-welcome__avatar"
+                  width={38}
+                  height={38}
+                />
+              ) : null}
+              <p className="dash-session-welcome__copy">
+                <span>Welcome</span>
+                <strong>{user?.name || 'there'}</strong>
+                {user?.email ? <span className="dash-session-email">{user.email}</span> : null}
+              </p>
+            </div>
             <button type="button" className="dash-logout-link" onClick={onLogout}>
               Log out
             </button>

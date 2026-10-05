@@ -172,6 +172,7 @@ export default function AdminActiveSessions({ shell = 'client-admin' }) {
                   ? 'Force-logout yourself'
                   : `Force-logout ${row.user?.name || 'user'}`
               }
+              variant="danger"
               disabled={loggingOutId === row.user?.id}
               onClick={() => forceLogout(row)}
             />

@@ -193,8 +193,8 @@ export default function Profile() {
               <strong>Require email code on sign-in</strong>
               <br />
               <span className="muted">
-                When enabled, only your account will receive a 6-digit code by email after entering
-                your password. Other users on this hub are unaffected.
+                When enabled, you will receive a 6-digit code via registered eMail, to proceed with
+                login.
               </span>
             </span>
           </label>

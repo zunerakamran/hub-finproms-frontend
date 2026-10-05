@@ -543,10 +543,14 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
             />
           </label>
           <div className="activity-filters__actions">
-            <button type="submit" className="btn">
+            <button type="submit" className="btn primary activity-filters__btn">
               Apply filters
             </button>
-            <button type="button" className="btn ghost" onClick={resetFilters}>
+            <button
+              type="button"
+              className="btn activity-filters__btn activity-filters__btn--reset"
+              onClick={resetFilters}
+            >
               Reset
             </button>
           </div>
@@ -860,9 +864,30 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
         }
 
         .activity-filters__actions {
+          grid-column: 1 / -1;
           display: flex;
-          flex-wrap: wrap;
-          gap: 0.5rem;
+          flex-wrap: nowrap;
+          justify-content: flex-end;
+          align-items: center;
+          gap: 0.65rem;
+        }
+
+        .activity-filters__actions .activity-filters__btn {
+          flex: 0 0 9.75rem;
+          min-height: 2.65rem;
+          justify-content: center;
+        }
+
+        .activity-filters__actions .activity-filters__btn--reset {
+          background: #f2f4f7;
+          border: 1px solid var(--line);
+          color: var(--ink);
+        }
+
+        .activity-filters__actions .activity-filters__btn--reset:hover:not(:disabled) {
+          background: #e8ecf1;
+          border-color: color-mix(in srgb, var(--muted) 35%, var(--line));
+          color: var(--ink);
         }
 
         .activity-stat-grid {

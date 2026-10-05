@@ -1,6 +1,13 @@
-import { DASHBOARD_GROUPS } from '../dashboard/nav'
+import {
+  DASHBOARD_GROUPS,
+  DEFAULT_SECTION_ORDER,
+  defaultItemGroupsFromLinks,
+  defaultItemOrderFromLinks,
+  normalizeSectionOrder,
+  resolveItemOrder,
+} from '../dashboard/nav'
 
-/** Default dashboard nav copy (mirrors backend DashboardNavDefaults). */
+/** Default dashboard nav copy + layout (mirrors backend DashboardNavDefaults). */
 export const DASHBOARD_NAV_DEFAULTS = {
   sections: { ...DASHBOARD_GROUPS },
   items: {
@@ -64,8 +71,12 @@ export const DASHBOARD_NAV_DEFAULTS = {
     '/my-dashboard/checklist': 'Functionalities',
     '/my-dashboard/capabilities': 'Capabilities',
   },
+  section_order: [...DEFAULT_SECTION_ORDER],
+  item_groups: defaultItemGroupsFromLinks(),
+  item_order: defaultItemOrderFromLinks(),
 }
 
+/** Separators that can be renamed (includes hub context variants + topbar). */
 export const DASHBOARD_NAV_SECTION_FIELDS = [
   { key: 'dashboard', label: 'Topbar — Dashboard (overview)' },
   { key: 'account', label: 'Separator — Account' },
@@ -84,10 +95,19 @@ export const DASHBOARD_NAV_SECTION_FIELDS = [
   { key: 'platform', label: 'Separator — Platform' },
 ]
 
+/** Separators available for ordering / assigning menu items. */
+export const DASHBOARD_NAV_ASSIGNABLE_SECTIONS = DEFAULT_SECTION_ORDER.map((key) => ({
+  key,
+  label: DASHBOARD_GROUPS[key] || key,
+}))
+
 export function emptyDashboardNav() {
   return {
     sections: Object.fromEntries(Object.keys(DASHBOARD_NAV_DEFAULTS.sections).map((k) => [k, ''])),
     items: Object.fromEntries(Object.keys(DASHBOARD_NAV_DEFAULTS.items).map((k) => [k, ''])),
+    section_order: [...DEFAULT_SECTION_ORDER],
+    item_groups: { ...DASHBOARD_NAV_DEFAULTS.item_groups },
+    item_order: [...DASHBOARD_NAV_DEFAULTS.item_order],
   }
 }
 
@@ -99,5 +119,25 @@ export function fillDashboardNavFromSettings(incoming) {
   for (const key of Object.keys(next.items)) {
     next.items[key] = incoming?.items?.[key] ?? DASHBOARD_NAV_DEFAULTS.items[key] ?? ''
   }
+  next.section_order = normalizeSectionOrder(incoming?.section_order)
+  const defaultGroups = defaultItemGroupsFromLinks()
+  next.item_groups = { ...defaultGroups }
+  if (incoming?.item_groups && typeof incoming.item_groups === 'object') {
+    for (const path of Object.keys(defaultGroups)) {
+      const value = incoming.item_groups[path]
+      if (value && DEFAULT_SECTION_ORDER.includes(value)) {
+        next.item_groups[path] = value
+      }
+    }
+  }
+  next.item_order = resolveItemOrder(incoming)
+  return next
+}
+
+export function moveListItem(list, index, direction) {
+  const next = [...list]
+  const target = index + direction
+  if (target < 0 || target >= next.length) return next
+  ;[next[index], next[target]] = [next[target], next[index]]
   return next
 }

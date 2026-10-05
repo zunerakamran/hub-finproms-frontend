@@ -13,6 +13,7 @@ import {
   isDashboardLinkVisible,
   isDashboardNavActive,
   resolveDashboardGroupLabel,
+  resolveItemGroup,
 } from '../dashboard/nav'
 import { brandLogoUrl } from '../utils/brandLogo'
 
@@ -61,8 +62,9 @@ export default function MyDashboardLayout() {
         isControlPlane,
         isActingRemotely,
         userRole: user?.role,
+        dashboardNav,
       }),
-    [advisorBillingEnabled, canManagePaymentCard, can, canPower, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, user?.role]
+    [advisorBillingEnabled, canManagePaymentCard, can, canPower, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, user?.role, dashboardNav]
   )
 
   const activeLink = useMemo(
@@ -78,7 +80,10 @@ export default function MyDashboardLayout() {
   }
   const sectionLabel = isOverview
     ? resolveDashboardGroupLabel('dashboard', groupLabelOpts)
-    : resolveDashboardGroupLabel(activeLink?.group || 'dashboard', groupLabelOpts)
+    : resolveDashboardGroupLabel(
+        resolveItemGroup(activeLink?.to, dashboardNav, activeLink?.group || 'dashboard'),
+        groupLabelOpts
+      )
 
   // Leave pages that are unavailable for the selected hub (e.g. White-labelled hubs while controlling a WL tenant).
   useEffect(() => {

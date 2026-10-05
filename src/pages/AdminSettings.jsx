@@ -3,9 +3,11 @@ import { api } from '../api/client'
 import FileDropzone from '../components/FileDropzone'
 import { useHub } from '../context/HubContext'
 import {
+  DASHBOARD_NAV_ASSIGNABLE_SECTIONS,
   DASHBOARD_NAV_DEFAULTS,
   DASHBOARD_NAV_SECTION_FIELDS,
   fillDashboardNavFromSettings,
+  moveListItem,
 } from '../utils/dashboardNav'
 import { PAGE_CONTENT_FIELDS } from '../utils/pageContent'
 
@@ -103,6 +105,35 @@ export default function AdminSettings() {
       [bucket]: {
         ...(prev[bucket] || {}),
         [key]: value,
+      },
+    }))
+  }
+
+  const moveSection = (index, direction) => {
+    setDashboardNav((prev) => ({
+      ...prev,
+      section_order: moveListItem(prev.section_order || [], index, direction),
+    }))
+  }
+
+  const moveItem = (path, direction) => {
+    setDashboardNav((prev) => {
+      const order = [...(prev.item_order || [])]
+      const index = order.indexOf(path)
+      if (index < 0) return prev
+      return {
+        ...prev,
+        item_order: moveListItem(order, index, direction),
+      }
+    })
+  }
+
+  const setItemGroup = (path, group) => {
+    setDashboardNav((prev) => ({
+      ...prev,
+      item_groups: {
+        ...(prev.item_groups || {}),
+        [path]: group,
       },
     }))
   }
@@ -584,8 +615,9 @@ export default function AdminSettings() {
           <div className="settings-block">
             <h2>Dashboard menu</h2>
             <p className="muted form-hint">
-              Rename sidebar separators and menu items for this hub. Hub separator has separate
-              labels for Central / Shared / White-labelled context.
+              Rename sidebar separators and menu items, reorder separators, and choose which
+              separator each menu item sits under. Hub separator has separate labels for Central /
+              Shared / White-labelled context.
             </p>
 
             <div className="page-content-tabs" role="tablist" aria-label="Dashboard menu sections">
@@ -597,6 +629,15 @@ export default function AdminSettings() {
                 onClick={() => setDashNavTab('sections')}
               >
                 Separators
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={dashNavTab === 'order'}
+                className={`page-content-tabs__btn${dashNavTab === 'order' ? ' is-active' : ''}`}
+                onClick={() => setDashNavTab('order')}
+              >
+                Separator order
               </button>
               <button
                 type="button"
@@ -621,17 +662,99 @@ export default function AdminSettings() {
                       />
                     </label>
                   ))
-                : Object.entries(DASHBOARD_NAV_DEFAULTS.items).map(([path, defaultLabel]) => (
-                    <label key={`item-${path}`}>
-                      {defaultLabel}
-                      <span className="muted form-hint">{path}</span>
-                      <input
-                        value={dashboardNav?.items?.[path] ?? ''}
-                        onChange={(e) => setDashNavField('items', path, e.target.value)}
-                        placeholder={defaultLabel}
-                      />
-                    </label>
-                  ))}
+                : null}
+
+              {dashNavTab === 'order'
+                ? (dashboardNav?.section_order || []).map((sectionKey, index) => {
+                    const label =
+                      dashboardNav?.sections?.[sectionKey] ||
+                      DASHBOARD_NAV_DEFAULTS.sections[sectionKey] ||
+                      sectionKey
+                    return (
+                      <div key={`order-${sectionKey}`} className="dash-nav-order-row">
+                        <div className="dash-nav-order-row__meta">
+                          <strong>{label}</strong>
+                          <span className="muted form-hint">{sectionKey}</span>
+                        </div>
+                        <div className="dash-nav-order-row__actions">
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            disabled={index === 0}
+                            onClick={() => moveSection(index, -1)}
+                          >
+                            Up
+                          </button>
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            disabled={index === (dashboardNav?.section_order?.length || 0) - 1}
+                            onClick={() => moveSection(index, 1)}
+                          >
+                            Down
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })
+                : null}
+
+              {dashNavTab === 'items'
+                ? (dashboardNav?.item_order || Object.keys(DASHBOARD_NAV_DEFAULTS.items)).map(
+                    (path, index, list) => {
+                      if (path === '/my-dashboard') return null
+                      const defaultLabel = DASHBOARD_NAV_DEFAULTS.items[path] || path
+                      return (
+                        <div key={`item-${path}`} className="dash-nav-item-row">
+                          <label>
+                            {defaultLabel}
+                            <span className="muted form-hint">{path}</span>
+                            <input
+                              value={dashboardNav?.items?.[path] ?? ''}
+                              onChange={(e) => setDashNavField('items', path, e.target.value)}
+                              placeholder={defaultLabel}
+                            />
+                          </label>
+                          <label>
+                            Separator
+                            <select
+                              value={
+                                dashboardNav?.item_groups?.[path] ||
+                                DASHBOARD_NAV_DEFAULTS.item_groups[path] ||
+                                'account'
+                              }
+                              onChange={(e) => setItemGroup(path, e.target.value)}
+                            >
+                              {DASHBOARD_NAV_ASSIGNABLE_SECTIONS.map((section) => (
+                                <option key={section.key} value={section.key}>
+                                  {dashboardNav?.sections?.[section.key] || section.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <div className="dash-nav-order-row__actions">
+                            <button
+                              type="button"
+                              className="btn ghost"
+                              disabled={index === 0}
+                              onClick={() => moveItem(path, -1)}
+                            >
+                              Up
+                            </button>
+                            <button
+                              type="button"
+                              className="btn ghost"
+                              disabled={index === list.length - 1}
+                              onClick={() => moveItem(path, 1)}
+                            >
+                              Down
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    }
+                  )
+                : null}
             </div>
           </div>
 

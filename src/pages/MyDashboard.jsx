@@ -4,11 +4,15 @@ import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import {
+  applyDashboardNavGroup,
   applyDashboardNavLabel,
   DASHBOARD_LINKS,
   isDashboardHomeCard,
   isDashboardLinkVisible,
+  normalizeSectionOrder,
   resolveDashboardGroupLabel,
+  resolveItemGroup,
+  resolveItemOrder,
 } from '../dashboard/nav'
 
 function formatMoney(amount, currency = 'gbp') {
@@ -22,7 +26,7 @@ function formatMoney(amount, currency = 'gbp') {
   }
 }
 
-const GROUP_ORDER = ['account', 'content', 'hub', 'advisors', 'smc', 'gc', 'wc', 'platform']
+const GROUP_ORDER = ['account', 'content', 'hub', 'modules', 'advisors', 'smc', 'gc', 'st', 'wtl', 'wc', 'platform']
 
 export default function MyDashboard() {
   const { user, canPower } = useAuth()
@@ -76,7 +80,7 @@ export default function MyDashboard() {
         })
       )
       .map((link) => {
-        const labeled = applyDashboardNavLabel(link, dashboardNav)
+        const labeled = applyDashboardNavLabel(applyDashboardNavGroup(link, dashboardNav), dashboardNav)
         let description = labeled.description || ''
 
         if (link.to === '/my-dashboard/credits' && credits) {
@@ -116,20 +120,28 @@ export default function MyDashboard() {
           to: labeled.to,
           title: labeled.title || labeled.label,
           description,
-          group: labeled.group || 'hub',
+          group: labeled.group || resolveItemGroup(labeled.to, dashboardNav, 'hub'),
         }
       })
 
-    return GROUP_ORDER.map((key) => ({
-      key,
-      label: resolveDashboardGroupLabel(key, {
-        isWhiteLabelHub,
-        isControlPlane,
-        isActingRemotely,
-        dashboardNav,
-      }),
-      cards: cards.filter((c) => c.group === key),
-    })).filter((g) => g.cards.length > 0)
+    const sectionOrder = normalizeSectionOrder(dashboardNav?.section_order || GROUP_ORDER)
+    const itemOrder = resolveItemOrder(dashboardNav)
+    const orderIndex = new Map(itemOrder.map((path, idx) => [path, idx]))
+
+    return sectionOrder
+      .map((key) => ({
+        key,
+        label: resolveDashboardGroupLabel(key, {
+          isWhiteLabelHub,
+          isControlPlane,
+          isActingRemotely,
+          dashboardNav,
+        }),
+        cards: cards
+          .filter((c) => c.group === key)
+          .sort((a, b) => (orderIndex.get(a.to) ?? 9999) - (orderIndex.get(b.to) ?? 9999)),
+      }))
+      .filter((g) => g.cards.length > 0)
   }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, dashboardNav, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, actingAdvisor, user?.role])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)

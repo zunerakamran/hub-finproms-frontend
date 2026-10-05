@@ -6187,6 +6187,53 @@ td.data-grid__actions {
   gap: 0.35rem;
 }
 
+.dash-nav-order-row,
+.dash-nav-item-row {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.dash-nav-order-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.dash-nav-item-row {
+  grid-template-columns: minmax(0, 1.4fr) minmax(10rem, 0.8fr) auto;
+  align-items: end;
+}
+
+.dash-nav-order-row__meta {
+  min-width: 0;
+}
+
+.dash-nav-order-row__meta strong {
+  display: block;
+}
+
+.dash-nav-order-row__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.dash-nav-order-row__actions .btn {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 860px) {
+  .dash-nav-order-row,
+  .dash-nav-item-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+}
+
 .page-content-fields textarea {
   min-height: 4.5rem;
   resize: vertical;

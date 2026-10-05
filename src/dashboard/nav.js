@@ -210,6 +210,75 @@ export function applyDashboardNavLabel(link, dashboardNav = null) {
   return { ...link, label: custom, title: custom }
 }
 
+/** Apply hub Settings group override (which separator the item sits under). */
+export function applyDashboardNavGroup(link, dashboardNav = null) {
+  if (!link || link.kind === 'section' || !link.to) return link
+  const group = dashboardNav?.item_groups?.[link.to]
+  if (!group) return link
+  return { ...link, group }
+}
+
+/** Default separator order (excludes hub_* label variants). */
+export const DEFAULT_SECTION_ORDER = [
+  'account',
+  'content',
+  'hub',
+  'modules',
+  'advisors',
+  'smc',
+  'gc',
+  'st',
+  'wtl',
+  'wc',
+  'platform',
+]
+
+export function normalizeSectionOrder(incoming) {
+  const allowed = new Set(DEFAULT_SECTION_ORDER)
+  const order = []
+  if (Array.isArray(incoming)) {
+    for (const id of incoming) {
+      if (allowed.has(id) && !order.includes(id)) order.push(id)
+    }
+  }
+  for (const id of DEFAULT_SECTION_ORDER) {
+    if (!order.includes(id)) order.push(id)
+  }
+  return order
+}
+
+export function defaultItemGroupsFromLinks() {
+  const groups = {}
+  for (const link of DASHBOARD_LINKS) {
+    if (link.kind === 'section' || !link.to || link.to === '/my-dashboard') continue
+    groups[link.to] = link.group || 'account'
+  }
+  return groups
+}
+
+export function defaultItemOrderFromLinks() {
+  return Object.keys(defaultItemGroupsFromLinks())
+}
+
+export function resolveItemGroup(path, dashboardNav = null, fallback = 'account') {
+  return dashboardNav?.item_groups?.[path] || defaultItemGroupsFromLinks()[path] || fallback
+}
+
+export function resolveItemOrder(dashboardNav = null) {
+  const defaults = defaultItemOrderFromLinks()
+  const allowed = new Set(defaults)
+  const order = []
+  if (Array.isArray(dashboardNav?.item_order)) {
+    for (const path of dashboardNav.item_order) {
+      if (allowed.has(path) && !order.includes(path)) order.push(path)
+    }
+  }
+  for (const path of defaults) {
+    if (!order.includes(path)) order.push(path)
+  }
+  return order
+}
+
 /** @type {DashboardLink[]} */
 export const DASHBOARD_LINKS = [
   {
@@ -863,8 +932,10 @@ export function isDashboardLinkVisible(
 /**
  * Filter links and drop section headers that have no visible children.
  * Also show "Advisors & billing" when only the payment-card (billingOnly) link is visible.
+ * When dashboardNav is provided, rebuild order from section_order / item_groups / item_order.
  */
 export function getVisibleDashboardNav(ctx) {
+  const dashboardNav = ctx.dashboardNav || null
   const filtered = DASHBOARD_LINKS.filter((link) => {
     if (link.kind === 'section' && link.id === 'advisors') {
       return isDashboardLinkVisible(link, ctx) || Boolean(ctx.canManagePaymentCard)
@@ -872,21 +943,58 @@ export function getVisibleDashboardNav(ctx) {
     return isDashboardLinkVisible(link, ctx)
   })
 
-  const result = []
-  for (let i = 0; i < filtered.length; i += 1) {
-    const item = filtered[i]
-    if (item.kind === 'section') {
-      let hasChild = false
-      for (let j = i + 1; j < filtered.length; j += 1) {
-        if (filtered[j].kind === 'section') break
-        hasChild = true
-        break
-      }
-      if (hasChild) result.push(item)
-    } else {
-      result.push(item)
-    }
+  const overview = filtered.filter((l) => l.to === '/my-dashboard')
+  const sectionDefs = filtered.filter((l) => l.kind === 'section')
+  const sectionById = Object.fromEntries(sectionDefs.map((s) => [s.id, s]))
+
+  const items = filtered
+    .filter((l) => l.kind !== 'section' && l.to && l.to !== '/my-dashboard')
+    .map((l) => applyDashboardNavGroup(l, dashboardNav))
+
+  const sectionOrder = normalizeSectionOrder(dashboardNav?.section_order)
+  const itemOrder = resolveItemOrder(dashboardNav)
+  const orderIndex = new Map(itemOrder.map((path, idx) => [path, idx]))
+
+  const byGroup = {}
+  for (const item of items) {
+    const group = item.group || 'account'
+    if (!byGroup[group]) byGroup[group] = []
+    byGroup[group].push(item)
   }
+  for (const group of Object.keys(byGroup)) {
+    byGroup[group].sort(
+      (a, b) => (orderIndex.get(a.to) ?? 9999) - (orderIndex.get(b.to) ?? 9999)
+    )
+  }
+
+  const result = [...overview]
+  for (const sectionId of sectionOrder) {
+    const kids = byGroup[sectionId] || []
+    if (!kids.length) continue
+    const section =
+      sectionById[sectionId] ||
+      ({
+        kind: 'section',
+        id: sectionId,
+        label: DASHBOARD_GROUPS[sectionId] || sectionId,
+      })
+    result.push(section, ...kids)
+  }
+
+  // Any items whose group is unknown / not in order — append without inventing separators.
+  const placed = new Set(sectionOrder)
+  for (const [group, kids] of Object.entries(byGroup)) {
+    if (placed.has(group) || !kids.length) continue
+    result.push(
+      {
+        kind: 'section',
+        id: group,
+        label: DASHBOARD_GROUPS[group] || group,
+      },
+      ...kids
+    )
+  }
+
   return result
 }
 

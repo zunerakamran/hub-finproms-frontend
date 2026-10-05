@@ -1,8 +1,11 @@
 import {
   DASHBOARD_GROUPS,
   DEFAULT_SECTION_ORDER,
+  createCustomSectionId,
   defaultItemGroupsFromLinks,
   defaultItemOrderFromLinks,
+  extractCustomSectionIds,
+  isCustomSectionId,
   normalizeSectionOrder,
   resolveItemOrder,
 } from '../dashboard/nav'
@@ -76,7 +79,7 @@ export const DASHBOARD_NAV_DEFAULTS = {
   item_order: defaultItemOrderFromLinks(),
 }
 
-/** Separators that can be renamed (includes hub context variants + topbar). */
+/** Built-in separators that can be renamed (includes hub context variants + topbar). */
 export const DASHBOARD_NAV_SECTION_FIELDS = [
   { key: 'dashboard', label: 'Topbar — Dashboard (overview)' },
   { key: 'account', label: 'Separator — Account' },
@@ -95,11 +98,15 @@ export const DASHBOARD_NAV_SECTION_FIELDS = [
   { key: 'platform', label: 'Separator — Platform' },
 ]
 
-/** Separators available for ordering / assigning menu items. */
-export const DASHBOARD_NAV_ASSIGNABLE_SECTIONS = DEFAULT_SECTION_ORDER.map((key) => ({
-  key,
-  label: DASHBOARD_GROUPS[key] || key,
-}))
+export function assignableSectionsFromNav(dashboardNav) {
+  const customIds = extractCustomSectionIds(dashboardNav?.sections, dashboardNav?.section_order)
+  const order = normalizeSectionOrder(dashboardNav?.section_order, customIds)
+  return order.map((key) => ({
+    key,
+    label: dashboardNav?.sections?.[key] || DASHBOARD_GROUPS[key] || key,
+    custom: isCustomSectionId(key),
+  }))
+}
 
 export function emptyDashboardNav() {
   return {
@@ -119,13 +126,20 @@ export function fillDashboardNavFromSettings(incoming) {
   for (const key of Object.keys(next.items)) {
     next.items[key] = incoming?.items?.[key] ?? DASHBOARD_NAV_DEFAULTS.items[key] ?? ''
   }
-  next.section_order = normalizeSectionOrder(incoming?.section_order)
+
+  const customIds = extractCustomSectionIds(incoming?.sections, incoming?.section_order)
+  for (const customId of customIds) {
+    next.sections[customId] = incoming?.sections?.[customId] || 'Custom section'
+  }
+
+  next.section_order = normalizeSectionOrder(incoming?.section_order, customIds)
   const defaultGroups = defaultItemGroupsFromLinks()
+  const allowedGroups = new Set([...DEFAULT_SECTION_ORDER, ...customIds])
   next.item_groups = { ...defaultGroups }
   if (incoming?.item_groups && typeof incoming.item_groups === 'object') {
     for (const path of Object.keys(defaultGroups)) {
       const value = incoming.item_groups[path]
-      if (value && DEFAULT_SECTION_ORDER.includes(value)) {
+      if (value && allowedGroups.has(value)) {
         next.item_groups[path] = value
       }
     }
@@ -141,3 +155,47 @@ export function moveListItem(list, index, direction) {
   ;[next[index], next[target]] = [next[target], next[index]]
   return next
 }
+
+export function addCustomSeparator(dashboardNav, label = 'New separator') {
+  const existing = extractCustomSectionIds(dashboardNav?.sections, dashboardNav?.section_order)
+  const id = createCustomSectionId(existing)
+  const cleanLabel = String(label || 'New separator').trim() || 'New separator'
+  return {
+    ...dashboardNav,
+    sections: {
+      ...(dashboardNav?.sections || {}),
+      [id]: cleanLabel,
+    },
+    section_order: normalizeSectionOrder(
+      [...(dashboardNav?.section_order || DEFAULT_SECTION_ORDER), id],
+      [...existing, id]
+    ),
+  }
+}
+
+export function removeCustomSeparator(dashboardNav, sectionId) {
+  if (!isCustomSectionId(sectionId)) return dashboardNav
+  const defaultGroups = defaultItemGroupsFromLinks()
+  const nextSections = { ...(dashboardNav?.sections || {}) }
+  delete nextSections[sectionId]
+  const customIds = extractCustomSectionIds(nextSections, dashboardNav?.section_order).filter(
+    (id) => id !== sectionId
+  )
+  const nextGroups = { ...(dashboardNav?.item_groups || {}) }
+  for (const [path, group] of Object.entries(nextGroups)) {
+    if (group === sectionId) {
+      nextGroups[path] = defaultGroups[path] || 'account'
+    }
+  }
+  return {
+    ...dashboardNav,
+    sections: nextSections,
+    section_order: normalizeSectionOrder(
+      (dashboardNav?.section_order || []).filter((id) => id !== sectionId),
+      customIds
+    ),
+    item_groups: nextGroups,
+  }
+}
+
+export { isCustomSectionId, createCustomSectionId }

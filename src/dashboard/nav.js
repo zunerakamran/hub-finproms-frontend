@@ -233,8 +233,24 @@ export const DEFAULT_SECTION_ORDER = [
   'platform',
 ]
 
-export function normalizeSectionOrder(incoming) {
-  const allowed = new Set(DEFAULT_SECTION_ORDER)
+export function isCustomSectionId(id) {
+  return /^custom_[a-z0-9_]{1,40}$/.test(String(id || ''))
+}
+
+export function extractCustomSectionIds(sections, sectionOrder) {
+  const ids = []
+  const push = (id) => {
+    const key = String(id || '').trim()
+    if (isCustomSectionId(key) && !ids.includes(key)) ids.push(key)
+  }
+  if (Array.isArray(sectionOrder)) sectionOrder.forEach(push)
+  if (sections && typeof sections === 'object') Object.keys(sections).forEach(push)
+  return ids
+}
+
+export function normalizeSectionOrder(incoming, customIds = []) {
+  const extras = Array.isArray(customIds) ? customIds.filter(isCustomSectionId) : []
+  const allowed = new Set([...DEFAULT_SECTION_ORDER, ...extras])
   const order = []
   if (Array.isArray(incoming)) {
     for (const id of incoming) {
@@ -242,6 +258,9 @@ export function normalizeSectionOrder(incoming) {
     }
   }
   for (const id of DEFAULT_SECTION_ORDER) {
+    if (!order.includes(id)) order.push(id)
+  }
+  for (const id of extras) {
     if (!order.includes(id)) order.push(id)
   }
   return order
@@ -277,6 +296,13 @@ export function resolveItemOrder(dashboardNav = null) {
     if (!order.includes(path)) order.push(path)
   }
   return order
+}
+
+export function createCustomSectionId(existingIds = []) {
+  const used = new Set(existingIds)
+  let n = 1
+  while (used.has(`custom_${n}`)) n += 1
+  return `custom_${n}`
 }
 
 /** @type {DashboardLink[]} */
@@ -951,7 +977,8 @@ export function getVisibleDashboardNav(ctx) {
     .filter((l) => l.kind !== 'section' && l.to && l.to !== '/my-dashboard')
     .map((l) => applyDashboardNavGroup(l, dashboardNav))
 
-  const sectionOrder = normalizeSectionOrder(dashboardNav?.section_order)
+  const customIds = extractCustomSectionIds(dashboardNav?.sections, dashboardNav?.section_order)
+  const sectionOrder = normalizeSectionOrder(dashboardNav?.section_order, customIds)
   const itemOrder = resolveItemOrder(dashboardNav)
   const orderIndex = new Map(itemOrder.map((path, idx) => [path, idx]))
 

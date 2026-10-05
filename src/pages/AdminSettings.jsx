@@ -3,11 +3,14 @@ import { api } from '../api/client'
 import FileDropzone from '../components/FileDropzone'
 import { useHub } from '../context/HubContext'
 import {
-  DASHBOARD_NAV_ASSIGNABLE_SECTIONS,
+  assignableSectionsFromNav,
+  addCustomSeparator,
   DASHBOARD_NAV_DEFAULTS,
   DASHBOARD_NAV_SECTION_FIELDS,
   fillDashboardNavFromSettings,
+  isCustomSectionId,
   moveListItem,
+  removeCustomSeparator,
 } from '../utils/dashboardNav'
 import { PAGE_CONTENT_FIELDS } from '../utils/pageContent'
 
@@ -137,6 +140,17 @@ export default function AdminSettings() {
       },
     }))
   }
+
+  const addSeparator = () => {
+    setDashboardNav((prev) => addCustomSeparator(prev, 'New separator'))
+    setDashNavTab('order')
+  }
+
+  const removeSeparator = (sectionKey) => {
+    setDashboardNav((prev) => removeCustomSeparator(prev, sectionKey))
+  }
+
+  const assignableSections = assignableSectionsFromNav(dashboardNav)
 
   const load = async () => {
     setLoading(true)
@@ -615,9 +629,9 @@ export default function AdminSettings() {
           <div className="settings-block">
             <h2>Dashboard menu</h2>
             <p className="muted form-hint">
-              Rename sidebar separators and menu items, reorder separators, and choose which
-              separator each menu item sits under. Hub separator has separate labels for Central /
-              Shared / White-labelled context.
+              Rename sidebar separators and menu items, reorder separators, add custom separators,
+              and choose which separator each menu item sits under. Hub separator has separate
+              labels for Central / Shared / White-labelled context.
             </p>
 
             <div className="page-content-tabs" role="tablist" aria-label="Dashboard menu sections">
@@ -651,8 +665,9 @@ export default function AdminSettings() {
             </div>
 
             <div className="page-content-fields">
-              {dashNavTab === 'sections'
-                ? DASHBOARD_NAV_SECTION_FIELDS.map((field) => (
+              {dashNavTab === 'sections' ? (
+                <>
+                  {DASHBOARD_NAV_SECTION_FIELDS.map((field) => (
                     <label key={`section-${field.key}`}>
                       {field.label}
                       <input
@@ -661,8 +676,38 @@ export default function AdminSettings() {
                         placeholder={DASHBOARD_NAV_DEFAULTS.sections[field.key] || ''}
                       />
                     </label>
-                  ))
-                : null}
+                  ))}
+                  {assignableSections
+                    .filter((section) => section.custom)
+                    .map((section) => (
+                      <div key={`custom-section-${section.key}`} className="dash-nav-custom-section">
+                        <label>
+                          Custom separator
+                          <span className="muted form-hint">{section.key}</span>
+                          <input
+                            value={dashboardNav?.sections?.[section.key] ?? ''}
+                            onChange={(e) =>
+                              setDashNavField('sections', section.key, e.target.value)
+                            }
+                            placeholder="Custom section"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          onClick={() => removeSeparator(section.key)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  <div className="dash-nav-add-separator">
+                    <button type="button" className="btn ghost" onClick={addSeparator}>
+                      Add separator
+                    </button>
+                  </div>
+                </>
+              ) : null}
 
               {dashNavTab === 'order'
                 ? (dashboardNav?.section_order || []).map((sectionKey, index) => {
@@ -674,7 +719,10 @@ export default function AdminSettings() {
                       <div key={`order-${sectionKey}`} className="dash-nav-order-row">
                         <div className="dash-nav-order-row__meta">
                           <strong>{label}</strong>
-                          <span className="muted form-hint">{sectionKey}</span>
+                          <span className="muted form-hint">
+                            {sectionKey}
+                            {isCustomSectionId(sectionKey) ? ' · custom' : ''}
+                          </span>
                         </div>
                         <div className="dash-nav-order-row__actions">
                           <button
@@ -693,6 +741,15 @@ export default function AdminSettings() {
                           >
                             Down
                           </button>
+                          {isCustomSectionId(sectionKey) ? (
+                            <button
+                              type="button"
+                              className="btn ghost"
+                              onClick={() => removeSeparator(sectionKey)}
+                            >
+                              Remove
+                            </button>
+                          ) : null}
                         </div>
                       </div>
                     )
@@ -725,9 +782,9 @@ export default function AdminSettings() {
                               }
                               onChange={(e) => setItemGroup(path, e.target.value)}
                             >
-                              {DASHBOARD_NAV_ASSIGNABLE_SECTIONS.map((section) => (
+                              {assignableSections.map((section) => (
                                 <option key={section.key} value={section.key}>
-                                  {dashboardNav?.sections?.[section.key] || section.label}
+                                  {section.label}
                                 </option>
                               ))}
                             </select>

@@ -6226,9 +6226,25 @@ td.data-grid__actions {
   font-size: 0.8rem;
 }
 
+.dash-nav-custom-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: end;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.dash-nav-add-separator {
+  padding-top: 0.35rem;
+}
+
 @media (max-width: 860px) {
   .dash-nav-order-row,
-  .dash-nav-item-row {
+  .dash-nav-item-row,
+  .dash-nav-custom-section {
     grid-template-columns: 1fr;
     align-items: stretch;
   }

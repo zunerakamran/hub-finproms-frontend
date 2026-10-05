@@ -7,6 +7,7 @@ import {
   applyDashboardNavGroup,
   applyDashboardNavLabel,
   DASHBOARD_LINKS,
+  extractCustomSectionIds,
   isDashboardHomeCard,
   isDashboardLinkVisible,
   normalizeSectionOrder,
@@ -124,7 +125,8 @@ export default function MyDashboard() {
         }
       })
 
-    const sectionOrder = normalizeSectionOrder(dashboardNav?.section_order || GROUP_ORDER)
+    const customIds = extractCustomSectionIds(dashboardNav?.sections, dashboardNav?.section_order)
+    const sectionOrder = normalizeSectionOrder(dashboardNav?.section_order || GROUP_ORDER, customIds)
     const itemOrder = resolveItemOrder(dashboardNav)
     const orderIndex = new Map(itemOrder.map((path, idx) => [path, idx]))
 

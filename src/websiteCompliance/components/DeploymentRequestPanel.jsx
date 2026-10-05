@@ -327,6 +327,7 @@ export function CreateDeploymentModal({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [serverTemplates, setServerTemplates] = useState([])
+  const [templatesLoadError, setTemplatesLoadError] = useState('')
 
   const steps = useMemo(() => ([
     { id: 'basics', label: 'Basics' },
@@ -360,6 +361,7 @@ export function CreateDeploymentModal({
   }
 
   useEffect(() => {
+    setTemplatesLoadError('')
     api.get('/templates').then(res => {
       const list = Array.isArray(res.data) ? res.data : res.data.data || []
       if (list.length) {
@@ -373,9 +375,12 @@ export function CreateDeploymentModal({
         setServerTemplates([])
         setTemplateName('')
       }
-    }).catch(() => {
+    }).catch((err) => {
       setServerTemplates([])
       setTemplateName('')
+      setTemplatesLoadError(
+        err.response?.data?.message || 'Could not load showcase templates for this hub.'
+      )
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once when modal opens
   }, [])
@@ -571,8 +576,8 @@ export function CreateDeploymentModal({
                 <label className={labelClass}>Template</label>
                 {templateOptions.length === 0 ? (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
-                    No showcase templates are available on this hub yet. Ask an administrator to deploy
-                    or register the hub&apos;s website templates, then try again.
+                    {templatesLoadError ||
+                      "No showcase templates are available on this hub yet. Ask an administrator to deploy or register the hub's website templates, then try again."}
                   </div>
                 ) : (
                   <select

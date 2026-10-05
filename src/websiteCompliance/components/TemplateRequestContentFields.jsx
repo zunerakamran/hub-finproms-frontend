@@ -57,7 +57,7 @@ export function templateAvailablePages(template) {
 }
 
 export function emptyService() {
-  return { name: '', description: '' }
+  return { name: '', attachment_url: '', attachment_name: '' }
 }
 
 export function emptyImage() {
@@ -65,7 +65,7 @@ export function emptyImage() {
 }
 
 export function emptyPolicy() {
-  return { name: '', content: '' }
+  return { name: '', attachment_url: '', attachment_name: '' }
 }
 
 export function emptyContactDetails() {
@@ -82,6 +82,9 @@ export function emptyRequestContentState() {
     pageContents: {},
   }
 }
+
+const DOCUMENT_ACCEPT =
+  '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.odt,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 function storedUploadPath(data) {
   const path = data?.relative_url || data?.url || ''
@@ -112,9 +115,10 @@ export function buildRequestContentPayload({
   const cleanedServices = (Array.isArray(services) ? services : [])
     .map((row) => ({
       name: String(row?.name || '').trim(),
-      description: String(row?.description || '').trim(),
+      attachment_url: String(row?.attachment_url || '').trim(),
+      attachment_name: String(row?.attachment_name || '').trim(),
     }))
-    .filter((row) => row.name || row.description)
+    .filter((row) => row.name || row.attachment_url)
 
   const cleanedImages = (Array.isArray(images) ? images : [])
     .map((row) => ({
@@ -134,9 +138,10 @@ export function buildRequestContentPayload({
   const cleanedPolicies = (Array.isArray(policies) ? policies : [])
     .map((row) => ({
       name: String(row?.name || '').trim(),
-      content: String(row?.content || '').trim(),
+      attachment_url: String(row?.attachment_url || '').trim(),
+      attachment_name: String(row?.attachment_name || '').trim(),
     }))
-    .filter((row) => row.name || row.content)
+    .filter((row) => row.name || row.attachment_url)
 
   const pages = (Array.isArray(selectedPages) ? selectedPages : [])
     .map((slug) => slugify(slug))
@@ -144,8 +149,12 @@ export function buildRequestContentPayload({
 
   const contents = {}
   pages.forEach((slug) => {
-    const text = String(pageContents?.[slug] || '').trim()
-    if (text) contents[slug] = text
+    const entry = pageContents?.[slug]
+    if (!entry || typeof entry !== 'object') return
+    const url = String(entry.url || entry.attachment_url || '').trim()
+    const name = String(entry.name || entry.attachment_name || '').trim()
+    if (!url) return
+    contents[slug] = { url, name }
   })
 
   return {
@@ -176,6 +185,57 @@ function SectionCard({ icon: Icon, title, hint, action, children }) {
         {action || null}
       </div>
       <div className="p-4 space-y-3">{children}</div>
+    </div>
+  )
+}
+
+function DocumentAttachmentField({
+  id,
+  label,
+  labelClass = fieldLabelClass,
+  url,
+  name,
+  uploading,
+  onFile,
+  onClear,
+}) {
+  return (
+    <div className="space-y-2">
+      <label className={labelClass}>{label}</label>
+      {url ? (
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5">
+          <a
+            href={websiteComplianceAssetUrl(url)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 min-w-0 text-xs font-semibold text-[var(--brand-dark)] hover:underline"
+          >
+            <FaFileAlt className="w-3.5 h-3.5 shrink-0 text-gray-400" aria-hidden="true" />
+            <span className="truncate">{name || 'Attached document'}</span>
+          </a>
+          <button
+            type="button"
+            onClick={onClear}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg transition shrink-0"
+          >
+            <FaTrash className="w-3 h-3" aria-hidden="true" />
+            Remove
+          </button>
+        </div>
+      ) : (
+        <FileDropzone
+          id={id}
+          label="Attach document"
+          accept={DOCUMENT_ACCEPT}
+          hint="PDF, Word, Excel, PowerPoint, TXT, RTF, ODT, or CSV (max 10 MB)"
+          disabled={uploading}
+          files={[]}
+          onChange={(next) => {
+            const file = next[0] || null
+            if (file) onFile(file)
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -213,7 +273,7 @@ export function AvailablePagesEditor({ pages, onChange, maxPages = 30 }) {
     <SectionCard
       icon={FaFileAlt}
       title="Available pages"
-      hint="Pages offered on this template. Requesters select which ones to include and provide content."
+      hint="Pages offered on this template. Requesters select which ones to include and attach a content document."
       action={
         <button
           type="button"
@@ -329,6 +389,7 @@ export function TemplateRequestContentFields({
   const pages = useMemo(() => normalizeAvailablePages(availablePages), [availablePages])
   const selected = Array.isArray(selectedPages) ? selectedPages : []
   const [uploadingIndex, setUploadingIndex] = useState(null)
+  const [uploadingDocKey, setUploadingDocKey] = useState(null)
   const [uploadError, setUploadError] = useState('')
 
   const togglePage = (slug) => {
@@ -349,6 +410,69 @@ export function TemplateRequestContentFields({
 
   const updateImage = (index, patch) => {
     onImagesChange(images.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+  }
+
+  const uploadDocument = async (file) => {
+    const formData = new FormData()
+    formData.append('document', file)
+    const res = await api.post('upload-document', formData)
+    const uploadedUrl = storedUploadPath(res.data)
+    if (!uploadedUrl) throw new Error('Upload succeeded but no path was returned.')
+    return {
+      url: uploadedUrl,
+      name: String(res.data?.original_name || file.name || '').trim(),
+    }
+  }
+
+  const uploadServiceDoc = async (index, file) => {
+    if (!file) return
+    setUploadingDocKey(`service-${index}`)
+    setUploadError('')
+    try {
+      const doc = await uploadDocument(file)
+      updateService(index, { attachment_url: doc.url, attachment_name: doc.name })
+    } catch (err) {
+      updateService(index, { attachment_url: '', attachment_name: '' })
+      setUploadError(err.response?.data?.message || err.message || 'Failed to upload document.')
+    } finally {
+      setUploadingDocKey(null)
+    }
+  }
+
+  const uploadPolicyDoc = async (index, file) => {
+    if (!file) return
+    setUploadingDocKey(`policy-${index}`)
+    setUploadError('')
+    try {
+      const doc = await uploadDocument(file)
+      updatePolicy(index, { attachment_url: doc.url, attachment_name: doc.name })
+    } catch (err) {
+      updatePolicy(index, { attachment_url: '', attachment_name: '' })
+      setUploadError(err.response?.data?.message || err.message || 'Failed to upload document.')
+    } finally {
+      setUploadingDocKey(null)
+    }
+  }
+
+  const uploadPageDoc = async (slug, file) => {
+    if (!file) return
+    setUploadingDocKey(`page-${slug}`)
+    setUploadError('')
+    try {
+      const doc = await uploadDocument(file)
+      onPageContentsChange({
+        ...(pageContents || {}),
+        [slug]: { url: doc.url, name: doc.name },
+      })
+    } catch (err) {
+      onPageContentsChange({
+        ...(pageContents || {}),
+        [slug]: { url: '', name: '' },
+      })
+      setUploadError(err.response?.data?.message || err.message || 'Failed to upload document.')
+    } finally {
+      setUploadingDocKey(null)
+    }
   }
 
   const uploadImageAt = async (index, file) => {
@@ -374,10 +498,16 @@ export function TemplateRequestContentFields({
 
   return (
     <div className="space-y-4">
+      {uploadError ? (
+        <p className="text-xs font-medium text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+          {uploadError}
+        </p>
+      ) : null}
+
       <SectionCard
         icon={FaBriefcase}
         title="Services"
-        hint="List the services you want featured on the website."
+        hint="List services and attach a document for each (no typed description)."
         action={
           <button
             type="button"
@@ -397,7 +527,7 @@ export function TemplateRequestContentFields({
           >
             <FaBriefcase className="w-5 h-5 text-slate-300 mx-auto mb-2" aria-hidden="true" />
             <p className="text-sm font-bold text-gray-600">No services yet</p>
-            <p className="text-[11px] text-gray-500 mt-1">Optional — add services to feature on the site.</p>
+            <p className="text-[11px] text-gray-500 mt-1">Optional — add a name and attach a document.</p>
             <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-[var(--brand-dark)]">
               <FaPlus className="w-3 h-3" aria-hidden="true" />
               Add first service
@@ -431,17 +561,16 @@ export function TemplateRequestContentFields({
                   maxLength={150}
                 />
               </div>
-              <div>
-                <label className={labelClass}>Description</label>
-                <textarea
-                  value={service.description}
-                  onChange={(e) => updateService(index, { description: e.target.value })}
-                  placeholder="Brief description of this service"
-                  rows={3}
-                  className="wc-field-input"
-                  maxLength={2000}
-                />
-              </div>
+              <DocumentAttachmentField
+                id={`service-doc-${index}`}
+                label="Document"
+                labelClass={labelClass}
+                url={service.attachment_url}
+                name={service.attachment_name}
+                uploading={uploadingDocKey === `service-${index}`}
+                onFile={(file) => uploadServiceDoc(index, file)}
+                onClear={() => updateService(index, { attachment_url: '', attachment_name: '' })}
+              />
             </div>
           ))
         )}
@@ -462,11 +591,6 @@ export function TemplateRequestContentFields({
           </button>
         }
       >
-        {uploadError ? (
-          <p className="text-xs font-medium text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
-            {uploadError}
-          </p>
-        ) : null}
         {(images || []).length === 0 ? (
           <button
             type="button"
@@ -595,7 +719,7 @@ export function TemplateRequestContentFields({
       <SectionCard
         icon={FaFileContract}
         title="Policies"
-        hint="Privacy policy, terms, cookies, or other policy pages."
+        hint="Attach privacy, terms, cookies, or other policy documents."
         action={
           <button
             type="button"
@@ -615,7 +739,7 @@ export function TemplateRequestContentFields({
           >
             <FaFileContract className="w-5 h-5 text-slate-300 mx-auto mb-2" aria-hidden="true" />
             <p className="text-sm font-bold text-gray-600">No policies yet</p>
-            <p className="text-[11px] text-gray-500 mt-1">Optional — privacy, terms, cookies, and similar.</p>
+            <p className="text-[11px] text-gray-500 mt-1">Optional — attach a PDF or Word document for each policy.</p>
             <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-[var(--brand-dark)]">
               <FaPlus className="w-3 h-3" aria-hidden="true" />
               Add first policy
@@ -649,17 +773,16 @@ export function TemplateRequestContentFields({
                   maxLength={150}
                 />
               </div>
-              <div>
-                <label className={labelClass}>Content</label>
-                <textarea
-                  value={policy.content}
-                  onChange={(e) => updatePolicy(index, { content: e.target.value })}
-                  placeholder="Paste or write the policy text"
-                  rows={5}
-                  className="wc-field-input"
-                  maxLength={20000}
-                />
-              </div>
+              <DocumentAttachmentField
+                id={`policy-doc-${index}`}
+                label="Document"
+                labelClass={labelClass}
+                url={policy.attachment_url}
+                name={policy.attachment_name}
+                uploading={uploadingDocKey === `policy-${index}`}
+                onFile={(file) => uploadPolicyDoc(index, file)}
+                onClear={() => updatePolicy(index, { attachment_url: '', attachment_name: '' })}
+              />
             </div>
           ))
         )}
@@ -670,7 +793,7 @@ export function TemplateRequestContentFields({
         title="Pages & content"
         hint={
           pages.length
-            ? 'Select pages from this template and provide the content for each.'
+            ? 'Select pages from this template and attach a content document for each.'
             : 'This template has no selectable pages yet. Power Admin can add them when registering the template.'
         }
       >
@@ -719,23 +842,29 @@ export function TemplateRequestContentFields({
 
             {selected.length > 0 && (
               <div className="space-y-3 pt-1 border-t border-gray-100">
-                <p className="text-xs font-bold text-gray-700">Content for selected pages</p>
+                <p className="text-xs font-bold text-gray-700">Documents for selected pages</p>
                 {selected.map((slug) => {
                   const page = pages.find((p) => p.slug === slug)
+                  const entry =
+                    pageContents?.[slug] && typeof pageContents[slug] === 'object'
+                      ? pageContents[slug]
+                      : { url: '', name: '' }
                   return (
-                    <div key={`content-${slug}`} className="space-y-1.5">
-                      <label className={labelClass}>{page?.name || slug}</label>
-                      <textarea
-                        value={pageContents?.[slug] || ''}
-                        onChange={(e) =>
+                    <div key={`content-${slug}`} className="rounded-xl border border-gray-200 bg-slate-50/40 p-3.5">
+                      <DocumentAttachmentField
+                        id={`page-doc-${slug}`}
+                        label={page?.name || slug}
+                        labelClass={labelClass}
+                        url={entry.url || entry.attachment_url || ''}
+                        name={entry.name || entry.attachment_name || ''}
+                        uploading={uploadingDocKey === `page-${slug}`}
+                        onFile={(file) => uploadPageDoc(slug, file)}
+                        onClear={() =>
                           onPageContentsChange({
                             ...(pageContents || {}),
-                            [slug]: e.target.value,
+                            [slug]: { url: '', name: '' },
                           })
                         }
-                        placeholder={`Write content for ${page?.name || slug}…`}
-                        rows={4}
-                        className="wc-field-input"
                       />
                     </div>
                   )
@@ -876,21 +1005,37 @@ export function TemplateRequestDetailsView({ request }) {
 
       <DetailBlock icon={FaBriefcase} title="Services" empty={services.length === 0}>
         <div className="space-y-3">
-          {services.map((service, index) => (
-            <div
-              key={`svc-view-${index}`}
-              className="rounded-xl border border-gray-100 bg-slate-50/50 px-3.5 py-3"
-            >
-              <p className="text-sm font-bold text-[var(--brand-dark)]">
-                {service.name || `Service ${index + 1}`}
-              </p>
-              {service.description ? (
-                <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap leading-relaxed">
-                  {service.description}
+          {services.map((service, index) => {
+            const docUrl = service.attachment_url || service.url || ''
+            const docName = service.attachment_name || service.name || `Service ${index + 1}`
+            return (
+              <div
+                key={`svc-view-${index}`}
+                className="rounded-xl border border-gray-100 bg-slate-50/50 px-3.5 py-3"
+              >
+                <p className="text-sm font-bold text-[var(--brand-dark)]">
+                  {service.name || `Service ${index + 1}`}
                 </p>
-              ) : null}
-            </div>
-          ))}
+                {docUrl ? (
+                  <a
+                    href={websiteComplianceAssetUrl(docUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-1.5 text-xs font-semibold text-[var(--brand-dark)] hover:underline"
+                  >
+                    <FaFileAlt className="w-3 h-3 text-gray-400" aria-hidden="true" />
+                    {docName || 'Download document'}
+                  </a>
+                ) : service.description ? (
+                  <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap leading-relaxed">
+                    {service.description}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-gray-400 italic mt-1">No document attached</p>
+                )}
+              </div>
+            )
+          })}
         </div>
       </DetailBlock>
 
@@ -930,40 +1075,74 @@ export function TemplateRequestDetailsView({ request }) {
 
       <DetailBlock icon={FaFileContract} title="Policies" empty={policies.length === 0}>
         <div className="space-y-3">
-          {policies.map((policy, index) => (
-            <div
-              key={`pol-view-${index}`}
-              className="rounded-xl border border-gray-100 bg-slate-50/50 px-3.5 py-3"
-            >
-              <p className="text-sm font-bold text-[var(--brand-dark)]">
-                {policy.name || `Policy ${index + 1}`}
-              </p>
-              {policy.content ? (
-                <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
-                  {policy.content}
+          {policies.map((policy, index) => {
+            const docUrl = policy.attachment_url || policy.url || ''
+            const docName = policy.attachment_name || policy.name || `Policy ${index + 1}`
+            return (
+              <div
+                key={`pol-view-${index}`}
+                className="rounded-xl border border-gray-100 bg-slate-50/50 px-3.5 py-3"
+              >
+                <p className="text-sm font-bold text-[var(--brand-dark)]">
+                  {policy.name || `Policy ${index + 1}`}
                 </p>
-              ) : null}
-            </div>
-          ))}
+                {docUrl ? (
+                  <a
+                    href={websiteComplianceAssetUrl(docUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-1.5 text-xs font-semibold text-[var(--brand-dark)] hover:underline"
+                  >
+                    <FaFileAlt className="w-3 h-3 text-gray-400" aria-hidden="true" />
+                    {docName || 'Download document'}
+                  </a>
+                ) : policy.content ? (
+                  <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                    {policy.content}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-gray-400 italic mt-1">No document attached</p>
+                )}
+              </div>
+            )
+          })}
         </div>
       </DetailBlock>
 
       <DetailBlock icon={FaFileAlt} title="Pages & content" empty={selectedPages.length === 0}>
         <div className="space-y-3">
           {selectedPages.map((slug) => {
-            const content = String(pageContents[slug] || '').trim()
+            const raw = pageContents[slug]
+            const entry =
+              raw && typeof raw === 'object'
+                ? raw
+                : typeof raw === 'string' && raw.trim()
+                  ? { content: raw }
+                  : null
+            const docUrl = entry?.url || entry?.attachment_url || ''
+            const docName = entry?.name || entry?.attachment_name || slug
             return (
               <div
                 key={`page-view-${slug}`}
                 className="rounded-xl border border-gray-100 bg-slate-50/50 px-3.5 py-3"
               >
                 <p className="text-sm font-bold text-[var(--brand-dark)]">{slug}</p>
-                {content ? (
+                {docUrl ? (
+                  <a
+                    href={websiteComplianceAssetUrl(docUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-1.5 text-xs font-semibold text-[var(--brand-dark)] hover:underline"
+                  >
+                    <FaFileAlt className="w-3 h-3 text-gray-400" aria-hidden="true" />
+                    {docName || 'Download document'}
+                  </a>
+                ) : entry?.content ? (
                   <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
-                    {content}
+                    {entry.content}
                   </p>
                 ) : (
-                  <p className="text-[11px] text-gray-400 italic mt-1">No content provided</p>
+                  <p className="text-[11px] text-gray-400 italic mt-1">No document attached</p>
                 )}
               </div>
             )

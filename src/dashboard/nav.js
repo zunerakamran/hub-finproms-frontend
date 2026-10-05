@@ -774,7 +774,7 @@ export const DASHBOARD_LINKS = [
     label: 'Request a site',
     title: 'Request a site',
     description: 'Browse website templates and request one by filling the deployment form.',
-    capability: 'wc_request_deployments',
+    anyOf: ['wc_request_deployments', 'wc_assign_website_templates'],
     group: 'wtl',
   },
   {

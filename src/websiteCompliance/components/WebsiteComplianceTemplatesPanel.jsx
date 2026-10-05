@@ -188,13 +188,19 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
   const canDeployWebsites = can('wc_deploy_websites')
   const canPublishLive = can('wc_publish_live_content')
   const canManageSections = can('wc_manage_deployment_sections')
-  const canRequest = includeRequestActions && (can('wc_request_deployments') || can('wc_assign_website_templates'))
+  const canRequestDeployments = can('wc_request_deployments') || can('wc_assign_website_templates')
+  const canRequest = includeRequestActions && canRequestDeployments
   const canAssignAdvisor = includeRequestActions && can('wc_assign_website_templates')
   const canViewDeployments =
     canDeployWebsites || can('wc_view_all_deployments') || canPublishLive
+  const canBrowseTemplates = canManageTemplates || canRequestDeployments
 
   const [activeTab, setActiveTab] = useState(
-    canManageTemplates ? 'templates' : canViewDeployments ? 'deployments' : 'templates'
+    canManageTemplates || canBrowseTemplates
+      ? 'templates'
+      : canViewDeployments
+        ? 'deployments'
+        : 'templates'
   )
   const [templates, setTemplates] = useState([])
   const [requests, setRequests] = useState([])
@@ -262,8 +268,14 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
       if (!silent) setLoading(true)
       try {
         const [reqRes, tplRes] = await Promise.all([
-          canViewDeployments ? api.get('/template-requests') : Promise.resolve({ data: [] }),
-          canManageTemplates ? api.get('/templates?all=1') : Promise.resolve({ data: [] }),
+          canViewDeployments || canRequestDeployments
+            ? api.get('/template-requests')
+            : Promise.resolve({ data: [] }),
+          canManageTemplates
+            ? api.get('/templates?all=1')
+            : canBrowseTemplates
+              ? api.get('/templates')
+              : Promise.resolve({ data: [] }),
         ])
         setRequests(Array.isArray(reqRes.data) ? reqRes.data : [])
         setTemplates(Array.isArray(tplRes.data) ? tplRes.data : [])
@@ -292,7 +304,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
         }
       }
     },
-    [canViewDeployments, canManageTemplates, canAssignAdvisor]
+    [canViewDeployments, canManageTemplates, canAssignAdvisor, canBrowseTemplates, canRequestDeployments]
   )
 
   useEffect(() => {
@@ -784,7 +796,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
     }
   }
 
-  if (!canManageTemplates && !canViewDeployments) {
+  if (!canManageTemplates && !canViewDeployments && !canBrowseTemplates) {
     return (
       <p className="muted text-sm">
         You do not have template or deployment management capabilities for Website Template Library.
@@ -793,7 +805,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
   }
 
   const tabs = [
-    canManageTemplates && { id: 'templates', label: 'Templates' },
+    canBrowseTemplates && { id: 'templates', label: 'Templates' },
     canViewDeployments && { id: 'deployments', label: 'Deploy hub' },
   ].filter(Boolean)
 
@@ -821,7 +833,7 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
         ))}
       </div>
 
-      {activeTab === 'templates' && canManageTemplates ? (
+      {activeTab === 'templates' && canBrowseTemplates ? (
         <div className="wc-app">
           {loading ? (
             <p className="text-sm text-gray-500">Loading…</p>
@@ -830,7 +842,11 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
               <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-bold text-[var(--brand-dark)]">Showcase templates</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">Register and edit templates available for deployments.</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {canManageTemplates
+                      ? 'Register and edit templates available for deployments.'
+                      : 'Browse hub showcase templates and request a deployment for an advisor.'}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="wc-icon-field w-full sm:w-64">
@@ -851,14 +867,26 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                     <FaSync className="w-3 h-3" />
                     Refresh
                   </button>
-                  <button
-                    type="button"
-                    onClick={openCreateTemplateModal}
-                    className="wc-btn wc-btn--primary text-xs"
-                  >
-                    <FaPlus className="w-3 h-3" />
-                    Register
-                  </button>
+                  {canRequest ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModal(true)}
+                      className="wc-btn wc-btn--primary text-xs"
+                    >
+                      <FaPlus className="w-3 h-3" />
+                      Request
+                    </button>
+                  ) : null}
+                  {canManageTemplates ? (
+                    <button
+                      type="button"
+                      onClick={openCreateTemplateModal}
+                      className="wc-btn wc-btn--primary text-xs"
+                    >
+                      <FaPlus className="w-3 h-3" />
+                      Register
+                    </button>
+                  ) : null}
                 </div>
               </div>
               <div className="p-5">
@@ -924,22 +952,34 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                            <button
-                              type="button"
-                              onClick={() => openEditTemplateModal(tpl)}
-                              className="wc-btn wc-btn--soft flex-1 text-xs"
-                            >
-                              <FaEdit className="w-3 h-3" /> Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTemplate(tpl)}
-                              className="wc-btn text-xs"
-                              style={{ background: '#fff1f2', color: '#e11d48', borderColor: '#fecdd3' }}
-                              aria-label={`Delete ${tpl.name}`}
-                            >
-                              <FaTrash className="w-3 h-3" />
-                            </button>
+                            {canManageTemplates ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditTemplateModal(tpl)}
+                                  className="wc-btn wc-btn--soft flex-1 text-xs"
+                                >
+                                  <FaEdit className="w-3 h-3" /> Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTemplate(tpl)}
+                                  className="wc-btn text-xs"
+                                  style={{ background: '#fff1f2', color: '#e11d48', borderColor: '#fecdd3' }}
+                                  aria-label={`Delete ${tpl.name}`}
+                                >
+                                  <FaTrash className="w-3 h-3" />
+                                </button>
+                              </>
+                            ) : canRequest ? (
+                              <button
+                                type="button"
+                                onClick={() =>             setShowCreateModal(true)}
+                                className="wc-btn wc-btn--primary flex-1 text-xs"
+                              >
+                                <FaPlus className="w-3 h-3" /> Request for advisor
+                              </button>
+                            ) : null}
                           </div>
                         </div>
                       </article>

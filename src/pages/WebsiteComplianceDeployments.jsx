@@ -10,24 +10,25 @@ import {
 export default function WebsiteComplianceDeployments() {
   const { can, loading: hubLoading } = useHub()
   const templateModuleOn = websiteTemplateLibraryOn(can)
-  const canRequestOrView =
-    can('wc_request_deployments') ||
-    can('wc_assign_website_templates') ||
-    can('wc_view_all_deployments')
+  const canAssign = can('wc_assign_website_templates')
+  const canRequest = can('wc_request_deployments') || canAssign
+  const canViewAll = can('wc_view_all_deployments')
   const canManageTemplates = can('wc_manage_templates')
   const canDeployWebsites = can('wc_deploy_websites')
   const canViewDeployHub =
     canDeployWebsites ||
-    can('wc_view_all_deployments') ||
+    canViewAll ||
     can('wc_publish_live_content')
   const canAdmin = canManageTemplates || canDeployWebsites
-  // One request list only: Deploy hub owns it when available (same DataGrid pattern as SMC/GC).
-  const showRequestPanel = canRequestOrView && !canViewDeployHub
+  // Managers who assign/request always get the request panel (browse templates + assign advisor).
+  // Deploy-hub DataGrid still shows when they also have view/deploy rights.
+  const showRequestPanel = canRequest || (canViewAll && !canViewDeployHub)
   const canAccessPage =
-    can('wc_view_all_deployments') ||
-    can('wc_deploy_websites') ||
-    can('wc_manage_templates') ||
-    can('wc_assign_website_templates')
+    canViewAll ||
+    canDeployWebsites ||
+    canManageTemplates ||
+    canAssign ||
+    can('wc_request_deployments')
 
   if (!hubLoading && !templateModuleOn) {
     return (
@@ -67,7 +68,9 @@ export default function WebsiteComplianceDeployments() {
           <p className="eyebrow">Website Template Library</p>
           <h1>Site operations</h1>
           <p className="muted">
-            Manage templates, review deployment requests, and manually deploy to the respective cPanel.
+            {canAssign
+              ? 'Browse showcase templates, request a deployment on behalf of an advisor, and track requests.'
+              : 'Manage templates, review deployment requests, and manually deploy to the respective cPanel.'}{' '}
             Advisors requesting their own site should use{' '}
             <Link to="/my-dashboard/website-compliance/request-site">Request a site</Link>.
           </p>
@@ -78,7 +81,9 @@ export default function WebsiteComplianceDeployments() {
       <div className="space-y-8">
         {showRequestPanel ? <DeploymentRequestPanel /> : null}
         {(canAdmin || canViewDeployHub) ? (
-          <WebsiteComplianceTemplatesPanel includeRequestActions={canViewDeployHub} />
+          <WebsiteComplianceTemplatesPanel
+            includeRequestActions={canRequest && !showRequestPanel}
+          />
         ) : null}
         {!hubLoading && !showRequestPanel && !canAdmin && !canViewDeployHub ? (
           <p className="muted text-sm">

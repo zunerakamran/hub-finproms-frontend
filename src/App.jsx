@@ -626,7 +626,9 @@ export default function App() {
                 <Route
                   path="website-compliance/request-site"
                   element={
-                    <HubCapabilityRoute capability="wc_request_deployments">
+                    <HubCapabilityRoute
+                      anyOf={['wc_request_deployments', 'wc_assign_website_templates']}
+                    >
                       <WebsiteComplianceRequestSite />
                     </HubCapabilityRoute>
                   }

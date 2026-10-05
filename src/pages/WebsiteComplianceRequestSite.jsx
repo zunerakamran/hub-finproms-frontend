@@ -22,7 +22,8 @@ function ModuleOff() {
 export default function WebsiteComplianceRequestSite() {
   const { can, loading: hubLoading } = useHub()
   const moduleOn = websiteTemplateLibraryOn(can)
-  const canRequest = can('wc_request_deployments')
+  const canRequest =
+    can('wc_request_deployments') || can('wc_assign_website_templates')
 
   if (!hubLoading && !moduleOn) return <ModuleOff />
 
@@ -47,8 +48,9 @@ export default function WebsiteComplianceRequestSite() {
           <p className="eyebrow">Website Template Library</p>
           <h1>Request a site</h1>
           <p className="muted">
-            Browse templates and submit a deployment request. A capable admin will manually deploy it on
-            cPanel.
+            {can('wc_assign_website_templates')
+              ? 'Browse templates and submit a deployment request for an advisor. A capable admin will manually deploy it on cPanel.'
+              : 'Browse templates and submit a deployment request. A capable admin will manually deploy it on cPanel.'}
           </p>
         </div>
       </div>

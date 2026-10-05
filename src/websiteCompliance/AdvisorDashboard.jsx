@@ -1218,7 +1218,9 @@ export default function AdvisorDashboard({
     Boolean(section?.is_locked && section?.locked_by != null && lockOwnerIds.includes(Number(section.locked_by)))
   const isSectionLockedByOther = (section) =>
     Boolean(section?.is_locked && section?.locked_by != null && !lockOwnerIds.includes(Number(section.locked_by)))
-  const canRequestDeployments = can('wc_request_deployments')
+  const canRequestDeployments =
+    can('wc_request_deployments') || can('wc_assign_website_templates')
+  const canAssignAdvisor = can('wc_assign_website_templates')
   const powerAdminLabel = roleLabel('power_admin')
   const advisorLabel = roleLabel('advisor')
   const isPowerAdminPublishMode = Boolean(powerAdminDeploymentId)
@@ -1237,6 +1239,7 @@ export default function AdvisorDashboard({
   // Template Request States
   const [templateRequests, setTemplateRequests] = useState([])
   const [availableTemplates, setAvailableTemplates] = useState([])
+  const [assignableAdvisors, setAssignableAdvisors] = useState([])
   const [templateSearch, setTemplateSearch] = useState('')
   const [activeTab, setActiveTab] = useState(
     forcedTab || (isPowerAdminPublishMode ? 'editor' : 'templates')
@@ -1853,13 +1856,27 @@ export default function AdvisorDashboard({
       })
   }
 
+  const fetchAssignableAdvisors = () => {
+    if (!canAssignAdvisor) {
+      setAssignableAdvisors([])
+      return
+    }
+    api.get('/advisors')
+      .then((res) => {
+        const users = Array.isArray(res.data) ? res.data : res.data?.data || []
+        setAssignableAdvisors(users.filter((u) => u.role === 'advisor' || u.role === 'editor'))
+      })
+      .catch(() => setAssignableAdvisors([]))
+  }
+
   useEffect(() => {
     fetchTemplateRequests()
     fetchMyChangeRequests()
     if (!isPowerAdminPublishMode) {
       fetchAvailableTemplates()
+      fetchAssignableAdvisors()
     }
-  }, [isPowerAdminPublishMode, user?.id, effectiveAdvisorId])
+  }, [isPowerAdminPublishMode, user?.id, effectiveAdvisorId, canAssignAdvisor])
 
   useEffect(() => {
     if (!isPowerAdminPublishMode || !powerAdminDeploymentId) return
@@ -5201,6 +5218,8 @@ export default function AdvisorDashboard({
 
       {showTemplateModal && (
         <CreateDeploymentModal
+          advisors={assignableAdvisors}
+          canAssignAdvisor={canAssignAdvisor}
           initialTemplateName={selectedTemplateName}
           onClose={() => setShowTemplateModal(false)}
           onCreated={() => {

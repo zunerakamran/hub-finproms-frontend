@@ -3,10 +3,13 @@
 :root {
   --brand: #0f5c45;
   --brand-dark: #0a3f30;
+  --brand-accent: #c2410c;
   --brand-soft: color-mix(in srgb, var(--brand) 14%, white);
   --brand-softer: color-mix(in srgb, var(--brand) 7%, white);
   --brand-tint: color-mix(in srgb, var(--brand) 18%, transparent);
   --brand-glow: color-mix(in srgb, var(--brand) 22%, transparent);
+  --brand-accent-soft: color-mix(in srgb, var(--brand-accent) 14%, white);
+  --brand-accent-glow: color-mix(in srgb, var(--brand-accent) 22%, transparent);
   --sidebar-bg: color-mix(in srgb, var(--brand-dark) 78%, #0b1220);
   --sidebar-bg-alt: color-mix(in srgb, var(--brand-dark) 65%, #111827);
   --sidebar-text: #f3f6f4;
@@ -40,12 +43,12 @@
 }
 
 ::selection {
-  background: #c2410c;
+  background: var(--brand-accent);
   color: #fff;
 }
 
 ::-moz-selection {
-  background: #c2410c;
+  background: var(--brand-accent);
   color: #fff;
 }
 
@@ -334,6 +337,19 @@ h2,
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.72);
   box-shadow: var(--shadow);
+  accent-color: var(--brand-accent);
+}
+
+.listing-filters input:hover,
+.listing-filters select:hover {
+  border-color: color-mix(in srgb, var(--brand-accent) 40%, var(--line));
+}
+
+.listing-filters input:focus,
+.listing-filters select:focus {
+  outline: none;
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 0 3px var(--brand-accent-glow);
 }
 
 .listing-filter-row {
@@ -366,6 +382,17 @@ h2,
 .filter-select select {
   margin: 0;
   min-height: 44px;
+  accent-color: var(--brand-accent);
+}
+
+.filter-select select:hover {
+  border-color: color-mix(in srgb, var(--brand-accent) 40%, var(--line));
+}
+
+.filter-select select:focus {
+  outline: none;
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 0 3px var(--brand-accent-glow);
 }
 
 .filter-block {
@@ -424,7 +451,7 @@ h2,
 }
 
 .chip-soft {
-  background: var(--brand-softer);
+  background: var(--brand-accent-soft);
 }
 
 .chip-count {
@@ -434,8 +461,8 @@ h2,
   height: 1.45rem;
   padding: 0 0.35rem;
   border-radius: 999px;
-  background: var(--brand-soft);
-  color: var(--brand-dark);
+  background: var(--brand-accent-soft);
+  color: var(--brand-accent);
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1;
@@ -443,8 +470,8 @@ h2,
 
 .chip:hover,
 .chip.active {
-  background: var(--brand);
-  border-color: var(--brand);
+  background: var(--brand-accent);
+  border-color: var(--brand-accent);
   color: white;
 }
 
@@ -486,15 +513,21 @@ h2,
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border: 1px solid var(--line);
-  background: var(--brand-soft);
-  color: var(--brand-dark);
+  border: 1px solid color-mix(in srgb, var(--brand-accent) 28%, var(--line));
+  background: var(--brand-accent-soft);
+  color: var(--brand-accent);
   border-radius: 999px;
   padding: 0.28rem 0.55rem 0.28rem 0.7rem;
   font: inherit;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+.filter-pill:hover {
+  background: var(--brand-accent);
+  border-color: var(--brand-accent);
+  color: #fff;
 }
 
 .filter-pill span {
@@ -2744,7 +2777,7 @@ label {
   margin: 0.95rem 0 0.2rem;
   padding: 0.55rem 0.75rem 0.25rem;
   border-top: 0;
-  color: #c2410c;
+  color: var(--brand-accent);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -2757,7 +2790,7 @@ label {
   flex: 1 1 0;
   height: 1px;
   min-width: 0.4rem;
-  background: #c2410c;
+  background: var(--brand-accent);
 }
 
 .admin-sidebar .admin-nav-section:first-child {
@@ -3294,6 +3327,12 @@ label {
   gap: 1rem;
 }
 
+.form-row.three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
 .checklist-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3784,6 +3823,7 @@ label {
   }
 
   .form-row.two,
+  .form-row.three,
   .checklist-grid {
     grid-template-columns: 1fr;
   }
@@ -5046,7 +5086,7 @@ label {
   cursor: pointer;
 }
 
-/* Fit / status / badge cells ‚?? no awkward wrap */
+/* Fit / status / badge cells ù?? no awkward wrap */
 .data-grid__cell--fit,
 .data-grid__col--fit,
 .data-grid__col--narrow,
@@ -5209,7 +5249,7 @@ td.data-grid__col--grow:not(.data-grid__cell--truncate) {
   color: var(--dg-muted, #64748b);
 }
 
-/* "Approved with Feedback" ‚?? always two lines */
+/* "Approved with Feedback" ù?? always two lines */
 .compliance-status-text--awf {
   display: inline-flex;
   flex-direction: column;
@@ -5980,6 +6020,11 @@ td.data-grid__actions {
   color: #fff;
 }
 
+.brand-swatch--accent {
+  background: var(--preview-accent, var(--brand-accent));
+  color: #fff;
+}
+
 .brand-swatch--btn {
   background: var(--preview-primary, var(--brand));
   color: #fff;
@@ -6030,12 +6075,17 @@ td.data-grid__actions {
 }
 
 .chip-soft {
-  background: var(--brand-softer) !important;
+  background: var(--brand-accent-soft) !important;
 }
 
 .filter-pill {
-  background: var(--brand-soft) !important;
-  color: var(--brand-dark) !important;
+  background: var(--brand-accent-soft) !important;
+  color: var(--brand-accent) !important;
+}
+
+.filter-pill:hover {
+  background: var(--brand-accent) !important;
+  color: #fff !important;
 }
 
 .skeleton-cover,

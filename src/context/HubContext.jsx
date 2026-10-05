@@ -198,6 +198,7 @@ export function HubProvider({ children }) {
     const root = document.documentElement
     const primary = hub?.branding?.primary_color || hub?.branding?.color_scheme?.primary
     const secondary = hub?.branding?.secondary_color || hub?.branding?.color_scheme?.secondary
+    const accent = hub?.branding?.accent_color || hub?.branding?.color_scheme?.accent
 
     if (primary) {
       root.style.setProperty('--brand', primary)
@@ -225,6 +226,16 @@ export function HubProvider({ children }) {
       root.style.removeProperty('--brand-dark')
       root.style.removeProperty('--sidebar-bg')
       root.style.removeProperty('--sidebar-bg-alt')
+    }
+
+    if (accent) {
+      root.style.setProperty('--brand-accent', accent)
+      root.style.setProperty('--brand-accent-soft', `color-mix(in srgb, ${accent} 14%, white)`)
+      root.style.setProperty('--brand-accent-glow', `color-mix(in srgb, ${accent} 22%, transparent)`)
+    } else {
+      root.style.removeProperty('--brand-accent')
+      root.style.removeProperty('--brand-accent-soft')
+      root.style.removeProperty('--brand-accent-glow')
     }
 
     const brandName = hub?.branding?.application_name || hub?.name

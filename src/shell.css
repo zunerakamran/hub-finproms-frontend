@@ -555,7 +555,7 @@ h2,
   gap: 0.45rem;
   margin: 1rem 0 0.2rem;
   padding: 0.3rem 0.75rem 0.2rem;
-  color: #c2410c;
+  color: var(--brand-accent, #c2410c);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -568,7 +568,7 @@ h2,
   flex: 1 1 0;
   height: 1px;
   min-width: 0.4rem;
-  background: #c2410c;
+  background: var(--brand-accent, #c2410c);
 }
 
 .dash-nav__section:first-child {
@@ -731,7 +731,7 @@ h2,
   align-items: center;
   gap: 0.45rem;
   margin: 0;
-  color: #c2410c;
+  color: var(--brand-accent, #c2410c);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -744,7 +744,7 @@ h2,
   content: '';
   width: 1.25rem;
   height: 1px;
-  background: #c2410c;
+  background: var(--brand-accent, #c2410c);
   flex-shrink: 0;
 }
 

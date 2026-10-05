@@ -26,6 +26,7 @@ export default function AdminSettings() {
   const [removeAuthBg, setRemoveAuthBg] = useState(false)
   const [primaryColor, setPrimaryColor] = useState('')
   const [secondaryColor, setSecondaryColor] = useState('')
+  const [accentColor, setAccentColor] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -53,6 +54,7 @@ export default function AdminSettings() {
     setRemoveAuthBg(false)
     setPrimaryColor(settings?.color_scheme?.primary ?? '')
     setSecondaryColor(settings?.color_scheme?.secondary ?? '')
+    setAccentColor(settings?.color_scheme?.accent ?? '')
   }
 
   const load = async () => {
@@ -154,6 +156,7 @@ export default function AdminSettings() {
       fd.append('from_email', fromEmail.trim())
       fd.append('color_scheme[primary]', primaryColor.trim())
       fd.append('color_scheme[secondary]', secondaryColor.trim())
+      fd.append('color_scheme[accent]', accentColor.trim())
       if (logoFile) {
         fd.append('logo', logoFile)
       }
@@ -194,6 +197,7 @@ export default function AdminSettings() {
           errors.auth_bg_image?.[0] ||
           errors['color_scheme.primary']?.[0] ||
           errors['color_scheme.secondary']?.[0] ||
+          errors['color_scheme.accent']?.[0] ||
           errors.new_banner_days?.[0] ||
           err.message
       )
@@ -210,7 +214,7 @@ export default function AdminSettings() {
           <h1>Settings</h1>
           <p className="muted">
             Branding for this hub — logo, white logo, favicon, auth background, name, and primary /
-            secondary colours apply across the whole product UI.
+            secondary / accent colours apply across the whole product UI.
           </p>
         </div>
       </div>
@@ -385,10 +389,11 @@ export default function AdminSettings() {
           <div className="settings-block">
             <h2>Colour scheme</h2>
             <p className="muted form-hint">
-              Primary drives buttons, links, and accents. Secondary deepens sidebars and hover
-              states. Changes apply immediately after save.
+              Primary drives buttons and links. Secondary deepens sidebars and hover states. Accent
+              (orange by default) colours website filters, text selection, and dashboard section
+              labels. Changes apply immediately after save.
             </p>
-            <div className="form-row two">
+            <div className="form-row three">
               <label>
                 Primary colour
                 <div className="color-field">
@@ -421,6 +426,22 @@ export default function AdminSettings() {
                   />
                 </div>
               </label>
+              <label>
+                Accent colour
+                <div className="color-field">
+                  <input
+                    type="color"
+                    aria-label="Accent colour picker"
+                    value={/^#[0-9A-Fa-f]{6}$/.test(accentColor) ? accentColor : '#c2410c'}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                  />
+                  <input
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    placeholder="#c2410c"
+                  />
+                </div>
+              </label>
             </div>
             <div
               className="brand-swatch-preview"
@@ -429,10 +450,12 @@ export default function AdminSettings() {
                 '--preview-secondary': /^#[0-9A-Fa-f]{6}$/.test(secondaryColor)
                   ? secondaryColor
                   : '#0a3f30',
+                '--preview-accent': /^#[0-9A-Fa-f]{6}$/.test(accentColor) ? accentColor : '#c2410c',
               }}
             >
               <span className="brand-swatch brand-swatch--primary">Primary</span>
               <span className="brand-swatch brand-swatch--secondary">Secondary</span>
+              <span className="brand-swatch brand-swatch--accent">Accent</span>
               <span className="brand-swatch brand-swatch--btn">Button</span>
             </div>
           </div>

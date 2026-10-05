@@ -118,6 +118,9 @@ const HUB_OPS_ANY = [
   'dashboard_bank_transfers',
   'dashboard_view_activity_logs',
   'dashboard_manage_active_sessions',
+  'dashboard_view_hub_users',
+  'dashboard_view_compliance_audit_trail',
+  'dashboard_view_one_time_invoices',
 ]
 
 const MODULES_ANY = [
@@ -345,9 +348,9 @@ export const DASHBOARD_LINKS = [
     group: 'account',
   },
   {
-    to: '/my-dashboard/invoices',
-    label: 'Invoices',
-    title: 'Invoices',
+    to: '/my-dashboard/my-invoices',
+    label: 'My invoices',
+    title: 'My invoices',
     description: 'View receipts for subscriptions and content purchases.',
     capability: 'general_show_invoices',
     group: 'account',
@@ -524,6 +527,31 @@ export const DASHBOARD_LINKS = [
     title: 'Active sessions',
     description: 'See who is logged in and force-logout any user.',
     capability: 'dashboard_manage_active_sessions',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/hub-users',
+    label: 'Users',
+    title: 'Users',
+    description: 'View all users on this hub with role, firm, credits, modules, and status.',
+    capability: 'dashboard_view_hub_users',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/compliance-audit-trail',
+    label: 'Audit trail',
+    title: 'Audit trail',
+    description:
+      'View compliance audit history across Social Media, General, and Website Content Pre Approval.',
+    capability: 'dashboard_view_compliance_audit_trail',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/one-time-invoices',
+    label: 'One-time invoices',
+    title: 'One-time invoices',
+    description: 'View all one-time invoices for this hub (content purchases and module charges).',
+    capability: 'dashboard_view_one_time_invoices',
     group: 'hub',
   },
 

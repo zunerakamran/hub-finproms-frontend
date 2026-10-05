@@ -109,7 +109,7 @@ export default function MyDashboard() {
           }
         }
 
-        if (link.to === '/my-dashboard/invoices' && invoices.length > 0) {
+        if (link.to === '/my-dashboard/my-invoices' && invoices.length > 0) {
           description = `${invoices.length} recent invoice${invoices.length === 1 ? '' : 's'}. Open to view receipts.`
         }
 

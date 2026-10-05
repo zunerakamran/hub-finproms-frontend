@@ -18,7 +18,7 @@ export const DASHBOARD_NAV_DEFAULTS = {
     '/my-dashboard/profile': 'Update profile',
     '/my-dashboard/subscription': 'Subscription',
     '/my-dashboard/credits': 'Credits',
-    '/my-dashboard/invoices': 'Invoices',
+    '/my-dashboard/my-invoices': 'My invoices',
     '/my-dashboard/purchases': 'Purchases',
     '/my-dashboard/posts': 'Posts / reels',
     '/my-dashboard/central-library': 'Central library',
@@ -37,6 +37,9 @@ export const DASHBOARD_NAV_DEFAULTS = {
     '/my-dashboard/bank-transfers': 'Bank transfers',
     '/my-dashboard/activity-logs': 'Activity logs',
     '/my-dashboard/active-sessions': 'Active sessions',
+    '/my-dashboard/hub-users': 'Users',
+    '/my-dashboard/compliance-audit-trail': 'Audit trail',
+    '/my-dashboard/one-time-invoices': 'One-time invoices',
     '/my-dashboard/modules': 'Modules',
     '/my-dashboard/module-pricing': 'Module prices',
     '/my-dashboard/module-invoices': 'Module invoices',
@@ -119,32 +122,51 @@ export function emptyDashboardNav() {
 }
 
 export function fillDashboardNavFromSettings(incoming) {
+  const remapped = remapLegacyDashboardNavPaths(incoming)
   const next = emptyDashboardNav()
   for (const key of Object.keys(next.sections)) {
-    next.sections[key] = incoming?.sections?.[key] ?? DASHBOARD_NAV_DEFAULTS.sections[key] ?? ''
+    next.sections[key] = remapped?.sections?.[key] ?? DASHBOARD_NAV_DEFAULTS.sections[key] ?? ''
   }
   for (const key of Object.keys(next.items)) {
-    next.items[key] = incoming?.items?.[key] ?? DASHBOARD_NAV_DEFAULTS.items[key] ?? ''
+    next.items[key] = remapped?.items?.[key] ?? DASHBOARD_NAV_DEFAULTS.items[key] ?? ''
   }
 
-  const customIds = extractCustomSectionIds(incoming?.sections, incoming?.section_order)
+  const customIds = extractCustomSectionIds(remapped?.sections, remapped?.section_order)
   for (const customId of customIds) {
-    next.sections[customId] = incoming?.sections?.[customId] || 'Custom section'
+    next.sections[customId] = remapped?.sections?.[customId] || 'Custom section'
   }
 
-  next.section_order = normalizeSectionOrder(incoming?.section_order, customIds)
+  next.section_order = normalizeSectionOrder(remapped?.section_order, customIds)
   const defaultGroups = defaultItemGroupsFromLinks()
   const allowedGroups = new Set([...DEFAULT_SECTION_ORDER, ...customIds])
   next.item_groups = { ...defaultGroups }
-  if (incoming?.item_groups && typeof incoming.item_groups === 'object') {
+  if (remapped?.item_groups && typeof remapped.item_groups === 'object') {
     for (const path of Object.keys(defaultGroups)) {
-      const value = incoming.item_groups[path]
+      const value = remapped.item_groups[path]
       if (value && allowedGroups.has(value)) {
         next.item_groups[path] = value
       }
     }
   }
-  next.item_order = resolveItemOrder(incoming)
+  next.item_order = resolveItemOrder(remapped)
+  return next
+}
+
+function remapLegacyDashboardNavPaths(incoming) {
+  if (!incoming || typeof incoming !== 'object') return incoming
+  const map = { '/my-dashboard/invoices': '/my-dashboard/my-invoices' }
+  const next = { ...incoming }
+  for (const bucket of ['items', 'item_groups']) {
+    if (!next[bucket] || typeof next[bucket] !== 'object') continue
+    const remapped = {}
+    for (const [path, value] of Object.entries(next[bucket])) {
+      remapped[map[path] || path] = value
+    }
+    next[bucket] = remapped
+  }
+  if (Array.isArray(next.item_order)) {
+    next.item_order = next.item_order.map((path) => map[path] || path)
+  }
   return next
 }
 

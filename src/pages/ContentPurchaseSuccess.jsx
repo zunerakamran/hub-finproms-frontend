@@ -91,7 +91,7 @@ export default function ContentPurchaseSuccess() {
           </Link>
         )}
         {invoice && (
-          <Link to={`/my-dashboard/invoices/${invoice.id}`} className="btn ghost">
+          <Link to={`/my-dashboard/my-invoices/${invoice.id}`} className="btn ghost">
             View invoice
           </Link>
         )}

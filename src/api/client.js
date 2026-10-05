@@ -817,6 +817,17 @@ export const api = {
       body: formData,
     })
   },
+  oneTimeInvoices: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/one-time-invoices${query ? `?${query}` : ''}`)
+  },
+  oneTimeInvoice: (id, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/one-time-invoices/${id}`)
+  },
   activityLogs: (params = {}, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const query = new URLSearchParams(
@@ -838,6 +849,20 @@ export const api = {
   forceLogoutActiveSession: (userId, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/active-sessions/${userId}/force-logout`, { method: 'POST' })
+  },
+  hubUsers: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/hub-users${query ? `?${query}` : ''}`)
+  },
+  complianceAuditEvents: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/compliance-audit-events${query ? `?${query}` : ''}`)
   },
 
   hubModules: (params = {}, options = {}) => {

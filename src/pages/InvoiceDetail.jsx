@@ -101,6 +101,7 @@ export default function InvoiceDetail() {
 
   const fromAdvisorPath = location.pathname.includes('/advisor-invoices/')
   const fromModulePath = location.pathname.includes('/module-invoices/')
+  const fromOneTimePath = location.pathname.includes('/one-time-invoices/')
   const asPowerAdmin = isPowerAdmin
 
   const load = async () => {
@@ -113,6 +114,12 @@ export default function InvoiceDetail() {
         setPayment(data.payment || null)
         setBillingBreakdown(data.billing_breakdown || null)
         setCanMarkPaid(Boolean(data.can_mark_paid))
+      } else if (fromOneTimePath) {
+        const data = await api.oneTimeInvoice(id, { asPowerAdmin })
+        setInvoice(data.invoice)
+        setPayment(data.payment || null)
+        setBillingBreakdown(data.billing_breakdown || null)
+        setCanMarkPaid(false)
       } else {
         const data = await api.invoice(id)
         setInvoice(data.invoice)
@@ -130,23 +137,28 @@ export default function InvoiceDetail() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, fromModulePath, asPowerAdmin])
+  }, [id, fromModulePath, fromOneTimePath, asPowerAdmin])
 
   const isAdvisorBilling = fromAdvisorPath || invoice?.type === 'advisor_billing'
+  const isOneTimeList = fromOneTimePath
   const isModuleBilling =
     fromModulePath ||
-    invoice?.type === 'module_billing' ||
-    invoice?.type === 'module_recurring'
+    (!fromOneTimePath &&
+      (invoice?.type === 'module_billing' || invoice?.type === 'module_recurring'))
   const backTo = isAdvisorBilling
     ? '/my-dashboard/advisor-invoices'
-    : isModuleBilling
-      ? '/my-dashboard/module-invoices'
-      : '/my-dashboard/invoices'
+    : isOneTimeList
+      ? '/my-dashboard/one-time-invoices'
+      : isModuleBilling
+        ? '/my-dashboard/module-invoices'
+        : '/my-dashboard/my-invoices'
   const backLabel = isAdvisorBilling
     ? '← Back to advisor invoices'
-    : isModuleBilling
-      ? '← Back to module invoices'
-      : '← Back to invoices'
+    : isOneTimeList
+      ? '← Back to one-time invoices'
+      : isModuleBilling
+        ? '← Back to module invoices'
+        : '← Back to my invoices'
   const eyebrow = isAdvisorBilling
     ? 'Advisors & billing'
     : isModuleBilling

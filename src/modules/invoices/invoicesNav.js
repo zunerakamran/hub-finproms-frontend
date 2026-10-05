@@ -54,7 +54,7 @@ export function formatMoney(amount, currency = 'gbp') {
 
 /** Keeps folder query when linking into an invoice from the list. */
 export function invoiceDetailPath(invoiceId, folder) {
-  const base = `/my-dashboard/invoices/${invoiceId}`
+  const base = `/my-dashboard/my-invoices/${invoiceId}`
   if (!folder || folder === 'all') return base
   return `${base}?folder=${encodeURIComponent(folder)}`
 }

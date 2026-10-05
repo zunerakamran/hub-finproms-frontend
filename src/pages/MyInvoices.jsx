@@ -127,13 +127,13 @@ export default function MyInvoices() {
           emptyMessage="No invoices yet."
           pageSize={10}
           getRowKey={(row) => row.id}
-          rowLink={(row) => `/my-dashboard/invoices/${row.id}`}
+          rowLink={(row) => `/my-dashboard/my-invoices/${row.id}`}
           actions={(row) => (
             <DataGridIconBtn
               icon={FaEye}
               label="View"
               as={Link}
-              to={`/my-dashboard/invoices/${row.id}`}
+              to={`/my-dashboard/my-invoices/${row.id}`}
             />
           )}
         />

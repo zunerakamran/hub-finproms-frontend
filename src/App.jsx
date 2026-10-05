@@ -24,6 +24,9 @@ const AdminBankTransfers = lazy(() => import('./pages/AdminBankTransfers'))
 const AdminAdvisors = lazy(() => import('./pages/AdminAdvisors'))
 const AdminActivityLogs = lazy(() => import('./pages/AdminActivityLogs'))
 const AdminActiveSessions = lazy(() => import('./pages/AdminActiveSessions'))
+const AdminHubUsers = lazy(() => import('./pages/AdminHubUsers'))
+const AdminComplianceAuditTrail = lazy(() => import('./pages/AdminComplianceAuditTrail'))
+const AdminOneTimeInvoices = lazy(() => import('./pages/AdminOneTimeInvoices'))
 const AdminAdvisorInvoices = lazy(() => import('./pages/AdminAdvisorInvoices'))
 const AdminAdvisorRenewal = lazy(() => import('./pages/AdminAdvisorRenewal'))
 const AdminModuleInvoices = lazy(() => import('./pages/AdminModuleInvoices'))
@@ -104,7 +107,7 @@ const Subscriptions = lazy(() => import('./pages/Subscriptions'))
 
 function LegacyInvoiceRedirect() {
   const { id } = useParams()
-  return <Navigate to={`/my-dashboard/invoices/${id}`} replace />
+  return <Navigate to={`/my-dashboard/my-invoices/${id}`} replace />
 }
 
 function LegacyHubRedirect() {
@@ -251,7 +254,7 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="invoices"
+                  path="my-invoices"
                   element={
                     <HubCapabilityRoute capability="general_show_invoices">
                       <MyInvoices />
@@ -259,7 +262,7 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="invoices/:id"
+                  path="my-invoices/:id"
                   element={
                     <HubCapabilityRoute
                       anyOf={['general_show_invoices', 'dashboard_view_advisor_invoices']}
@@ -267,6 +270,14 @@ export default function App() {
                       <InvoiceDetail />
                     </HubCapabilityRoute>
                   }
+                />
+                <Route
+                  path="invoices"
+                  element={<Navigate to="/my-dashboard/my-invoices" replace />}
+                />
+                <Route
+                  path="invoices/:id"
+                  element={<LegacyInvoiceRedirect />}
                 />
 
                 <Route
@@ -401,6 +412,38 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_active_sessions">
                       <AdminActiveSessions />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="hub-users"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_view_hub_users">
+                      <AdminHubUsers />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="compliance-audit-trail"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_view_compliance_audit_trail">
+                      <AdminComplianceAuditTrail />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="one-time-invoices"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_view_one_time_invoices">
+                      <AdminOneTimeInvoices />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="one-time-invoices/:id"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_view_one_time_invoices">
+                      <InvoiceDetail />
                     </HubCapabilityRoute>
                   }
                 />
@@ -906,7 +949,7 @@ export default function App() {
 
             {/* Legacy URLs → universal dashboard */}
             <Route path="my-purchases" element={<Navigate to="/my-dashboard/purchases" replace />} />
-            <Route path="my-invoices" element={<Navigate to="/my-dashboard/invoices" replace />} />
+            <Route path="my-invoices" element={<Navigate to="/my-dashboard/my-invoices" replace />} />
             <Route path="invoices/:id" element={<LegacyInvoiceRedirect />} />
             <Route path="client-admin" element={<Navigate to="/my-dashboard" replace />} />
             <Route

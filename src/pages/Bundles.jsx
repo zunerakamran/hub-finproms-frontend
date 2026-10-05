@@ -13,7 +13,7 @@ export default function Bundles() {
   const [bundles, setBundles] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const catalogAllowed = can('member_browse_catalog')
+  const catalogAllowed = can('member_browse_bundles')
 
   useEffect(() => {
     if (hubLoading) return undefined
@@ -48,7 +48,7 @@ export default function Bundles() {
       <section>
         <div className="empty-state">
           <h1>Bundles</h1>
-          <p className="muted">Browsing is not enabled for your role on this hub.</p>
+          <p className="muted">Bundles are not enabled for your role on this hub.</p>
         </div>
       </section>
     )

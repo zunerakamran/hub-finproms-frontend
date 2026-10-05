@@ -160,7 +160,7 @@ export default function App() {
               <Route
                 path="bundles"
                 element={
-                  <HubCapabilityRoute capability="member_view_site_pages">
+                  <HubCapabilityRoute capability="member_browse_bundles">
                     <Bundles />
                   </HubCapabilityRoute>
                 }
@@ -168,7 +168,7 @@ export default function App() {
               <Route
                 path="bundles/:id"
                 element={
-                  <HubCapabilityRoute capability="member_view_site_pages">
+                  <HubCapabilityRoute capability="member_browse_bundles">
                     <BundleDetail />
                   </HubCapabilityRoute>
                 }

@@ -21,7 +21,14 @@ export default function BundleDetail() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
+  const bundlesAllowed = can('member_browse_bundles')
+
   const load = async () => {
+    if (!bundlesAllowed) {
+      setLoading(false)
+      setBundle(null)
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -45,7 +52,7 @@ export default function BundleDetail() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, user?.id, user?.credits])
+  }, [id, user?.id, user?.credits, bundlesAllowed])
 
   const purchaseWithCredits = async () => {
     if (!user) return
@@ -114,6 +121,16 @@ export default function BundleDetail() {
   }
 
   if (loading) return <div className="state">Loading...</div>
+  if (!bundlesAllowed) {
+    return (
+      <section>
+        <div className="empty-state">
+          <h1>Bundles</h1>
+          <p className="muted">Bundles are not enabled for your role on this hub.</p>
+        </div>
+      </section>
+    )
+  }
   if (!bundle) {
     return (
       <section>

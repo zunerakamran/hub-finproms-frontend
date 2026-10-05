@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
+import FilterSelect from '../components/FilterSelect'
 import PageLoader from '../components/PageLoader'
 import PostMetrics from '../components/PostMetrics'
 import ReelPlayer from '../components/ReelPlayer'
@@ -301,38 +302,34 @@ export default function Posts() {
             </button>
           </form>
 
-          <label className="filter-select">
-            <span>{t('category_label', 'Category')}</span>
-            <select
-              value={filters.category}
-              onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
-              aria-label="Filter by category"
-            >
-              <option value="">{t('all_categories', 'All categories')}</option>
-              {categories.map((category) => (
-                <option key={category.id || category.name} value={category.name}>
-                  {category.name} ({category.posts_count ?? 0})
-                </option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect
+            label={t('category_label', 'Category')}
+            aria-label="Filter by category"
+            value={filters.category}
+            onChange={(next) => setFilters((prev) => ({ ...prev, category: next }))}
+            options={[
+              { value: '', label: t('all_categories', 'All categories') },
+              ...categories.map((category) => ({
+                value: category.name,
+                label: `${category.name} (${category.posts_count ?? 0})`,
+              })),
+            ]}
+          />
 
           {tags.length > 0 && (
-            <label className="filter-select">
-              <span>{t('tag_label', 'Tag')}</span>
-              <select
-                value={filters.tag}
-                onChange={(e) => setFilters((prev) => ({ ...prev, tag: e.target.value }))}
-                aria-label="Filter by tag"
-              >
-                <option value="">{t('all_tags', 'All tags')}</option>
-                {tags.map((tag) => (
-                  <option key={tag.id || tag.name} value={tag.name}>
-                    {tag.name} ({tag.posts_count ?? 0})
-                  </option>
-                ))}
-              </select>
-            </label>
+            <FilterSelect
+              label={t('tag_label', 'Tag')}
+              aria-label="Filter by tag"
+              value={filters.tag}
+              onChange={(next) => setFilters((prev) => ({ ...prev, tag: next }))}
+              options={[
+                { value: '', label: t('all_tags', 'All tags') },
+                ...tags.map((tag) => ({
+                  value: tag.name,
+                  label: `${tag.name} (${tag.posts_count ?? 0})`,
+                })),
+              ]}
+            />
           )}
         </div>
 

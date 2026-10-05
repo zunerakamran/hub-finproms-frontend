@@ -30,6 +30,7 @@ export default function Layout() {
     (can('public_subscribe') || can('paid_credits'))
   const isHome = location.pathname === '/'
   const showCatalog = canViewSitePages && isAuthenticated && can('member_browse_catalog')
+  const showBundles = canViewSitePages && isAuthenticated && can('member_browse_bundles')
   const creditsLabel =
     user?.has_unlimited_credits ||
     (can('unlimited_credits') && (isAdvisor || isActingAsAdvisor))
@@ -81,7 +82,7 @@ export default function Layout() {
                 Reels
               </NavLink>
             )}
-            {showCatalog && (
+            {showBundles && (
               <NavLink
                 to="/bundles"
                 className={({ isActive }) => (isActive ? 'is-active' : undefined)}

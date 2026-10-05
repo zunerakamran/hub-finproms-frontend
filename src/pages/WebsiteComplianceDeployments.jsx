@@ -41,9 +41,9 @@ export default function WebsiteComplianceDeployments() {
         },
         canSeeSites && {
           id: 'sites',
-          label: 'Sites',
+          label: 'My sites',
           hint: canAssign
-            ? 'Requests you submitted or assigned to advisors'
+            ? 'Deployment requests you submitted or assigned to advisors'
             : 'Your deployment requests and live sites',
           icon: FaRocket,
         },

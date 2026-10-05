@@ -207,6 +207,10 @@ export default function Posts() {
     )
   }
 
+  const showBalanceAside = isAuthenticated && !isWhiteLabelHub
+  const showGuestAside = !isAuthenticated
+  const showHeroAside = showBalanceAside || showGuestAside
+
   return (
     <section className={`listing-page ${loading ? 'is-refreshing' : ''}`}>
       {loading && (
@@ -214,7 +218,7 @@ export default function Posts() {
           <div className="page-loader__spinner" />
         </div>
       )}
-      <div className="catalog-hero">
+      <div className={`catalog-hero${showHeroAside ? '' : ' catalog-hero--compact'}`}>
         <div className="catalog-hero__copy">
           <p className="catalog-hero__eyebrow">{t('eyebrow', 'Content library')}</p>
           <h1>
@@ -234,41 +238,43 @@ export default function Posts() {
                 )}
           </p>
         </div>
-        <div className="catalog-hero__aside">
-          {isAuthenticated && !isWhiteLabelHub ? (
-            <div className="catalog-balance">
-              <span>{t('balance_label', 'Your balance')}</span>
-              <strong>{user?.credits ?? 0}</strong>
-              <em>{t('credits_available', 'credits available')}</em>
-              <Link to="/subscriptions" className="btn ghost">
-                {t('top_up', 'Top up')}
-              </Link>
-            </div>
-          ) : !isAuthenticated ? (
-            <div className="catalog-cta">
-              <p>
-                {registrationEnabled
-                  ? t(
-                      'guest_cta_register',
-                      'Create an account to preview content and buy with credits.'
-                    )
-                  : t(
-                      'guest_cta_invite',
-                      'This hub is invite-only. Sign in with your invited account to continue.'
-                    )}
-              </p>
-              {registrationEnabled ? (
-                <button className="btn primary" onClick={() => navigate('/register')}>
-                  {t('sign_up', 'Sign up free')}
-                </button>
-              ) : (
-                <button className="btn primary" onClick={() => navigate('/login')}>
-                  {t('sign_in', 'Sign in')}
-                </button>
-              )}
-            </div>
-          ) : null}
-        </div>
+        {showHeroAside ? (
+          <div className="catalog-hero__aside">
+            {showBalanceAside ? (
+              <div className="catalog-balance">
+                <span>{t('balance_label', 'Your balance')}</span>
+                <strong>{user?.credits ?? 0}</strong>
+                <em>{t('credits_available', 'credits available')}</em>
+                <Link to="/subscriptions" className="btn ghost">
+                  {t('top_up', 'Top up')}
+                </Link>
+              </div>
+            ) : (
+              <div className="catalog-cta">
+                <p>
+                  {registrationEnabled
+                    ? t(
+                        'guest_cta_register',
+                        'Create an account to preview content and buy with credits.'
+                      )
+                    : t(
+                        'guest_cta_invite',
+                        'This hub is invite-only. Sign in with your invited account to continue.'
+                      )}
+                </p>
+                {registrationEnabled ? (
+                  <button className="btn primary" onClick={() => navigate('/register')}>
+                    {t('sign_up', 'Sign up free')}
+                  </button>
+                ) : (
+                  <button className="btn primary" onClick={() => navigate('/login')}>
+                    {t('sign_in', 'Sign in')}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {catalogLocked && (

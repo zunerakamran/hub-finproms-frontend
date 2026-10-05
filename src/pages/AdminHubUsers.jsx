@@ -38,12 +38,8 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
   const apiOpts = { asPowerAdmin }
 
   const [users, setUsers] = useState([])
-  const [roles, setRoles] = useState([])
   const [meta, setMeta] = useState({ total: 0 })
   const [hubMeta, setHubMeta] = useState(null)
-  const [roleFilter, setRoleFilter] = useState('')
-  const [search, setSearch] = useState('')
-  const [searchDraft, setSearchDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -59,15 +55,12 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
     try {
       const data = await api.hubUsers(
         {
-          q: search || undefined,
-          role: roleFilter || undefined,
           per_page: 100,
           page: 1,
         },
         apiOpts
       )
       setUsers(data.users || [])
-      setRoles(data.roles || [])
       setMeta(data.meta || { total: 0 })
       setHubMeta(data.hub || null)
     } catch (err) {
@@ -77,7 +70,7 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
     } finally {
       setLoading(false)
     }
-  }, [asPowerAdmin, search, roleFilter])
+  }, [asPowerAdmin])
 
   useEffect(() => {
     if (hubLoading) return
@@ -229,37 +222,6 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
       {error ? <div className="alert">{error}</div> : null}
       {message ? <div className="alert success">{message}</div> : null}
 
-      <form
-        className="filters"
-        onSubmit={(e) => {
-          e.preventDefault()
-          setSearch(searchDraft.trim())
-        }}
-      >
-        <label>
-          Search
-          <input
-            value={searchDraft}
-            onChange={(e) => setSearchDraft(e.target.value)}
-            placeholder="Name or email"
-          />
-        </label>
-        <label>
-          Role
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-            <option value="">All roles</option>
-            {roles.map((role) => (
-              <option key={role.key} value={role.key}>
-                {role.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="submit" className="btn primary" disabled={loading}>
-          Apply
-        </button>
-      </form>
-
       <DataGrid
         columns={columns}
         rows={users}
@@ -284,3 +246,4 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
     </section>
   )
 }
+

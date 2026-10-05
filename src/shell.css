@@ -278,6 +278,14 @@ h2,
   padding: 1.4rem 1.6rem;
 }
 
+.catalog-hero--compact h1 {
+  max-width: min(28ch, 100%);
+}
+
+.catalog-hero--compact .catalog-hero__lead {
+  max-width: min(62ch, 100%);
+}
+
 .catalog-hero__eyebrow {
   margin: 0 0 0.45rem;
   text-transform: uppercase;

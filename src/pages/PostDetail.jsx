@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import AttachmentPreview from '../components/AttachmentPreview'
 import PostMetrics from '../components/PostMetrics'
 import ReelPlayer from '../components/ReelPlayer'
 import RichTextDisplay from '../components/RichTextDisplay'
@@ -24,11 +25,12 @@ export default function PostDetail() {
   const [paymentMethods, setPaymentMethods] = useState([])
   const [oneOffPurchase, setOneOffPurchase] = useState(false)
   const [cashContentPurchase, setCashContentPurchase] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const t = (key, fallback = '') => pageText(pageContent, 'post_detail', key, fallback)
 
   const canPurchase = can('member_purchase_content')
-  const canDownload = can('member_download_content')
+  const canPreview = can('member_download_content')
   const unlimited =
     user?.has_unlimited_credits ||
     (can('unlimited_credits') && (user?.is_advisor || isActingAsAdvisor))
@@ -145,7 +147,8 @@ export default function PostDetail() {
   if (!post) return null
 
   const locked = Boolean(post.is_locked) && !post.is_purchased && !isClientAdmin
-  const unlocked = post.is_purchased || isClientAdmin
+  // Preview / Canva only after a real purchase — hub admin role must not fake ownership.
+  const unlocked = Boolean(post.is_purchased)
   const isReel = Boolean(post.is_reel)
   const previewVideo = post.video_url || (unlocked && post.is_video ? post.attachment_url : null)
   const catalogBackTo = isReel ? '/posts?type=reel' : '/posts?type=post'
@@ -219,7 +222,7 @@ export default function PostDetail() {
                   <strong>{t('step3_title', 'Buy this post')}</strong>
                   <p>
                     {fillPageText(
-                      t('step3_body', 'Spend {credits} credits to download the creative asset.'),
+                      t('step3_body', 'Spend {credits} credits to unlock and preview the creative asset.'),
                       { credits: post.credits_cost }
                     )}
                   </p>
@@ -299,17 +302,16 @@ export default function PostDetail() {
             <div className="unlock-box">
               <p className="badge ok">{t('unlocked', 'Unlocked')}</p>
               <div className="actions">
-                {canDownload && post.attachment_url ? (
-                  <a
+                {canPreview && post.attachment_url ? (
+                  <button
+                    type="button"
                     className="btn primary"
-                    href={post.attachment_url}
-                    target="_blank"
-                    rel="noreferrer"
+                    onClick={() => setPreviewOpen(true)}
                   >
-                    {t('download', 'Download')}
+                    {t('download', 'Preview')}
                     {post.attachment_name ? ` (${post.attachment_name})` : ''}
-                  </a>
-                ) : canDownload ? (
+                  </button>
+                ) : canPreview ? (
                   <p className="muted">
                     {t('no_attachment', 'No attachment uploaded for this post.')}
                   </p>
@@ -317,13 +319,13 @@ export default function PostDetail() {
                   <p className="muted">
                     {t(
                       'downloads_disabled',
-                      'Downloads are disabled for this hub by Power Admin.'
+                      'Preview is disabled for this hub by Power Admin.'
                     )}
                   </p>
                 )}
                 {post.canva_link && (
                   <a
-                    className="btn ghost"
+                    className="btn accent"
                     href={post.canva_link}
                     target="_blank"
                     rel="noreferrer"
@@ -429,6 +431,13 @@ export default function PostDetail() {
           )}
         </div>
       </div>
+
+      <AttachmentPreview
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        post={post}
+        title={t('download', 'Preview')}
+      />
     </section>
   )
 }

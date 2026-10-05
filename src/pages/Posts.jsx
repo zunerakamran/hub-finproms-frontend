@@ -21,7 +21,18 @@ function resolveCatalogType(raw) {
 
 export default function Posts() {
   const { isAuthenticated, user, isClientAdmin } = useAuth()
-  const { can, loading: hubLoading, registrationEnabled, pageContent } = useHub()
+  const {
+    can,
+    loading: hubLoading,
+    registrationEnabled,
+    pageContent,
+    hub,
+    actingHub,
+    isActingOnWhiteLabel,
+  } = useHub()
+  const isWhiteLabelHub = Boolean(
+    isActingOnWhiteLabel || hub?.type === 'white_label' || actingHub?.is_white_label
+  )
   const navigate = useNavigate()
   const t = (key, fallback = '') => pageText(pageContent, 'catalog', key, fallback)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -215,16 +226,16 @@ export default function Posts() {
             {isReelsPage
               ? t(
                   'lead_reels',
-                  'Browse short-form reels, unlock with credits, and download the assets you need. 1 credit = £1.'
+                  'Browse short-form reels, unlock with credits, and preview the assets you need. 1 credit = £1.'
                 )
               : t(
                   'lead_posts',
-                  'Browse promo posts, unlock with credits, and download the assets you need. 1 credit = £1.'
+                  'Browse promo posts, unlock with credits, and preview the assets you need. 1 credit = £1.'
                 )}
           </p>
         </div>
         <div className="catalog-hero__aside">
-          {isAuthenticated ? (
+          {isAuthenticated && !isWhiteLabelHub ? (
             <div className="catalog-balance">
               <span>{t('balance_label', 'Your balance')}</span>
               <strong>{user?.credits ?? 0}</strong>
@@ -233,7 +244,7 @@ export default function Posts() {
                 {t('top_up', 'Top up')}
               </Link>
             </div>
-          ) : (
+          ) : !isAuthenticated ? (
             <div className="catalog-cta">
               <p>
                 {registrationEnabled
@@ -256,7 +267,7 @@ export default function Posts() {
                 </button>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 

@@ -698,6 +698,13 @@ export const api = {
     const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
     return `${base}${basePath}/advisors/template`
   },
+  advisorImportHistory: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/advisors/import-history${query ? `?${query}` : ''}`)
+  },
   advisorBillingCheckout: (billingId, paymentMethod, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/advisor-billings/${billingId}/checkout`, {

@@ -132,7 +132,7 @@ const MODULES_ANY = [
 
 const ADVISOR_ANY = [
   'advisor_excel_import',
-  'advisor_discontinue',
+  'advisor_excel_template',
   'dashboard_manage_advisor_pricing',
   'dashboard_manage_advisor_renewal',
   'dashboard_manage_subscriber_credits',
@@ -533,7 +533,8 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/hub-users',
     label: 'Users',
     title: 'Users',
-    description: 'View all users on this hub with role, firm, credits, modules, and status.',
+    description:
+      'View all users on this hub with role, firm, credits, modules, and status. Discontinue (when enabled) ends access permanently until re-import.',
     capability: 'dashboard_view_hub_users',
     group: 'hub',
   },
@@ -599,8 +600,9 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/advisors',
     label: 'Import Users',
     title: 'Import Users',
-    description: 'Import and/or discontinue advisors for the current hub.',
-    anyOf: ['advisor_excel_import', 'advisor_discontinue'],
+    description:
+      'Download the Excel template and/or import filled sheets. Discontinue users from Hub → Users.',
+    anyOf: ['advisor_excel_import', 'advisor_excel_template'],
     group: 'advisors',
   },
   {

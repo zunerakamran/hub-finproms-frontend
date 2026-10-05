@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FaBan } from 'react-icons/fa'
+import { FaChevronDown, FaChevronRight } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
+import DataGrid, { DataGridDate } from '../components/DataGrid'
 import FileDropzone from '../components/FileDropzone'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -18,10 +18,56 @@ function formatMoney(amount, currency = 'gbp') {
   }
 }
 
+function ImportBatchDetails({ batch }) {
+  const sections = [
+    { key: 'created', label: 'Created', rows: batch.created || [] },
+    { key: 'updated', label: 'Updated', rows: batch.updated || [] },
+    { key: 'reactivated', label: 'Reactivated', rows: batch.reactivated || [] },
+  ]
+
+  return (
+    <div className="import-block" style={{ marginTop: '0.75rem' }}>
+      {batch.message ? <p className="muted">{batch.message}</p> : null}
+      {sections.map((section) =>
+        section.rows.length > 0 ? (
+          <div key={section.key} style={{ marginBottom: '0.75rem' }}>
+            <h4>
+              {section.label} ({section.rows.length})
+            </h4>
+            <ul className="muted">
+              {section.rows.map((row) => (
+                <li key={`${section.key}-${row.email || row.name}`}>
+                  {row.name || '—'} ({row.email || '—'})
+                  {row.role ? ` · ${row.role}` : ''}
+                  {row.firm ? ` · ${row.firm}` : ''}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null
+      )}
+      {(batch.skipped || []).length > 0 ? (
+        <div>
+          <h4>Skipped ({batch.skipped.length})</h4>
+          <ul className="muted">
+            {batch.skipped.map((row) => (
+              <li key={`skipped-${row.row}-${row.email || 'x'}`}>
+                Row {row.row}
+                {row.email ? ` (${row.email})` : ''}: {row.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export default function AdminAdvisors({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, advisorBillingEnabled, canManagePaymentCard, actingHub } = useHub()
-  const [advisors, setAdvisors] = useState([])
+  const [batches, setBatches] = useState([])
+  const [historyMeta, setHistoryMeta] = useState({ total: 0 })
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -32,19 +78,19 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const [paymentMethod, setPaymentMethod] = useState('stripe')
   const [paying, setPaying] = useState(false)
   const [bankResult, setBankResult] = useState(null)
-  const [discontinuingId, setDiscontinuingId] = useState(null)
+  const [expandedBatchId, setExpandedBatchId] = useState(null)
 
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const canImport = can('advisor_excel_import')
-  const canDiscontinue = can('advisor_discontinue')
-  const enabled = canImport || canDiscontinue
+  const canDownloadTemplate = can('advisor_excel_template') || canImport
+  const enabled = canImport || can('advisor_excel_template')
   const billingEnabled = advisorBillingEnabled
   const canViewInvoices = can('dashboard_view_advisor_invoices')
   const eyebrow = 'Advisors & billing'
   const apiOpts = { asPowerAdmin }
   const invoicesPath = '/my-dashboard/advisor-invoices'
 
-  const load = async () => {
+  const loadHistory = async () => {
     if (!enabled) {
       setLoading(false)
       return
@@ -52,8 +98,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     setLoading(true)
     setError('')
     try {
-      const data = await api.advisors({}, apiOpts)
-      setAdvisors(data.data || data.advisors || [])
+      const data = await api.advisorImportHistory({ per_page: 50 }, apiOpts)
+      setBatches(data.batches || [])
+      setHistoryMeta(data.meta || { total: 0 })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -63,29 +110,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
 
   useEffect(() => {
     if (hubLoading) return
-    load()
+    loadHistory()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hubLoading, enabled, asPowerAdmin, actingHub?.id])
-
-  const onDiscontinue = async (advisor) => {
-    const ok = window.confirm(
-      `Discontinue ${advisor.name} (${advisor.email})?\n\nThey will lose access immediately. You can restore them later by re-importing the same email.`
-    )
-    if (!ok) return
-
-    setDiscontinuingId(advisor.id)
-    setError('')
-    setMessage('')
-    try {
-      const data = await api.discontinueAdvisor(advisor.id, apiOpts)
-      setMessage(data.message || 'Advisor discontinued.')
-      await load()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setDiscontinuingId(null)
-    }
-  }
 
   const downloadTemplate = async () => {
     setError('')
@@ -144,9 +171,8 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         methods.find((m) => m.available)
       if (preferred) setPaymentMethod(preferred.id)
       setFile(null)
-      // Only refresh list when users were actually created (billing off / no payment due).
       if (!data.awaiting_payment) {
-        await load()
+        await loadHistory()
       }
     } catch (err) {
       setError(err.message)
@@ -188,7 +214,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       } else if (data.import) {
         setMessage(data.message || 'Advisors created. Complete payment to finish billing.')
       }
-      await load()
+      await loadHistory()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -204,9 +230,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
             <p className="eyebrow">{eyebrow}</p>
             <h1>Import Users</h1>
             <p className="muted">
-              Advisor tools are disabled for your role on this hub. Enable
-              &quot;Import advisors&quot; and/or &quot;Discontinue advisors&quot; under Power Admin →
-              Capabilities.
+              Advisor import tools are disabled for your role on this hub. Enable
+              &quot;Import advisors&quot; and/or &quot;Download import Excel template&quot; under Power
+              Admin → Capabilities.
             </p>
           </div>
         </div>
@@ -218,20 +244,65 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     quote?.payment_required && quote?.billing && quote.billing.payment_status !== 'paid'
   const showPaymentPanel = Boolean(pendingBilling || (quote?.payment_required && quote?.error))
 
-  const advisorColumns = useMemo(
+  const historyColumns = useMemo(
     () => [
-      { key: 'name', label: 'Name' },
-      { key: 'email', label: 'Email' },
       {
-        key: 'credits',
-        label: 'Credits',
+        key: 'created_at',
+        label: 'Imported',
+        render: (row) => <DataGridDate value={row.created_at} />,
+      },
+      {
+        key: 'imported_by',
+        label: 'Imported by',
         filterValue: (row) =>
-          row.has_unlimited_credits ? 'Unlimited' : String(row.credits ?? ''),
-        render: (row) => (row.has_unlimited_credits ? 'Unlimited' : row.credits),
+          [row.imported_by?.name, row.imported_by?.email].filter(Boolean).join(' '),
+        render: (row) =>
+          row.imported_by?.name
+            ? `${row.imported_by.name}${row.imported_by.email ? ` (${row.imported_by.email})` : ''}`
+            : '—',
+      },
+      {
+        key: 'original_filename',
+        label: 'File',
+        render: (row) => row.original_filename || '—',
+      },
+      {
+        key: 'summary',
+        label: 'Summary',
+        filterValue: (row) =>
+          `created ${row.summary?.created ?? 0} updated ${row.summary?.updated ?? 0} reactivated ${row.summary?.reactivated ?? 0} skipped ${row.summary?.skipped ?? 0}`,
+        render: (row) =>
+          `${row.summary?.created ?? 0} created · ${row.summary?.updated ?? 0} updated · ${row.summary?.reactivated ?? 0} reactivated · ${row.summary?.skipped ?? 0} skipped`,
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        render: (row) => (
+          <span className={`badge ${row.status === 'completed' ? 'ok' : ''}`}>
+            {row.status === 'completed' ? 'Completed' : row.status || '—'}
+          </span>
+        ),
       },
     ],
     []
   )
+
+  const expandedBatch = useMemo(
+    () => batches.find((batch) => batch.id === expandedBatchId) || null,
+    [batches, expandedBatchId]
+  )
+
+  const pageDescription = (() => {
+    if (canImport && canDownloadTemplate) {
+      return billingEnabled
+        ? 'Download the Excel template, fill it, then upload here. New advisors are created only after you click Pay now.'
+        : 'Download the Excel template, fill it (or receive a filled sheet), then upload here to create advisors.'
+    }
+    if (canDownloadTemplate) {
+      return 'Download the Excel template, fill in the users, then send the completed sheet to a colleague who can Import advisors.'
+    }
+    return 'Upload a filled Excel sheet of users for this white-labelled hub.'
+  })()
 
   return (
     <section>
@@ -240,14 +311,12 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           <p className="eyebrow">{eyebrow}</p>
           <h1>Import Users</h1>
           <p className="muted">
-            {canImport
-              ? billingEnabled
-                ? 'Upload an Excel sheet. New advisors are created only after you click Pay now.'
-                : 'Upload an Excel sheet of users. Imported advisors are marked subscribed with unlimited credits.'
-              : 'Manage imported advisors for this white-labelled hub.'}
+            {pageDescription}
             {canImport && billingEnabled
               ? ' The client admin pays rate × advisors per import batch (card is saved for auto-renew).'
               : ''}
+            {' '}
+            To discontinue a user, use Hub → Users.
           </p>
         </div>
         <div className="actions">
@@ -261,7 +330,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
               Advisor invoices
             </Link>
           )}
-          {canImport && (
+          {canDownloadTemplate && (
             <button type="button" className="btn ghost" onClick={downloadTemplate}>
               Download Excel template
             </button>
@@ -272,23 +341,43 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
-      {canImport && (
-      <form className="admin-form advisor-import-form" onSubmit={onImport}>
-        <h2>Upload users</h2>
-        <FileDropzone
-          id="admin-advisors-import-xlsx"
-          label="Excel file (.xlsx)"
-          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          files={file ? [file] : []}
-          onChange={(next) => setFile(next[0] || null)}
-          disabled={uploading}
-        />
-        <div className="actions">
-          <button className="btn primary" disabled={uploading || !file}>
-            {uploading ? 'Checking file...' : billingEnabled ? 'Review & continue' : 'Import advisors'}
-          </button>
+      {canDownloadTemplate && !canImport && (
+        <div className="import-result">
+          <h2>Fill the Excel template</h2>
+          <p className="muted">
+            Download the blank template (role, firm, and modules dropdowns included), complete the
+            rows for each user, then send the file to someone with the &quot;Import advisors&quot;
+            capability. You cannot upload the sheet yourself with your current permissions.
+          </p>
+          <div className="actions">
+            <button type="button" className="btn primary" onClick={downloadTemplate}>
+              Download Excel template
+            </button>
+          </div>
         </div>
-      </form>
+      )}
+
+      {canImport && (
+        <form className="admin-form advisor-import-form" onSubmit={onImport}>
+          <h2>Upload users</h2>
+          <p className="muted">
+            Use the Download Excel template button above if you need a blank sheet. Accepts a filled
+            .xlsx from you or from a colleague who prepared it.
+          </p>
+          <FileDropzone
+            id="admin-advisors-import-xlsx"
+            label="Excel file (.xlsx)"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            files={file ? [file] : []}
+            onChange={(next) => setFile(next[0] || null)}
+            disabled={uploading}
+          />
+          <div className="actions">
+            <button className="btn primary" disabled={uploading || !file}>
+              {uploading ? 'Checking file...' : billingEnabled ? 'Review & continue' : 'Import advisors'}
+            </button>
+          </div>
+        </form>
       )}
 
       {canImport && showPaymentPanel && (
@@ -479,28 +568,43 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       )}
 
       <div className="advisor-list-block">
-        <h2>Current advisors</h2>
+        <h2>Import history</h2>
+        <p className="muted">
+          Previous Excel imports on this hub
+          {historyMeta?.total != null ? ` · ${historyMeta.total} total` : ''}. Click Details on a
+          row to see created / updated / reactivated users.
+        </p>
         <DataGrid
-          columns={advisorColumns}
-          rows={advisors}
+          columns={historyColumns}
+          rows={batches}
           loading={loading}
-          emptyMessage="No advisors imported yet."
+          emptyMessage="No imports recorded yet."
           pageSize={10}
           getRowKey={(row) => row.id}
-          actions={
-            canDiscontinue
-              ? (advisor) => (
-                  <DataGridIconBtn
-                    icon={FaBan}
-                    label={discontinuingId === advisor.id ? 'Ending…' : 'Discontinue'}
-                    variant="danger"
-                    disabled={discontinuingId === advisor.id}
-                    onClick={() => onDiscontinue(advisor)}
-                  />
-                )
-              : undefined
-          }
+          actions={(batch) => (
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() =>
+                setExpandedBatchId((current) => (current === batch.id ? null : batch.id))
+              }
+            >
+              {expandedBatchId === batch.id ? <FaChevronDown /> : <FaChevronRight />}
+              <span style={{ marginLeft: '0.35rem' }}>
+                {expandedBatchId === batch.id ? 'Hide' : 'Details'}
+              </span>
+            </button>
+          )}
         />
+        {expandedBatch ? (
+          <div className="import-result" style={{ marginTop: '1rem' }}>
+            <h3>
+              Import details
+              {expandedBatch.original_filename ? ` · ${expandedBatch.original_filename}` : ''}
+            </h3>
+            <ImportBatchDetails batch={expandedBatch} />
+          </div>
+        ) : null}
       </div>
     </section>
   )

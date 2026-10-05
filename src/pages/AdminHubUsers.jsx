@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FaSync } from 'react-icons/fa'
+import { FaBan, FaSync } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
 const BASE_MODULE_LABELS = new Set(['Shared Hub', 'White Label Hub'])
+const CONTROL_PLANE_ROLES = new Set(['power_admin', 'finproms_admin'])
 
 function formatUserModules(user) {
   const mods = user?.modules
@@ -22,11 +23,18 @@ function statusLabel(user) {
   return 'Active'
 }
 
+function canDiscontinueUser(user) {
+  if (!user || user.is_discontinued) return false
+  if (CONTROL_PLANE_ROLES.has(user.role)) return false
+  return true
+}
+
 export default function AdminHubUsers({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, actingHub, isActingRemotely, roleLabel } = useHub()
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('dashboard_view_hub_users')
+  const canDiscontinue = can('advisor_discontinue')
   const apiOpts = { asPowerAdmin }
 
   const [users, setUsers] = useState([])
@@ -38,6 +46,8 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
   const [searchDraft, setSearchDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const [discontinuingId, setDiscontinuingId] = useState(null)
 
   const targetName = isActingRemotely
     ? actingHub?.name || hubMeta?.name || 'selected hub'
@@ -77,6 +87,27 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
     }
     load()
   }, [hubLoading, enabled, load, actingHub?.id, isActingRemotely])
+
+  const onDiscontinue = async (user) => {
+    if (!canDiscontinueUser(user)) return
+    const ok = window.confirm(
+      `Discontinue ${user.name} (${user.email})?\n\nThey will lose access immediately. You can restore them later by re-importing the same email.`
+    )
+    if (!ok) return
+
+    setDiscontinuingId(user.id)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.discontinueAdvisor(user.id, apiOpts)
+      setMessage(data.message || 'User discontinued.')
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setDiscontinuingId(null)
+    }
+  }
 
   const columns = useMemo(
     () => [
@@ -185,6 +216,9 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
           <p className="muted">
             All users on <strong>{targetName}</strong>
             {meta?.total != null ? ` · ${meta.total} total` : ''}.
+            {canDiscontinue
+              ? ' Use Discontinue to permanently end access for a user (until re-imported).'
+              : ''}
           </p>
         </div>
         <div className="actions">
@@ -193,6 +227,7 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
       </div>
 
       {error ? <div className="alert">{error}</div> : null}
+      {message ? <div className="alert success">{message}</div> : null}
 
       <form
         className="filters"
@@ -231,6 +266,20 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
         loading={loading}
         getRowKey={(row) => row.id}
         emptyMessage="No users found on this hub."
+        actions={
+          canDiscontinue
+            ? (user) =>
+                canDiscontinueUser(user) ? (
+                  <DataGridIconBtn
+                    icon={FaBan}
+                    label={discontinuingId === user.id ? 'Ending…' : 'Discontinue'}
+                    variant="danger"
+                    disabled={discontinuingId === user.id}
+                    onClick={() => onDiscontinue(user)}
+                  />
+                ) : null
+            : undefined
+        }
       />
     </section>
   )

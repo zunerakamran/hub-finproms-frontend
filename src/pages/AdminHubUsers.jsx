@@ -220,7 +220,7 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
             ))}
           </select>
         </label>
-        <button type="submit" className="btn ghost" disabled={loading}>
+        <button type="submit" className="btn primary" disabled={loading}>
           Apply
         </button>
       </form>

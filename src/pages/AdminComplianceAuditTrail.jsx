@@ -220,7 +220,7 @@ export default function AdminComplianceAuditTrail({ shell = 'client-admin' }) {
                 onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
               />
             </label>
-            <button type="submit" className="btn ghost" disabled={loading}>
+            <button type="submit" className="btn primary" disabled={loading}>
               Apply
             </button>
           </form>

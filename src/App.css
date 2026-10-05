@@ -2027,6 +2027,19 @@ h2,
 
 .filters {
   margin-bottom: 1.25rem;
+  align-items: flex-end;
+}
+
+.filters > label {
+  margin-bottom: 0;
+}
+
+.filters > .btn {
+  padding: 0.45rem 0.95rem;
+  min-height: 0;
+  font-weight: 600;
+  border-radius: 9px;
+  align-self: flex-end;
 }
 
 input,

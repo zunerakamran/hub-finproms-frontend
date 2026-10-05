@@ -543,15 +543,15 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
             />
           </label>
           <div className="activity-filters__actions">
-            <button type="submit" className="btn primary activity-filters__btn">
-              Apply filters
-            </button>
             <button
               type="button"
               className="btn activity-filters__btn activity-filters__btn--reset"
               onClick={resetFilters}
             >
               Reset
+            </button>
+            <button type="submit" className="btn primary activity-filters__btn">
+              Apply filters
             </button>
           </div>
         </form>

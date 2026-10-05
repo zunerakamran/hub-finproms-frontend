@@ -180,8 +180,14 @@ function ModalShell({ title, subtitle, onClose, children, maxWidth = 'max-w-lg' 
 
 /**
  * Template catalog + Power Admin deploy / section management (from content-flow PowerAdminDashboard).
+ * @param {{ includeRequestActions?: boolean, forcedTab?: 'templates' | 'deployments' | null, onRequestCreated?: (req: any) => void }} props
  */
-export default function WebsiteComplianceTemplatesPanel({ includeRequestActions = false }) {
+export default function WebsiteComplianceTemplatesPanel({
+  includeRequestActions = false,
+  forcedTab = null,
+  onRequestCreated = null,
+  hideChrome = false,
+}) {
   const { can, hub, actingHub, complianceStatusLabel } = useHub()
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const canManageTemplates = can('wc_manage_templates')
@@ -196,12 +202,17 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
   const canBrowseTemplates = canManageTemplates || canRequestDeployments
 
   const [activeTab, setActiveTab] = useState(
-    canManageTemplates || canBrowseTemplates
-      ? 'templates'
-      : canViewDeployments
-        ? 'deployments'
-        : 'templates'
+    forcedTab ||
+      (canManageTemplates || canBrowseTemplates
+        ? 'templates'
+        : canViewDeployments
+          ? 'deployments'
+          : 'templates')
   )
+
+  useEffect(() => {
+    if (forcedTab) setActiveTab(forcedTab)
+  }, [forcedTab])
   const [templates, setTemplates] = useState([])
   const [requests, setRequests] = useState([])
   const [advisors, setAdvisors] = useState([])
@@ -804,10 +815,12 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
     )
   }
 
-  const tabs = [
-    canBrowseTemplates && { id: 'templates', label: 'Templates' },
-    canViewDeployments && { id: 'deployments', label: 'Deploy hub' },
-  ].filter(Boolean)
+  const tabs = forcedTab
+    ? []
+    : [
+        canBrowseTemplates && { id: 'templates', label: 'Templates' },
+        canViewDeployments && { id: 'deployments', label: 'Deploy hub' },
+      ].filter(Boolean)
 
   return (
     <div className="space-y-4">
@@ -818,20 +831,22 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
         <div className="alert">{error}</div>
       )}
 
-      <div className="library-tabs" role="tablist" aria-label="Site operations">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`library-tabs__btn${activeTab === tab.id ? ' is-active' : ''}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {tabs.length > 1 ? (
+        <div className="library-tabs" role="tablist" aria-label="Site operations">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`library-tabs__btn${activeTab === tab.id ? ' is-active' : ''}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {activeTab === 'templates' && canBrowseTemplates ? (
         <div className="wc-app">
@@ -1696,7 +1711,11 @@ export default function WebsiteComplianceTemplatesPanel({ includeRequestActions 
             setShowCreateModal(false)
             setRequests((prev) => [newRequest, ...prev])
             setMessage('Deployment request submitted successfully.')
-            setActiveTab('deployments')
+            if (typeof onRequestCreated === 'function') {
+              onRequestCreated(newRequest)
+            } else if (!forcedTab) {
+              setActiveTab('deployments')
+            }
           }}
         />
       )}

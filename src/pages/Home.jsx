@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import PageLoader from '../components/PageLoader'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { formatPageHtml, pageText } from '../utils/pageContent'
 
 function splitColumns(posts) {
   const left = []
@@ -42,13 +43,14 @@ function MarqueeColumn({ posts, direction }) {
 
 export default function Home() {
   const { isAuthenticated } = useAuth()
-  const { hub, branding, can, registrationEnabled, loading: hubLoading } = useHub()
+  const { hub, branding, can, registrationEnabled, loading: hubLoading, pageContent } = useHub()
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
   const catalogAllowed = can('member_browse_catalog')
+  const t = (key, fallback = '') => pageText(pageContent, 'home', key, fallback)
 
   useEffect(() => {
     if (hubLoading) return undefined
@@ -83,13 +85,18 @@ export default function Home() {
   const { left, right } = useMemo(() => splitColumns(posts), [posts])
 
   const primaryCta = isAuthenticated
-    ? { to: '/posts?type=post', label: 'Browse posts' }
-    : { to: registrationEnabled ? '/register' : '/login', label: registrationEnabled ? 'Get started' : 'Log in' }
+    ? { to: '/posts?type=post', label: t('cta_browse_posts', 'Browse posts') }
+    : {
+        to: registrationEnabled ? '/register' : '/login',
+        label: registrationEnabled
+          ? t('cta_get_started', 'Get started')
+          : t('cta_log_in', 'Log in'),
+      }
 
   const secondaryCta = isAuthenticated
-    ? { to: '/posts?type=reel', label: 'Browse reels' }
+    ? { to: '/posts?type=reel', label: t('cta_browse_reels', 'Browse reels') }
     : registrationEnabled
-      ? { to: '/login', label: 'Log in' }
+      ? { to: '/login', label: t('cta_log_in', 'Log in') }
       : null
 
   if (hubLoading || (loading && posts.length === 0 && !error)) {
@@ -101,14 +108,23 @@ export default function Home() {
       <div className="home-landing__grid">
         <div className="home-landing__copy">
           <p className="home-landing__eyebrow">{brandName}</p>
-          <h1 className="home-landing__title">
-            <em>Transform</em> your social media in minutes with ready-made{' '}
-            <em>templates</em>
-          </h1>
-          <p className="home-landing__lead">
-            Discover <strong>fully editable</strong> posts and reels designed to simplify your
-            creative process — compliant content, ready to publish.
-          </p>
+          <h1
+            className="home-landing__title"
+            dangerouslySetInnerHTML={{
+              __html: formatPageHtml(t('title', '*Transform* your social media in minutes with ready-made *templates*')),
+            }}
+          />
+          <p
+            className="home-landing__lead"
+            dangerouslySetInnerHTML={{
+              __html: formatPageHtml(
+                t(
+                  'lead',
+                  'Discover **fully editable** posts and reels designed to simplify your creative process — compliant content, ready to publish.'
+                )
+              ),
+            }}
+          />
           <div className="home-landing__actions">
             <Link to={primaryCta.to} className="btn primary">
               {primaryCta.label}
@@ -121,7 +137,10 @@ export default function Home() {
           </div>
           {!isAuthenticated && (
             <p className="home-landing__hint muted">
-              Browse the home showcase freely. Sign in to open posts, bundles, and plans.
+              {t(
+                'guest_hint',
+                'Browse the home showcase freely. Sign in to open posts, bundles, and plans.'
+              )}
             </p>
           )}
           {error && <p className="error">{error}</p>}
@@ -129,9 +148,13 @@ export default function Home() {
 
         <div className="home-landing__showcase" aria-hidden={posts.length === 0}>
           {!catalogAllowed ? (
-            <div className="home-landing__empty muted">Catalog browsing is not enabled on this hub.</div>
+            <div className="home-landing__empty muted">
+              {t('catalog_disabled', 'Catalog browsing is not enabled on this hub.')}
+            </div>
           ) : posts.length === 0 ? (
-            <div className="home-landing__empty muted">Posts will appear here once published.</div>
+            <div className="home-landing__empty muted">
+              {t('empty_posts', 'Posts will appear here once published.')}
+            </div>
           ) : (
             <div className="home-marquee">
               <MarqueeColumn posts={left.length ? left : posts} direction="down" />

@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import FileDropzone from '../components/FileDropzone'
 import { useHub } from '../context/HubContext'
+import { PAGE_CONTENT_FIELDS } from '../utils/pageContent'
+
+function emptyPageContent() {
+  const next = {}
+  for (const section of Object.keys(PAGE_CONTENT_FIELDS)) {
+    next[section] = {}
+    for (const field of PAGE_CONTENT_FIELDS[section].fields) {
+      next[section][field.key] = ''
+    }
+  }
+  return next
+}
 
 export default function AdminSettings() {
   const { refreshHub, actingHubId } = useHub()
@@ -27,6 +39,8 @@ export default function AdminSettings() {
   const [primaryColor, setPrimaryColor] = useState('')
   const [secondaryColor, setSecondaryColor] = useState('')
   const [accentColor, setAccentColor] = useState('')
+  const [pageContent, setPageContent] = useState(emptyPageContent)
+  const [pageSection, setPageSection] = useState('home')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -55,6 +69,24 @@ export default function AdminSettings() {
     setPrimaryColor(settings?.color_scheme?.primary ?? '')
     setSecondaryColor(settings?.color_scheme?.secondary ?? '')
     setAccentColor(settings?.color_scheme?.accent ?? '')
+    const next = emptyPageContent()
+    const incoming = settings?.page_content || {}
+    for (const section of Object.keys(next)) {
+      for (const key of Object.keys(next[section])) {
+        next[section][key] = incoming?.[section]?.[key] ?? ''
+      }
+    }
+    setPageContent(next)
+  }
+
+  const setPageField = (section, key, value) => {
+    setPageContent((prev) => ({
+      ...prev,
+      [section]: {
+        ...(prev[section] || {}),
+        [key]: value,
+      },
+    }))
   }
 
   const load = async () => {
@@ -157,6 +189,7 @@ export default function AdminSettings() {
       fd.append('color_scheme[primary]', primaryColor.trim())
       fd.append('color_scheme[secondary]', secondaryColor.trim())
       fd.append('color_scheme[accent]', accentColor.trim())
+      fd.append('page_content', JSON.stringify(pageContent))
       if (logoFile) {
         fd.append('logo', logoFile)
       }
@@ -213,8 +246,8 @@ export default function AdminSettings() {
           <p className="eyebrow">Hub</p>
           <h1>Settings</h1>
           <p className="muted">
-            Branding for this hub — logo, white logo, favicon, auth background, name, and primary /
-            secondary / accent colours apply across the whole product UI.
+            Branding for this hub — logo, colours, and editable Home / Posts / detail page copy
+            apply across the public site.
           </p>
         </div>
       </div>
@@ -461,7 +494,7 @@ export default function AdminSettings() {
           </div>
 
           <div className="settings-block">
-            <h2>Content</h2>
+            <h2>NEW label</h2>
             <label>
               NEW label duration (days)
               <input
@@ -477,6 +510,56 @@ export default function AdminSettings() {
               Posts and reels newer than this many days show a NEW label on the listing. Set to 0 to
               disable.
             </p>
+          </div>
+
+          <div className="settings-block">
+            <h2>Page content</h2>
+            <p className="muted form-hint">
+              Edit headings, paragraphs, and button labels for the public Home page, Posts/Reels
+              catalog (same page, different URL type), and post detail. Use *italic* and **bold**
+              in headings/leads. Placeholders like {'{credits}'}, {'{date}'}, and {'{count}'} are
+              filled automatically.
+            </p>
+
+            <div className="page-content-tabs" role="tablist" aria-label="Page content sections">
+              {Object.entries(PAGE_CONTENT_FIELDS).map(([key, section]) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={pageSection === key}
+                  className={`page-content-tabs__btn${pageSection === key ? ' is-active' : ''}`}
+                  onClick={() => setPageSection(key)}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </div>
+
+            {PAGE_CONTENT_FIELDS[pageSection]?.hint ? (
+              <p className="muted form-hint">{PAGE_CONTENT_FIELDS[pageSection].hint}</p>
+            ) : null}
+
+            <div className="page-content-fields">
+              {(PAGE_CONTENT_FIELDS[pageSection]?.fields || []).map((field) => (
+                <label key={`${pageSection}-${field.key}`}>
+                  {field.label}
+                  {field.multiline ? (
+                    <textarea
+                      rows={3}
+                      value={pageContent?.[pageSection]?.[field.key] ?? ''}
+                      onChange={(e) => setPageField(pageSection, field.key, e.target.value)}
+                    />
+                  ) : (
+                    <input
+                      value={pageContent?.[pageSection]?.[field.key] ?? ''}
+                      onChange={(e) => setPageField(pageSection, field.key, e.target.value)}
+                    />
+                  )}
+                  {field.hint ? <span className="muted form-hint">{field.hint}</span> : null}
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="actions sticky-actions">

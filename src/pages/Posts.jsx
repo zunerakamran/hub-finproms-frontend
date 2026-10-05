@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import usePostReachTracking from '../hooks/usePostReachTracking'
 import { formatDate } from '../utils/dateFormat'
+import { fillPageText, pageText } from '../utils/pageContent'
 import { truncateRichText } from '../utils/richText'
 
 /** Normalize URL ?type= into post | reel */
@@ -19,8 +20,9 @@ function resolveCatalogType(raw) {
 
 export default function Posts() {
   const { isAuthenticated, user, isClientAdmin } = useAuth()
-  const { can, loading: hubLoading, registrationEnabled } = useHub()
+  const { can, loading: hubLoading, registrationEnabled, pageContent } = useHub()
   const navigate = useNavigate()
+  const t = (key, fallback = '') => pageText(pageContent, 'catalog', key, fallback)
   const [searchParams, setSearchParams] = useSearchParams()
   const catalogType = resolveCatalogType(searchParams.get('type'))
   const isReelsPage = catalogType === 'reel'
@@ -131,11 +133,33 @@ export default function Posts() {
   const catalogLocked = !isAuthenticated && !isClientAdmin
 
   const resultLabel = useMemo(() => {
-    if (loading) return isReelsPage ? 'Finding reels...' : 'Finding posts...'
-    if (totalResults === 0) return isReelsPage ? 'No reels match' : 'No posts match'
-    const noun = isReelsPage ? 'reel' : 'post'
-    return `${totalResults} ${noun}${totalResults === 1 ? '' : 's'} found`
-  }, [loading, totalResults, isReelsPage])
+    if (loading) {
+      return isReelsPage
+        ? t('finding_reels', 'Finding reels...')
+        : t('finding_posts', 'Finding posts...')
+    }
+    if (totalResults === 0) {
+      return isReelsPage
+        ? t('no_match_reels', 'No reels match')
+        : t('no_match_posts', 'No posts match')
+    }
+    const key = isReelsPage
+      ? totalResults === 1
+        ? 'results_reel'
+        : 'results_reels'
+      : totalResults === 1
+        ? 'results_post'
+        : 'results_posts'
+    const fallback =
+      totalResults === 1
+        ? isReelsPage
+          ? '{count} reel found'
+          : '{count} post found'
+        : isReelsPage
+          ? '{count} reels found'
+          : '{count} posts found'
+    return fillPageText(t(key, fallback), { count: totalResults })
+  }, [loading, totalResults, isReelsPage, pageContent])
 
   const onReached = useCallback((ids) => {
     const bumped = new Set(ids.map(Number))
@@ -158,8 +182,13 @@ export default function Posts() {
       <section>
         <div className="page-head">
           <div>
-            <h1>Catalog unavailable</h1>
-            <p className="muted">Browsing posts is disabled for this hub by Power Admin.</p>
+            <h1>{t('catalog_unavailable_title', 'Catalog unavailable')}</h1>
+            <p className="muted">
+              {t(
+                'catalog_unavailable_body',
+                'Browsing posts is disabled for this hub by Power Admin.'
+              )}
+            </p>
           </div>
         </div>
       </section>
@@ -175,38 +204,54 @@ export default function Posts() {
       )}
       <div className="catalog-hero">
         <div className="catalog-hero__copy">
-          <p className="catalog-hero__eyebrow">Content library</p>
-          <h1>{isReelsPage ? 'Ready-to-post reels' : 'Ready-to-post social posts'}</h1>
+          <p className="catalog-hero__eyebrow">{t('eyebrow', 'Content library')}</p>
+          <h1>
+            {isReelsPage
+              ? t('title_reels', 'Ready-to-post reels')
+              : t('title_posts', 'Ready-to-post social posts')}
+          </h1>
           <p className="catalog-hero__lead">
             {isReelsPage
-              ? 'Browse short-form reels, unlock with credits, and download the assets you need. 1 credit = £1.'
-              : 'Browse promo posts, unlock with credits, and download the assets you need. 1 credit = £1.'}
+              ? t(
+                  'lead_reels',
+                  'Browse short-form reels, unlock with credits, and download the assets you need. 1 credit = £1.'
+                )
+              : t(
+                  'lead_posts',
+                  'Browse promo posts, unlock with credits, and download the assets you need. 1 credit = £1.'
+                )}
           </p>
         </div>
         <div className="catalog-hero__aside">
           {isAuthenticated ? (
             <div className="catalog-balance">
-              <span>Your balance</span>
+              <span>{t('balance_label', 'Your balance')}</span>
               <strong>{user?.credits ?? 0}</strong>
-              <em>credits available</em>
+              <em>{t('credits_available', 'credits available')}</em>
               <Link to="/subscriptions" className="btn ghost">
-                Top up
+                {t('top_up', 'Top up')}
               </Link>
             </div>
           ) : (
             <div className="catalog-cta">
               <p>
                 {registrationEnabled
-                  ? 'Create an account to preview content and buy with credits.'
-                  : 'This hub is invite-only. Sign in with your invited account to continue.'}
+                  ? t(
+                      'guest_cta_register',
+                      'Create an account to preview content and buy with credits.'
+                    )
+                  : t(
+                      'guest_cta_invite',
+                      'This hub is invite-only. Sign in with your invited account to continue.'
+                    )}
               </p>
               {registrationEnabled ? (
                 <button className="btn primary" onClick={() => navigate('/register')}>
-                  Sign up free
+                  {t('sign_up', 'Sign up free')}
                 </button>
               ) : (
                 <button className="btn primary" onClick={() => navigate('/login')}>
-                  Sign in
+                  {t('sign_in', 'Sign in')}
                 </button>
               )}
             </div>
@@ -217,16 +262,21 @@ export default function Posts() {
       {catalogLocked && (
         <div className="catalog-lock-banner">
           <div>
-            <strong>Content is locked</strong>
-            <p className="muted">Log in to preview posts and buy them with credits (1 credit = £1).</p>
+            <strong>{t('lock_title', 'Content is locked')}</strong>
+            <p className="muted">
+              {t(
+                'lock_body',
+                'Log in to preview posts and buy them with credits (1 credit = £1).'
+              )}
+            </p>
           </div>
           <div className="actions">
             <Link to="/login" className="btn ghost">
-              Login
+              {t('login', 'Login')}
             </Link>
             {registrationEnabled && (
               <Link to="/register" className="btn primary">
-                Sign up
+                {t('sign_up', 'Sign up free')}
               </Link>
             )}
           </div>
@@ -239,26 +289,26 @@ export default function Posts() {
             <input
               placeholder={
                 isReelsPage
-                  ? 'Search reels by title or description...'
-                  : 'Search posts by title or description...'
+                  ? t('search_reels', 'Search reels by title or description...')
+                  : t('search_posts', 'Search posts by title or description...')
               }
               value={searchDraft}
               onChange={(e) => setSearchDraft(e.target.value)}
               aria-label={isReelsPage ? 'Search reels' : 'Search posts'}
             />
             <button className="btn primary" type="submit">
-              Search
+              {t('search_button', 'Search')}
             </button>
           </form>
 
           <label className="filter-select">
-            <span>Category</span>
+            <span>{t('category_label', 'Category')}</span>
             <select
               value={filters.category}
               onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
               aria-label="Filter by category"
             >
-              <option value="">All categories</option>
+              <option value="">{t('all_categories', 'All categories')}</option>
               {categories.map((category) => (
                 <option key={category.id || category.name} value={category.name}>
                   {category.name} ({category.posts_count ?? 0})
@@ -269,13 +319,13 @@ export default function Posts() {
 
           {tags.length > 0 && (
             <label className="filter-select">
-              <span>Tag</span>
+              <span>{t('tag_label', 'Tag')}</span>
               <select
                 value={filters.tag}
                 onChange={(e) => setFilters((prev) => ({ ...prev, tag: e.target.value }))}
                 aria-label="Filter by tag"
               >
-                <option value="">All tags</option>
+                <option value="">{t('all_tags', 'All tags')}</option>
                 {tags.map((tag) => (
                   <option key={tag.id || tag.name} value={tag.name}>
                     {tag.name} ({tag.posts_count ?? 0})
@@ -329,7 +379,7 @@ export default function Posts() {
           </div>
           {hasFilters && (
             <button type="button" className="text-btn" onClick={clearFilters}>
-              Clear all
+              {t('clear_all', 'Clear all')}
             </button>
           )}
         </div>
@@ -339,17 +389,27 @@ export default function Posts() {
 
       {posts.length === 0 && !loading ? (
         <div className="empty-state">
-          <h2>{isReelsPage ? 'No reels found' : 'No posts found'}</h2>
+          <h2>
+            {isReelsPage
+              ? t('empty_title_reels', 'No reels found')
+              : t('empty_title_posts', 'No posts found')}
+          </h2>
           <p className="muted">
             {hasFilters
-              ? 'Try another category, tag, or clear your search.'
+              ? t('empty_filtered', 'Try another category, tag, or clear your search.')
               : isReelsPage
-                ? 'New reels will appear here once the client admin adds them.'
-                : 'New posts will appear here once the client admin adds them.'}
+                ? t(
+                    'empty_body_reels',
+                    'New reels will appear here once the client admin adds them.'
+                  )
+                : t(
+                    'empty_body_posts',
+                    'New posts will appear here once the client admin adds them.'
+                  )}
           </p>
           {hasFilters && (
             <button className="btn primary" onClick={clearFilters}>
-              Reset filters
+              {t('reset_filters', 'Reset filters')}
             </button>
           )}
         </div>
@@ -377,7 +437,9 @@ export default function Posts() {
                     <ReelPlayer src={post.video_url} title={post.title} compact />
                   ) : (
                     <div className="post-cover-fallback locked-cover">
-                      {locked ? 'Locked' : post.type || post.category}
+                      {locked
+                        ? t('badge_locked', 'Locked')
+                        : post.type || post.category}
                     </div>
                   )}
 
@@ -385,7 +447,7 @@ export default function Posts() {
 
                   {isReel && !locked && (
                     <span className="media-type-chip" aria-hidden="true">
-                      Reel
+                      {t('reel_label', 'Reel')}
                     </span>
                   )}
 
@@ -399,25 +461,35 @@ export default function Posts() {
 
                   <div className="cover-overlay">
                     <span className={`badge ${post.is_purchased ? 'ok' : locked ? '' : 'ok'}`}>
-                      {post.is_purchased ? 'Owned' : locked ? 'Locked' : 'Available'}
+                      {post.is_purchased
+                        ? t('badge_owned', 'Owned')
+                        : locked
+                          ? t('badge_locked', 'Locked')
+                          : t('badge_available', 'Available')}
                     </span>
                     <span className="credit-chip">{post.credits_cost} credits</span>
                   </div>
                 </div>
                 <div className="post-tile-body">
                   <div className="post-meta">
-                    <span className="category-label">{isReel ? 'Reel' : post.type || 'Post'}</span>
+                    <span className="category-label">
+                      {isReel ? t('reel_label', 'Reel') : post.type || 'Post'}
+                    </span>
                     <span className="muted">{post.category}</span>
                     <span>{formatDate(post.last_updated || post.updated_at)}</span>
                   </div>
                   <h2>{post.title}</h2>
                   {locked ? (
                     <p className="post-excerpt muted">
-                      Log in to preview this item and buy it with credits.
+                      {t(
+                        'locked_excerpt',
+                        'Log in to preview this item and buy it with credits.'
+                      )}
                     </p>
                   ) : (
                     <p className="post-excerpt">
-                      {truncateRichText(post.description, 110) || 'No description provided.'}
+                      {truncateRichText(post.description, 110) ||
+                        t('no_description', 'No description provided.')}
                     </p>
                   )}
                   {!locked && !!post.tags?.length && (
@@ -431,14 +503,14 @@ export default function Posts() {
                   <div className="post-footer">
                     <span className="view-link">
                       {locked
-                        ? 'Login to unlock →'
+                        ? t('login_to_unlock', 'Login to unlock →')
                         : post.is_purchased
                           ? isReel
-                            ? 'Play reel →'
-                            : 'View post →'
+                            ? t('play_reel', 'Play reel →')
+                            : t('view_post', 'View post →')
                           : isReel
-                            ? 'Buy & play →'
-                            : 'Buy post →'}
+                            ? t('buy_reel', 'Buy & play →')
+                            : t('buy_post', 'Buy post →')}
                     </span>
                   </div>
                 </div>

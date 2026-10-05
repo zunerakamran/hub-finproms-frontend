@@ -7,11 +7,12 @@ import RichTextDisplay from '../components/RichTextDisplay'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatDateTime } from '../utils/dateFormat'
+import { fillPageText, pageText } from '../utils/pageContent'
 
 export default function PostDetail() {
   const { id } = useParams()
   const { user, isAuthenticated, isClientAdmin, setUser, refreshUser } = useAuth()
-  const { can, registrationEnabled, isActingAsAdvisor } = useHub()
+  const { can, registrationEnabled, isActingAsAdvisor, pageContent } = useHub()
   const navigate = useNavigate()
   const [post, setPost] = useState(null)
   const [error, setError] = useState('')
@@ -23,6 +24,8 @@ export default function PostDetail() {
   const [paymentMethods, setPaymentMethods] = useState([])
   const [oneOffPurchase, setOneOffPurchase] = useState(false)
   const [cashContentPurchase, setCashContentPurchase] = useState(false)
+
+  const t = (key, fallback = '') => pageText(pageContent, 'post_detail', key, fallback)
 
   const canPurchase = can('member_purchase_content')
   const canDownload = can('member_download_content')
@@ -137,7 +140,7 @@ export default function PostDetail() {
     }
   }
 
-  if (loading) return <div className="state">Loading...</div>
+  if (loading) return <div className="state">{t('loading', 'Loading...')}</div>
   if (error && !post) return <div className="alert">{error}</div>
   if (!post) return null
 
@@ -146,12 +149,15 @@ export default function PostDetail() {
   const isReel = Boolean(post.is_reel)
   const previewVideo = post.video_url || (unlocked && post.is_video ? post.attachment_url : null)
   const catalogBackTo = isReel ? '/posts?type=reel' : '/posts?type=post'
+  const backLabel = isReel
+    ? t('back_reels', '← Back to reels')
+    : t('back_posts', '← Back to posts')
 
   if (locked) {
     return (
       <section className="detail locked-detail">
         <Link to={catalogBackTo} className="back">
-          ← Back to {isReel ? 'reels' : 'posts'}
+          {backLabel}
         </Link>
 
         <div className="locked-gate">
@@ -169,7 +175,7 @@ export default function PostDetail() {
                 <circle cx="12" cy="15" r="1.4" fill="currentColor" />
               </svg>
             </div>
-            <p className="locked-gate-kicker">Login required</p>
+            <p className="locked-gate-kicker">{t('login_required', 'Login required')}</p>
           </div>
 
           <div className="locked-gate-body">
@@ -181,30 +187,42 @@ export default function PostDetail() {
 
             <h1>{post.title}</h1>
             <p className="locked-gate-lead">
-              Sign in to preview this post and buy it with credits — no subscription required. 1
-              credit = £1.
+              {t(
+                'locked_lead',
+                'Sign in to preview this post and buy it with credits — no subscription required. 1 credit = £1.'
+              )}
             </p>
 
             <div className="locked-steps">
               <div className="locked-step">
                 <span className="locked-step-num">1</span>
                 <div>
-                  <strong>Create an account</strong>
-                  <p>Register or log in to browse the full catalog.</p>
+                  <strong>{t('step1_title', 'Create an account')}</strong>
+                  <p>{t('step1_body', 'Register or log in to browse the full catalog.')}</p>
                 </div>
               </div>
               <div className="locked-step">
                 <span className="locked-step-num">2</span>
                 <div>
-                  <strong>Get credits</strong>
-                  <p>Subscribe for a pack, or top up as you go (1 credit = £1).</p>
+                  <strong>{t('step2_title', 'Get credits')}</strong>
+                  <p>
+                    {t(
+                      'step2_body',
+                      'Subscribe for a pack, or top up as you go (1 credit = £1).'
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="locked-step">
                 <span className="locked-step-num">3</span>
                 <div>
-                  <strong>Buy this post</strong>
-                  <p>Spend {post.credits_cost} credits to download the creative asset.</p>
+                  <strong>{t('step3_title', 'Buy this post')}</strong>
+                  <p>
+                    {fillPageText(
+                      t('step3_body', 'Spend {credits} credits to download the creative asset.'),
+                      { credits: post.credits_cost }
+                    )}
+                  </p>
                 </div>
               </div>
             </div>
@@ -213,11 +231,11 @@ export default function PostDetail() {
 
             <div className="locked-gate-actions">
               <Link to="/login" className="btn primary">
-                Login
+                {t('login', 'Login')}
               </Link>
               {registrationEnabled && (
                 <Link to="/register" className="btn ghost">
-                  Sign up free
+                  {t('sign_up', 'Sign up free')}
                 </Link>
               )}
             </div>
@@ -232,7 +250,7 @@ export default function PostDetail() {
   return (
     <section className="detail">
       <Link to={catalogBackTo} className="back">
-        ← Back to {isReel ? 'reels' : 'posts'}
+        {backLabel}
       </Link>
       <div className={`detail-panel${hasMedia ? ' detail-panel--split' : ''}`}>
         {hasMedia ? (
@@ -256,13 +274,15 @@ export default function PostDetail() {
           </div>
           <h1>{post.title}</h1>
           <p className="muted">
-            Last updated {formatDateTime(post.last_updated || post.updated_at)}
+            {fillPageText(t('last_updated', 'Last updated {date}'), {
+              date: formatDateTime(post.last_updated || post.updated_at),
+            })}
           </p>
           <PostMetrics post={post} className="post-metrics detail-metrics" />
 
           <RichTextDisplay
             html={post.description}
-            empty="No description provided."
+            empty={t('no_description', 'No description provided.')}
           />
           {!!post.tags?.length && (
             <div className="tags">
@@ -277,7 +297,7 @@ export default function PostDetail() {
 
           {unlocked ? (
             <div className="unlock-box">
-              <p className="badge ok">Unlocked</p>
+              <p className="badge ok">{t('unlocked', 'Unlocked')}</p>
               <div className="actions">
                 {canDownload && post.attachment_url ? (
                   <a
@@ -286,12 +306,20 @@ export default function PostDetail() {
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Download{post.attachment_name ? ` (${post.attachment_name})` : ''}
+                    {t('download', 'Download')}
+                    {post.attachment_name ? ` (${post.attachment_name})` : ''}
                   </a>
                 ) : canDownload ? (
-                  <p className="muted">No attachment uploaded for this post.</p>
+                  <p className="muted">
+                    {t('no_attachment', 'No attachment uploaded for this post.')}
+                  </p>
                 ) : (
-                  <p className="muted">Downloads are disabled for this hub by Power Admin.</p>
+                  <p className="muted">
+                    {t(
+                      'downloads_disabled',
+                      'Downloads are disabled for this hub by Power Admin.'
+                    )}
+                  </p>
                 )}
                 {post.canva_link && (
                   <a
@@ -300,7 +328,7 @@ export default function PostDetail() {
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Edit with Canva
+                    {t('edit_canva', 'Edit with Canva')}
                   </a>
                 )}
               </div>
@@ -314,12 +342,19 @@ export default function PostDetail() {
           ) : canPurchase ? (
             <div className="unlock-box">
               <p>
-                Buy this post for {post.credits_cost} credits (£{post.credits_cost}).
-                {oneOffEnabled ? ' No subscription required.' : ''}
+                {fillPageText(
+                  t('buy_intro', 'Buy this post for {credits} credits (£{credits}).'),
+                  { credits: post.credits_cost }
+                )}
+                {oneOffEnabled
+                  ? ` ${t('no_subscription_note', 'No subscription required.')}`
+                  : ''}
               </p>
               <p className="muted">
-                Your balance:{' '}
-                {unlimited ? 'Unlimited' : `${user?.credits ?? 0} credits`}
+                {t('your_balance', 'Your balance:')}{' '}
+                {unlimited
+                  ? t('unlimited', 'Unlimited')
+                  : `${user?.credits ?? 0} ${t('credits_suffix', 'credits')}`}
               </p>
               <div className="actions">
                 <button
@@ -331,17 +366,24 @@ export default function PostDetail() {
                     (!unlimited && (user?.credits ?? 0) < post.credits_cost)
                   }
                 >
-                  {buying ? 'Purchasing...' : 'Buy with credits'}
+                  {buying
+                    ? t('purchasing', 'Purchasing...')
+                    : t('buy_with_credits', 'Buy with credits')}
                 </button>
                 {can('member_view_plans') && (
                   <Link to="/subscriptions" className="btn ghost">
-                    Get more credits
+                    {t('get_more_credits', 'Get more credits')}
                   </Link>
                 )}
               </div>
               {cashEnabled && (
                 <div className="plan-actions" style={{ marginTop: '0.75rem' }}>
-                  <p className="muted">Or pay directly with an enabled payment method:</p>
+                  <p className="muted">
+                    {t(
+                      'or_pay_directly',
+                      'Or pay directly with an enabled payment method:'
+                    )}
+                  </p>
                   <button
                     className="btn primary full"
                     onClick={() => buyWithPayment('stripe')}
@@ -349,10 +391,10 @@ export default function PostDetail() {
                     title={stripeMethod.unavailable_reason || undefined}
                   >
                     {checkoutKey === 'stripe'
-                      ? 'Redirecting to Stripe...'
+                      ? t('redirecting_stripe', 'Redirecting to Stripe...')
                       : stripeMethod.available
-                        ? 'Pay with Stripe'
-                        : 'Stripe unavailable'}
+                        ? t('pay_stripe', 'Pay with Stripe')
+                        : t('stripe_unavailable', 'Stripe unavailable')}
                   </button>
                   <button
                     className="btn ghost full"
@@ -361,10 +403,10 @@ export default function PostDetail() {
                     title={bankMethod.unavailable_reason || undefined}
                   >
                     {checkoutKey === 'bank_transfer'
-                      ? 'Processing...'
+                      ? t('processing', 'Processing...')
                       : bankMethod.available
-                        ? 'Pay by bank transfer'
-                        : 'Bank transfer unavailable'}
+                        ? t('pay_bank', 'Pay by bank transfer')
+                        : t('bank_unavailable', 'Bank transfer unavailable')}
                   </button>
                   {!stripeMethod.available && stripeMethod.unavailable_reason && (
                     <p className="field-hint">{stripeMethod.unavailable_reason}</p>
@@ -377,7 +419,12 @@ export default function PostDetail() {
             </div>
           ) : (
             <div className="unlock-box">
-              <p className="muted">Purchasing content is disabled for this hub by Power Admin.</p>
+              <p className="muted">
+                {t(
+                  'purchasing_disabled',
+                  'Purchasing content is disabled for this hub by Power Admin.'
+                )}
+              </p>
             </div>
           )}
         </div>

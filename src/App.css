@@ -5086,7 +5086,7 @@ label {
   cursor: pointer;
 }
 
-/* Fit / status / badge cells ù?? no awkward wrap */
+/* Fit / status / badge cells ??? no awkward wrap */
 .data-grid__cell--fit,
 .data-grid__col--fit,
 .data-grid__col--narrow,
@@ -5249,7 +5249,7 @@ td.data-grid__col--grow:not(.data-grid__cell--truncate) {
   color: var(--dg-muted, #64748b);
 }
 
-/* "Approved with Feedback" ù?? always two lines */
+/* "Approved with Feedback" ??? always two lines */
 .compliance-status-text--awf {
   display: inline-flex;
   flex-direction: column;
@@ -5982,6 +5982,42 @@ td.data-grid__actions {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--panel) 96%, var(--brand-softer));
+}
+
+.page-content-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.page-content-tabs__btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.page-content-tabs__btn.is-active,
+.page-content-tabs__btn:hover {
+  background: var(--brand-accent-soft, color-mix(in srgb, var(--brand-accent, #c2410c) 14%, white));
+  border-color: color-mix(in srgb, var(--brand-accent, #c2410c) 35%, var(--line));
+  color: var(--brand-accent, #c2410c);
+}
+
+.page-content-fields {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.page-content-fields textarea {
+  min-height: 4.5rem;
+  resize: vertical;
 }
 
 .settings-block h2 {

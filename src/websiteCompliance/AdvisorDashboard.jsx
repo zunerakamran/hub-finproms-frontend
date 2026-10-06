@@ -2537,8 +2537,15 @@ export default function AdvisorDashboard({
     setError('')
     setCrActionBusy(`confirm-${crId}`)
     try {
-      await api.post(`/change-requests/${crId}/confirm-feedback`)
-      setMessage('Approved content confirmed and published.')
+      const data = await api.post(`/change-requests/${crId}/confirm-feedback`)
+      if (data?.cpanel_synced === false && !data?.cpanel_sync_queued) {
+        setError(
+          data?.message ||
+            'Confirmed in hub, but the live advisor site was not updated.'
+        )
+      } else {
+        setMessage(data?.message || 'Approved content confirmed and published.')
+      }
       setRevisionFocusCrId(null)
       clearReviseQueryParam()
       setSubmitSupportingFiles([])
@@ -2569,8 +2576,13 @@ export default function AdvisorDashboard({
 
     try {
       if (isPowerAdminPublishMode) {
-        await api.post(`/template-requests/${powerAdminDeploymentId}/publish-content`, { section_edits: batchPayload })
-        setMessage(`Published ${checkedSectionIds.length} section(s) directly to the site (no approver review).`)
+        const data = await api.post(`/template-requests/${powerAdminDeploymentId}/publish-content`, {
+          section_edits: batchPayload,
+        })
+        setMessage(
+          data?.message ||
+            `Published ${checkedSectionIds.length} section(s) directly to the site (no approver review).`
+        )
       } else if (focusedRevisionCr?.status === 'rejected') {
         if (!assertCheckedWithinCr(focusedRevisionCr)) {
           setIsSubmitting(false)

@@ -152,10 +152,44 @@ export default function ChangeRequestReviewActions({
         status: data?.status || 'published',
         scheduled_at: null,
       })
-      onMessage?.('Request approved and published to the website.')
+      const synced = data?.cpanel_synced === true
+      const queued = data?.cpanel_sync_queued === true
+      const apiMessage = typeof data?.message === 'string' ? data.message.trim() : ''
+      if (synced) {
+        onMessage?.(apiMessage || 'Request approved and published to the live advisor site.')
+      } else if (queued) {
+        onMessage?.(
+          apiMessage ||
+            'Request approved in the hub. Live site sync was queued — refresh the advisor site after the worker runs.'
+        )
+      } else {
+        onError?.(
+          apiMessage ||
+            'Request was saved as published in the hub, but the live advisor site was not updated. Check cPanel domain / API key and Laravel logs.'
+        )
+      }
       setReviewSupportingFiles([])
     } catch (err) {
-      onError?.(err.message || err.data?.message || 'Failed to approve and publish.')
+      const apiMessage =
+        err?.data?.message ||
+        err?.response?.data?.message ||
+        err?.message
+      // Hub may still mark the CR published (502) when cPanel sync fails.
+      if (err?.data?.status === 'published' || err?.response?.data?.status === 'published') {
+        const payload = err.data || err.response?.data || {}
+        onUpdated?.({
+          ...request,
+          ...(payload.change_request || {}),
+          status: 'published',
+          scheduled_at: null,
+        })
+        onError?.(
+          apiMessage ||
+            'Request was saved as published in the hub, but the live advisor site was not updated.'
+        )
+      } else {
+        onError?.(apiMessage || 'Failed to approve and publish.')
+      }
     } finally {
       setBusy(null)
     }

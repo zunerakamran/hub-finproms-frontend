@@ -208,10 +208,7 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
           <h1>Users</h1>
           <p className="muted">
             All users on <strong>{targetName}</strong>
-            {meta?.total != null ? ` · ${meta.total} total` : ''}.
-            {canDiscontinue
-              ? ' Use Discontinue to permanently end access for a user (until re-imported).'
-              : ''}
+            {meta?.total != null ? ` · ${meta.total} total` : ''}
           </p>
         </div>
         <div className="actions">

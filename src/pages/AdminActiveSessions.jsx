@@ -144,7 +144,7 @@ export default function AdminActiveSessions({ shell = 'client-admin' }) {
             {
               key: 'role',
               label: 'Role',
-              filterValue: (row) => row.user?.role || '',
+              filterValue: (row) => roleLabel(row.user?.role) || row.user?.role || '',
               render: (row) => roleLabel(row.user?.role) || row.user?.role || '—',
             },
             {

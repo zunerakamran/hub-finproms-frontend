@@ -701,10 +701,7 @@ export default function ChangeRequestAssignmentPanel({
             at={complianceStatusChangedAt(row) || row.updated_at || row.created_at}
           />
         ),
-        filterValue: (row) =>
-          [complianceStatusLabel(row.status) || row.status, formatDateTime(complianceStatusChangedAt(row), '')]
-            .filter(Boolean)
-            .join(' '),
+        filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
         truncate: false,
       },
       {

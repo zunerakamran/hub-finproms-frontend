@@ -14,7 +14,8 @@ import { wcSectionTitle } from '../utils/websiteCompliance'
 
 export default function WebsiteComplianceMyRequests() {
   const { user } = useAuth()
-  const { can, loading: hubLoading, effectiveAdvisorId, actingAdvisor } = useHub()
+  const { can, loading: hubLoading, effectiveAdvisorId, actingAdvisor, complianceStatusLabel } =
+    useHub()
   const [searchParams] = useSearchParams()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -130,8 +131,7 @@ export default function WebsiteComplianceMyRequests() {
       render: (row) => (
         <WcStatusBadge status={row.status} at={complianceStatusChangedAt(row)} />
       ),
-      filterValue: (row) =>
-        [row.status, formatDateTime(complianceStatusChangedAt(row), '')].filter(Boolean).join(' '),
+      filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
       truncate: false,
     },
   ]

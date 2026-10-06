@@ -404,20 +404,7 @@ export default function WebsiteComplianceTemplatesPanel({
             }
           />
         ),
-        filterValue: (row) =>
-          [
-            complianceStatusLabel(row.status) || row.status || '',
-            formatDateTime(
-              row.live_promoted_at ||
-                row.go_live_requested_at ||
-                row.deployed_at ||
-                row.updated_at ||
-                row.created_at,
-              ''
-            ),
-          ]
-            .filter(Boolean)
-            .join(' '),
+        filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
         truncate: false,
       },
       {
@@ -909,7 +896,11 @@ export default function WebsiteComplianceTemplatesPanel({
                   <div className="py-12 text-center text-sm text-gray-500">No templates yet.</div>
                 ) : (
                   <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {filteredTemplates.map((tpl) => (
+                    {filteredTemplates.map((tpl) => {
+                      const livePreviewUrl =
+                        String(tpl.preview_url || '').trim() ||
+                        defaultTemplatePreviewUrl(tpl.slug, previewBase)
+                      return (
                       <article key={tpl.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col hover:border-[color-mix(in_srgb,var(--brand-dark)_25%,transparent)] hover:shadow-md transition-all duration-300">
                         <TemplateScrollPreview
                           template={tpl}
@@ -966,39 +957,52 @@ export default function WebsiteComplianceTemplatesPanel({
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                            {canManageTemplates ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => openEditTemplateModal(tpl)}
-                                  className="wc-btn wc-btn--soft flex-1 text-xs"
-                                >
-                                  <FaEdit className="w-3 h-3" /> Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteTemplate(tpl)}
-                                  className="wc-btn text-xs"
-                                  style={{ background: '#fff1f2', color: '#e11d48', borderColor: '#fecdd3' }}
-                                  aria-label={`Delete ${tpl.name}`}
-                                >
-                                  <FaTrash className="w-3 h-3" />
-                                </button>
-                              </>
-                            ) : canRequest ? (
-                              <button
-                                type="button"
-                                onClick={() =>             setShowCreateModal(true)}
-                                className="wc-btn wc-btn--primary flex-1 text-xs"
+                          <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-gray-100">
+                            {livePreviewUrl ? (
+                              <a
+                                href={livePreviewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="wc-btn wc-btn--soft flex-1 text-xs justify-center"
                               >
-                                <FaPlus className="w-3 h-3" /> Request for advisor
-                              </button>
+                                <FaGlobe className="w-3 h-3" /> Live preview
+                              </a>
                             ) : null}
+                            <div className="flex items-center gap-2">
+                              {canManageTemplates ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditTemplateModal(tpl)}
+                                    className="wc-btn wc-btn--soft flex-1 text-xs"
+                                  >
+                                    <FaEdit className="w-3 h-3" /> Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTemplate(tpl)}
+                                    className="wc-btn text-xs"
+                                    style={{ background: '#fff1f2', color: '#e11d48', borderColor: '#fecdd3' }}
+                                    aria-label={`Delete ${tpl.name}`}
+                                  >
+                                    <FaTrash className="w-3 h-3" />
+                                  </button>
+                                </>
+                              ) : canRequest ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowCreateModal(true)}
+                                  className="wc-btn wc-btn--primary flex-1 text-xs"
+                                >
+                                  <FaPlus className="w-3 h-3" /> Request for advisor
+                                </button>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
                       </article>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>

@@ -9,7 +9,7 @@ import { formatDateTime, complianceStatusChangedAt } from '../utils/dateFormat'
 import { gridActorName } from '../utils/submissionAttribution'
 
 export default function SocialMediaComplianceMyRequests() {
-  const { can, loading: hubLoading, effectiveAdvisorId } = useHub()
+  const { can, loading: hubLoading, effectiveAdvisorId, complianceStatusLabel } = useHub()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -92,8 +92,7 @@ export default function SocialMediaComplianceMyRequests() {
       render: (row) => (
         <SmcStatusBadge status={row.status} at={complianceStatusChangedAt(row)} />
       ),
-      filterValue: (row) =>
-        [row.status, formatDateTime(complianceStatusChangedAt(row), '')].filter(Boolean).join(' '),
+      filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
       truncate: false,
     },
   ]

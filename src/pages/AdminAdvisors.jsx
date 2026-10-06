@@ -354,6 +354,12 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       {
         key: 'status',
         label: 'Status',
+        filterValue: (row) =>
+          row.status === 'pending'
+            ? 'Pending'
+            : row.status === 'completed'
+              ? 'Completed'
+              : row.status || '',
         render: (row) => {
           const pending = row.status === 'pending'
           const label = pending

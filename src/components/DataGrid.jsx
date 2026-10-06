@@ -1,6 +1,55 @@
 import { Link } from 'react-router-dom'
-import useClientDataGrid from '../hooks/useClientDataGrid'
+import useClientDataGrid, { resolveFilterType } from '../hooks/useClientDataGrid'
 import { formatDate, formatDateTime, formatTime } from '../utils/dateFormat'
+
+export { resolveFilterType }
+
+function ColumnFilterControl({ col, filterType, value, options, onChange }) {
+  if (filterType === 'none') {
+    return <span className="data-grid__filter-spacer" />
+  }
+
+  if (filterType === 'select') {
+    return (
+      <select
+        className="data-grid__filter-input data-grid__filter-select"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={`Filter ${col.label}`}
+      >
+        <option value="">All</option>
+        {(options || []).map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
+  if (filterType === 'date') {
+    return (
+      <input
+        type="date"
+        className="data-grid__filter-input data-grid__filter-date"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={`Filter ${col.label} by date`}
+      />
+    )
+  }
+
+  return (
+    <input
+      type="search"
+      className="data-grid__filter-input"
+      placeholder="Search…"
+      value={value || ''}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label={`Search ${col.label}`}
+    />
+  )
+}
 
 function DataGridPagination({ page, totalPages, totalItems, pageSize, onPageChange }) {
   if (totalItems === 0) return null
@@ -409,24 +458,20 @@ export default function DataGrid({
             <tr className="data-grid__filters">
               {allColumns.map((col, i) => {
                 const layout = layouts[i]
+                const filterType = resolveFilterType(col)
                 return (
                   <th
                     key={`filter-${col.key}`}
                     className={layout.className || undefined}
                     style={columnStyle(col, layout)}
                   >
-                    {col.filterable === false || col.key === 'actions' ? (
-                      <span className="data-grid__filter-spacer" />
-                    ) : (
-                      <input
-                        type="search"
-                        className="data-grid__filter-input"
-                        placeholder="Search…"
-                        value={grid.filters[col.key] || ''}
-                        onChange={(e) => grid.setFilter(col.key, e.target.value)}
-                        aria-label={`Search ${col.label}`}
-                      />
-                    )}
+                    <ColumnFilterControl
+                      col={col}
+                      filterType={filterType}
+                      value={grid.filters[col.key] || ''}
+                      options={grid.filterOptionsByKey?.[col.key]}
+                      onChange={(next) => grid.setFilter(col.key, next)}
+                    />
                   </th>
                 )
               })}

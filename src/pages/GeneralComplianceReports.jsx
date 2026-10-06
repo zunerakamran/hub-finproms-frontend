@@ -166,8 +166,7 @@ export default function GeneralComplianceReports() {
       render: (row) => (
         <GcStatusBadge status={row.status} at={complianceStatusChangedAt(row)} />
       ),
-      filterValue: (row) =>
-        [row.status, formatDateTime(complianceStatusChangedAt(row), '')].filter(Boolean).join(' '),
+      filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
       truncate: false,
     },
     {

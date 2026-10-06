@@ -262,6 +262,30 @@
   box-shadow: 0 0 0 3px var(--wc-brand-glow) !important;
 }
 
+.wc-app .wc-field-input.is-invalid,
+.wc-app input.wc-field-input.is-invalid,
+.wc-app select.wc-field-input.is-invalid,
+.wc-app textarea.wc-field-input.is-invalid {
+  border-color: #e11d48 !important;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.15) !important;
+}
+
+.wc-app .wc-field-input.is-invalid:focus,
+.wc-app input.wc-field-input.is-invalid:focus,
+.wc-app select.wc-field-input.is-invalid:focus,
+.wc-app textarea.wc-field-input.is-invalid:focus {
+  border-color: #e11d48 !important;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.2) !important;
+}
+
+.wc-app .wc-field-error {
+  margin: 0.4rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #e11d48;
+  line-height: 1.35;
+}
+
 .wc-app .wc-field-input--mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
   font-size: 0.8rem !important;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
   FaPlus,
@@ -78,6 +78,7 @@ function ModalShell({
   footer = null,
   headerExtra = null,
   maxWidth = 'max-w-lg',
+  bodyRef = null,
 }) {
   return createPortal(
     <div className="wc-app wc-portal-root">
@@ -104,7 +105,7 @@ function ModalShell({
             </div>
             {headerExtra}
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 sm:px-6 py-5">{children}</div>
+          <div ref={bodyRef} className="flex-1 min-h-0 overflow-y-auto px-5 sm:px-6 py-5">{children}</div>
           {footer ? (
             <div className="shrink-0 border-t border-gray-100 bg-slate-50/80 px-5 sm:px-6 py-4">
               {footer}
@@ -326,8 +327,36 @@ export function CreateDeploymentModal({
   const [pageContents, setPageContents] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [serverTemplates, setServerTemplates] = useState([])
   const [templatesLoadError, setTemplatesLoadError] = useState('')
+  const bodyRef = useRef(null)
+  const fieldRefs = useRef({})
+
+  const scrollBodyToTop = useCallback(() => {
+    const el = bodyRef.current
+    if (el) el.scrollTop = 0
+  }, [])
+
+  const scrollToField = useCallback((fieldKey) => {
+    const el = fieldRefs.current[fieldKey]
+    if (el?.scrollIntoView) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (typeof el.focus === 'function') {
+        try {
+          el.focus({ preventScroll: true })
+        } catch {
+          el.focus()
+        }
+      }
+      return
+    }
+    scrollBodyToTop()
+  }, [scrollBodyToTop])
+
+  useEffect(() => {
+    scrollBodyToTop()
+  }, [step, scrollBodyToTop])
 
   const steps = useMemo(() => ([
     { id: 'basics', label: 'Basics' },
@@ -381,6 +410,9 @@ export function CreateDeploymentModal({
       setTemplatesLoadError(
         err.response?.data?.message || 'Could not load showcase templates for this hub.'
       )
+    }).finally(() => {
+      // Content load / layout can push the scroll position down — keep top of form visible.
+      requestAnimationFrame(scrollBodyToTop)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once when modal opens
   }, [])
@@ -437,21 +469,45 @@ export function CreateDeploymentModal({
     }
   }
 
+  const clearFieldError = (key) => {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
+
   const validateStep = (index) => {
+    const nextErrors = {}
+    let message = ''
+    let firstInvalid = null
+
     if (index === 0) {
       if (!templateName) {
-        setError('Please choose a template.')
-        return false
+        nextErrors.templateName = 'Please choose a template.'
+        message = nextErrors.templateName
+        firstInvalid = firstInvalid || 'templateName'
       }
       if (!domainName.trim()) {
-        setError('Domain name is required.')
-        return false
+        nextErrors.domainName = 'Domain name is required.'
+        message = message || nextErrors.domainName
+        firstInvalid = firstInvalid || 'domainName'
       }
       if (canAssignAdvisor && !assignedAdvisorId) {
-        setError('Assign an advisor for content editing before continuing.')
-        return false
+        nextErrors.assignedAdvisorId = 'Assign an advisor for content editing before continuing.'
+        message = message || nextErrors.assignedAdvisorId
+        firstInvalid = firstInvalid || 'assignedAdvisorId'
       }
     }
+
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      setError(message || 'Please fill in the required fields.')
+      requestAnimationFrame(() => scrollToField(firstInvalid))
+      return false
+    }
+
     setError('')
     return true
   }
@@ -463,6 +519,7 @@ export function CreateDeploymentModal({
 
   const goBack = () => {
     setError('')
+    setFieldErrors({})
     setStep(s => Math.max(s - 1, 0))
   }
 
@@ -474,6 +531,7 @@ export function CreateDeploymentModal({
     }
     setSubmitting(true)
     setError('')
+    setFieldErrors({})
     try {
       const payload = {
         template_name: templateName,
@@ -493,6 +551,7 @@ export function CreateDeploymentModal({
       onCreated(res.data)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to submit deployment request.')
+      scrollBodyToTop()
     } finally {
       setSubmitting(false)
     }
@@ -500,6 +559,7 @@ export function CreateDeploymentModal({
 
   const labelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
   const inputClass = 'wc-field-input'
+  const fieldClass = (key) => `${inputClass}${fieldErrors[key] ? ' is-invalid' : ''}`
   const uploading = uploadingLogo || uploadingWhiteLogo || uploadingFavicon
   const templateLabel =
     selectedTemplate?.name ||
@@ -558,12 +618,23 @@ export function CreateDeploymentModal({
       subtitle="A short wizard to set up template, branding, and starter content for your showcase site."
       onClose={onClose}
       maxWidth="max-w-3xl"
-      headerExtra={<FormStepper steps={steps} currentStep={step} onStepClick={setStep} />}
+      headerExtra={
+        <FormStepper
+          steps={steps}
+          currentStep={step}
+          onStepClick={(index) => {
+            setError('')
+            setFieldErrors({})
+            setStep(index)
+          }}
+        />
+      }
       footer={footer}
+      bodyRef={bodyRef}
     >
       {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
 
-      <form id="create-deployment-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="create-deployment-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
         {step === 0 && (
           <div className="space-y-4">
             <FormSection
@@ -581,21 +652,26 @@ export function CreateDeploymentModal({
                   </div>
                 ) : (
                   <select
+                    ref={(el) => { fieldRefs.current.templateName = el }}
                     value={templateName}
                     onChange={(e) => {
                       const next = e.target.value
                       setTemplateName(next)
+                      clearFieldError('templateName')
                       const tpl = serverTemplates.find(t => (t.slug || t.name) === next) || null
                       applyTemplateDefaults(tpl)
                     }}
-                    className={inputClass}
+                    className={fieldClass('templateName')}
+                    aria-invalid={Boolean(fieldErrors.templateName)}
                   >
                     {templateOptions.map((t) => (
                       <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                   </select>
                 )}
-                {selectedTemplate?.description ? (
+                {fieldErrors.templateName ? (
+                  <p className="wc-field-error" role="alert">{fieldErrors.templateName}</p>
+                ) : selectedTemplate?.description ? (
                   <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed line-clamp-3">
                     {truncateRichText(selectedTemplate.description, 180)}
                   </p>
@@ -613,16 +689,24 @@ export function CreateDeploymentModal({
                   <RequiredMark>Domain name</RequiredMark>
                 </label>
                 <input
+                  ref={(el) => { fieldRefs.current.domainName = el }}
                   type="text"
                   value={domainName}
-                  onChange={e => setDomainName(e.target.value)}
+                  onChange={e => {
+                    setDomainName(e.target.value)
+                    clearFieldError('domainName')
+                  }}
                   placeholder={domainPlaceholder}
-                  className={inputClass}
-                  autoFocus
+                  className={fieldClass('domainName')}
+                  aria-invalid={Boolean(fieldErrors.domainName)}
                 />
-                <p className="text-[11px] text-gray-500 mt-1.5">
-                  Example: <span className="font-mono">{domainPlaceholder}</span>
-                </p>
+                {fieldErrors.domainName ? (
+                  <p className="wc-field-error" role="alert">{fieldErrors.domainName}</p>
+                ) : (
+                  <p className="text-[11px] text-gray-500 mt-1.5">
+                    Example: <span className="font-mono">{domainPlaceholder}</span>
+                  </p>
+                )}
               </div>
             </FormSection>
 
@@ -637,9 +721,14 @@ export function CreateDeploymentModal({
                     <RequiredMark>Content advisor</RequiredMark>
                   </label>
                   <select
+                    ref={(el) => { fieldRefs.current.assignedAdvisorId = el }}
                     value={assignedAdvisorId}
-                    onChange={e => setAssignedAdvisorId(e.target.value)}
-                    className={inputClass}
+                    onChange={e => {
+                      setAssignedAdvisorId(e.target.value)
+                      clearFieldError('assignedAdvisorId')
+                    }}
+                    className={fieldClass('assignedAdvisorId')}
+                    aria-invalid={Boolean(fieldErrors.assignedAdvisorId)}
                   >
                     <option value="">— Select an advisor —</option>
                     {eligibleAdvisors.map(a => (
@@ -648,6 +737,9 @@ export function CreateDeploymentModal({
                       </option>
                     ))}
                   </select>
+                  {fieldErrors.assignedAdvisorId ? (
+                    <p className="wc-field-error" role="alert">{fieldErrors.assignedAdvisorId}</p>
+                  ) : null}
                   {eligibleAdvisors.length === 0 && (
                     <p className="text-xs text-amber-700 mt-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                       No advisors are available for your firm&apos;s visibility settings. Add advisors in your firm, or update firm compliance visibility.
@@ -1106,13 +1198,7 @@ export default function DeploymentRequestPanel() {
           at={row.deployed_at || row.updated_at || row.created_at}
         />
       ),
-      filterValue: (row) =>
-        [
-          complianceStatusLabel(row.status) || row.status || '',
-          formatDateTime(row.deployed_at || row.updated_at || row.created_at, ''),
-        ]
-          .filter(Boolean)
-          .join(' '),
+      filterValue: (row) => complianceStatusLabel(row.status) || row.status || '',
       truncate: false,
     },
     {

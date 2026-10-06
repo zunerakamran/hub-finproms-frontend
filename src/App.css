@@ -952,6 +952,37 @@ h2,
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
+.admin-thumb-wrap .reel-player,
+.admin-thumb-wrap .reel-player.is-compact {
+  width: 100%;
+  height: 100%;
+  background: #0b1a14;
+}
+
+.admin-thumb-wrap .reel-player video,
+.admin-thumb-wrap .reel-player.is-compact video {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: auto;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-thumb-wrap .reel-toggle,
+.admin-thumb-wrap .reel-toggle--compact {
+  top: auto;
+  bottom: 4px;
+  left: 4px;
+  right: auto;
+  transform: none;
+  padding: 0.2rem;
+  border-radius: 999px;
+  font-size: 0;
+  gap: 0;
+}
+
 .admin-thumb-wrap.is-empty {
   background: color-mix(in srgb, var(--brand) 8%, #f3f6f4);
 }
@@ -5337,6 +5368,29 @@ label {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px var(--brand-glow, color-mix(in srgb, var(--brand) 22%, transparent));
+}
+
+.data-grid__filter-select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #64748b 50%),
+    linear-gradient(135deg, #64748b 50%, transparent 50%);
+  background-position: calc(100% - 0.85rem) calc(50% - 0.15rem),
+    calc(100% - 0.55rem) calc(50% - 0.15rem);
+  background-size: 0.3rem 0.3rem, 0.3rem 0.3rem;
+  background-repeat: no-repeat;
+  padding-right: 1.35rem;
+  cursor: pointer;
+}
+
+.data-grid__filter-date {
+  min-width: 0;
+  padding-right: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-grid__filter-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
 }
 
 .data-grid__col--narrow .data-grid__filter-input {

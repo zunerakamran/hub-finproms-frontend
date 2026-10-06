@@ -16,6 +16,7 @@ import {
   absoluteAssetUrl,
   isUploadedAsset,
 } from './utils/imageAssets'
+import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from './utils/assetUrl'
 import { truncateRichText } from '../utils/richText'
 import SupportingFilesPicker from '../components/SupportingFilesPicker'
 import { buildChangeRequestBody } from '../utils/complianceSupportingFiles'
@@ -1204,8 +1205,16 @@ export default function AdvisorDashboard({
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { can, roleLabel, complianceStatusLabel, effectiveAdvisorId, actingAdvisor } =
-    useHub()
+  const {
+    can,
+    roleLabel,
+    complianceStatusLabel,
+    effectiveAdvisorId,
+    actingAdvisor,
+    hub,
+    actingHub,
+  } = useHub()
+  const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const getConsoleTitle = (r) =>
     actingAdvisor || r === 'advisor' ? `${roleLabel('advisor')} console` : 'Console'
   const lockOwnerIds = useMemo(() => {
@@ -2966,6 +2975,9 @@ export default function AdvisorDashboard({
               <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredTemplates.map(tpl => {
                   const isInUse = templateRequests.some(req => req.template_name === tpl.slug)
+                  const livePreviewUrl =
+                    String(tpl.preview_url || '').trim() ||
+                    defaultTemplatePreviewUrl(tpl.slug, previewBase)
                   return (
                     <article
                       key={tpl.id}
@@ -2999,14 +3011,27 @@ export default function AdvisorDashboard({
                           {truncateRichText(tpl.description, 120) || 'No description provided.'}
                         </p>
 
-                        <button
-                          type="button"
-                          onClick={() => openDeploymentModal(tpl.slug)}
-                          className="mt-4 w-full inline-flex items-center justify-center gap-2 text-xs font-bold text-white bg-[var(--brand-dark)] hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] px-3 py-2.5 rounded-xl transition"
-                        >
-                          <FaRocket className="w-3 h-3" />
-                          Request Deployment
-                        </button>
+                        <div className="mt-4 flex flex-col gap-2">
+                          {livePreviewUrl ? (
+                            <a
+                              href={livePreviewUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full inline-flex items-center justify-center gap-2 text-xs font-bold text-[var(--brand-dark)] bg-white border border-gray-200 hover:border-[var(--brand-dark)]/30 hover:bg-slate-50 px-3 py-2.5 rounded-xl transition"
+                            >
+                              <FaGlobe className="w-3 h-3" />
+                              Live preview
+                            </a>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => openDeploymentModal(tpl.slug)}
+                            className="w-full inline-flex items-center justify-center gap-2 text-xs font-bold text-white bg-[var(--brand-dark)] hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] px-3 py-2.5 rounded-xl transition"
+                          >
+                            <FaRocket className="w-3 h-3" />
+                            Request Deployment
+                          </button>
+                        </div>
                       </div>
                     </article>
                   )

@@ -302,8 +302,10 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           filterValue: (row) => row.title,
           render: (row) => (
             <div className="admin-post-grid-title">
-              <AdminPostThumb post={row} />
-              <span>{row.title}</span>
+              <Link to={`/posts/${row.id}`} className="admin-post-grid-title__link">
+                <AdminPostThumb post={row} />
+                <span>{row.title}</span>
+              </Link>
             </div>
           ),
         },
@@ -754,10 +756,22 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           gap: 0.75rem;
           min-width: 0;
         }
+        .admin-post-grid-title__link {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          min-width: 0;
+          color: inherit;
+          text-decoration: none;
+        }
+        .admin-post-grid-title__link:hover span {
+          color: var(--brand);
+          text-decoration: underline;
+        }
         .admin-post-grid-title .admin-thumb-wrap {
           flex-shrink: 0;
         }
-        .admin-post-grid-title > span {
+        .admin-post-grid-title__link > span {
           font-weight: 600;
           overflow: hidden;
           text-overflow: ellipsis;

@@ -1480,7 +1480,12 @@ export default function WebsiteComplianceTemplatesPanel({
                 placeholder={selectedRequest?.cpanel_api_key_set ? 'Leave blank to keep current' : ''}
                 autoComplete="new-password"
               />
-              {selectedRequest?.cpanel_api_key_set ? (
+              {selectedRequest?.cpanel_api_key_corrupt ? (
+                <p className="text-[11px] text-amber-700 mt-1 font-semibold">
+                  Stored API key cannot be decrypted (often saved from Central with a different APP_KEY).
+                  Re-enter the SECRET_API_KEY from the advisor cpanel-config.php and save again.
+                </p>
+              ) : selectedRequest?.cpanel_api_key_set ? (
                 <p className="text-[11px] text-gray-500 mt-1">An API key is already stored (encrypted).</p>
               ) : null}
             </div>
@@ -1592,6 +1597,11 @@ export default function WebsiteComplianceTemplatesPanel({
                 placeholder={promoteRequest?.cpanel_api_key_set ? 'Leave blank to keep current' : ''}
                 autoComplete="new-password"
               />
+              {promoteRequest?.cpanel_api_key_corrupt ? (
+                <p className="text-[11px] text-amber-700 mt-1 font-semibold">
+                  Stored API key cannot be decrypted. Re-enter SECRET_API_KEY from advisor cpanel-config.php.
+                </p>
+              ) : null}
             </div>
             <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
               <button

@@ -129,7 +129,7 @@ export default function AdminPaymentCard() {
               onClick={onSetup}
             >
               {saving
-                ? 'Opening Stripe....'
+                ? 'Opening Stripe...'
                 : profile?.has_saved_card
                   ? 'Update card'
                   : 'Enter card'}

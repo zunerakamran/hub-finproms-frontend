@@ -13,7 +13,7 @@ import {
   FaUpload,
 } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
+import { DataGridIconBtn } from '../components/DataGrid'
 import FileDropzone from '../components/FileDropzone'
 import { useHub } from '../context/HubContext'
 import { COMPLIANCE_SUPPORTING_FILES_ACCEPT } from '../utils/complianceSupportingFiles'
@@ -30,7 +30,6 @@ function flattenFolders(folders, depth = 0, path = []) {
       depth,
       pathLabel: nextPath.join(' / '),
       documentCount: folder.document_count ?? (folder.documents || []).length,
-      children: folder.children || [],
       documents: folder.documents || [],
     })
     rows.push(...flattenFolders(folder.children || [], depth + 1, nextPath))
@@ -38,7 +37,6 @@ function flattenFolders(folders, depth = 0, path = []) {
   return rows
 }
 
-/** Build "Policies / 2024" style labels for folder dropdowns. */
 function folderPathOptions(flatFolders) {
   const byId = Object.fromEntries((flatFolders || []).map((f) => [f.id, f]))
   const labelFor = (folder) => {
@@ -55,18 +53,18 @@ function folderPathOptions(flatFolders) {
     .sort((a, b) => a.pathLabel.localeCompare(b.pathLabel))
 }
 
-function AccessRightsModal({ open, onClose, document, firmId, onError }) {
+function AccessRightsModal({ open, onClose, document: doc, onError }) {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(false)
   const [savingUserId, setSavingUserId] = useState(null)
 
   useEffect(() => {
-    if (!open || !document?.id) return undefined
+    if (!open || !doc?.id) return undefined
     let cancelled = false
     const load = async () => {
       setLoading(true)
       try {
-        const data = await api.firmDocumentAccessRights(document.id)
+        const data = await api.firmDocumentAccessRights(doc.id)
         if (!cancelled) setMembers(data.members || [])
       } catch (err) {
         if (!cancelled) onError?.(err.message)
@@ -91,21 +89,20 @@ function AccessRightsModal({ open, onClose, document, firmId, onError }) {
         window.removeEventListener('keydown', onKey)
       }
     }
-  }, [open, document?.id, onClose, onError])
+  }, [open, doc?.id, onClose, onError])
 
   const updateRight = async (member, patch) => {
     if (member.is_firm_head) return
     setSavingUserId(member.id)
     try {
-      const next = {
+      await api.setFirmDocumentAccessRights(doc.id, {
         user_id: member.id,
         can_add: patch.can_add ?? member.can_add,
         can_view: patch.can_view ?? member.can_view,
         can_delete: patch.can_delete ?? member.can_delete,
         can_archive: patch.can_archive ?? member.can_archive,
-      }
-      await api.setFirmDocumentAccessRights(document.id, next)
-      const data = await api.firmDocumentAccessRights(document.id)
+      })
+      const data = await api.firmDocumentAccessRights(doc.id)
       setMembers(data.members || [])
     } catch (err) {
       onError?.(err.data?.message || err.message)
@@ -117,7 +114,7 @@ function AccessRightsModal({ open, onClose, document, firmId, onError }) {
   if (!open || typeof window === 'undefined') return null
 
   return createPortal(
-    <div className="compliance-audit-modal" role="presentation">
+    <div className="compliance-audit-modal firm-docs-access-modal" role="presentation">
       <button
         type="button"
         className="compliance-audit-modal__backdrop"
@@ -125,7 +122,7 @@ function AccessRightsModal({ open, onClose, document, firmId, onError }) {
         onClick={onClose}
       />
       <div
-        className="compliance-audit-modal__dialog"
+        className="compliance-audit-modal__dialog firm-docs-access-modal__dialog"
         role="dialog"
         aria-modal="true"
         aria-label="Document access rights"
@@ -133,10 +130,7 @@ function AccessRightsModal({ open, onClose, document, firmId, onError }) {
         <div className="compliance-audit-modal__head">
           <div>
             <h3>Access rights</h3>
-            <p className="muted">
-              {document?.title}
-              {firmId ? ` · Firm #${firmId}` : ''}
-            </p>
+            <p className="muted">{doc?.title}</p>
           </div>
           <button
             type="button"
@@ -149,80 +143,57 @@ function AccessRightsModal({ open, onClose, document, firmId, onError }) {
         </div>
         <div className="compliance-audit-modal__body">
           <p className="muted" style={{ marginTop: 0 }}>
-            Grant view / add / delete / archive for this document only. The Head of Firm always has
-            all rights.
+            Grant rights for this document only. The Head of Firm always has all rights.
           </p>
-          <DataGrid
-            columns={[
-              {
-                key: 'name',
-                label: 'Member',
-                grow: true,
-                render: (row) => (
-                  <strong>
-                    {row.name}
-                    {row.is_firm_head ? <span className="muted"> · Head</span> : null}
-                  </strong>
-                ),
-              },
-              {
-                key: 'can_view',
-                label: 'View',
-                fit: true,
-                render: (row) => (
-                  <input
-                    type="checkbox"
-                    disabled={row.is_firm_head || savingUserId === row.id}
-                    checked={Boolean(row.can_view)}
-                    onChange={(e) => updateRight(row, { can_view: e.target.checked })}
-                  />
-                ),
-              },
-              {
-                key: 'can_add',
-                label: 'Add',
-                fit: true,
-                render: (row) => (
-                  <input
-                    type="checkbox"
-                    disabled={row.is_firm_head || savingUserId === row.id}
-                    checked={Boolean(row.can_add)}
-                    onChange={(e) => updateRight(row, { can_add: e.target.checked })}
-                  />
-                ),
-              },
-              {
-                key: 'can_archive',
-                label: 'Archive',
-                fit: true,
-                render: (row) => (
-                  <input
-                    type="checkbox"
-                    disabled={row.is_firm_head || savingUserId === row.id}
-                    checked={Boolean(row.can_archive)}
-                    onChange={(e) => updateRight(row, { can_archive: e.target.checked })}
-                  />
-                ),
-              },
-              {
-                key: 'can_delete',
-                label: 'Delete',
-                fit: true,
-                render: (row) => (
-                  <input
-                    type="checkbox"
-                    disabled={row.is_firm_head || savingUserId === row.id}
-                    checked={Boolean(row.can_delete)}
-                    onChange={(e) => updateRight(row, { can_delete: e.target.checked })}
-                  />
-                ),
-              },
-            ]}
-            rows={members}
-            loading={loading}
-            emptyMessage="No firm members yet."
-            getRowKey={(row) => row.id}
-          />
+          {loading ? (
+            <p className="muted">Loading members…</p>
+          ) : members.length === 0 ? (
+            <p className="muted">No firm members yet.</p>
+          ) : (
+            <div className="firm-docs-access-table-wrap">
+              <table className="firm-docs-access-table">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>View</th>
+                    <th>Add</th>
+                    <th>Archive</th>
+                    <th>Delete</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        <div className="firm-docs-access-member">
+                          <strong>
+                            {row.name}
+                            {row.is_firm_head ? (
+                              <span className="muted"> · Head</span>
+                            ) : null}
+                          </strong>
+                          {row.email ? (
+                            <span className="muted firm-docs-access-email">{row.email}</span>
+                          ) : null}
+                        </div>
+                      </td>
+                      {['can_view', 'can_add', 'can_archive', 'can_delete'].map((key) => (
+                        <td key={key} className="firm-docs-access-check">
+                          <input
+                            type="checkbox"
+                            disabled={row.is_firm_head || savingUserId === row.id}
+                            checked={Boolean(row[key])}
+                            onChange={(e) => updateRight(row, { [key]: e.target.checked })}
+                            aria-label={`${key.replace('can_', '')} for ${row.name}`}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>,
@@ -239,7 +210,6 @@ export default function FirmDocuments() {
   const [flatFolderOptions, setFlatFolderOptions] = useState([])
   const [categories, setCategories] = useState([])
   const [rights, setRights] = useState(null)
-  const [scope, setScope] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -248,10 +218,8 @@ export default function FirmDocuments() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [files, setFiles] = useState([])
-  /** '' = main/root, otherwise put file in that folder id */
-  const [uploadFolderId, setUploadFolderId] = useState('')
-  /** When true, also create a new folder (optionally under parent) for this upload */
-  const [createFolderOnUpload, setCreateFolderOnUpload] = useState(false)
+  /** '' | folder id | '__new__' */
+  const [folderChoice, setFolderChoice] = useState('')
   const [newFolderName, setNewFolderName] = useState('')
   const [newFolderParentId, setNewFolderParentId] = useState('')
   const [categoryId, setCategoryId] = useState('')
@@ -322,9 +290,7 @@ export default function FirmDocuments() {
         list = [{ id: ownFirmId, name: 'My firm' }]
       }
       setFirms(list)
-      if (!firmId && list[0]) {
-        setFirmId(String(list[0].id))
-      }
+      if (!firmId && list[0]) setFirmId(String(list[0].id))
     } catch (err) {
       setError(err.message)
     }
@@ -343,16 +309,13 @@ export default function FirmDocuments() {
     setError('')
     try {
       const [data, cats, folderList] = await Promise.all([
-        api.listFirmDocuments({ firm_id: id, scope }),
+        api.listFirmDocuments({ firm_id: id, scope: 'active' }),
         api.firmDocumentCategories().catch(() => ({ categories: [] })),
         api.listFirmDocumentFolders({ firm_id: id }).catch(() => ({ folders: [] })),
       ])
       setFolders(data.folders || [])
-      // Root-level docs (no folder) — shown at main level like a PC, not under "Unfiled".
       setRootDocuments(
-        data.unfiled_documents ||
-          (data.folders ? [] : data.documents) ||
-          []
+        data.unfiled_documents || (data.folders ? [] : data.documents) || []
       )
       setRights(data.rights || null)
       setCategories(cats.categories || [])
@@ -365,9 +328,7 @@ export default function FirmDocuments() {
       })
       if (data.firm) {
         setFirms((prev) => {
-          if (isFirmHead || prev.length <= 1) {
-            return [data.firm]
-          }
+          if (isFirmHead || prev.length <= 1) return [data.firm]
           if (prev.some((f) => String(f.id) === String(data.firm.id))) {
             return prev.map((f) =>
               String(f.id) === String(data.firm.id) ? data.firm : f
@@ -394,14 +355,13 @@ export default function FirmDocuments() {
     setExpanded(new Set())
     loadDocuments()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firmId, scope, actingHubId])
+  }, [firmId, actingHubId])
 
   const resetUploadForm = () => {
     setTitle('')
     setDescription('')
     setFiles([])
-    setUploadFolderId('')
-    setCreateFolderOnUpload(false)
+    setFolderChoice('')
     setNewFolderName('')
     setNewFolderParentId('')
     setCategoryId('')
@@ -410,10 +370,10 @@ export default function FirmDocuments() {
   const onUpload = async (e) => {
     e.preventDefault()
     if (!files.length) {
-      setError('Add at least one file.')
+      setError('Add one attachment file.')
       return
     }
-    if (createFolderOnUpload && !newFolderName.trim()) {
+    if (folderChoice === '__new__' && !newFolderName.trim()) {
       setError('Enter a name for the new folder.')
       return
     }
@@ -427,14 +387,14 @@ export default function FirmDocuments() {
       if (description.trim()) formData.append('description', description.trim())
       if (categoryId) formData.append('category_id', categoryId)
 
-      if (createFolderOnUpload) {
+      if (folderChoice === '__new__') {
         formData.append('folder_name', newFolderName.trim())
         if (newFolderParentId) formData.append('parent_folder_id', newFolderParentId)
-      } else if (uploadFolderId) {
-        formData.append('folder_id', uploadFolderId)
+      } else if (folderChoice) {
+        formData.append('folder_id', folderChoice)
       }
 
-      files.forEach((file) => formData.append('attachments[]', file))
+      formData.append('attachments[]', files[0])
       const data = await api.createFirmDocument(formData)
       setMessage(data.message || 'Document uploaded.')
       setShowUpload(false)
@@ -485,11 +445,8 @@ export default function FirmDocuments() {
 
   const toggleArchive = async (doc) => {
     try {
-      if (doc.is_archived) {
-        await api.unarchiveFirmDocument(doc.id)
-      } else {
-        await api.archiveFirmDocument(doc.id)
-      }
+      if (doc.is_archived) await api.unarchiveFirmDocument(doc.id)
+      else await api.archiveFirmDocument(doc.id)
       await loadDocuments()
     } catch (err) {
       setError(err.message)
@@ -524,60 +481,63 @@ export default function FirmDocuments() {
   const docCanDelete = (doc) =>
     Boolean(doc.viewer_rights?.can_delete || rights?.can_delete || can('firm_documents_delete'))
 
-  const renderDocumentRow = (doc, depth) => (
-    <tr key={`doc-${doc.id}`} className="data-grid__row">
-      <td style={{ paddingLeft: `${1 + depth * 1.25}rem` }}>
-        <div>
-          <strong>{doc.title}</strong>
-          {doc.is_archived ? <span className="muted"> · Archived</span> : null}
-          {doc.description ? <div className="muted">{doc.description}</div> : null}
-        </div>
-      </td>
-      <td>{doc.category?.name || '—'}</td>
-      <td>
-        {(doc.attachments || []).length ? (
-          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-            {doc.attachments.map((file) => (
-              <li key={file.id}>
-                <a href={file.file_url} target="_blank" rel="noreferrer">
-                  {file.original_name}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <span className="muted">—</span>
-        )}
-      </td>
-      <td>{doc.uploader?.name || '—'}</td>
-      <td>
-        <div className="data-grid__actions">
-          {canManageRights ? (
-            <DataGridIconBtn
-              icon={FaKey}
-              label="Access rights"
-              onClick={() => setAccessDoc(doc)}
-            />
-          ) : null}
-          {docCanArchive(doc) ? (
-            <DataGridIconBtn
-              icon={doc.is_archived ? FaBoxOpen : FaArchive}
-              label={doc.is_archived ? 'Unarchive' : 'Archive'}
-              onClick={() => toggleArchive(doc)}
-            />
-          ) : null}
-          {docCanDelete(doc) ? (
-            <DataGridIconBtn
-              icon={FaTrash}
-              label="Delete"
-              variant="danger"
-              onClick={() => deleteDoc(doc)}
-            />
-          ) : null}
-        </div>
-      </td>
-    </tr>
-  )
+  const primaryAttachment = (doc) => (doc.attachments || [])[0] || null
+
+  const renderDocumentRow = (doc, depth) => {
+    const file = primaryAttachment(doc)
+    return (
+      <tr key={`doc-${doc.id}`}>
+        <td style={{ paddingLeft: `${0.85 + depth * 1.1}rem` }}>
+          <div className="firm-docs-doc-cell">
+            <strong className="firm-docs-doc-title">{doc.title}</strong>
+            {file ? (
+              <a
+                className="firm-docs-doc-file"
+                href={file.file_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {file.original_name}
+              </a>
+            ) : (
+              <span className="muted">No file</span>
+            )}
+          </div>
+        </td>
+        <td className="firm-docs-desc-cell">
+          {doc.description ? doc.description : <span className="muted">—</span>}
+        </td>
+        <td>{doc.category?.name || '—'}</td>
+        <td>{doc.uploader?.name || '—'}</td>
+        <td>
+          <div className="data-grid__actions">
+            {canManageRights ? (
+              <DataGridIconBtn
+                icon={FaKey}
+                label="Access rights"
+                onClick={() => setAccessDoc(doc)}
+              />
+            ) : null}
+            {docCanArchive(doc) ? (
+              <DataGridIconBtn
+                icon={doc.is_archived ? FaBoxOpen : FaArchive}
+                label={doc.is_archived ? 'Unarchive' : 'Archive'}
+                onClick={() => toggleArchive(doc)}
+              />
+            ) : null}
+            {docCanDelete(doc) ? (
+              <DataGridIconBtn
+                icon={FaTrash}
+                label="Delete"
+                variant="danger"
+                onClick={() => deleteDoc(doc)}
+              />
+            ) : null}
+          </div>
+        </td>
+      </tr>
+    )
+  }
 
   const visibleFolderRows = useMemo(() => {
     const parentById = {}
@@ -613,33 +573,57 @@ export default function FirmDocuments() {
   }, [folderRows, expanded, flatFolderOptions])
 
   return (
-    <section>
+    <section className="firm-docs-page">
       <div className="page-head">
         <div>
           <p className="eyebrow">Hub</p>
           <h1>Firm documents</h1>
           <p className="muted">
-            Folders, categories, and per-document access. The Head of Firm has all rights and can
-            grant access on each document via the key icon.
+            Folders, categories, and per-document access. Use the key icon to grant member rights.
           </p>
         </div>
+        {functionalityEnabled && canAdd ? (
+          <div className="actions firm-docs-page-actions">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
+                setShowUpload(false)
+                openNewFolderForm('')
+              }}
+            >
+              <FaFolderPlus style={{ marginRight: 6 }} />
+              New folder
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => {
+                setShowNewFolder(false)
+                setShowUpload((v) => !v)
+              }}
+            >
+              <FaUpload style={{ marginRight: 6 }} />
+              Upload new document
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
       {rights && rights.functionality_enabled === false && !rights.is_firm_head ? (
         <div className="alert">
-          Hub-wide firm document tools are off. A Power Admin can enable{' '}
-          <strong>Functionalities → Firm documents</strong> on this hub (from Central, with
-          remote DB wiring) for all-firms matrix access. Head of Firm still has access to
-          their own firm’s documents.
+          Hub-wide firm document tools are off. Enable{' '}
+          <strong>Functionalities → Firm documents</strong> for matrix access. Head of Firm still
+          has access to their own firm’s documents.
         </div>
       ) : null}
 
-      <div className="admin-form" style={{ marginBottom: '1rem' }}>
+      <div className="firm-docs-toolbar">
         {showFirmPicker ? (
-          <label>
-            Firm
+          <label className="firm-docs-toolbar__field">
+            <span>Firm</span>
             <select value={firmId} onChange={(e) => setFirmId(e.target.value)}>
               <option value="">Select a firm</option>
               {firms.map((firm) => (
@@ -650,94 +634,51 @@ export default function FirmDocuments() {
               ))}
             </select>
           </label>
-        ) : selectedFirm || firmId ? (
-          <p className="muted" style={{ marginBottom: 0 }}>
-            Firm: <strong>{selectedFirm?.name || 'My firm'}</strong>
-            {isFirmHead ? ' · You are the Head of Firm' : ''}
-          </p>
-        ) : null}
-        <label>
-          Show
-          <select value={scope} onChange={(e) => setScope(e.target.value)}>
-            <option value="all">All</option>
-            <option value="archived">Archived</option>
-          </select>
-        </label>
+        ) : (
+          <div className="firm-docs-toolbar__meta">
+            <span className="muted">Firm</span>
+            <strong>{selectedFirm?.name || 'My firm'}</strong>
+            {isFirmHead ? <span className="muted">· You are Head of Firm</span> : null}
+          </div>
+        )}
         {showFirmPicker && selectedFirm?.head_user ? (
-          <p className="muted" style={{ marginBottom: 0 }}>
-            Head of Firm: <strong>{selectedFirm.head_user.name}</strong> (
-            {selectedFirm.head_user.email})
-          </p>
+          <div className="firm-docs-toolbar__meta">
+            <span className="muted">Head</span>
+            <strong>{selectedFirm.head_user.name}</strong>
+          </div>
         ) : null}
       </div>
 
-      {functionalityEnabled && canAdd ? (
-        <div
-          style={{
-            marginBottom: '0.75rem',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '0.5rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => {
-              setShowUpload(false)
-              openNewFolderForm('')
-            }}
-          >
-            <FaFolderPlus style={{ marginRight: 6 }} />
-            New folder
-          </button>
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() => {
-              setShowNewFolder(false)
-              setShowUpload((v) => !v)
-            }}
-          >
-            <FaUpload style={{ marginRight: 6 }} />
-            Upload new document
-          </button>
-        </div>
-      ) : null}
-
       {showNewFolder ? (
-        <form className="admin-form" onSubmit={onCreateFolder} style={{ marginBottom: '1.5rem' }}>
+        <form className="admin-form firm-docs-panel" onSubmit={onCreateFolder}>
           <h2 style={{ marginTop: 0 }}>
             {newFolderParentId ? 'New subfolder' : 'New folder'}
           </h2>
-          <label>
-            Folder name
-            <input
-              required
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="e.g. Policies"
-            />
-          </label>
-          <label>
-            Location
-            <select
-              value={newFolderParentId}
-              onChange={(e) => setNewFolderParentId(e.target.value)}
-            >
-              <option value="">Main (top level)</option>
-              {folderChoices.map((f) => (
-                <option key={f.id} value={f.id}>
-                  Inside: {f.pathLabel}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="muted">
-            Choose <strong>Main</strong> for a top-level folder, or pick a folder to create a
-            subfolder inside it.
-          </p>
+          <div className="firm-docs-form-grid">
+            <label>
+              Folder name
+              <input
+                required
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="e.g. Policies"
+              />
+            </label>
+            <label>
+              Location
+              <select
+                value={newFolderParentId}
+                onChange={(e) => setNewFolderParentId(e.target.value)}
+              >
+                <option value="">Main (top level)</option>
+                {folderChoices.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    Inside: {f.pathLabel}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <div className="actions">
             <button className="btn primary" disabled={folderSaving}>
               {folderSaving ? 'Creating…' : 'Create folder'}
@@ -759,79 +700,37 @@ export default function FirmDocuments() {
       ) : null}
 
       {showUpload ? (
-        <form className="admin-form" onSubmit={onUpload} style={{ marginBottom: '1.5rem' }}>
+        <form className="admin-form firm-docs-panel" onSubmit={onUpload}>
           <h2 style={{ marginTop: 0 }}>Upload document</h2>
-          <label>
-            Title
-            <input required value={title} onChange={(e) => setTitle(e.target.value)} />
-          </label>
-          <label>
-            Description (optional)
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-          </label>
-          <label>
-            Category (optional)
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-              <option value="">No category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          {categories.length === 0 ? (
-            <p className="muted">
-              No categories yet. An admin with <strong>Manage firm document categories</strong> can
-              add them.
-            </p>
-          ) : null}
-
-          <label>
-            <input
-              type="checkbox"
-              checked={createFolderOnUpload}
-              onChange={(e) => {
-                setCreateFolderOnUpload(e.target.checked)
-                if (e.target.checked) setUploadFolderId('')
-              }}
-              style={{ marginRight: 8 }}
-            />
-            Create a new folder for this document
-          </label>
-
-          {createFolderOnUpload ? (
-            <>
-              <label>
-                New folder name
-                <input
-                  required
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  placeholder="e.g. Policies"
-                />
-              </label>
-              <label>
-                Put new folder inside (optional)
-                <select
-                  value={newFolderParentId}
-                  onChange={(e) => setNewFolderParentId(e.target.value)}
-                >
-                  <option value="">Main (top level)</option>
-                  {folderChoices.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.pathLabel}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </>
-          ) : (
+          <div className="firm-docs-form-grid">
+            <label>
+              Title
+              <input required value={title} onChange={(e) => setTitle(e.target.value)} />
+            </label>
+            <label>
+              Category (optional)
+              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                <option value="">No category</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="firm-docs-form-grid__full">
+              Description (optional)
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+              />
+            </label>
             <label>
               Folder
               <select
-                value={uploadFolderId}
-                onChange={(e) => setUploadFolderId(e.target.value)}
+                value={folderChoice}
+                onChange={(e) => setFolderChoice(e.target.value)}
               >
                 <option value="">Main (no folder)</option>
                 {folderChoices.map((f) => (
@@ -839,22 +738,46 @@ export default function FirmDocuments() {
                     {f.pathLabel}
                   </option>
                 ))}
+                <option value="__new__">Create new folder…</option>
               </select>
             </label>
-          )}
-          {!createFolderOnUpload && folderChoices.length === 0 ? (
-            <p className="muted">
-              No folders yet — the document will sit at the main level. Use{' '}
-              <strong>New folder</strong> above, or tick “Create a new folder for this document”.
-            </p>
-          ) : null}
-
+            {folderChoice === '__new__' ? (
+              <>
+                <label>
+                  New folder name
+                  <input
+                    required
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    placeholder="e.g. Policies"
+                  />
+                </label>
+                <label>
+                  Put new folder inside
+                  <select
+                    value={newFolderParentId}
+                    onChange={(e) => setNewFolderParentId(e.target.value)}
+                  >
+                    <option value="">Main (top level)</option>
+                    {folderChoices.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.pathLabel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            ) : null}
+          </div>
           <FileDropzone
             accept={COMPLIANCE_SUPPORTING_FILES_ACCEPT}
-            multiple
+            multiple={false}
+            maxFiles={1}
             files={files}
             onChange={setFiles}
-            label="Attachments (PDF, Word, images, etc.)"
+            label="Attachment (one file)"
+            hint="PDF, Word, Excel, images, etc."
+            required
           />
           <div className="actions">
             <button className="btn primary" disabled={saving}>
@@ -875,84 +798,92 @@ export default function FirmDocuments() {
         </form>
       ) : null}
 
-      <div className="data-grid">
-        <table className="data-grid__table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Files</th>
-              <th>Uploaded by</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+      <div className="data-grid firm-docs-grid">
+        <div className="data-grid__wrap">
+          <table className="data-grid__table firm-docs-table">
+            <colgroup>
+              <col className="firm-docs-col-doc" />
+              <col className="firm-docs-col-desc" />
+              <col className="firm-docs-col-cat" />
+              <col className="firm-docs-col-uploader" />
+              <col className="firm-docs-col-actions" />
+            </colgroup>
+            <thead>
               <tr>
-                <td colSpan={5} className="muted">
-                  Loading…
-                </td>
+                <th>Document</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Uploaded by</th>
+                <th>Actions</th>
               </tr>
-            ) : null}
-            {!loading && visibleFolderRows.length === 0 && rootDocuments.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="muted">
-                  {firmId ? 'No documents yet.' : 'Select a firm to view documents.'}
-                </td>
-              </tr>
-            ) : null}
-            {!loading
-              ? visibleFolderRows.map((row) => {
-                  if (row.type === 'document') {
-                    return renderDocumentRow(row.document, row.depth)
-                  }
-                  const isOpen = expanded.has(row.id)
-                  return (
-                    <tr key={row.id} className="data-grid__row">
-                      <td style={{ paddingLeft: `${1 + row.depth * 1.25}rem`, fontWeight: 600 }}>
-                        <button
-                          type="button"
-                          className="btn ghost"
-                          style={{ padding: '0.15rem 0.4rem', marginRight: 6 }}
-                          onClick={() => toggleExpand(row.id)}
-                          aria-label={isOpen ? 'Collapse folder' : 'Expand folder'}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="muted">
+                    Loading…
+                  </td>
+                </tr>
+              ) : null}
+              {!loading && visibleFolderRows.length === 0 && rootDocuments.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="muted">
+                    {firmId ? 'No documents yet.' : 'Select a firm to view documents.'}
+                  </td>
+                </tr>
+              ) : null}
+              {!loading
+                ? visibleFolderRows.map((row) => {
+                    if (row.type === 'document') {
+                      return renderDocumentRow(row.document, row.depth)
+                    }
+                    const isOpen = expanded.has(row.id)
+                    return (
+                      <tr key={row.id} className="firm-docs-folder-row">
+                        <td
+                          colSpan={4}
+                          style={{ paddingLeft: `${0.85 + row.depth * 1.1}rem` }}
                         >
-                          {isOpen ? <FaChevronDown /> : <FaChevronRight />}
-                        </button>
-                        <FaFolder style={{ marginRight: 8, opacity: 0.75 }} />
-                        {row.name}
-                        <span className="muted" style={{ fontWeight: 400, marginLeft: 8 }}>
-                          ({row.documentCount} doc{row.documentCount === 1 ? '' : 's'})
-                        </span>
-                      </td>
-                      <td colSpan={3} />
-                      <td>
-                        {canAdd ? (
-                          <div className="data-grid__actions">
-                            <DataGridIconBtn
-                              icon={FaFolderPlus}
-                              label="New subfolder"
-                              onClick={() => openNewFolderForm(row.folderId)}
-                            />
-                          </div>
-                        ) : null}
-                      </td>
-                    </tr>
-                  )
-                })
-              : null}
-            {/* Root-level documents (no folder) — same level as top folders, like a PC */}
-            {!loading
-              ? rootDocuments.map((doc) => renderDocumentRow(doc, 0))
-              : null}
-          </tbody>
-        </table>
+                          <button
+                            type="button"
+                            className="firm-docs-folder-toggle"
+                            onClick={() => toggleExpand(row.id)}
+                            aria-expanded={isOpen}
+                          >
+                            {isOpen ? <FaChevronDown /> : <FaChevronRight />}
+                            <FaFolder className="firm-docs-folder-icon" />
+                            <span>{row.name}</span>
+                            <span className="muted">
+                              ({row.documentCount} doc{row.documentCount === 1 ? '' : 's'})
+                            </span>
+                          </button>
+                        </td>
+                        <td>
+                          {canAdd ? (
+                            <div className="data-grid__actions">
+                              <DataGridIconBtn
+                                icon={FaFolderPlus}
+                                label="New subfolder"
+                                onClick={() => openNewFolderForm(row.folderId)}
+                              />
+                            </div>
+                          ) : null}
+                        </td>
+                      </tr>
+                    )
+                  })
+                : null}
+              {!loading
+                ? rootDocuments.map((doc) => renderDocumentRow(doc, 0))
+                : null}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <AccessRightsModal
         open={Boolean(accessDoc)}
         document={accessDoc}
-        firmId={firmId}
         onClose={() => setAccessDoc(null)}
         onError={setError}
       />

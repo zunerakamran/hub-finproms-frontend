@@ -7173,3 +7173,178 @@ td.data-grid__actions {
   border-radius: 8px;
   background: #fff;
 }
+
+/* —— Firm documents library —— */
+.firm-docs-page .page-head {
+  align-items: flex-start;
+  gap: 1rem;
+}
+.firm-docs-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+.firm-docs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.85rem 1.25rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--panel, #fff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 14px;
+}
+.firm-docs-toolbar__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: min(16rem, 100%);
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+.firm-docs-toolbar__field select {
+  font-weight: 500;
+  min-width: 14rem;
+}
+.firm-docs-toolbar__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.55rem;
+  font-size: 0.9rem;
+}
+.firm-docs-panel {
+  margin-bottom: 1.25rem;
+}
+.firm-docs-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+.firm-docs-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+}
+.firm-docs-form-grid__full {
+  grid-column: 1 / -1;
+}
+@media (max-width: 720px) {
+  .firm-docs-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.firm-docs-grid {
+  margin-top: 0.25rem;
+}
+.firm-docs-table {
+  table-layout: fixed;
+}
+.firm-docs-col-doc { width: 32%; }
+.firm-docs-col-desc { width: 28%; }
+.firm-docs-col-cat { width: 14%; }
+.firm-docs-col-uploader { width: 14%; }
+.firm-docs-col-actions { width: 12%; }
+.firm-docs-doc-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.firm-docs-doc-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.firm-docs-doc-file {
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.firm-docs-desc-cell {
+  color: #475569;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+}
+.firm-docs-folder-row td {
+  background: color-mix(in srgb, var(--brand, #1d4ed8) 4%, #f8fafc);
+  font-weight: 600;
+}
+.firm-docs-folder-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  background: transparent;
+  padding: 0.15rem 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+}
+.firm-docs-folder-icon {
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+.firm-docs-access-modal__dialog {
+  width: min(44rem, 100%) !important;
+  max-height: min(90vh, 36rem);
+}
+.firm-docs-access-table-wrap {
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+.firm-docs-access-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  table-layout: auto;
+}
+.firm-docs-access-table th,
+.firm-docs-access-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: middle;
+}
+.firm-docs-access-table th {
+  background: #f8fafc;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+  white-space: nowrap;
+}
+.firm-docs-access-table tr:last-child td {
+  border-bottom: 0;
+}
+.firm-docs-access-member {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 12rem;
+}
+.firm-docs-access-email {
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+.firm-docs-access-check {
+  width: 4.5rem;
+  text-align: center !important;
+}
+.firm-docs-access-check input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  cursor: pointer;
+}

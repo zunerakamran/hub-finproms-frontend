@@ -7174,16 +7174,10 @@ td.data-grid__actions {
   background: #fff;
 }
 
-/* —— Firm documents library —— */
+/* ?? Firm documents library ?? */
 .firm-docs-page .page-head {
   align-items: flex-start;
   gap: 1rem;
-}
-.firm-docs-page-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: flex-end;
 }
 .firm-docs-toolbar {
   display: flex;
@@ -7195,6 +7189,26 @@ td.data-grid__actions {
   background: var(--panel, #fff);
   border: 1px solid var(--line, #e2e8f0);
   border-radius: 14px;
+}
+.firm-docs-toolbar__actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+.firm-docs-table-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 0.5rem;
+}
+.firm-docs-grid .data-grid__table.firm-docs-table thead th,
+.firm-docs-grid .data-grid__table.firm-docs-table th,
+.firm-docs-table thead th,
+.firm-docs-table th {
+  text-align: left !important;
+}
+.firm-docs-grid .data-grid__table.firm-docs-table td,
+.firm-docs-table td {
+  text-align: left;
 }
 .firm-docs-toolbar__field {
   display: flex;

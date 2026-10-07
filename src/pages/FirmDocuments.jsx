@@ -591,41 +591,6 @@ export default function FirmDocuments() {
             Folders, categories, and per-document access. Use the key icon to grant member rights.
           </p>
         </div>
-        {functionalityEnabled && canAdd ? (
-          <div className="actions firm-docs-page-actions">
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() => {
-                setShowUpload(false)
-                openNewFolderForm('')
-              }}
-            >
-              <FaFolderPlus style={{ marginRight: 6 }} />
-              New folder
-            </button>
-            <button
-              type="button"
-              className="btn primary"
-              onClick={async () => {
-                setShowNewFolder(false)
-                const opening = !showUpload
-                setShowUpload(opening)
-                if (opening) {
-                  try {
-                    const cats = await api.firmDocumentCategories()
-                    setCategories(cats.categories || [])
-                  } catch {
-                    // Keep whatever was loaded with the library.
-                  }
-                }
-              }}
-            >
-              <FaUpload style={{ marginRight: 6 }} />
-              Upload new document
-            </button>
-          </div>
-        ) : null}
       </div>
 
       {error && <div className="alert">{error}</div>}
@@ -647,22 +612,29 @@ export default function FirmDocuments() {
               {firms.map((firm) => (
                 <option key={firm.id} value={firm.id}>
                   {firm.name}
-                  {firm.head_user?.name ? ` · Head: ${firm.head_user.name}` : ''}
                 </option>
               ))}
             </select>
           </label>
-        ) : (
+        ) : selectedFirm || firmId ? (
           <div className="firm-docs-toolbar__meta">
             <span className="muted">Firm</span>
             <strong>{selectedFirm?.name || 'My firm'}</strong>
-            {isFirmHead ? <span className="muted">· You are Head of Firm</span> : null}
           </div>
-        )}
-        {showFirmPicker && selectedFirm?.head_user ? (
-          <div className="firm-docs-toolbar__meta">
-            <span className="muted">Head</span>
-            <strong>{selectedFirm.head_user.name}</strong>
+        ) : null}
+        {functionalityEnabled && canAdd ? (
+          <div className="firm-docs-toolbar__actions">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
+                setShowUpload(false)
+                openNewFolderForm('')
+              }}
+            >
+              <FaFolderPlus style={{ marginRight: 6 }} />
+              New folder
+            </button>
           </div>
         ) : null}
       </div>
@@ -814,6 +786,31 @@ export default function FirmDocuments() {
             </button>
           </div>
         </form>
+      ) : null}
+
+      {functionalityEnabled && canAdd ? (
+        <div className="firm-docs-table-actions">
+          <button
+            type="button"
+            className="btn primary"
+            onClick={async () => {
+              setShowNewFolder(false)
+              const opening = !showUpload
+              setShowUpload(opening)
+              if (opening) {
+                try {
+                  const cats = await api.firmDocumentCategories()
+                  setCategories(cats.categories || [])
+                } catch {
+                  // Keep whatever was loaded with the library.
+                }
+              }
+            }}
+          >
+            <FaUpload style={{ marginRight: 6 }} />
+            Upload
+          </button>
+        </div>
       ) : null}
 
       <div className="data-grid firm-docs-grid">

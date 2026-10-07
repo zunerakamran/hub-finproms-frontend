@@ -450,13 +450,22 @@ export const DASHBOARD_LINKS = [
     label: 'Firm documents',
     title: 'Firm documents',
     description:
-      'Upload and manage firm attachments (images, Word, PDF). Heads have all rights and can grant access to members.',
+      'Upload and manage firm attachments in folders. Heads have all rights and grant per-document access via the key icon.',
     anyOf: [
       'firm_documents_view',
       'firm_documents_add',
       'firm_documents_delete',
       'firm_documents_archive',
     ],
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/firm-documents/categories',
+    label: 'Document categories',
+    title: 'Document categories',
+    description:
+      'Add and edit category options shown when uploading firm documents (same pattern as General Compliance content types).',
+    capability: 'firm_documents_manage_categories',
     group: 'hub',
   },
   {

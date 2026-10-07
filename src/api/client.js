@@ -287,6 +287,34 @@ export const api = {
     ).toString()
     return request(`/firm-documents${query ? `?${query}` : ''}`)
   },
+  listFirmDocumentFolders: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/firm-documents/folders${query ? `?${query}` : ''}`)
+  },
+  createFirmDocumentFolder: (payload) =>
+    request('/firm-documents/folders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  firmDocumentCategories: () => request('/firm-documents/categories'),
+  firmDocumentAdminCategories: (options = {}) =>
+    request(`${adminBase(options)}/firm-documents/categories`),
+  createFirmDocumentCategory: (payload, options = {}) =>
+    request(`${adminBase(options)}/firm-documents/categories`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateFirmDocumentCategory: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/firm-documents/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  deleteFirmDocumentCategory: (id, options = {}) =>
+    request(`${adminBase(options)}/firm-documents/categories/${id}`, {
+      method: 'DELETE',
+    }),
   createFirmDocument: (formData) =>
     request('/firm-documents', { method: 'POST', body: formData }),
   deleteFirmDocument: (id) =>
@@ -303,6 +331,13 @@ export const api = {
   },
   setFirmDocumentMemberRights: (payload) =>
     request('/firm-documents/member-rights', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  firmDocumentAccessRights: (documentId) =>
+    request(`/firm-documents/${documentId}/member-rights`),
+  setFirmDocumentAccessRights: (documentId, payload) =>
+    request(`/firm-documents/${documentId}/member-rights`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),

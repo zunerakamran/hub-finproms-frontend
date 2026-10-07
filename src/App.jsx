@@ -36,6 +36,7 @@ const AdminBundles = lazy(() => import('./pages/AdminBundles'))
 const AdminCategories = lazy(() => import('./pages/AdminCategories'))
 const AdminFirms = lazy(() => import('./pages/AdminFirms'))
 const FirmDocuments = lazy(() => import('./pages/FirmDocuments'))
+const AdminFirmDocumentCategories = lazy(() => import('./pages/AdminFirmDocumentCategories'))
 const AdminPaymentCard = lazy(() => import('./pages/AdminPaymentCard'))
 const AdminPaymentCardSuccess = lazy(() => import('./pages/AdminPaymentCardSuccess'))
 const AdminPlans = lazy(() => import('./pages/AdminPlans'))
@@ -348,6 +349,14 @@ export default function App() {
                       ]}
                     >
                       <FirmDocuments />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="firm-documents/categories"
+                  element={
+                    <HubCapabilityRoute capability="firm_documents_manage_categories">
+                      <AdminFirmDocumentCategories />
                     </HubCapabilityRoute>
                   }
                 />

@@ -28,6 +28,7 @@ export const DASHBOARD_NAV_DEFAULTS = {
     '/my-dashboard/tags': 'Tags',
     '/my-dashboard/firms': 'Firms',
     '/my-dashboard/firm-documents': 'Firm documents',
+    '/my-dashboard/firm-documents/categories': 'Document categories',
     '/my-dashboard/plans': 'Subscriptions',
     '/my-dashboard/settings': 'Settings',
     '/my-dashboard/terms': 'Terms & Conditions',

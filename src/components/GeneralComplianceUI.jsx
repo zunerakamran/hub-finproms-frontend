@@ -7,6 +7,7 @@ import {
 import { useHub } from '../context/HubContext'
 import { StatusWithDate } from './DataGrid'
 import ComplianceStatusText from './ComplianceStatusText'
+import FileNameLabel from './FileNameLabel'
 import RichTextDisplay from './RichTextDisplay'
 
 export default function GcStatusBadge({ status, at }) {
@@ -69,13 +70,12 @@ export function GcAttachmentList({
         return (
           <li key={file.id || `${file.original_name}-${file.file_path}`}>
             <div className="gc-attach-row">
-              {file.file_url ? (
-                <a href={file.file_url} target="_blank" rel="noreferrer">
-                  {file.original_name || 'Download'}
-                </a>
-              ) : (
-                <span>{file.original_name || 'File'}</span>
-              )}
+              <FileNameLabel
+                name={file.original_name}
+                mimeType={file.mime_type}
+                href={file.file_url || undefined}
+                fallback={file.file_url ? 'Download' : 'File'}
+              />
               {file.size_bytes != null && (
                 <span className="muted"> ({formatGcFileSize(file.size_bytes)})</span>
               )}

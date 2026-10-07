@@ -1,5 +1,6 @@
 import { stStatusClass, formatStFileSize } from '../utils/supportTickets'
 import { StatusWithDate } from './DataGrid'
+import FileNameLabel from './FileNameLabel'
 import RichTextDisplay from './RichTextDisplay'
 
 export default function StStatusBadge({ status, at }) {
@@ -19,13 +20,12 @@ export function StScreenshotList({ attachments = [], emptyLabel = 'No screenshot
       {attachments.map((file) => (
         <li key={file.id || `${file.original_name}-${file.file_path}`}>
           <div className="gc-attach-row">
-            {file.file_url ? (
-              <a href={file.file_url} target="_blank" rel="noreferrer">
-                {file.original_name || 'Download'}
-              </a>
-            ) : (
-              <span>{file.original_name || 'File'}</span>
-            )}
+            <FileNameLabel
+              name={file.original_name}
+              mimeType={file.mime_type}
+              href={file.file_url || undefined}
+              fallback={file.file_url ? 'Download' : 'File'}
+            />
             {file.size_bytes != null && (
               <span className="muted"> ({formatStFileSize(file.size_bytes)})</span>
             )}

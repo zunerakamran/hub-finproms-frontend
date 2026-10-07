@@ -4,7 +4,7 @@
  * use Upload (websiteComplianceUploadImage) or paste a remote https URL.
  */
 import { useMemo, useRef, useState } from 'react'
-import { FaCloudUploadAlt, FaFolderOpen, FaSearch, FaTimes } from 'react-icons/fa'
+import { FaCloudUploadAlt, FaFolderOpen, FaImage, FaSearch, FaTimes } from 'react-icons/fa'
 import {
   displayImagePath,
   imageStem,
@@ -70,7 +70,10 @@ export default function ImageFieldPicker({
         <div>
           <label className="block text-xs font-extrabold text-[var(--brand-dark)]">{label}</label>
           {value ? (
-            <p className="text-[11px] text-gray-500 mt-0.5 font-mono truncate max-w-xs">{displayName}</p>
+            <p className="inline-flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5 font-mono truncate max-w-xs" title={value}>
+              <FaImage className="w-3 h-3 shrink-0 text-gray-400" aria-hidden="true" />
+              <span className="truncate">{displayName}</span>
+            </p>
           ) : (
             <p className="text-[11px] text-gray-400 mt-0.5">No image selected — use Preview tab to see result</p>
           )}

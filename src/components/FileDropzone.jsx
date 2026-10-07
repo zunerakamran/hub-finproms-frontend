@@ -1,5 +1,29 @@
 import { useCallback, useId, useRef, useState } from 'react'
+import {
+  FaFile,
+  FaFileAlt,
+  FaFileArchive,
+  FaFileExcel,
+  FaFileImage,
+  FaFilePdf,
+  FaFilePowerpoint,
+  FaFileVideo,
+  FaFileWord,
+} from 'react-icons/fa'
 import { formatGcFileSize } from '../utils/generalCompliance'
+import { fileDisplayName, fileKind } from '../utils/fileDisplay'
+
+const KIND_ICONS = {
+  image: FaFileImage,
+  video: FaFileVideo,
+  pdf: FaFilePdf,
+  word: FaFileWord,
+  excel: FaFileExcel,
+  powerpoint: FaFilePowerpoint,
+  archive: FaFileArchive,
+  text: FaFileAlt,
+  file: FaFile,
+}
 
 function fileKey(file) {
   return `${file.name}-${file.size}-${file.lastModified}`
@@ -199,32 +223,37 @@ export default function FileDropzone({
 
       {selected.length > 0 ? (
         <ul className="file-dropzone-list">
-          {selected.map((file, index) => (
-            <li key={fileKey(file)} className="file-dropzone-chip">
-              <span className="file-dropzone-chip-icon" aria-hidden="true">
-                {file.type?.startsWith('image/') ? 'IMG' : 'FILE'}
-              </span>
-              <span className="file-dropzone-chip-meta">
-                <span className="file-dropzone-chip-name" title={file.name}>
-                  {file.name}
+          {selected.map((file, index) => {
+            const kind = fileKind(file.name, file.type)
+            const Icon = KIND_ICONS[kind] || FaFile
+            const label = fileDisplayName(file.name) || file.name || 'File'
+            return (
+              <li key={fileKey(file)} className="file-dropzone-chip">
+                <span className="file-dropzone-chip-icon" aria-hidden="true">
+                  <Icon />
                 </span>
-                <span className="muted">{formatGcFileSize(file.size)}</span>
-              </span>
-              <button
-                type="button"
-                className="file-dropzone-remove"
-                onClick={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  removeAt(index)
-                }}
-                aria-label={`Remove ${file.name}`}
-                disabled={disabled}
-              >
-                ×
-              </button>
-            </li>
-          ))}
+                <span className="file-dropzone-chip-meta">
+                  <span className="file-dropzone-chip-name" title={file.name}>
+                    {label}
+                  </span>
+                  <span className="muted">{formatGcFileSize(file.size)}</span>
+                </span>
+                <button
+                  type="button"
+                  className="file-dropzone-remove"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    removeAt(index)
+                  }}
+                  aria-label={`Remove ${file.name}`}
+                  disabled={disabled}
+                >
+                  ×
+                </button>
+              </li>
+            )
+          })}
         </ul>
       ) : null}
 

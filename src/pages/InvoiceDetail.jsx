@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import FileDropzone from '../components/FileDropzone'
+import FileNameLabel from '../components/FileNameLabel'
 import { useAuth } from '../context/AuthContext'
 import { formatDateTime } from '../utils/dateFormat'
 
@@ -440,9 +441,12 @@ export default function InvoiceDetail() {
               <p>{payment.payment_notes || '—'}</p>
               {payment.attachment?.url && (
                 <p style={{ marginTop: '0.5rem' }}>
-                  <a href={payment.attachment.url} target="_blank" rel="noreferrer">
-                    {payment.attachment.name || 'View attachment'}
-                  </a>
+                  <FileNameLabel
+                    name={payment.attachment.name}
+                    mimeType={payment.attachment.mime}
+                    href={payment.attachment.url}
+                    fallback="View attachment"
+                  />
                 </p>
               )}
             </div>

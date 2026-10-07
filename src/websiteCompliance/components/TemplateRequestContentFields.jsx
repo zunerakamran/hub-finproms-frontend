@@ -11,6 +11,7 @@ import {
   FaPalette,
 } from 'react-icons/fa'
 import FileDropzone from '../../components/FileDropzone'
+import FileNameLabel from '../../components/FileNameLabel'
 import { websiteComplianceAssetUrl } from '../../api/client'
 import api from '../wcApi'
 
@@ -204,15 +205,13 @@ function DocumentAttachmentField({
       <label className={labelClass}>{label}</label>
       {url ? (
         <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5">
-          <a
+          <FileNameLabel
+            name={name}
             href={websiteComplianceAssetUrl(url)}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 min-w-0 text-xs font-semibold text-[var(--brand-dark)] hover:underline"
-          >
-            <FaFileAlt className="w-3.5 h-3.5 shrink-0 text-gray-400" aria-hidden="true" />
-            <span className="truncate">{name || 'Attached document'}</span>
-          </a>
+            className="min-w-0 text-xs font-semibold text-[var(--brand-dark)]"
+            iconClassName="w-3.5 h-3.5 shrink-0 text-gray-400"
+            fallback="Attached document"
+          />
           <button
             type="button"
             onClick={onClear}
@@ -1017,15 +1016,13 @@ export function TemplateRequestDetailsView({ request }) {
                   {service.name || `Service ${index + 1}`}
                 </p>
                 {docUrl ? (
-                  <a
+                  <FileNameLabel
+                    name={docName}
                     href={websiteComplianceAssetUrl(docUrl)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-1.5 text-xs font-semibold text-[var(--brand-dark)] hover:underline"
-                  >
-                    <FaFileAlt className="w-3 h-3 text-gray-400" aria-hidden="true" />
-                    {docName || 'Download document'}
-                  </a>
+                    className="mt-1.5 text-xs font-semibold text-[var(--brand-dark)]"
+                    iconClassName="w-3 h-3 text-gray-400"
+                    fallback="Download document"
+                  />
                 ) : service.description ? (
                   <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap leading-relaxed">
                     {service.description}
@@ -1087,15 +1084,13 @@ export function TemplateRequestDetailsView({ request }) {
                   {policy.name || `Policy ${index + 1}`}
                 </p>
                 {docUrl ? (
-                  <a
+                  <FileNameLabel
+                    name={docName}
                     href={websiteComplianceAssetUrl(docUrl)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-1.5 text-xs font-semibold text-[var(--brand-dark)] hover:underline"
-                  >
-                    <FaFileAlt className="w-3 h-3 text-gray-400" aria-hidden="true" />
-                    {docName || 'Download document'}
-                  </a>
+                    className="mt-1.5 text-xs font-semibold text-[var(--brand-dark)]"
+                    iconClassName="w-3 h-3 text-gray-400"
+                    fallback="Download document"
+                  />
                 ) : policy.content ? (
                   <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
                     {policy.content}
@@ -1128,15 +1123,13 @@ export function TemplateRequestDetailsView({ request }) {
               >
                 <p className="text-sm font-bold text-[var(--brand-dark)]">{slug}</p>
                 {docUrl ? (
-                  <a
+                  <FileNameLabel
+                    name={docName}
                     href={websiteComplianceAssetUrl(docUrl)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-1.5 text-xs font-semibold text-[var(--brand-dark)] hover:underline"
-                  >
-                    <FaFileAlt className="w-3 h-3 text-gray-400" aria-hidden="true" />
-                    {docName || 'Download document'}
-                  </a>
+                    className="mt-1.5 text-xs font-semibold text-[var(--brand-dark)]"
+                    iconClassName="w-3 h-3 text-gray-400"
+                    fallback="Download document"
+                  />
                 ) : entry?.content ? (
                   <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
                     {entry.content}

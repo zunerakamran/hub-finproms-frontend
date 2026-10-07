@@ -4,8 +4,10 @@ import { FaChevronDown, FaChevronRight } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridDate } from '../components/DataGrid'
 import FileDropzone from '../components/FileDropzone'
+import FileNameLabel from '../components/FileNameLabel'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { fileDisplayName } from '../utils/fileDisplay'
 
 function formatMoney(amount, currency = 'gbp') {
   try {
@@ -225,7 +227,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const onImportSubmission = async (batch) => {
     if (!batch?.id) return
     const ok = window.confirm(
-      `Import the sheet “${batch.original_filename || 'submission'}” with ${batch.user_count ?? batch.submitted_user_count ?? 0} pending user(s)?`
+      `Import the sheet “${fileDisplayName(batch.original_filename) || batch.original_filename || 'submission'}” with ${batch.user_count ?? batch.submitted_user_count ?? 0} pending user(s)?`
     )
     if (!ok) return
 
@@ -337,7 +339,12 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
       {
         key: 'original_filename',
         label: 'File',
-        render: (row) => row.original_filename || '—',
+        render: (row) =>
+          row.original_filename ? (
+            <FileNameLabel name={row.original_filename} mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+          ) : (
+            '—'
+          ),
       },
       {
         key: 'summary',
@@ -728,7 +735,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           <div className="import-result" style={{ marginTop: '1rem' }}>
             <h3>
               {expandedBatch.status === 'pending' ? 'Submission details' : 'Import details'}
-              {expandedBatch.original_filename ? ` · ${expandedBatch.original_filename}` : ''}
+              {expandedBatch.original_filename
+                ? ` · ${fileDisplayName(expandedBatch.original_filename) || expandedBatch.original_filename}`
+                : ''}
             </h3>
             <ImportBatchDetails batch={expandedBatch} />
           </div>

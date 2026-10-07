@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { fileDisplayName } from '../utils/fileDisplay'
 
 function isImage(mime, url) {
   const m = String(mime || '').toLowerCase()
@@ -35,7 +36,8 @@ export default function AttachmentPreview({ open, onClose, post, title = 'Previe
 
   const url = post.attachment_url
   const mime = post.attachment_mime
-  const name = post.attachment_name || title
+  const rawName = post.attachment_name || title
+  const name = fileDisplayName(rawName) || rawName
   const image = isImage(mime, url)
   const video = !image && isVideo(mime, url, post)
 
@@ -49,7 +51,7 @@ export default function AttachmentPreview({ open, onClose, post, title = 'Previe
       />
       <div className="attachment-preview__dialog">
         <div className="attachment-preview__head">
-          <h2>{name}</h2>
+          <h2 title={rawName}>{name}</h2>
           <button type="button" className="btn ghost" onClick={onClose}>
             Close
           </button>

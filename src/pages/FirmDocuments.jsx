@@ -15,6 +15,7 @@ import {
 import { api } from '../api/client'
 import { DataGridIconBtn } from '../components/DataGrid'
 import FileDropzone from '../components/FileDropzone'
+import FileNameLabel from '../components/FileNameLabel'
 import { useHub } from '../context/HubContext'
 import { COMPLIANCE_SUPPORTING_FILES_ACCEPT } from '../utils/complianceSupportingFiles'
 
@@ -500,14 +501,13 @@ export default function FirmDocuments() {
           <div className="firm-docs-doc-cell">
             <strong className="firm-docs-doc-title">{doc.title}</strong>
             {file ? (
-              <a
+              <FileNameLabel
                 className="firm-docs-doc-file"
+                name={file.original_name}
+                mimeType={file.mime_type}
                 href={file.file_url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {file.original_name}
-              </a>
+                fallback="Download"
+              />
             ) : (
               <span className="muted">No file</span>
             )}

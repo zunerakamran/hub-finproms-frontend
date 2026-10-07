@@ -1,4 +1,5 @@
 import { websiteComplianceAssetUrl } from '../../api/client'
+import { fileDisplayName } from '../../utils/fileDisplay'
 
 export function isUploadedAsset(url) {
   return (
@@ -16,12 +17,7 @@ export function absoluteAssetUrl(url) {
 }
 
 export function imageStem(path) {
-  if (!path || typeof path !== 'string') return ''
-  return path
-    .split('/')
-    .pop()
-    .split('?')[0]
-    .replace(/\.[a-zA-Z0-9]+$/, '')
+  return fileDisplayName(path)
 }
 
 export function selectedLocalValue(path, catalog) {

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
+import FileNameLabel from './FileNameLabel'
 import { useAuth } from '../context/AuthContext'
+import { fileDisplayName } from '../utils/fileDisplay'
 
 const WEEKDAYS = [
   { value: 0, label: 'Sunday' },
@@ -126,7 +128,7 @@ export default function HubBackupPanel({ hubId, hubName }) {
 
   const onRestore = async (backup) => {
     const ok = window.confirm(
-      `Restore ${hubName || 'this hub'} from backup ${backup.filename || backup.id}?\n\nThis overwrites the hub database and media files. Continue only if you are sure.`
+      `Restore ${hubName || 'this hub'} from backup ${fileDisplayName(backup.filename) || backup.filename || backup.id}?\n\nThis overwrites the hub database and media files. Continue only if you are sure.`
     )
     if (!ok) return
     setError('')
@@ -140,7 +142,7 @@ export default function HubBackupPanel({ hubId, hubName }) {
   }
 
   const onDelete = async (backup) => {
-    if (!window.confirm(`Delete backup ${backup.filename || backup.id}?`)) return
+    if (!window.confirm(`Delete backup ${fileDisplayName(backup.filename) || backup.filename || backup.id}?`)) return
     setError('')
     try {
       await api.deletePowerAdminHubBackup(hubId, backup.id)
@@ -275,7 +277,13 @@ export default function HubBackupPanel({ hubId, hubName }) {
                       <td>{b.location}</td>
                       <td>{b.status}</td>
                       <td>{formatBytes(b.size_bytes)}</td>
-                      <td>{b.filename || '—'}</td>
+                      <td>
+                        {b.filename ? (
+                          <FileNameLabel name={b.filename} mimeType="application/zip" />
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td className="actions">
                         {b.downloadable && b.location === 'central' && (
                           <>

@@ -1165,6 +1165,39 @@ export const api = {
       body: formData,
     }),
 
+  // —— Taxonomy add requests ——
+  taxonomyAddRequestsOptions: () => request('/taxonomy-add-requests/options'),
+  taxonomyAddRequestsMine: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/taxonomy-add-requests/mine${query ? `?${query}` : ''}`)
+  },
+  taxonomyAddRequestsShow: (id) => request(`/taxonomy-add-requests/${id}`),
+  taxonomyAddRequestsSubmit: (payload) =>
+    request('/taxonomy-add-requests', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  taxonomyAddRequestsAdminList: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/taxonomy-add-requests${query ? `?${query}` : ''}`)
+  },
+  taxonomyAddRequestsAdminShow: (id, options = {}) =>
+    request(`${adminBase(options)}/taxonomy-add-requests/${id}`),
+  taxonomyAddRequestsApprove: (id, payload = {}, options = {}) =>
+    request(`${adminBase(options)}/taxonomy-add-requests/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  taxonomyAddRequestsReject: (id, payload = {}, options = {}) =>
+    request(`${adminBase(options)}/taxonomy-add-requests/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
   // —— Website Template Library / Content Pre Approval ——
   websiteComplianceTemplates: (params = {}) => {
     const query = new URLSearchParams(

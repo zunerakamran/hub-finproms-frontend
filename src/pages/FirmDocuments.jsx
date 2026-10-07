@@ -238,11 +238,9 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
         </div>
         <div className="compliance-audit-modal__body">
           <p className="muted" style={{ marginTop: 0 }}>
-            {isMixed
-              ? 'Grant rights to your firm’s users and to firms allowed to see Central / Network documents. Firm grants apply to every member of that firm.'
-              : showFirms
-                ? 'Grant rights to firms for this Central / Network document. Every member of a firm receives the rights you set here.'
-                : 'Grant rights for this document only. The Head of Firm always has all rights.'}
+            {showFirms
+              ? 'Grant rights to your firm’s users and to allowlisted firms. Firm grants apply to every member of that firm.'
+              : 'Grant rights for this document only. The Head of Firm always has all rights.'}
           </p>
           {loading ? (
             <p className="muted">Loading access rights…</p>
@@ -261,7 +259,7 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
               {showFirms ? (
                 <RightsTable
                   title={isMixed || showMembers ? 'Firms that can see documents' : null}
-                  emptyLabel="No firms selected yet. Use “Which firms can see documents” to choose firms first."
+                  emptyLabel="No firms on the allowlist yet. Use “Which firms can see documents” first."
                   rows={firms}
                   isFirmRows
                   savingId={savingId}
@@ -365,9 +363,7 @@ function VisibleFirmsModal({ open, onClose, firmId, onError, onSaved }) {
         <div className="compliance-audit-modal__head">
           <div>
             <h3>Which firms can see documents</h3>
-            <p className="muted">
-              Choose firms that may appear in Central / Network document access rights.
-            </p>
+            <p className="muted">Choose other firms that may appear in this firm’s document access rights.</p>
           </div>
           <button
             type="button"
@@ -471,8 +467,6 @@ export default function FirmDocuments() {
     () => firms.find((f) => String(f.id) === String(firmId)) || null,
     [firms, firmId]
   )
-  const isCentralFirm = Boolean(rights?.is_central || selectedFirm?.is_central)
-
   const folderRows = useMemo(() => flattenFolders(folders), [folders])
   const folderChoices = useMemo(
     () => folderPathOptions(flatFolderOptions),
@@ -820,9 +814,7 @@ export default function FirmDocuments() {
           <p className="muted">
             Folders, categories, and per-document access. Use the key icon to grant rights to your
             firm’s users
-            {canManageFirmAccess
-              ? ' and to firms allowed to see Central / Network documents.'
-              : '.'}
+            {canManageFirmAccess ? ' and to allowlisted firms.' : '.'}
           </p>
         </div>
       </div>
@@ -857,7 +849,7 @@ export default function FirmDocuments() {
           </div>
         ) : null}
         <div className="firm-docs-toolbar__actions">
-          {canManageFirmAccess && isCentralFirm && firmId ? (
+          {canManageFirmAccess && firmId ? (
             <button
               type="button"
               className="btn ghost"
@@ -1154,9 +1146,7 @@ export default function FirmDocuments() {
         firmId={firmId}
         onClose={() => setShowVisibleFirms(false)}
         onError={setError}
-        onSaved={() =>
-          setMessage('Updated which firms can see Central / Network documents.')
-        }
+        onSaved={() => setMessage('Updated which firms can see documents.')}
       />
     </section>
   )

@@ -70,6 +70,10 @@ const SupportTicketsMyTickets = lazy(() => import('./pages/SupportTicketsMyTicke
 const SupportTicketSubmit = lazy(() => import('./pages/SupportTicketSubmit'))
 const SupportTicketsQueue = lazy(() => import('./pages/SupportTicketsQueue'))
 const SupportTicketDetail = lazy(() => import('./pages/SupportTicketDetail'))
+const TaxonomyAddRequestsMy = lazy(() => import('./pages/TaxonomyAddRequestsMy'))
+const TaxonomyAddRequestSubmit = lazy(() => import('./pages/TaxonomyAddRequestSubmit'))
+const TaxonomyAddRequestsQueue = lazy(() => import('./pages/TaxonomyAddRequestsQueue'))
+const TaxonomyAddRequestDetail = lazy(() => import('./pages/TaxonomyAddRequestDetail'))
 const WebsiteComplianceDeployments = lazy(() => import('./pages/WebsiteComplianceDeployments'))
 const WebsiteComplianceHome = lazy(() => import('./pages/WebsiteComplianceHome'))
 const WebsiteCompliancePublish = lazy(() => import('./pages/WebsiteCompliancePublish'))
@@ -326,6 +330,55 @@ export default function App() {
                   element={
                     <HubCapabilityRoute anyOf={['dashboard_manage_tags', 'dashboard_view_tags']}>
                       <AdminTags />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="taxonomy-add-requests"
+                  element={
+                    <HubCapabilityRoute capability="taxonomy_request_add">
+                      <TaxonomyAddRequestsMy />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="taxonomy-add-requests/new"
+                  element={
+                    <HubCapabilityRoute capability="taxonomy_request_add">
+                      <TaxonomyAddRequestSubmit />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="taxonomy-add-requests/queue"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'dashboard_manage_types',
+                        'dashboard_manage_categories',
+                        'dashboard_manage_tags',
+                        'gc_manage_content_types',
+                        'firm_documents_manage_categories',
+                      ]}
+                    >
+                      <TaxonomyAddRequestsQueue />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="taxonomy-add-requests/:id"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'taxonomy_request_add',
+                        'dashboard_manage_types',
+                        'dashboard_manage_categories',
+                        'dashboard_manage_tags',
+                        'gc_manage_content_types',
+                        'firm_documents_manage_categories',
+                      ]}
+                    >
+                      <TaxonomyAddRequestDetail />
                     </HubCapabilityRoute>
                   }
                 />

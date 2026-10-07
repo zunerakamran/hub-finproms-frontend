@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FaArchive, FaEdit, FaTrash, FaUndo } from 'react-icons/fa'
+import { FaArrowDown, FaArrowUp, FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
 import AdminPostThumb from '../components/AdminPostThumb'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
@@ -724,13 +724,13 @@ export default function AdminPosts({ shell = 'client-admin' }) {
                     {canArchivePosts &&
                       (archived ? (
                         <DataGridIconBtn
-                          icon={FaUndo}
+                          icon={FaArrowUp}
                           label="Unarchive"
                           onClick={() => onUnarchive(row)}
                         />
                       ) : (
                         <DataGridIconBtn
-                          icon={FaArchive}
+                          icon={FaArrowDown}
                           label="Archive"
                           onClick={() => onArchive(row)}
                         />

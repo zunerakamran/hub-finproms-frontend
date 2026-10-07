@@ -341,6 +341,17 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
+  firmDocumentVisibleFirms: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/firm-documents/visible-firms${query ? `?${query}` : ''}`)
+  },
+  syncFirmDocumentVisibleFirms: (payload) =>
+    request('/firm-documents/visible-firms', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
   purchasePost: (id, paymentMethod = null) =>
     request(`/posts/${id}/purchase`, {
       method: 'POST',

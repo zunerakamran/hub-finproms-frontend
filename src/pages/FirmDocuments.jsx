@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  FaArchive,
-  FaBoxOpen,
+  FaArrowDown,
+  FaArrowUp,
   FaChevronDown,
   FaChevronRight,
   FaFolder,
@@ -55,12 +55,77 @@ function folderPathOptions(flatFolders) {
     .sort((a, b) => a.pathLabel.localeCompare(b.pathLabel))
 }
 
+function RightsTable({ title, emptyLabel, rows, isFirmRows, savingId, onToggle }) {
+  return (
+    <div className="firm-docs-access-section">
+      {title ? <h4 className="firm-docs-access-section__title">{title}</h4> : null}
+      {rows.length === 0 ? (
+        <p className="muted">{emptyLabel}</p>
+      ) : (
+        <div className="firm-docs-access-table-wrap">
+          <table className="firm-docs-access-table">
+            <thead>
+              <tr>
+                <th>{isFirmRows ? 'Firm' : 'Member'}</th>
+                <th>View</th>
+                <th>Add</th>
+                <th>Archive</th>
+                <th>Delete</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={`${isFirmRows ? 'firm' : 'user'}-${row.id}`}>
+                  <td>
+                    <div className="firm-docs-access-member">
+                      <strong>
+                        {row.name}
+                        {!isFirmRows && row.is_firm_head ? (
+                          <span className="muted"> · Head</span>
+                        ) : null}
+                      </strong>
+                      {!isFirmRows && row.email ? (
+                        <span className="muted firm-docs-access-email">{row.email}</span>
+                      ) : null}
+                    </div>
+                  </td>
+                  {['can_view', 'can_add', 'can_archive', 'can_delete'].map((key) => (
+                    <td key={key} className="firm-docs-access-check">
+                      <input
+                        type="checkbox"
+                        disabled={(!isFirmRows && row.is_firm_head) || savingId === row.id}
+                        checked={Boolean(row[key])}
+                        onChange={(e) => onToggle(row, { [key]: e.target.checked })}
+                        aria-label={`${key.replace('can_', '')} for ${row.name}`}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AccessRightsModal({ open, onClose, document: doc, onError }) {
   const [mode, setMode] = useState('members')
   const [members, setMembers] = useState([])
   const [firms, setFirms] = useState([])
   const [loading, setLoading] = useState(false)
   const [savingId, setSavingId] = useState(null)
+
+  const applyPayload = (data) => {
+    const nextMode =
+      data.mode === 'mixed' || data.mode === 'firms' || data.mode === 'members'
+        ? data.mode
+        : 'members'
+    setMode(nextMode)
+    setMembers(data.members || [])
+    setFirms(data.firms || [])
+  }
 
   useEffect(() => {
     if (!open || !doc?.id) return undefined
@@ -69,11 +134,7 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
       setLoading(true)
       try {
         const data = await api.firmDocumentAccessRights(doc.id)
-        if (!cancelled) {
-          setMode(data.mode === 'firms' ? 'firms' : 'members')
-          setMembers(data.members || [])
-          setFirms(data.firms || [])
-        }
+        if (!cancelled) applyPayload(data)
       } catch (err) {
         if (!cancelled) onError?.(err.message)
       } finally {
@@ -101,9 +162,7 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
 
   const refresh = async () => {
     const data = await api.firmDocumentAccessRights(doc.id)
-    setMode(data.mode === 'firms' ? 'firms' : 'members')
-    setMembers(data.members || [])
-    setFirms(data.firms || [])
+    applyPayload(data)
   }
 
   const updateMemberRight = async (member, patch) => {
@@ -145,8 +204,9 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
 
   if (!open || typeof window === 'undefined') return null
 
-  const isFirmMode = mode === 'firms'
-  const rows = isFirmMode ? firms : members
+  const showMembers = mode === 'members' || mode === 'mixed'
+  const showFirms = mode === 'firms' || mode === 'mixed'
+  const isMixed = mode === 'mixed'
 
   return createPortal(
     <div className="compliance-audit-modal firm-docs-access-modal" role="presentation">
@@ -178,63 +238,180 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
         </div>
         <div className="compliance-audit-modal__body">
           <p className="muted" style={{ marginTop: 0 }}>
-            {isFirmMode
-              ? 'Grant rights to firms for this Central / Network document. Every member of a firm receives the rights you set here.'
-              : 'Grant rights for this document only. The Head of Firm always has all rights.'}
+            {isMixed
+              ? 'Grant rights to your firm’s users and to firms allowed to see Central / Network documents. Firm grants apply to every member of that firm.'
+              : showFirms
+                ? 'Grant rights to firms for this Central / Network document. Every member of a firm receives the rights you set here.'
+                : 'Grant rights for this document only. The Head of Firm always has all rights.'}
           </p>
           {loading ? (
-            <p className="muted">{isFirmMode ? 'Loading firms…' : 'Loading members…'}</p>
-          ) : rows.length === 0 ? (
-            <p className="muted">{isFirmMode ? 'No other firms yet.' : 'No firm members yet.'}</p>
+            <p className="muted">Loading access rights…</p>
           ) : (
-            <div className="firm-docs-access-table-wrap">
-              <table className="firm-docs-access-table">
-                <thead>
-                  <tr>
-                    <th>{isFirmMode ? 'Firm' : 'Member'}</th>
-                    <th>View</th>
-                    <th>Add</th>
-                    <th>Archive</th>
-                    <th>Delete</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td>
-                        <div className="firm-docs-access-member">
-                          <strong>
-                            {row.name}
-                            {!isFirmMode && row.is_firm_head ? (
-                              <span className="muted"> · Head</span>
-                            ) : null}
-                          </strong>
-                          {!isFirmMode && row.email ? (
-                            <span className="muted firm-docs-access-email">{row.email}</span>
-                          ) : null}
-                        </div>
-                      </td>
-                      {['can_view', 'can_add', 'can_archive', 'can_delete'].map((key) => (
-                        <td key={key} className="firm-docs-access-check">
-                          <input
-                            type="checkbox"
-                            disabled={(!isFirmMode && row.is_firm_head) || savingId === row.id}
-                            checked={Boolean(row[key])}
-                            onChange={(e) =>
-                              isFirmMode
-                                ? updateFirmRight(row, { [key]: e.target.checked })
-                                : updateMemberRight(row, { [key]: e.target.checked })
-                            }
-                            aria-label={`${key.replace('can_', '')} for ${row.name}`}
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              {showMembers ? (
+                <RightsTable
+                  title={isMixed || showFirms ? 'Users in this firm' : null}
+                  emptyLabel="No firm members yet."
+                  rows={members}
+                  isFirmRows={false}
+                  savingId={savingId}
+                  onToggle={updateMemberRight}
+                />
+              ) : null}
+              {showFirms ? (
+                <RightsTable
+                  title={isMixed || showMembers ? 'Firms that can see documents' : null}
+                  emptyLabel="No firms selected yet. Use “Which firms can see documents” to choose firms first."
+                  rows={firms}
+                  isFirmRows
+                  savingId={savingId}
+                  onToggle={updateFirmRight}
+                />
+              ) : null}
+            </>
           )}
+        </div>
+      </div>
+    </div>,
+    window.document.body
+  )
+}
+
+function VisibleFirmsModal({ open, onClose, firmId, onError, onSaved }) {
+  const [firms, setFirms] = useState([])
+  const [selected, setSelected] = useState(() => new Set())
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open || !firmId) return undefined
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      try {
+        const data = await api.firmDocumentVisibleFirms({ firm_id: firmId })
+        if (!cancelled) {
+          setFirms(data.firms || [])
+          setSelected(new Set((data.selected_firm_ids || []).map((id) => Number(id))))
+        }
+      } catch (err) {
+        if (!cancelled) onError?.(err.data?.message || err.message)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    const body = typeof window !== 'undefined' ? window.document.body : null
+    const prev = body?.style?.overflow
+    if (body) {
+      body.style.overflow = 'hidden'
+      window.addEventListener('keydown', onKey)
+    }
+    return () => {
+      cancelled = true
+      if (body) {
+        body.style.overflow = prev || ''
+        window.removeEventListener('keydown', onKey)
+      }
+    }
+  }, [open, firmId, onClose, onError])
+
+  const toggle = (id) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const onSave = async () => {
+    setSaving(true)
+    try {
+      const data = await api.syncFirmDocumentVisibleFirms({
+        firm_id: Number(firmId),
+        firm_ids: Array.from(selected),
+      })
+      setFirms(data.firms || [])
+      setSelected(new Set((data.selected_firm_ids || []).map((id) => Number(id))))
+      onSaved?.(data)
+      onClose()
+    } catch (err) {
+      onError?.(err.data?.message || err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!open || typeof window === 'undefined') return null
+
+  return createPortal(
+    <div className="compliance-audit-modal firm-docs-access-modal" role="presentation">
+      <button
+        type="button"
+        className="compliance-audit-modal__backdrop"
+        aria-label="Close visible firms"
+        onClick={onClose}
+      />
+      <div
+        className="compliance-audit-modal__dialog firm-docs-access-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Which firms can see documents"
+      >
+        <div className="compliance-audit-modal__head">
+          <div>
+            <h3>Which firms can see documents</h3>
+            <p className="muted">
+              Choose firms that may appear in Central / Network document access rights.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="compliance-audit-modal__close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <FaTimes />
+          </button>
+        </div>
+        <div className="compliance-audit-modal__body">
+          {loading ? (
+            <p className="muted">Loading firms…</p>
+          ) : firms.length === 0 ? (
+            <p className="muted">No other firms on this hub yet.</p>
+          ) : (
+            <ul className="firm-docs-visible-firms-list">
+              {firms.map((firm) => (
+                <li key={firm.id}>
+                  <label className="firm-docs-visible-firms-item">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(Number(firm.id))}
+                      onChange={() => toggle(Number(firm.id))}
+                    />
+                    <span>{firm.name}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="actions" style={{ marginTop: '1rem' }}>
+            <button
+              type="button"
+              className="btn primary"
+              disabled={loading || saving}
+              onClick={onSave}
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+            <button type="button" className="btn ghost" onClick={onClose} disabled={saving}>
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>,
@@ -268,9 +445,15 @@ export default function FirmDocuments() {
   const [folderSaving, setFolderSaving] = useState(false)
   const [expanded, setExpanded] = useState(() => new Set())
   const [accessDoc, setAccessDoc] = useState(null)
+  const [showVisibleFirms, setShowVisibleFirms] = useState(false)
 
   const isFirmHead = Boolean(
     rights?.is_firm_head || hub?.firm_document_rights?.is_firm_head
+  )
+  const canManageFirmAccess = Boolean(
+    rights?.can_manage_firm_access ||
+      hub?.firm_document_rights?.can_manage_firm_access ||
+      can('firm_documents_manage_firm_access')
   )
   const hubWideFirmDocs = Boolean(
     rights?.hub_wide?.can_view ||
@@ -288,6 +471,7 @@ export default function FirmDocuments() {
     () => firms.find((f) => String(f.id) === String(firmId)) || null,
     [firms, firmId]
   )
+  const isCentralFirm = Boolean(rights?.is_central || selectedFirm?.is_central)
 
   const folderRows = useMemo(() => flattenFolders(folders), [folders])
   const folderChoices = useMemo(
@@ -575,7 +759,7 @@ export default function FirmDocuments() {
             ) : null}
             {docCanArchive(doc) ? (
               <DataGridIconBtn
-                icon={doc.is_archived ? FaBoxOpen : FaArchive}
+                icon={doc.is_archived ? FaArrowUp : FaArrowDown}
                 label={doc.is_archived ? 'Unarchive' : 'Archive'}
                 onClick={() => toggleArchive(doc)}
               />
@@ -634,7 +818,11 @@ export default function FirmDocuments() {
           <p className="eyebrow">Hub</p>
           <h1>Firm documents</h1>
           <p className="muted">
-            Folders, categories, and per-document access. Use the key icon to grant member rights.
+            Folders, categories, and per-document access. Use the key icon to grant rights to your
+            firm’s users
+            {canManageFirmAccess
+              ? ' and to firms allowed to see Central / Network documents.'
+              : '.'}
           </p>
         </div>
       </div>
@@ -668,8 +856,21 @@ export default function FirmDocuments() {
             <strong>{selectedFirm?.name || 'My firm'}</strong>
           </div>
         ) : null}
-        {functionalityEnabled && canAdd ? (
-          <div className="firm-docs-toolbar__actions">
+        <div className="firm-docs-toolbar__actions">
+          {canManageFirmAccess && isCentralFirm && firmId ? (
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
+                setShowUpload(false)
+                setShowNewFolder(false)
+                setShowVisibleFirms(true)
+              }}
+            >
+              Which firms can see documents
+            </button>
+          ) : null}
+          {functionalityEnabled && canAdd ? (
             <button
               type="button"
               className="btn ghost"
@@ -681,8 +882,8 @@ export default function FirmDocuments() {
               <FaFolderPlus style={{ marginRight: 6 }} />
               New folder
             </button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
       {showNewFolder ? (
@@ -947,6 +1148,15 @@ export default function FirmDocuments() {
         document={accessDoc}
         onClose={() => setAccessDoc(null)}
         onError={setError}
+      />
+      <VisibleFirmsModal
+        open={showVisibleFirms}
+        firmId={firmId}
+        onClose={() => setShowVisibleFirms(false)}
+        onError={setError}
+        onSaved={() =>
+          setMessage('Updated which firms can see Central / Network documents.')
+        }
       />
     </section>
   )

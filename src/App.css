@@ -7311,12 +7311,47 @@ td.data-grid__actions {
 }
 .firm-docs-access-modal__dialog {
   width: min(44rem, 100%) !important;
-  max-height: min(90vh, 36rem);
+  max-height: min(92vh, 44rem);
+}
+.firm-docs-access-section + .firm-docs-access-section {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+.firm-docs-access-section__title {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
 }
 .firm-docs-access-table-wrap {
   overflow: auto;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
+}
+.firm-docs-visible-firms-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: min(50vh, 22rem);
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+}
+.firm-docs-visible-firms-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.15rem;
+  cursor: pointer;
+}
+.firm-docs-visible-firms-item input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  flex-shrink: 0;
 }
 .firm-docs-access-table {
   width: 100%;

@@ -6,6 +6,7 @@ import {
   FaChevronDown,
   FaChevronRight,
   FaFolder,
+  FaFolderPlus,
   FaKey,
   FaTimes,
   FaTrash,
@@ -35,6 +36,23 @@ function flattenFolders(folders, depth = 0, path = []) {
     rows.push(...flattenFolders(folder.children || [], depth + 1, nextPath))
   }
   return rows
+}
+
+/** Build "Policies / 2024" style labels for folder dropdowns. */
+function folderPathOptions(flatFolders) {
+  const byId = Object.fromEntries((flatFolders || []).map((f) => [f.id, f]))
+  const labelFor = (folder) => {
+    const parts = [folder.name]
+    let pid = folder.parent_id
+    while (pid && byId[pid]) {
+      parts.unshift(byId[pid].name)
+      pid = byId[pid].parent_id
+    }
+    return parts.join(' / ')
+  }
+  return (flatFolders || [])
+    .map((f) => ({ ...f, pathLabel: labelFor(f) }))
+    .sort((a, b) => a.pathLabel.localeCompare(b.pathLabel))
 }
 
 function AccessRightsModal({ open, onClose, document, firmId, onError }) {
@@ -217,7 +235,7 @@ export default function FirmDocuments() {
   const [firms, setFirms] = useState([])
   const [firmId, setFirmId] = useState('')
   const [folders, setFolders] = useState([])
-  const [unfiledDocuments, setUnfiledDocuments] = useState([])
+  const [rootDocuments, setRootDocuments] = useState([])
   const [flatFolderOptions, setFlatFolderOptions] = useState([])
   const [categories, setCategories] = useState([])
   const [rights, setRights] = useState(null)
@@ -226,15 +244,19 @@ export default function FirmDocuments() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [showUpload, setShowUpload] = useState(false)
+  const [showNewFolder, setShowNewFolder] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [files, setFiles] = useState([])
-  const [folderMode, setFolderMode] = useState('existing')
-  const [folderId, setFolderId] = useState('')
-  const [folderName, setFolderName] = useState('')
-  const [parentFolderId, setParentFolderId] = useState('')
+  /** '' = main/root, otherwise put file in that folder id */
+  const [uploadFolderId, setUploadFolderId] = useState('')
+  /** When true, also create a new folder (optionally under parent) for this upload */
+  const [createFolderOnUpload, setCreateFolderOnUpload] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [newFolderParentId, setNewFolderParentId] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [saving, setSaving] = useState(false)
+  const [folderSaving, setFolderSaving] = useState(false)
   const [expanded, setExpanded] = useState(() => new Set())
   const [accessDoc, setAccessDoc] = useState(null)
 
@@ -259,6 +281,10 @@ export default function FirmDocuments() {
   )
 
   const folderRows = useMemo(() => flattenFolders(folders), [folders])
+  const folderChoices = useMemo(
+    () => folderPathOptions(flatFolderOptions),
+    [flatFolderOptions]
+  )
 
   const loadFirms = async () => {
     try {
@@ -307,7 +333,7 @@ export default function FirmDocuments() {
   const loadDocuments = async (id = firmId) => {
     if (!id) {
       setFolders([])
-      setUnfiledDocuments([])
+      setRootDocuments([])
       setFlatFolderOptions([])
       setRights(null)
       setLoading(false)
@@ -322,8 +348,8 @@ export default function FirmDocuments() {
         api.listFirmDocumentFolders({ firm_id: id }).catch(() => ({ folders: [] })),
       ])
       setFolders(data.folders || [])
-      // White-label acting hub may still return a flat `documents` list.
-      setUnfiledDocuments(
+      // Root-level docs (no folder) — shown at main level like a PC, not under "Unfiled".
+      setRootDocuments(
         data.unfiled_documents ||
           (data.folders ? [] : data.documents) ||
           []
@@ -331,7 +357,6 @@ export default function FirmDocuments() {
       setRights(data.rights || null)
       setCategories(cats.categories || [])
       setFlatFolderOptions(folderList.folders || [])
-      // Expand all folders by default on first load of a firm.
       setExpanded((prev) => {
         if (prev.size > 0) return prev
         const next = new Set()
@@ -354,7 +379,7 @@ export default function FirmDocuments() {
     } catch (err) {
       setError(err.message)
       setFolders([])
-      setUnfiledDocuments([])
+      setRootDocuments([])
     } finally {
       setLoading(false)
     }
@@ -371,10 +396,25 @@ export default function FirmDocuments() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firmId, scope, actingHubId])
 
+  const resetUploadForm = () => {
+    setTitle('')
+    setDescription('')
+    setFiles([])
+    setUploadFolderId('')
+    setCreateFolderOnUpload(false)
+    setNewFolderName('')
+    setNewFolderParentId('')
+    setCategoryId('')
+  }
+
   const onUpload = async (e) => {
     e.preventDefault()
     if (!files.length) {
       setError('Add at least one file.')
+      return
+    }
+    if (createFolderOnUpload && !newFolderName.trim()) {
+      setError('Enter a name for the new folder.')
       return
     }
     setSaving(true)
@@ -386,30 +426,61 @@ export default function FirmDocuments() {
       formData.append('title', title.trim())
       if (description.trim()) formData.append('description', description.trim())
       if (categoryId) formData.append('category_id', categoryId)
-      if (folderMode === 'existing' && folderId) {
-        formData.append('folder_id', folderId)
-      } else if (folderMode === 'new' && folderName.trim()) {
-        formData.append('folder_name', folderName.trim())
-        if (parentFolderId) formData.append('parent_folder_id', parentFolderId)
+
+      if (createFolderOnUpload) {
+        formData.append('folder_name', newFolderName.trim())
+        if (newFolderParentId) formData.append('parent_folder_id', newFolderParentId)
+      } else if (uploadFolderId) {
+        formData.append('folder_id', uploadFolderId)
       }
+
       files.forEach((file) => formData.append('attachments[]', file))
       const data = await api.createFirmDocument(formData)
       setMessage(data.message || 'Document uploaded.')
       setShowUpload(false)
-      setTitle('')
-      setDescription('')
-      setFiles([])
-      setFolderId('')
-      setFolderName('')
-      setParentFolderId('')
-      setCategoryId('')
-      setFolderMode('existing')
+      resetUploadForm()
       await loadDocuments()
     } catch (err) {
       setError(err.data?.message || err.message)
     } finally {
       setSaving(false)
     }
+  }
+
+  const onCreateFolder = async (e) => {
+    e.preventDefault()
+    if (!newFolderName.trim()) {
+      setError('Enter a folder name.')
+      return
+    }
+    setFolderSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const payload = {
+        firm_id: Number(firmId),
+        name: newFolderName.trim(),
+      }
+      if (newFolderParentId) payload.parent_id = Number(newFolderParentId)
+      const data = await api.createFirmDocumentFolder(payload)
+      setMessage(data.message || 'Folder created.')
+      setShowNewFolder(false)
+      setNewFolderName('')
+      setNewFolderParentId('')
+      await loadDocuments()
+    } catch (err) {
+      setError(err.data?.message || err.message)
+    } finally {
+      setFolderSaving(false)
+    }
+  }
+
+  const openNewFolderForm = (parentId = '') => {
+    setShowUpload(false)
+    setShowNewFolder(true)
+    setNewFolderParentId(parentId ? String(parentId) : '')
+    setNewFolderName('')
+    setError('')
   }
 
   const toggleArchive = async (doc) => {
@@ -601,16 +672,90 @@ export default function FirmDocuments() {
       </div>
 
       {functionalityEnabled && canAdd ? (
-        <div style={{ marginBottom: '0.75rem', display: 'flex', justifyContent: 'flex-end' }}>
+        <div
+          style={{
+            marginBottom: '0.75rem',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '0.5rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => {
+              setShowUpload(false)
+              openNewFolderForm('')
+            }}
+          >
+            <FaFolderPlus style={{ marginRight: 6 }} />
+            New folder
+          </button>
           <button
             type="button"
             className="btn primary"
-            onClick={() => setShowUpload((v) => !v)}
+            onClick={() => {
+              setShowNewFolder(false)
+              setShowUpload((v) => !v)
+            }}
           >
             <FaUpload style={{ marginRight: 6 }} />
             Upload new document
           </button>
         </div>
+      ) : null}
+
+      {showNewFolder ? (
+        <form className="admin-form" onSubmit={onCreateFolder} style={{ marginBottom: '1.5rem' }}>
+          <h2 style={{ marginTop: 0 }}>
+            {newFolderParentId ? 'New subfolder' : 'New folder'}
+          </h2>
+          <label>
+            Folder name
+            <input
+              required
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="e.g. Policies"
+            />
+          </label>
+          <label>
+            Location
+            <select
+              value={newFolderParentId}
+              onChange={(e) => setNewFolderParentId(e.target.value)}
+            >
+              <option value="">Main (top level)</option>
+              {folderChoices.map((f) => (
+                <option key={f.id} value={f.id}>
+                  Inside: {f.pathLabel}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="muted">
+            Choose <strong>Main</strong> for a top-level folder, or pick a folder to create a
+            subfolder inside it.
+          </p>
+          <div className="actions">
+            <button className="btn primary" disabled={folderSaving}>
+              {folderSaving ? 'Creating…' : 'Create folder'}
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
+                setShowNewFolder(false)
+                setNewFolderName('')
+                setNewFolderParentId('')
+              }}
+              disabled={folderSaving}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       ) : null}
 
       {showUpload ? (
@@ -641,57 +786,69 @@ export default function FirmDocuments() {
               add them.
             </p>
           ) : null}
+
           <label>
-            Folder
-            <select
-              value={folderMode}
-              onChange={(e) => setFolderMode(e.target.value)}
-            >
-              <option value="none">No folder (unfiled)</option>
-              <option value="existing">Existing folder</option>
-              <option value="new">Create new folder</option>
-            </select>
+            <input
+              type="checkbox"
+              checked={createFolderOnUpload}
+              onChange={(e) => {
+                setCreateFolderOnUpload(e.target.checked)
+                if (e.target.checked) setUploadFolderId('')
+              }}
+              style={{ marginRight: 8 }}
+            />
+            Create a new folder for this document
           </label>
-          {folderMode === 'existing' ? (
-            <label>
-              Choose folder
-              <select value={folderId} onChange={(e) => setFolderId(e.target.value)}>
-                <option value="">Select a folder</option>
-                {flatFolderOptions.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.parent_id ? `↳ ${f.name}` : f.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          {folderMode === 'new' ? (
+
+          {createFolderOnUpload ? (
             <>
               <label>
                 New folder name
                 <input
                   required
-                  value={folderName}
-                  onChange={(e) => setFolderName(e.target.value)}
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
                   placeholder="e.g. Policies"
                 />
               </label>
               <label>
-                Parent folder (optional — for subfolder)
+                Put new folder inside (optional)
                 <select
-                  value={parentFolderId}
-                  onChange={(e) => setParentFolderId(e.target.value)}
+                  value={newFolderParentId}
+                  onChange={(e) => setNewFolderParentId(e.target.value)}
                 >
-                  <option value="">Root level</option>
-                  {flatFolderOptions.map((f) => (
+                  <option value="">Main (top level)</option>
+                  {folderChoices.map((f) => (
                     <option key={f.id} value={f.id}>
-                      {f.name}
+                      {f.pathLabel}
                     </option>
                   ))}
                 </select>
               </label>
             </>
+          ) : (
+            <label>
+              Folder
+              <select
+                value={uploadFolderId}
+                onChange={(e) => setUploadFolderId(e.target.value)}
+              >
+                <option value="">Main (no folder)</option>
+                {folderChoices.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.pathLabel}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {!createFolderOnUpload && folderChoices.length === 0 ? (
+            <p className="muted">
+              No folders yet — the document will sit at the main level. Use{' '}
+              <strong>New folder</strong> above, or tick “Create a new folder for this document”.
+            </p>
           ) : null}
+
           <FileDropzone
             accept={COMPLIANCE_SUPPORTING_FILES_ACCEPT}
             multiple
@@ -706,7 +863,10 @@ export default function FirmDocuments() {
             <button
               type="button"
               className="btn ghost"
-              onClick={() => setShowUpload(false)}
+              onClick={() => {
+                setShowUpload(false)
+                resetUploadForm()
+              }}
               disabled={saving}
             >
               Cancel
@@ -734,7 +894,7 @@ export default function FirmDocuments() {
                 </td>
               </tr>
             ) : null}
-            {!loading && visibleFolderRows.length === 0 && unfiledDocuments.length === 0 ? (
+            {!loading && visibleFolderRows.length === 0 && rootDocuments.length === 0 ? (
               <tr>
                 <td colSpan={5} className="muted">
                   {firmId ? 'No documents yet.' : 'Select a firm to view documents.'}
@@ -749,10 +909,7 @@ export default function FirmDocuments() {
                   const isOpen = expanded.has(row.id)
                   return (
                     <tr key={row.id} className="data-grid__row">
-                      <td
-                        colSpan={5}
-                        style={{ paddingLeft: `${1 + row.depth * 1.25}rem`, fontWeight: 600 }}
-                      >
+                      <td style={{ paddingLeft: `${1 + row.depth * 1.25}rem`, fontWeight: 600 }}>
                         <button
                           type="button"
                           className="btn ghost"
@@ -768,21 +925,26 @@ export default function FirmDocuments() {
                           ({row.documentCount} doc{row.documentCount === 1 ? '' : 's'})
                         </span>
                       </td>
+                      <td colSpan={3} />
+                      <td>
+                        {canAdd ? (
+                          <div className="data-grid__actions">
+                            <DataGridIconBtn
+                              icon={FaFolderPlus}
+                              label="New subfolder"
+                              onClick={() => openNewFolderForm(row.folderId)}
+                            />
+                          </div>
+                        ) : null}
+                      </td>
                     </tr>
                   )
                 })
               : null}
-            {!loading && unfiledDocuments.length > 0 ? (
-              <>
-                <tr className="data-grid__row">
-                  <td colSpan={5} style={{ fontWeight: 600 }}>
-                    <FaFolder style={{ marginRight: 8, opacity: 0.5 }} />
-                    Unfiled
-                  </td>
-                </tr>
-                {unfiledDocuments.map((doc) => renderDocumentRow(doc, 1))}
-              </>
-            ) : null}
+            {/* Root-level documents (no folder) — same level as top folders, like a PC */}
+            {!loading
+              ? rootDocuments.map((doc) => renderDocumentRow(doc, 0))
+              : null}
           </tbody>
         </table>
       </div>

@@ -152,7 +152,16 @@ export function GcVersionCard({ version, isLatest }) {
             by <strong>{version.reviewed_by || 'Reviewer'}</strong>
           </span>
           {version.feedback ? (
-            <RichTextDisplay html={version.feedback} className="gc-feedback" />
+            <div>
+              <p className="muted label">Remedial Feedback/notes</p>
+              <RichTextDisplay html={version.feedback} className="gc-feedback" />
+            </div>
+          ) : null}
+          {version.future_feedback ? (
+            <div>
+              <p className="muted label">Future Feedback/notes</p>
+              <RichTextDisplay html={version.future_feedback} className="gc-feedback" />
+            </div>
           ) : null}
         </footer>
       )}

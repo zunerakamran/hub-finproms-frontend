@@ -33,6 +33,7 @@ export default function GeneralComplianceRequestDetail() {
 
   const [reviewStatus, setReviewStatus] = useState('Pending')
   const [feedback, setFeedback] = useState('')
+  const [futureFeedback, setFutureFeedback] = useState('')
   const [resubDescription, setResubDescription] = useState('')
   const [resubContentType, setResubContentType] = useState('')
   const [contentTypes, setContentTypes] = useState([])
@@ -83,6 +84,7 @@ export default function GeneralComplianceRequestDetail() {
       setRow(item)
       setReviewStatus(item.status || 'Pending')
       setFeedback(item.feedback || '')
+      setFutureFeedback(item.future_feedback || '')
       setChangeStatus(item.status || 'Pending')
       setChangeComment('')
       setResubDescription(item.description || '')
@@ -156,7 +158,7 @@ export default function GeneralComplianceRequestDetail() {
     setMessage('')
     try {
       const body = compliancePostBody(
-        { status: reviewStatus, feedback },
+        { status: reviewStatus, feedback, future_feedback: futureFeedback },
         reviewSupportingFiles
       )
       const data = await api.generalComplianceReview(id, body, { asPowerAdmin })
@@ -323,12 +325,21 @@ export default function GeneralComplianceRequestDetail() {
             ))}
           </fieldset>
           <div className="admin-field">
-            <span className="field-label-text">Feedback / notes</span>
+            <span className="field-label-text">Remedial Feedback/notes</span>
             <RichTextEditor
               rows={4}
               value={feedback}
               onChange={setFeedback}
-              placeholder="Leave feedback for the submitter…"
+              placeholder="Remedial feedback for the submitter…"
+            />
+          </div>
+          <div className="admin-field">
+            <span className="field-label-text">Future Feedback/notes</span>
+            <RichTextEditor
+              rows={4}
+              value={futureFeedback}
+              onChange={setFutureFeedback}
+              placeholder="Notes for future reference…"
             />
           </div>
           <SupportingFilesPicker
@@ -355,7 +366,18 @@ export default function GeneralComplianceRequestDetail() {
           <p className="muted">
             Confirm as approved, or upload corrected attachments (also becomes Approved).
           </p>
-          {row.feedback && <RichTextDisplay html={row.feedback} className="gc-feedback" />}
+          {row.feedback ? (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <p className="muted label">Remedial Feedback/notes</p>
+              <RichTextDisplay html={row.feedback} className="gc-feedback" />
+            </div>
+          ) : null}
+          {row.future_feedback ? (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <p className="muted label">Future Feedback/notes</p>
+              <RichTextDisplay html={row.future_feedback} className="gc-feedback" />
+            </div>
+          ) : null}
           <SupportingFilesPicker
             id="gc-confirm-attachments"
             label="Attachments (optional)"
@@ -387,6 +409,18 @@ export default function GeneralComplianceRequestDetail() {
       {isOwner && can('gc_submit_request') && row.status === 'Rejected' && (
         <form className="admin-form gc-panel" onSubmit={resubmit}>
           <h2>Rejected — resubmit</h2>
+          {row.feedback ? (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <p className="muted label">Remedial Feedback/notes</p>
+              <RichTextDisplay html={row.feedback} className="gc-feedback" />
+            </div>
+          ) : null}
+          {row.future_feedback ? (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <p className="muted label">Future Feedback/notes</p>
+              <RichTextDisplay html={row.future_feedback} className="gc-feedback" />
+            </div>
+          ) : null}
           <label>
             <RequiredMark>Content type</RequiredMark>
             <select
@@ -530,6 +564,22 @@ export default function GeneralComplianceRequestDetail() {
           Current description
         </p>
         <RichTextDisplay html={row.description} className="gc-pre" />
+        {row.feedback ? (
+          <>
+            <p className="muted label" style={{ marginTop: '0.75rem' }}>
+              Remedial Feedback/notes
+            </p>
+            <RichTextDisplay html={row.feedback} className="gc-feedback" />
+          </>
+        ) : null}
+        {row.future_feedback ? (
+          <>
+            <p className="muted label" style={{ marginTop: '0.75rem' }}>
+              Future Feedback/notes
+            </p>
+            <RichTextDisplay html={row.future_feedback} className="gc-feedback" />
+          </>
+        ) : null}
         {resolveComplianceAttachments(row).length ? (
           <>
             <p className="muted label" style={{ marginTop: '0.75rem' }}>

@@ -308,9 +308,8 @@ export default function FirmDocuments() {
     setLoading(true)
     setError('')
     try {
-      const [data, cats, folderList] = await Promise.all([
+      const [data, folderList] = await Promise.all([
         api.listFirmDocuments({ firm_id: id, scope: 'active' }),
-        api.firmDocumentCategories().catch(() => ({ categories: [] })),
         api.listFirmDocumentFolders({ firm_id: id }).catch(() => ({ folders: [] })),
       ])
       setFolders(data.folders || [])
@@ -318,7 +317,17 @@ export default function FirmDocuments() {
         data.unfiled_documents || (data.folders ? [] : data.documents) || []
       )
       setRights(data.rights || null)
-      setCategories(cats.categories || [])
+      // Prefer categories embedded in the library response; fall back to list endpoint.
+      let nextCategories = data.categories || []
+      if (!nextCategories.length) {
+        try {
+          const cats = await api.firmDocumentCategories()
+          nextCategories = cats.categories || []
+        } catch {
+          nextCategories = []
+        }
+      }
+      setCategories(nextCategories)
       setFlatFolderOptions(folderList.folders || [])
       setExpanded((prev) => {
         if (prev.size > 0) return prev
@@ -598,9 +607,18 @@ export default function FirmDocuments() {
             <button
               type="button"
               className="btn primary"
-              onClick={() => {
+              onClick={async () => {
                 setShowNewFolder(false)
-                setShowUpload((v) => !v)
+                const opening = !showUpload
+                setShowUpload(opening)
+                if (opening) {
+                  try {
+                    const cats = await api.firmDocumentCategories()
+                    setCategories(cats.categories || [])
+                  } catch {
+                    // Keep whatever was loaded with the library.
+                  }
+                }
               }}
             >
               <FaUpload style={{ marginRight: 6 }} />

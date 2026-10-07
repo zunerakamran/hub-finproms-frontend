@@ -209,7 +209,7 @@ function DocumentAttachmentField({
             name={name}
             href={websiteComplianceAssetUrl(url)}
             className="min-w-0 text-xs font-semibold text-[var(--brand-dark)]"
-            iconClassName="w-3.5 h-3.5 shrink-0 text-gray-400"
+            iconClassName="w-3.5 h-3.5 shrink-0"
             fallback="Attached document"
           />
           <button
@@ -1020,7 +1020,7 @@ export function TemplateRequestDetailsView({ request }) {
                     name={docName}
                     href={websiteComplianceAssetUrl(docUrl)}
                     className="mt-1.5 text-xs font-semibold text-[var(--brand-dark)]"
-                    iconClassName="w-3 h-3 text-gray-400"
+                    iconClassName="w-3 h-3"
                     fallback="Download document"
                   />
                 ) : service.description ? (
@@ -1088,7 +1088,7 @@ export function TemplateRequestDetailsView({ request }) {
                     name={docName}
                     href={websiteComplianceAssetUrl(docUrl)}
                     className="mt-1.5 text-xs font-semibold text-[var(--brand-dark)]"
-                    iconClassName="w-3 h-3 text-gray-400"
+                    iconClassName="w-3 h-3"
                     fallback="Download document"
                   />
                 ) : policy.content ? (
@@ -1127,7 +1127,7 @@ export function TemplateRequestDetailsView({ request }) {
                     name={docName}
                     href={websiteComplianceAssetUrl(docUrl)}
                     className="mt-1.5 text-xs font-semibold text-[var(--brand-dark)]"
-                    iconClassName="w-3 h-3 text-gray-400"
+                    iconClassName="w-3 h-3"
                     fallback="Download document"
                   />
                 ) : entry?.content ? (

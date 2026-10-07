@@ -71,7 +71,7 @@ export default function ImageFieldPicker({
           <label className="block text-xs font-extrabold text-[var(--brand-dark)]">{label}</label>
           {value ? (
             <p className="inline-flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5 font-mono truncate max-w-xs" title={value}>
-              <FaImage className="w-3 h-3 shrink-0 text-gray-400" aria-hidden="true" />
+              <FaImage className="w-3 h-3 shrink-0 text-[var(--brand-accent)]" aria-hidden="true" />
               <span className="truncate">{displayName}</span>
             </p>
           ) : (

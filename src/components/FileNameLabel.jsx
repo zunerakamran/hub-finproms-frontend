@@ -40,7 +40,7 @@ export default function FileNameLabel({
   mimeType,
   href,
   className = '',
-  iconClassName = 'file-name-label__icon',
+  iconClassName = '',
   fallback = 'File',
   showIcon = true,
 }) {
@@ -48,10 +48,11 @@ export default function FileNameLabel({
   const kind = fileKind(name, mimeType)
   const Icon = KIND_ICONS[kind] || FaFile
   const title = name || label
+  const iconClass = ['file-name-label__icon', iconClassName].filter(Boolean).join(' ')
 
   const content = (
     <>
-      {showIcon ? <Icon className={iconClassName} aria-hidden="true" /> : null}
+      {showIcon ? <Icon className={iconClass} aria-hidden="true" /> : null}
       <span className="file-name-label__text">{label}</span>
     </>
   )

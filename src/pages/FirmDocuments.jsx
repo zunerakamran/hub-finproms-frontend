@@ -32,6 +32,7 @@ function flattenFolders(folders, depth = 0, path = []) {
       pathLabel: nextPath.join(' / '),
       documentCount: folder.document_count ?? (folder.documents || []).length,
       documents: folder.documents || [],
+      isSharedBucket: Boolean(folder.is_shared_bucket),
     })
     rows.push(...flattenFolders(folder.children || [], depth + 1, nextPath))
   }
@@ -55,9 +56,11 @@ function folderPathOptions(flatFolders) {
 }
 
 function AccessRightsModal({ open, onClose, document: doc, onError }) {
+  const [mode, setMode] = useState('members')
   const [members, setMembers] = useState([])
+  const [firms, setFirms] = useState([])
   const [loading, setLoading] = useState(false)
-  const [savingUserId, setSavingUserId] = useState(null)
+  const [savingId, setSavingId] = useState(null)
 
   useEffect(() => {
     if (!open || !doc?.id) return undefined
@@ -66,7 +69,11 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
       setLoading(true)
       try {
         const data = await api.firmDocumentAccessRights(doc.id)
-        if (!cancelled) setMembers(data.members || [])
+        if (!cancelled) {
+          setMode(data.mode === 'firms' ? 'firms' : 'members')
+          setMembers(data.members || [])
+          setFirms(data.firms || [])
+        }
       } catch (err) {
         if (!cancelled) onError?.(err.message)
       } finally {
@@ -92,9 +99,16 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
     }
   }, [open, doc?.id, onClose, onError])
 
-  const updateRight = async (member, patch) => {
+  const refresh = async () => {
+    const data = await api.firmDocumentAccessRights(doc.id)
+    setMode(data.mode === 'firms' ? 'firms' : 'members')
+    setMembers(data.members || [])
+    setFirms(data.firms || [])
+  }
+
+  const updateMemberRight = async (member, patch) => {
     if (member.is_firm_head) return
-    setSavingUserId(member.id)
+    setSavingId(member.id)
     try {
       await api.setFirmDocumentAccessRights(doc.id, {
         user_id: member.id,
@@ -103,16 +117,36 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
         can_delete: patch.can_delete ?? member.can_delete,
         can_archive: patch.can_archive ?? member.can_archive,
       })
-      const data = await api.firmDocumentAccessRights(doc.id)
-      setMembers(data.members || [])
+      await refresh()
     } catch (err) {
       onError?.(err.data?.message || err.message)
     } finally {
-      setSavingUserId(null)
+      setSavingId(null)
+    }
+  }
+
+  const updateFirmRight = async (firmRow, patch) => {
+    setSavingId(firmRow.id)
+    try {
+      await api.setFirmDocumentAccessRights(doc.id, {
+        grantee_firm_id: firmRow.id,
+        can_add: patch.can_add ?? firmRow.can_add,
+        can_view: patch.can_view ?? firmRow.can_view,
+        can_delete: patch.can_delete ?? firmRow.can_delete,
+        can_archive: patch.can_archive ?? firmRow.can_archive,
+      })
+      await refresh()
+    } catch (err) {
+      onError?.(err.data?.message || err.message)
+    } finally {
+      setSavingId(null)
     }
   }
 
   if (!open || typeof window === 'undefined') return null
+
+  const isFirmMode = mode === 'firms'
+  const rows = isFirmMode ? firms : members
 
   return createPortal(
     <div className="compliance-audit-modal firm-docs-access-modal" role="presentation">
@@ -144,18 +178,20 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
         </div>
         <div className="compliance-audit-modal__body">
           <p className="muted" style={{ marginTop: 0 }}>
-            Grant rights for this document only. The Head of Firm always has all rights.
+            {isFirmMode
+              ? 'Grant rights to firms for this Central / Network document. Every member of a firm receives the rights you set here.'
+              : 'Grant rights for this document only. The Head of Firm always has all rights.'}
           </p>
           {loading ? (
-            <p className="muted">Loading members…</p>
-          ) : members.length === 0 ? (
-            <p className="muted">No firm members yet.</p>
+            <p className="muted">{isFirmMode ? 'Loading firms…' : 'Loading members…'}</p>
+          ) : rows.length === 0 ? (
+            <p className="muted">{isFirmMode ? 'No other firms yet.' : 'No firm members yet.'}</p>
           ) : (
             <div className="firm-docs-access-table-wrap">
               <table className="firm-docs-access-table">
                 <thead>
                   <tr>
-                    <th>Member</th>
+                    <th>{isFirmMode ? 'Firm' : 'Member'}</th>
                     <th>View</th>
                     <th>Add</th>
                     <th>Archive</th>
@@ -163,17 +199,17 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map((row) => (
+                  {rows.map((row) => (
                     <tr key={row.id}>
                       <td>
                         <div className="firm-docs-access-member">
                           <strong>
                             {row.name}
-                            {row.is_firm_head ? (
+                            {!isFirmMode && row.is_firm_head ? (
                               <span className="muted"> · Head</span>
                             ) : null}
                           </strong>
-                          {row.email ? (
+                          {!isFirmMode && row.email ? (
                             <span className="muted firm-docs-access-email">{row.email}</span>
                           ) : null}
                         </div>
@@ -182,9 +218,13 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
                         <td key={key} className="firm-docs-access-check">
                           <input
                             type="checkbox"
-                            disabled={row.is_firm_head || savingUserId === row.id}
+                            disabled={(!isFirmMode && row.is_firm_head) || savingId === row.id}
                             checked={Boolean(row[key])}
-                            onChange={(e) => updateRight(row, { [key]: e.target.checked })}
+                            onChange={(e) =>
+                              isFirmMode
+                                ? updateFirmRight(row, { [key]: e.target.checked })
+                                : updateMemberRight(row, { [key]: e.target.checked })
+                            }
                             aria-label={`${key.replace('can_', '')} for ${row.name}`}
                           />
                         </td>
@@ -483,9 +523,15 @@ export default function FirmDocuments() {
   }
 
   const canAdd = rights?.can_add || can('firm_documents_add')
-  const canManageRights = Boolean(rights?.can_manage_member_rights || rights?.is_firm_head)
   const functionalityEnabled = rights?.functionality_enabled !== false
 
+  const docCanManageRights = (doc) =>
+    Boolean(
+      doc.viewer_rights?.can_manage_member_rights ||
+        (rights?.can_manage_member_rights && !doc.shared_from) ||
+        (rights?.is_firm_head && !doc.shared_from) ||
+        (rights?.can_manage_firm_access && (doc.shared_from || rights?.is_central))
+    )
   const docCanArchive = (doc) =>
     Boolean(doc.viewer_rights?.can_archive || rights?.can_archive || can('firm_documents_archive'))
   const docCanDelete = (doc) =>
@@ -520,7 +566,7 @@ export default function FirmDocuments() {
         <td>{doc.uploader?.name || '—'}</td>
         <td>
           <div className="data-grid__actions">
-            {canManageRights ? (
+            {docCanManageRights(doc) ? (
               <DataGridIconBtn
                 icon={FaKey}
                 label="Access rights"
@@ -874,7 +920,7 @@ export default function FirmDocuments() {
                           </button>
                         </td>
                         <td>
-                          {canAdd ? (
+                          {canAdd && !row.isSharedBucket ? (
                             <div className="data-grid__actions">
                               <DataGridIconBtn
                                 icon={FaFolderPlus}

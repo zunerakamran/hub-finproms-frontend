@@ -108,9 +108,9 @@ export default function TaxonomyAddRequestSubmit() {
           <p className="eyebrow">Taxonomy requests</p>
           <h1>Request a new option</h1>
           <p className="muted">
-            Request an SM Template Library (posts/reels) category or tag, a Generic Compliance
-            content type, or a firm document category. Reviewers with Manage taxonomy requests can
-            approve (auto-creates the option) or reject.
+            Request an SM Templates Library category or tag, a Generic Compliance content type, or a
+            firm document category. Reviewers create the option manually, then mark the request
+            Approved — or reject.
           </p>
         </div>
         <Link to="/my-dashboard/taxonomy-add-requests" className="btn ghost">

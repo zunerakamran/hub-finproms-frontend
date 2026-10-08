@@ -752,8 +752,10 @@ export default function FirmDocuments() {
     })
   }
 
-  // Upload is Head of Firm only (not matrix / not key-icon grants).
-  const canAdd = Boolean(rights?.is_firm_head || rights?.can_add)
+  // Upload: Head of Firm, or hub-wide “Add firm documents” matrix capability.
+  const canAdd = Boolean(
+    rights?.is_firm_head || rights?.can_add || can('firm_documents_add')
+  )
   const functionalityEnabled = rights?.functionality_enabled !== false
 
   const docCanManageRights = (doc) =>

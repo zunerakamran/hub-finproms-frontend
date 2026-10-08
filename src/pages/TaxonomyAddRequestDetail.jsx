@@ -83,7 +83,7 @@ export default function TaxonomyAddRequestDetail() {
         { asPowerAdmin }
       )
       setRow(data.data)
-      setMessage(data.message || 'Request approved and taxonomy option created.')
+      setMessage(data.message || 'Request marked as approved.')
       setReviewNote('')
     } catch (err) {
       setError(err.message || 'Could not approve request.')
@@ -236,8 +236,8 @@ export default function TaxonomyAddRequestDetail() {
         <form className="admin-form" style={{ marginTop: '1.25rem' }} onSubmit={(e) => e.preventDefault()}>
           <h2 style={{ margin: '0 0 0.5rem' }}>Review</h2>
           <p className="muted">
-            Approve creates the taxonomy option immediately. Reject requires a note for the
-            requester.
+            Create the option manually first (Categories / Tags / GC content types / firm document
+            categories), then mark Approved. Reject requires a note for the requester.
           </p>
           <label>
             Review note {isPending ? <span className="muted">(required to reject)</span> : null}
@@ -251,7 +251,7 @@ export default function TaxonomyAddRequestDetail() {
           </label>
           <div className="actions" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button type="button" className="btn primary" disabled={saving} onClick={approve}>
-              {saving ? 'Working…' : 'Approve & create'}
+              {saving ? 'Working…' : 'Mark approved'}
             </button>
             <button type="button" className="btn danger" disabled={saving} onClick={reject}>
               Reject

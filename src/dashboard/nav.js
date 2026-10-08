@@ -447,7 +447,7 @@ export const DASHBOARD_LINKS = [
     label: 'Taxonomy requests',
     title: 'Taxonomy requests',
     description:
-      'View your requests to add an SM Template category/tag, GC content type, or firm document category.',
+      'View your requests to add an SM Templates Library category/tag, GC content type, or firm document category.',
     capability: 'taxonomy_request_add',
     end: true,
     group: 'taxonomy',
@@ -457,7 +457,7 @@ export const DASHBOARD_LINKS = [
     label: 'Request taxonomy',
     title: 'Request taxonomy',
     description:
-      'Ask an admin to add an SM Template Library category or tag, a Generic Compliance content type, or a firm document category.',
+      'Ask an admin to add an SM Templates Library category or tag, a Generic Compliance content type, or a firm document category.',
     capability: 'taxonomy_request_add',
     group: 'taxonomy',
   },
@@ -466,7 +466,7 @@ export const DASHBOARD_LINKS = [
     label: 'Taxonomy queue',
     title: 'Taxonomy queue',
     description:
-      'Review taxonomy requests. Approve creates the option; reject needs a note.',
+      'Review taxonomy requests. Create the option manually, then mark Approved — or reject with a note.',
     anyOf: TAX_REVIEW_ANY,
     group: 'taxonomy',
   },

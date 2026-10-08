@@ -137,6 +137,9 @@ export function HubProvider({ children }) {
               if (rights.is_firm_head || rights.can_view || sharedFirms) {
                 caps.firm_documents_view = true
               }
+              if (rights.is_firm_head || rights.can_add || rights.hub_wide?.can_add) {
+                caps.firm_documents_add = true
+              }
               const merged = {
                 ...prev,
                 firm_document_rights: rights,

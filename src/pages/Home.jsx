@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FaFileAlt, FaGlobe, FaPencilAlt, FaShieldAlt } from 'react-icons/fa'
 import { api } from '../api/client'
 import PageLoader from '../components/PageLoader'
 import StStatusBadge from '../components/SupportTicketsUI'
 import TemplateScrollPreview from '../websiteCompliance/components/TemplateScrollPreview'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { formatPageHtml, pageText } from '../utils/pageContent'
+import { fillPageText, formatPageHtml, pageText } from '../utils/pageContent'
 import '../websiteCompliance/wc.css'
 
 function splitColumns(posts) {
@@ -77,20 +78,75 @@ function flattenFirmDocuments(payload) {
   ;[...fromFolders, ...unfiled, ...flat].forEach((doc) => {
     if (doc?.id != null) byId.set(doc.id, doc)
   })
-  return Array.from(byId.values()).sort((a, b) => {
-    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
-    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0
-    return bTime - aTime
-  })
+  return Array.from(byId.values())
 }
 
-function formatDocDate(value) {
-  if (!value) return ''
-  try {
-    return new Date(value).toLocaleDateString()
-  } catch {
-    return value
+function docCreatedAt(doc) {
+  return doc?.created_at ? new Date(doc.created_at).getTime() : 0
+}
+
+function isImageAttachment(attachment) {
+  const mime = String(attachment?.mime_type || '').toLowerCase()
+  if (mime.startsWith('image/')) return true
+  const name = String(attachment?.original_name || attachment?.file_url || '').toLowerCase()
+  return /\.(png|jpe?g|gif|webp|svg)$/.test(name)
+}
+
+/**
+ * Latest uploads first, then most-used (by category usage / attachment count).
+ */
+function orderDocumentsLatestThenMostUsed(docs, categoryUsage = {}) {
+  const latest = [...docs].sort((a, b) => docCreatedAt(b) - docCreatedAt(a))
+  const usageScore = (doc) => {
+    const catId = doc.category_id || doc.category?.id
+    const fromCategory = catId != null ? Number(categoryUsage[catId] || 0) : 0
+    const attachments = Array.isArray(doc.attachments) ? doc.attachments.length : 0
+    return fromCategory * 10 + attachments
   }
+  const mostUsed = [...docs].sort((a, b) => {
+    const diff = usageScore(b) - usageScore(a)
+    if (diff !== 0) return diff
+    return docCreatedAt(b) - docCreatedAt(a)
+  })
+
+  const seen = new Set()
+  const out = []
+  const pushUnique = (list, limit) => {
+    for (const doc of list) {
+      if (out.length >= limit) break
+      if (seen.has(doc.id)) continue
+      seen.add(doc.id)
+      out.push(doc)
+    }
+  }
+  // Front of stack = newest; remaining slots filled by most-used.
+  pushUnique(latest, 3)
+  pushUnique(mostUsed, 6)
+  return out
+}
+
+function buildDocumentCategoryStats(docs, categoriesFromApi = []) {
+  const counts = new Map()
+  docs.forEach((doc) => {
+    const name = doc.category?.name || 'Uncategorized'
+    const id = doc.category_id || doc.category?.id || name
+    const prev = counts.get(id) || { id, name, count: 0 }
+    prev.count += 1
+    counts.set(id, prev)
+  })
+
+  // Prefer API categories (with usage_count) when present; merge live counts.
+  const fromApi = (categoriesFromApi || []).map((cat) => ({
+    id: cat.id,
+    name: cat.name,
+    count: Number(cat.usage_count ?? counts.get(cat.id)?.count ?? 0),
+  }))
+
+  const merged = fromApi.length
+    ? fromApi.filter((cat) => cat.count > 0)
+    : Array.from(counts.values())
+
+  return merged.sort((a, b) => b.count - a.count || String(a.name).localeCompare(String(b.name)))
 }
 
 export default function Home() {
@@ -101,6 +157,7 @@ export default function Home() {
   const [templates, setTemplates] = useState([])
   const [tickets, setTickets] = useState([])
   const [documents, setDocuments] = useState([])
+  const [documentCategories, setDocumentCategories] = useState([])
   const [ticketTab, setTicketTab] = useState('overview')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -147,18 +204,22 @@ export default function Home() {
       documentsModuleOn && canViewDocuments
         ? api
             .listFirmDocuments({ scope: 'active' })
-            .then((res) => flattenFirmDocuments(res))
-            .catch(() => [])
-        : Promise.resolve([])
+            .then((res) => ({
+              documents: flattenFirmDocuments(res),
+              categories: res.categories || [],
+            }))
+            .catch(() => ({ documents: [], categories: [] }))
+        : Promise.resolve({ documents: [], categories: [] })
 
     Promise.all([loadPosts, loadCategories, loadTemplates, loadTickets, loadDocuments])
-      .then(([nextPosts, nextCategories, nextTemplates, nextTickets, nextDocuments]) => {
+      .then(([nextPosts, nextCategories, nextTemplates, nextTickets, nextDocs]) => {
         if (cancelled) return
         setPosts(nextPosts)
         setCategories(nextCategories)
         setTemplates(nextTemplates)
         setTickets(nextTickets)
-        setDocuments(nextDocuments)
+        setDocuments(nextDocs.documents || [])
+        setDocumentCategories(nextDocs.categories || [])
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || 'Could not load home content')
@@ -217,6 +278,61 @@ export default function Home() {
     return cards
   }, [pageContent, branding])
 
+  const documentCategoryStats = useMemo(
+    () => buildDocumentCategoryStats(documents, documentCategories),
+    [documents, documentCategories]
+  )
+
+  const categoryUsageMap = useMemo(() => {
+    const map = {}
+    documentCategories.forEach((cat) => {
+      if (cat?.id != null) map[cat.id] = Number(cat.usage_count || 0)
+    })
+    documentCategoryStats.forEach((cat) => {
+      if (cat?.id != null && map[cat.id] == null) map[cat.id] = Number(cat.count || 0)
+    })
+    return map
+  }, [documentCategories, documentCategoryStats])
+
+  const featuredDocuments = useMemo(
+    () => orderDocumentsLatestThenMostUsed(documents, categoryUsageMap),
+    [documents, categoryUsageMap]
+  )
+
+  const documentStackItems = useMemo(() => {
+    const fallbackImages = [
+      t('documents_image_1'),
+      t('documents_image_2'),
+      t('documents_image_3'),
+    ].filter(Boolean)
+
+    if (featuredDocuments.length) {
+      return featuredDocuments.map((doc, index) => {
+        const attachment = (doc.attachments || []).find(isImageAttachment) || doc.attachments?.[0]
+        const imageUrl = isImageAttachment(attachment) ? attachment.file_url : null
+        return {
+          key: doc.id,
+          title: doc.title || attachment?.original_name || 'Document',
+          category: doc.category?.name || '',
+          imageUrl:
+            imageUrl ||
+            (fallbackImages.length ? fallbackImages[index % fallbackImages.length] : null),
+          badge: index < 3 ? 'Latest' : 'Most used',
+          doc,
+        }
+      })
+    }
+
+    return fallbackImages.map((url, index) => ({
+      key: `fallback-${index}`,
+      title: t('documents_panel_title', 'Firm documents'),
+      category: '',
+      imageUrl: url,
+      badge: '',
+      doc: null,
+    }))
+  }, [featuredDocuments, pageContent])
+
   const primaryCta = isAuthenticated
     ? { to: '/posts?type=post', label: t('cta_browse_posts', 'Browse posts') }
     : {
@@ -237,6 +353,11 @@ export default function Home() {
     : canViewDocuments
       ? '/my-dashboard/firm-documents'
       : '/my-dashboard'
+
+  const documentsPanelBadge = fillPageText(
+    t('documents_panel_badge', '{count}+ Documents'),
+    { count: documents.length || documentCategoryStats.reduce((sum, c) => sum + c.count, 0) }
+  )
 
   if (hubLoading || (loading && posts.length === 0 && categories.length === 0 && !error)) {
     return <PageLoader />
@@ -530,97 +651,205 @@ export default function Home() {
       </section>
 
       <section id="documents" className="home-band home-documents">
-        <div className="home-band__inner">
-          <div className="home-band__head home-documents__head">
-            <div>
-              <h2
-                dangerouslySetInnerHTML={{
-                  __html: formatPageHtml(
-                    t('documents_title', 'Discover our documents, guides & checklists')
-                  ),
-                }}
-              />
-              <p
-                className="muted"
-                dangerouslySetInnerHTML={{
-                  __html: formatPageHtml(
-                    t(
-                      'documents_lead',
-                      'Browse firm documents curated for your hub — policies, planners, and ready-to-use resources.'
-                    )
-                  ),
-                }}
-              />
-            </div>
+        <div className="home-band__inner home-documents__layout">
+          <div className="home-documents__copy">
+            <h2
+              dangerouslySetInnerHTML={{
+                __html: formatPageHtml(
+                  t('documents_title', 'Discover our documents, guides & checklists')
+                ),
+              }}
+            />
+            <p
+              className="home-documents__lead"
+              dangerouslySetInnerHTML={{
+                __html: formatPageHtml(
+                  t('documents_lead', 'Stay organized and achieve your goals with:')
+                ),
+              }}
+            />
+
+            {!documentsModuleOn ? (
+              <p className="muted">{t('documents_disabled', 'Documents are not enabled on this hub.')}</p>
+            ) : !isAuthenticated ? (
+              <p className="muted">
+                {t(
+                  'documents_body',
+                  'Open the document library to read more and download what you need.'
+                )}
+              </p>
+            ) : !canViewDocuments ? (
+              <p className="muted">{t('documents_disabled', 'Documents are not enabled on this hub.')}</p>
+            ) : documentCategoryStats.length > 0 ? (
+              <ul className="home-documents__stats">
+                {documentCategoryStats.slice(0, 6).map((cat) => (
+                  <li key={cat.id || cat.name}>
+                    <strong>{cat.count}+</strong>
+                    <span>{cat.name}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : documents.length === 0 ? (
+              <p className="muted">No documents available yet.</p>
+            ) : (
+              <ul className="home-documents__stats">
+                <li>
+                  <strong>{documents.length}+</strong>
+                  <span>Documents</span>
+                </li>
+              </ul>
+            )}
+
             {documentsModuleOn && (
-              <Link to={documentsHref} className="btn ghost">
+              <Link to={documentsHref} className="btn primary home-documents__cta">
                 {t('documents_cta', 'Read more')}
               </Link>
             )}
           </div>
 
-          {!documentsModuleOn ? (
-            <p className="muted">{t('documents_disabled', 'Documents are not enabled on this hub.')}</p>
-          ) : !isAuthenticated ? (
-            <p className="muted">
-              {t('documents_body', 'Open the document library to read more and download what you need.')}{' '}
-              <Link to="/login">{t('cta_log_in', 'Log in')}</Link>
+          <div className="home-documents__panel">
+            <p className="home-documents__panel-badge">{documentsPanelBadge}</p>
+            <h3 className="home-documents__panel-title">
+              {t('documents_panel_title', 'Firm documents')}
+            </h3>
+            <p className="home-documents__panel-sub">
+              {t('documents_panel_subtitle', 'Latest uploads | Most used')}
             </p>
-          ) : !canViewDocuments ? (
-            <p className="muted">{t('documents_disabled', 'Documents are not enabled on this hub.')}</p>
-          ) : documents.length === 0 ? (
-            <p className="muted">No documents available yet.</p>
-          ) : (
-            <div className="home-documents__list">
-              {documents.slice(0, 8).map((doc) => {
-                const attachment = doc.attachments?.[0]
-                const fileUrl = attachment?.file_url
-                const meta = [
-                  doc.category?.name,
-                  formatDocDate(doc.created_at),
-                ].filter(Boolean).join(' · ')
-                const body = (
-                  <>
-                    <span className="home-document-card__icon" aria-hidden="true">
-                      {categoryInitial(doc.title || 'D')}
-                    </span>
-                    <span className="home-document-card__body">
-                      <strong>{doc.title || attachment?.original_name || 'Document'}</strong>
-                      {meta && <span className="muted">{meta}</span>}
-                      {doc.description && (
-                        <span className="home-document-card__desc muted">{doc.description}</span>
+
+            <div className="home-documents__fan" aria-label="Document previews">
+              {(documentStackItems.length
+                ? documentStackItems
+                : [{ key: 'empty', title: 'Documents', imageUrl: null, badge: '', doc: null }]
+              )
+                .slice(0, 6)
+                .map((item, index) => {
+                  const className = `home-documents__sheet home-documents__sheet--${index + 1}`
+                  const style = { zIndex: 10 - index }
+                  const inner = (
+                    <>
+                      {item.badge ? (
+                        <span className="home-documents__sheet-badge">{item.badge}</span>
+                      ) : null}
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt="" loading="lazy" />
+                      ) : (
+                        <div className="home-documents__sheet-fallback">
+                          <strong>{item.title}</strong>
+                          {item.category ? <span>{item.category}</span> : null}
+                        </div>
                       )}
-                    </span>
-                    <span className="home-document-card__cta">{t('documents_cta', 'Read more')}</span>
-                  </>
-                )
-
-                if (fileUrl) {
-                  return (
-                    <a
-                      key={doc.id}
-                      className="home-document-card"
-                      href={fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {body}
-                    </a>
+                    </>
                   )
-                }
 
-                return (
-                  <Link
-                    key={doc.id}
-                    className="home-document-card"
-                    to={`/my-dashboard/firm-documents/${doc.id}`}
-                  >
-                    {body}
-                  </Link>
-                )
-              })}
+                  if (item.doc) {
+                    const fileUrl = item.doc.attachments?.[0]?.file_url
+                    if (fileUrl) {
+                      return (
+                        <a
+                          key={item.key}
+                          className={className}
+                          style={style}
+                          href={fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={item.title}
+                        >
+                          {inner}
+                        </a>
+                      )
+                    }
+                    return (
+                      <Link
+                        key={item.key}
+                        className={className}
+                        style={style}
+                        to={`/my-dashboard/firm-documents/${item.doc.id}`}
+                        title={item.title}
+                      >
+                        {inner}
+                      </Link>
+                    )
+                  }
+
+                  return (
+                    <div key={item.key} className={className} style={style}>
+                      {inner}
+                    </div>
+                  )
+                })}
             </div>
-          )}
+
+            <div className="home-documents__panel-ticker">
+              <span>{t('documents_panel_subtitle', 'Latest uploads | Most used')}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" className="home-band home-features">
+        <div className="home-band__inner">
+          <div className="home-features__head">
+            <h2>
+              {t('features_title', 'Why choose compliant content?')}
+            </h2>
+            <p className="muted">
+              {t(
+                'features_lead',
+                'Everything you need to publish with confidence — templates, editing, and compliance in one hub.'
+              )}
+            </p>
+          </div>
+          <div className="home-features__grid">
+            {[
+              {
+                key: 'sm',
+                icon: FaShieldAlt,
+                title: t('features_card1_title', 'SM Templates and compliance'),
+                text: t(
+                  'features_card1_text',
+                  'Browse ready-made social media templates that stay aligned with your hub compliance workflow.'
+                ),
+              },
+              {
+                key: 'canva',
+                icon: FaPencilAlt,
+                title: t('features_card2_title', 'Editing SM Templates with Canva'),
+                text: t(
+                  'features_card2_text',
+                  'Open templates in Canva, personalise the creative, and keep branding consistent across posts and reels.'
+                ),
+              },
+              {
+                key: 'website',
+                icon: FaGlobe,
+                title: t('features_card3_title', 'Website and Compliance'),
+                text: t(
+                  'features_card3_text',
+                  'Manage website templates and content changes with review, approval, and live publishing controls.'
+                ),
+              },
+              {
+                key: 'generic',
+                icon: FaFileAlt,
+                title: t('features_card4_title', 'Generic Compliance'),
+                text: t(
+                  'features_card4_text',
+                  'Submit generic compliance items, track status, and keep a clear audit trail for every request.'
+                ),
+              },
+            ].map((card) => {
+              const Icon = card.icon
+              return (
+                <article key={card.key} className="home-feature-card">
+                  <span className="home-feature-card__icon" aria-hidden="true">
+                    <Icon />
+                  </span>
+                  <h3>{card.title}</h3>
+                  <p>{card.text}</p>
+                </article>
+              )
+            })}
+          </div>
         </div>
       </section>
 

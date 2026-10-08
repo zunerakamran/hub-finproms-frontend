@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import PageLoader from '../components/PageLoader'
 import StStatusBadge from '../components/SupportTicketsUI'
+import TemplateScrollPreview from '../websiteCompliance/components/TemplateScrollPreview'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatPageHtml, pageText } from '../utils/pageContent'
+import '../websiteCompliance/wc.css'
 
 function splitColumns(posts) {
   const left = []
@@ -55,6 +57,42 @@ function ticketStatusBucket(status) {
   return 'open'
 }
 
+function collectDocumentsFromFolders(folders, out = []) {
+  for (const folder of folders || []) {
+    for (const doc of folder.documents || []) {
+      out.push(doc)
+    }
+    if (folder.children?.length) {
+      collectDocumentsFromFolders(folder.children, out)
+    }
+  }
+  return out
+}
+
+function flattenFirmDocuments(payload) {
+  const fromFolders = collectDocumentsFromFolders(payload?.folders || [])
+  const unfiled = payload?.unfiled_documents || []
+  const flat = payload?.documents || []
+  const byId = new Map()
+  ;[...fromFolders, ...unfiled, ...flat].forEach((doc) => {
+    if (doc?.id != null) byId.set(doc.id, doc)
+  })
+  return Array.from(byId.values()).sort((a, b) => {
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0
+    return bTime - aTime
+  })
+}
+
+function formatDocDate(value) {
+  if (!value) return ''
+  try {
+    return new Date(value).toLocaleDateString()
+  } catch {
+    return value
+  }
+}
+
 export default function Home() {
   const { isAuthenticated } = useAuth()
   const { hub, branding, can, registrationEnabled, loading: hubLoading, pageContent } = useHub()
@@ -62,6 +100,7 @@ export default function Home() {
   const [categories, setCategories] = useState([])
   const [templates, setTemplates] = useState([])
   const [tickets, setTickets] = useState([])
+  const [documents, setDocuments] = useState([])
   const [ticketTab, setTicketTab] = useState('overview')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -72,7 +111,7 @@ export default function Home() {
   const canViewTickets = isAuthenticated && (can('st_view_own_tickets') || can('st_submit_ticket'))
   const canSubmitTicket = isAuthenticated && can('st_submit_ticket')
   const documentsModuleOn = can('firm_documents')
-  const canViewDocuments = can('firm_documents_view')
+  const canViewDocuments = isAuthenticated && can('firm_documents_view')
   const t = (key, fallback = '') => pageText(pageContent, 'home', key, fallback)
 
   useEffect(() => {
@@ -95,7 +134,7 @@ export default function Home() {
       : Promise.resolve([])
 
     const loadTemplates = api
-      .homeWebsiteTemplates({ limit: 4 })
+      .homeWebsiteTemplates({ limit: 12 })
       .then((res) => res.templates || [])
       .catch(() => [])
 
@@ -104,13 +143,22 @@ export default function Home() {
         ? api.supportTicketsMine({ per_page: 8 }).then((res) => res.data || []).catch(() => [])
         : Promise.resolve([])
 
-    Promise.all([loadPosts, loadCategories, loadTemplates, loadTickets])
-      .then(([nextPosts, nextCategories, nextTemplates, nextTickets]) => {
+    const loadDocuments =
+      documentsModuleOn && canViewDocuments
+        ? api
+            .listFirmDocuments({ scope: 'active' })
+            .then((res) => flattenFirmDocuments(res))
+            .catch(() => [])
+        : Promise.resolve([])
+
+    Promise.all([loadPosts, loadCategories, loadTemplates, loadTickets, loadDocuments])
+      .then(([nextPosts, nextCategories, nextTemplates, nextTickets, nextDocuments]) => {
         if (cancelled) return
         setPosts(nextPosts)
         setCategories(nextCategories)
         setTemplates(nextTemplates)
         setTickets(nextTickets)
+        setDocuments(nextDocuments)
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || 'Could not load home content')
@@ -122,7 +170,7 @@ export default function Home() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, catalogAllowed, ticketsModuleOn, canViewTickets])
+  }, [hubLoading, catalogAllowed, ticketsModuleOn, canViewTickets, documentsModuleOn, canViewDocuments])
 
   const { left, right } = useMemo(() => splitColumns(posts), [posts])
 
@@ -133,16 +181,6 @@ export default function Home() {
     })
     return counts
   }, [tickets])
-
-  const documentImages = useMemo(() => {
-    const fromSettings = [
-      t('documents_image_1'),
-      t('documents_image_2'),
-      t('documents_image_3'),
-    ].filter(Boolean)
-    if (fromSettings.length) return fromSettings
-    return posts.slice(0, 3).map((post) => post.cover_url).filter(Boolean)
-  }, [pageContent, posts])
 
   const assistanceCards = useMemo(() => {
     const chatUrl = t('assistance_chat_url').trim()
@@ -322,42 +360,38 @@ export default function Home() {
                 {t('templates_lead', 'Showcase website templates available on this hub.')}
               </p>
             </div>
-            <div className="home-templates__grid">
-              {templates.slice(0, 4).map((template) => (
-                <article key={template.id || template.slug} className="home-template-card">
-                  <div className="home-template-card__media">
-                    {template.thumbnail_url ? (
-                      <img src={template.thumbnail_url} alt="" loading="lazy" />
-                    ) : (
-                      <div className="home-template-card__placeholder" aria-hidden="true">
-                        {categoryInitial(template.name)}
-                      </div>
-                    )}
-                  </div>
-                  <div className="home-template-card__body">
-                    <h3>{template.name}</h3>
-                    {template.description && <p className="muted">{template.description}</p>}
-                    {template.preview_url ? (
-                      <a
-                        className="btn ghost"
-                        href={template.preview_url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {t('templates_cta', 'View template')}
-                      </a>
-                    ) : isAuthenticated ? (
-                      <Link className="btn ghost" to="/my-dashboard/website-compliance/request-site">
-                        {t('templates_cta', 'View template')}
-                      </Link>
-                    ) : (
-                      <Link className="btn ghost" to="/login">
-                        {t('templates_cta', 'View template')}
-                      </Link>
-                    )}
-                  </div>
-                </article>
-              ))}
+            <div className="wc-app home-templates__scope">
+              <div className="home-templates__grid">
+                {templates.map((template) => (
+                  <article key={template.id || template.slug} className="home-template-card">
+                    <TemplateScrollPreview template={template} className="home-template-card__preview" />
+                    <div className="home-template-card__body">
+                      <h3>{template.name}</h3>
+                      {template.description && (
+                        <p className="muted home-template-card__desc">{template.description}</p>
+                      )}
+                      {template.preview_url ? (
+                        <a
+                          className="btn ghost"
+                          href={template.preview_url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {t('templates_cta', 'View template')}
+                        </a>
+                      ) : isAuthenticated ? (
+                        <Link className="btn ghost" to="/my-dashboard/website-compliance/request-site">
+                          {t('templates_cta', 'View template')}
+                        </Link>
+                      ) : (
+                        <Link className="btn ghost" to="/login">
+                          {t('templates_cta', 'View template')}
+                        </Link>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
             {isAuthenticated && (
               <div className="home-band__actions">
@@ -496,47 +530,97 @@ export default function Home() {
       </section>
 
       <section id="documents" className="home-band home-documents">
-        <div className="home-band__inner home-documents__grid">
-          <div className="home-documents__copy">
-            <h2
-              dangerouslySetInnerHTML={{
-                __html: formatPageHtml(
-                  t('documents_title', 'Discover our documents, guides & checklists')
-                ),
-              }}
-            />
-            <p
-              className="home-documents__lead"
-              dangerouslySetInnerHTML={{
-                __html: formatPageHtml(
-                  t(
-                    'documents_lead',
-                    'Browse firm documents curated for your hub — policies, planners, and ready-to-use resources.'
-                  )
-                ),
-              }}
-            />
-            <p className="muted">
-              {!documentsModuleOn
-                ? t('documents_disabled', 'Documents are not enabled on this hub.')
-                : t(
-                    'documents_body',
-                    'Open the document library to read more and download what you need.'
-                  )}
-            </p>
+        <div className="home-band__inner">
+          <div className="home-band__head home-documents__head">
+            <div>
+              <h2
+                dangerouslySetInnerHTML={{
+                  __html: formatPageHtml(
+                    t('documents_title', 'Discover our documents, guides & checklists')
+                  ),
+                }}
+              />
+              <p
+                className="muted"
+                dangerouslySetInnerHTML={{
+                  __html: formatPageHtml(
+                    t(
+                      'documents_lead',
+                      'Browse firm documents curated for your hub — policies, planners, and ready-to-use resources.'
+                    )
+                  ),
+                }}
+              />
+            </div>
             {documentsModuleOn && (
-              <Link to={documentsHref} className="btn primary">
+              <Link to={documentsHref} className="btn ghost">
                 {t('documents_cta', 'Read more')}
               </Link>
             )}
           </div>
-          <div className="home-documents__stack" aria-hidden="true">
-            {(documentImages.length ? documentImages : [null, null, null]).slice(0, 3).map((src, index) => (
-              <div key={src || `doc-${index}`} className={`home-documents__sheet home-documents__sheet--${index + 1}`}>
-                {src ? <img src={src} alt="" loading="lazy" /> : <span />}
-              </div>
-            ))}
-          </div>
+
+          {!documentsModuleOn ? (
+            <p className="muted">{t('documents_disabled', 'Documents are not enabled on this hub.')}</p>
+          ) : !isAuthenticated ? (
+            <p className="muted">
+              {t('documents_body', 'Open the document library to read more and download what you need.')}{' '}
+              <Link to="/login">{t('cta_log_in', 'Log in')}</Link>
+            </p>
+          ) : !canViewDocuments ? (
+            <p className="muted">{t('documents_disabled', 'Documents are not enabled on this hub.')}</p>
+          ) : documents.length === 0 ? (
+            <p className="muted">No documents available yet.</p>
+          ) : (
+            <div className="home-documents__list">
+              {documents.slice(0, 8).map((doc) => {
+                const attachment = doc.attachments?.[0]
+                const fileUrl = attachment?.file_url
+                const meta = [
+                  doc.category?.name,
+                  formatDocDate(doc.created_at),
+                ].filter(Boolean).join(' · ')
+                const body = (
+                  <>
+                    <span className="home-document-card__icon" aria-hidden="true">
+                      {categoryInitial(doc.title || 'D')}
+                    </span>
+                    <span className="home-document-card__body">
+                      <strong>{doc.title || attachment?.original_name || 'Document'}</strong>
+                      {meta && <span className="muted">{meta}</span>}
+                      {doc.description && (
+                        <span className="home-document-card__desc muted">{doc.description}</span>
+                      )}
+                    </span>
+                    <span className="home-document-card__cta">{t('documents_cta', 'Read more')}</span>
+                  </>
+                )
+
+                if (fileUrl) {
+                  return (
+                    <a
+                      key={doc.id}
+                      className="home-document-card"
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {body}
+                    </a>
+                  )
+                }
+
+                return (
+                  <Link
+                    key={doc.id}
+                    className="home-document-card"
+                    to={`/my-dashboard/firm-documents/${doc.id}`}
+                  >
+                    {body}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </div>
       </section>
 

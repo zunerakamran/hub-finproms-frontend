@@ -33,10 +33,6 @@ export default function Layout() {
   const isHome = location.pathname === '/'
   const showCatalog = canViewSitePages && isAuthenticated && can('member_browse_catalog')
   const showBundles = canViewSitePages && isAuthenticated && can('member_browse_bundles')
-  const showTicketsNav =
-    canViewSitePages && isAuthenticated && can('support_tickets') && can('st_view_own_tickets')
-  const canRaiseTicket =
-    canViewSitePages && isAuthenticated && can('support_tickets') && can('st_submit_ticket')
   const tHome = (key, fallback = '') => pageText(pageContent, 'home', key, fallback)
   const creditsLabel =
     user?.has_unlimited_credits ||
@@ -70,12 +66,6 @@ export default function Layout() {
                 Home
               </NavLink>
             )}
-            {canViewSitePages && (
-              <a href="/#categories">{tHome('nav_categories', 'Categories')}</a>
-            )}
-            {canViewSitePages && (
-              <a href="/#website-templates">{tHome('nav_templates', 'Website templates')}</a>
-            )}
             {showCatalog && (
               <NavLink
                 to="/posts?type=post"
@@ -108,22 +98,6 @@ export default function Layout() {
                 className={({ isActive }) => (isActive ? 'is-active' : undefined)}
               >
                 Bundles
-              </NavLink>
-            )}
-            {showTicketsNav && (
-              <NavLink
-                to="/my-dashboard/support-tickets"
-                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
-              >
-                {tHome('nav_tickets', 'My tickets')}
-              </NavLink>
-            )}
-            {canRaiseTicket && (
-              <NavLink
-                to="/my-dashboard/support-tickets/new"
-                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
-              >
-                {tHome('nav_raise_ticket', 'Create a new ticket')}
               </NavLink>
             )}
             {isAuthenticated && showPlans && (

@@ -97,8 +97,9 @@ export const PAGE_CONTENT_FIELDS = {
       { key: 'footer_powered_by_name', label: 'Footer — Powered by name', hint: 'Shown after “Powered by”.' },
       {
         key: 'footer_powered_by_logo',
-        label: 'Footer — Powered by logo URL',
-        hint: 'Image URL shown next to the Powered by name.',
+        label: 'Footer — Powered by logo',
+        type: 'image',
+        hint: 'Upload an image shown next to the Powered by name (PNG, JPG, GIF, or WebP, max 5MB).',
       },
       {
         key: 'footer_powered_by_url',

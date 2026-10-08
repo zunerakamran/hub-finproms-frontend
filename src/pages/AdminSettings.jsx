@@ -51,6 +51,9 @@ export default function AdminSettings() {
   const [accentColor, setAccentColor] = useState('')
   const [pageContent, setPageContent] = useState(emptyPageContent)
   const [pageSection, setPageSection] = useState('home')
+  const [poweredByLogoFile, setPoweredByLogoFile] = useState(null)
+  const [poweredByLogoPreview, setPoweredByLogoPreview] = useState('')
+  const [removePoweredByLogo, setRemovePoweredByLogo] = useState(false)
   const [dashboardNav, setDashboardNav] = useState(fillDashboardNavFromSettings)
   const [dashNavTab, setDashNavTab] = useState('sections')
   const [loading, setLoading] = useState(true)
@@ -78,6 +81,9 @@ export default function AdminSettings() {
     setAuthBgFile(null)
     setAuthBgPreview('')
     setRemoveAuthBg(false)
+    setPoweredByLogoFile(null)
+    setPoweredByLogoPreview('')
+    setRemovePoweredByLogo(false)
     setPrimaryColor(settings?.color_scheme?.primary ?? '')
     setSecondaryColor(settings?.color_scheme?.secondary ?? '')
     setAccentColor(settings?.color_scheme?.accent ?? '')
@@ -210,6 +216,16 @@ export default function AdminSettings() {
     return () => URL.revokeObjectURL(url)
   }, [authBgFile])
 
+  useEffect(() => {
+    if (!poweredByLogoFile) {
+      setPoweredByLogoPreview('')
+      return undefined
+    }
+    const url = URL.createObjectURL(poweredByLogoFile)
+    setPoweredByLogoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [poweredByLogoFile])
+
   const onRemoveLogo = () => {
     setLogoFile(null)
     setLogoPreview('')
@@ -234,10 +250,20 @@ export default function AdminSettings() {
     setRemoveAuthBg(true)
   }
 
+  const onRemovePoweredByLogo = () => {
+    setPoweredByLogoFile(null)
+    setPoweredByLogoPreview('')
+    setRemovePoweredByLogo(true)
+    setPageField('home', 'footer_powered_by_logo', '')
+  }
+
   const displayedLogo = logoPreview || (!removeLogo ? logoUrl : '')
   const displayedWhiteLogo = whiteLogoPreview || (!removeWhiteLogo ? whiteLogoUrl : '')
   const displayedFavicon = faviconPreview || (!removeFavicon ? faviconUrl : '')
   const displayedAuthBg = authBgPreview || (!removeAuthBg ? authBgUrl : '')
+  const displayedPoweredByLogo =
+    poweredByLogoPreview ||
+    (!removePoweredByLogo ? pageContent?.home?.footer_powered_by_logo || '' : '')
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -278,6 +304,12 @@ export default function AdminSettings() {
       if (removeAuthBg && !authBgFile) {
         fd.append('remove_auth_bg_image', '1')
       }
+      if (poweredByLogoFile) {
+        fd.append('footer_powered_by_logo', poweredByLogoFile)
+      }
+      if (removePoweredByLogo && !poweredByLogoFile) {
+        fd.append('remove_footer_powered_by_logo', '1')
+      }
 
       const data = await api.updateSettings(fd)
       applySettings(data.settings)
@@ -292,6 +324,7 @@ export default function AdminSettings() {
           errors.white_logo?.[0] ||
           errors.favicon?.[0] ||
           errors.auth_bg_image?.[0] ||
+          errors.footer_powered_by_logo?.[0] ||
           errors['color_scheme.primary']?.[0] ||
           errors['color_scheme.secondary']?.[0] ||
           errors['color_scheme.accent']?.[0] ||
@@ -605,24 +638,59 @@ export default function AdminSettings() {
             ) : null}
 
             <div className="page-content-fields">
-              {(PAGE_CONTENT_FIELDS[pageSection]?.fields || []).map((field) => (
-                <label key={`${pageSection}-${field.key}`}>
-                  {field.label}
-                  {field.multiline ? (
-                    <textarea
-                      rows={3}
-                      value={pageContent?.[pageSection]?.[field.key] ?? ''}
-                      onChange={(e) => setPageField(pageSection, field.key, e.target.value)}
-                    />
-                  ) : (
-                    <input
-                      value={pageContent?.[pageSection]?.[field.key] ?? ''}
-                      onChange={(e) => setPageField(pageSection, field.key, e.target.value)}
-                    />
-                  )}
-                  {field.hint ? <span className="muted form-hint">{field.hint}</span> : null}
-                </label>
-              ))}
+              {(PAGE_CONTENT_FIELDS[pageSection]?.fields || []).map((field) => {
+                if (field.type === 'image' && field.key === 'footer_powered_by_logo') {
+                  return (
+                    <div key={`${pageSection}-${field.key}`} className="page-content-image-field">
+                      <FileDropzone
+                        id="settings-powered-by-logo"
+                        label={field.label}
+                        accept="image/*"
+                        hint={field.hint}
+                        files={poweredByLogoFile ? [poweredByLogoFile] : []}
+                        onChange={(next) => {
+                          setPoweredByLogoFile(next[0] || null)
+                          setRemovePoweredByLogo(false)
+                        }}
+                        disabled={saving}
+                      />
+                      {displayedPoweredByLogo ? (
+                        <div className="settings-logo-preview">
+                          <img src={displayedPoweredByLogo} alt="Powered by logo preview" />
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            onClick={onRemovePoweredByLogo}
+                          >
+                            Remove logo
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="muted">No Powered by logo set.</p>
+                      )}
+                    </div>
+                  )
+                }
+
+                return (
+                  <label key={`${pageSection}-${field.key}`}>
+                    {field.label}
+                    {field.multiline ? (
+                      <textarea
+                        rows={3}
+                        value={pageContent?.[pageSection]?.[field.key] ?? ''}
+                        onChange={(e) => setPageField(pageSection, field.key, e.target.value)}
+                      />
+                    ) : (
+                      <input
+                        value={pageContent?.[pageSection]?.[field.key] ?? ''}
+                        onChange={(e) => setPageField(pageSection, field.key, e.target.value)}
+                      />
+                    )}
+                    {field.hint ? <span className="muted form-hint">{field.hint}</span> : null}
+                  </label>
+                )
+              })}
             </div>
           </div>
 

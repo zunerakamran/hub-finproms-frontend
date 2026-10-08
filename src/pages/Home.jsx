@@ -88,6 +88,28 @@ function categoryInitial(name) {
   return text ? text.charAt(0).toUpperCase() : '?'
 }
 
+/** Plain text for API HTML descriptions (e.g. template `<p>…</p>`). */
+function plainTextFromHtml(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (typeof document !== 'undefined') {
+    const el = document.createElement('div')
+    el.innerHTML = raw
+    return (el.textContent || el.innerText || '').replace(/\s+/g, ' ').trim()
+  }
+  return raw
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/p>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function ticketStatusBucket(status) {
   const raw = String(status || '').toLowerCase()
   if (raw.includes('progress') || raw.includes('working') || raw.includes('pending')) return 'progress'
@@ -629,14 +651,16 @@ export default function Home() {
             </div>
             <div className="wc-app home-templates__scope">
               <div className="home-templates__grid">
-                {templates.map((template) => (
+                {templates.map((template) => {
+                  const description = plainTextFromHtml(template.description)
+                  return (
                   <article key={template.id || template.slug} className="home-template-card">
                     <TemplateScrollPreview template={template} className="home-template-card__preview" />
                     <div className="home-template-card__body">
                       <h3>{template.name}</h3>
-                      {template.description && (
-                        <p className="muted home-template-card__desc">{template.description}</p>
-                      )}
+                      {description ? (
+                        <p className="muted home-template-card__desc">{description}</p>
+                      ) : null}
                       {template.preview_url ? (
                         <a
                           className="btn ghost"
@@ -657,7 +681,8 @@ export default function Home() {
                       )}
                     </div>
                   </article>
-                ))}
+                  )
+                })}
               </div>
             </div>
             {isAuthenticated && (

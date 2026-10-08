@@ -2066,6 +2066,24 @@ a.site-footer__powered:hover {
   margin-top: 1.5rem;
 }
 
+.home-categories .home-band__head,
+.home-templates .home-band__head {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.home-categories .home-band__inner > p.muted,
+.home-templates .home-band__inner > p.muted {
+  text-align: center;
+}
+
+.home-categories .home-band__actions,
+.home-templates .home-band__actions {
+  display: flex;
+  justify-content: center;
+}
+
 .home-categories__grid {
   --home-cols: 4;
   --home-gap: 1rem;

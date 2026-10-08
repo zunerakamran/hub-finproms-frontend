@@ -127,10 +127,10 @@ export function HubProvider({ children }) {
             setHub((prev) => {
               if (!prev) return prev
               const caps = { ...(prev.effective_capabilities || {}) }
+              // Unlock nav / upload only. Delete, archive, and Document access
+              // control stay matrix- or document-scoped (viewer_rights / library).
               if (rights.is_firm_head || rights.can_view) caps.firm_documents_view = true
               if (rights.is_firm_head || rights.can_add) caps.firm_documents_add = true
-              if (rights.is_firm_head || rights.can_delete) caps.firm_documents_delete = true
-              if (rights.is_firm_head || rights.can_archive) caps.firm_documents_archive = true
               const merged = {
                 ...prev,
                 firm_document_rights: rights,
@@ -271,12 +271,15 @@ export function HubProvider({ children }) {
       const firmDocRight = (key) => {
         const fdr = hub?.firm_document_rights
         if (!fdr) return false
-        // Head of Firm (any role): appointment unlocks Firm documents.
-        if (fdr.is_firm_head) return true
-        if (key === 'firm_documents_view') return Boolean(fdr.can_view)
-        if (key === 'firm_documents_add') return Boolean(fdr.can_add)
+        // Head unlocks view/add for the Firm documents menu only — never
+        // manage_firm_access, delete, or archive (those are scoped elsewhere).
+        if (key === 'firm_documents_view') return Boolean(fdr.is_firm_head || fdr.can_view)
+        if (key === 'firm_documents_add') return Boolean(fdr.is_firm_head || fdr.can_add)
         if (key === 'firm_documents_delete') return Boolean(fdr.can_delete)
         if (key === 'firm_documents_archive') return Boolean(fdr.can_archive)
+        if (key === 'firm_documents_manage_firm_access') {
+          return Boolean(fdr.can_manage_firm_access)
+        }
         return false
       }
 

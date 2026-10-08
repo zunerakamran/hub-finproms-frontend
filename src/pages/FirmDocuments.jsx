@@ -460,14 +460,11 @@ export default function FirmDocuments() {
   const [accessDoc, setAccessDoc] = useState(null)
   const [showVisibleFirms, setShowVisibleFirms] = useState(false)
 
-  const isFirmHead = Boolean(
-    rights?.is_firm_head || hub?.firm_document_rights?.is_firm_head
-  )
-  const canManageFirmAccess = Boolean(
-    rights?.can_manage_firm_access ||
-      hub?.firm_document_rights?.can_manage_firm_access ||
-      can('firm_documents_manage_firm_access')
-  )
+  const isFirmHead = Boolean(rights?.is_firm_head)
+  // Strictly the matrix capability (e.g. Power Admin only). Do not OR
+  // is_firm_head / hub.firm_document_rights — that showed this button to every
+  // firm head. Heads still grant per-document rights via the key icon.
+  const canManageFirmAccess = can('firm_documents_manage_firm_access')
   const hubWideFirmDocs = Boolean(
     rights?.hub_wide?.can_view ||
       rights?.hub_wide?.can_add ||
@@ -746,10 +743,21 @@ export default function FirmDocuments() {
         (rights?.is_firm_head && !doc.shared_from) ||
         (rights?.can_manage_firm_access && (doc.shared_from || rights?.is_central))
     )
-  const docCanArchive = (doc) =>
-    Boolean(doc.viewer_rights?.can_archive || rights?.can_archive || can('firm_documents_archive'))
-  const docCanDelete = (doc) =>
-    Boolean(doc.viewer_rights?.can_delete || rights?.can_delete || can('firm_documents_delete'))
+  // Prefer per-document viewer_rights so view-only grants never show Archive/Delete.
+  // Do not OR hub-wide can('firm_documents_*') — heads / matrix users wrongly
+  // got those caps globally and saw actions on shared view-only docs.
+  const docCanArchive = (doc) => {
+    if (doc?.viewer_rights && typeof doc.viewer_rights.can_archive === 'boolean') {
+      return Boolean(doc.viewer_rights.can_archive)
+    }
+    return Boolean(rights?.can_archive)
+  }
+  const docCanDelete = (doc) => {
+    if (doc?.viewer_rights && typeof doc.viewer_rights.can_delete === 'boolean') {
+      return Boolean(doc.viewer_rights.can_delete)
+    }
+    return Boolean(rights?.can_delete)
+  }
 
   const primaryAttachment = (doc) => (doc.attachments || [])[0] || null
 

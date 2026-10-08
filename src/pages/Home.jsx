@@ -792,10 +792,9 @@ export default function Home() {
                       fileUrl: null,
                     },
                   ]
-              ).map((item, index) => {
+              ).map((item) => {
                 const Icon = DOC_KIND_ICONS[item.kind] || FaFile
-                const className = `home-doc-tile home-doc-tile--${item.kind || 'file'} home-doc-tile--${index + 1}`
-                const style = { zIndex: 10 - index }
+                const className = `home-doc-tile home-doc-tile--${item.kind || 'file'}`
                 const inner = (
                   <>
                     {item.badge ? (
@@ -805,6 +804,9 @@ export default function Home() {
                     {item.kind === 'image' && item.imageUrl ? (
                       <div className="home-doc-tile__media">
                         <img src={item.imageUrl} alt="" loading="lazy" />
+                        <div className="home-doc-tile__media-caption">
+                          <strong>{item.title}</strong>
+                        </div>
                       </div>
                     ) : (
                       <div className="home-doc-tile__body">
@@ -830,7 +832,6 @@ export default function Home() {
                     <a
                       key={item.key}
                       className={className}
-                      style={style}
                       href={item.fileUrl}
                       target="_blank"
                       rel="noreferrer"
@@ -846,7 +847,6 @@ export default function Home() {
                     <Link
                       key={item.key}
                       className={className}
-                      style={style}
                       to={`/my-dashboard/firm-documents/${item.doc.id}`}
                       title={item.title}
                     >
@@ -856,7 +856,7 @@ export default function Home() {
                 }
 
                 return (
-                  <div key={item.key} className={className} style={style}>
+                  <div key={item.key} className={className}>
                     {inner}
                   </div>
                 )

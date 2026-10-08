@@ -123,13 +123,20 @@ export function HubProvider({ children }) {
           .firmDocumentsMyRights()
           .then((mine) => {
             if (!mine?.rights) return
-            const rights = mine.rights
+            const rights = { ...mine.rights }
+            const sharedFirms = (mine.accessible_firms || []).some(
+              (f) => f?.source === 'shared' || f?.is_central
+            )
+            // Key-icon / firm grants must unlock the menu for Advisor & Approver.
+            if (sharedFirms) rights.can_view = true
             setHub((prev) => {
               if (!prev) return prev
               const caps = { ...(prev.effective_capabilities || {}) }
               // Unlock nav / upload only. Delete, archive, and Document access
               // control stay matrix- or document-scoped (viewer_rights / library).
-              if (rights.is_firm_head || rights.can_view) caps.firm_documents_view = true
+              if (rights.is_firm_head || rights.can_view || sharedFirms) {
+                caps.firm_documents_view = true
+              }
               if (rights.is_firm_head || rights.can_add) caps.firm_documents_add = true
               const merged = {
                 ...prev,
@@ -392,12 +399,14 @@ export function HubProvider({ children }) {
     if (hub?.firm_document_rights?.is_firm_head) {
       return true
     }
-    // Allowlisted / shared-doc firm members also need the shell + Firm documents menu.
+    // Advisor / Approver / User with key-icon or matrix firm-doc rights.
     if (
       hub?.firm_document_rights?.can_view ||
       hub?.firm_document_rights?.can_add ||
       hub?.firm_document_rights?.can_delete ||
-      hub?.firm_document_rights?.can_archive
+      hub?.firm_document_rights?.can_archive ||
+      hub?.effective_capabilities?.firm_documents_view ||
+      hub?.effective_capabilities?.firm_documents_add
     ) {
       return true
     }

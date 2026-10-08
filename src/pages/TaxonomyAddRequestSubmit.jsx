@@ -108,8 +108,9 @@ export default function TaxonomyAddRequestSubmit() {
           <p className="eyebrow">Taxonomy requests</p>
           <h1>Request a new option</h1>
           <p className="muted">
-            Ask an admin to add a type, category, or tag. Post/reel taxonomy is reviewed on Central;
-            GC content types and firm document categories are reviewed on this hub.
+            Request an SM Template Library (posts/reels) category or tag, a Generic Compliance
+            content type, or a firm document category. Reviewers with Manage taxonomy requests can
+            approve (auto-creates the option) or reject.
           </p>
         </div>
         <Link to="/my-dashboard/taxonomy-add-requests" className="btn ghost">
@@ -142,8 +143,8 @@ export default function TaxonomyAddRequestSubmit() {
 
         {!optionsLoading && availableTargets.length === 0 && (
           <p className="muted">
-            No requestable taxonomy types are available on this hub right now. Post/reel types,
-            categories, and tags can only be requested on Central.
+            No requestable taxonomy options are available on this hub right now. Enable Generic
+            Compliance and/or Firm documents if you need those request types.
           </p>
         )}
 

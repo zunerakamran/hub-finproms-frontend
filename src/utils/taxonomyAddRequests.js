@@ -1,20 +1,7 @@
 export const TAX_STATUSES = ['Pending', 'Approved', 'Rejected']
 
-export const TAX_REVIEW_ANY = [
-  'dashboard_manage_types',
-  'dashboard_manage_categories',
-  'dashboard_manage_tags',
-  'gc_manage_content_types',
-  'firm_documents_manage_categories',
-]
-
-export const TAX_TARGET_MANAGE_CAPS = {
-  content_type: 'dashboard_manage_types',
-  category: 'dashboard_manage_categories',
-  tag: 'dashboard_manage_tags',
-  gc_content_type: 'gc_manage_content_types',
-  firm_document_category: 'firm_documents_manage_categories',
-}
+/** Who can see the queue and approve / reject taxonomy requests. */
+export const TAX_REVIEW_ANY = ['taxonomy_request_manage']
 
 export function taxStatusClass(status) {
   const s = String(status || 'Pending').toLowerCase()
@@ -23,13 +10,13 @@ export function taxStatusClass(status) {
   return 'gc-status gc-status--pending'
 }
 
-export function canReviewTaxTarget(can, target) {
-  const cap = TAX_TARGET_MANAGE_CAPS[target]
-  return Boolean(cap && can(cap))
+export function canReviewTaxTarget(can, _target) {
+  return Boolean(can('taxonomy_request_manage'))
 }
 
 /**
  * Filter submit targets by hub + module availability.
+ * Backend already scopes options; keep a light client-side guard.
  */
 export function filterAvailableTaxTargets(targets, { isControlPlane, can }) {
   return (targets || []).filter((item) => {

@@ -90,13 +90,9 @@ const ACCOUNT_ANY = [
   'general_show_purchases',
 ]
 
-const TAX_REVIEW_ANY = [
-  'dashboard_manage_types',
-  'dashboard_manage_categories',
-  'dashboard_manage_tags',
-  'gc_manage_content_types',
-  'firm_documents_manage_categories',
-]
+const TAX_REVIEW_ANY = ['taxonomy_request_manage']
+
+const TAXONOMY_ANY = ['taxonomy_request_add', ...TAX_REVIEW_ANY]
 
 const CONTENT_ANY = [
   'dashboard_manage_posts',
@@ -109,8 +105,6 @@ const CONTENT_ANY = [
   'dashboard_view_categories',
   'dashboard_manage_tags',
   'dashboard_view_tags',
-  'taxonomy_request_add',
-  ...TAX_REVIEW_ANY,
 ]
 
 const HUB_OPS_ANY = [
@@ -164,6 +158,7 @@ export const DASHBOARD_GROUPS = {
   dashboard: 'Dashboard',
   account: 'Account',
   content: 'SM Template',
+  taxonomy: 'Taxonomy requests',
   hub: 'Hub',
   hub_central: 'Central Hub',
   hub_shared: 'Shared hub',
@@ -237,6 +232,7 @@ export function applyDashboardNavGroup(link, dashboardNav = null) {
 export const DEFAULT_SECTION_ORDER = [
   'account',
   'content',
+  'taxonomy',
   'hub',
   'modules',
   'advisors',
@@ -438,32 +434,41 @@ export const DASHBOARD_LINKS = [
     anyOf: ['dashboard_manage_tags', 'dashboard_view_tags'],
     group: 'content',
   },
+
+  // —— Taxonomy requests ——
+  {
+    kind: 'section',
+    id: 'taxonomy',
+    label: 'Taxonomy requests',
+    anyOf: TAXONOMY_ANY,
+  },
   {
     to: '/my-dashboard/taxonomy-add-requests',
     label: 'Taxonomy requests',
     title: 'Taxonomy requests',
-    description: 'View your requests to add a new type, category, tag, or document category.',
+    description:
+      'View your requests to add an SM Template category/tag, GC content type, or firm document category.',
     capability: 'taxonomy_request_add',
     end: true,
-    group: 'content',
+    group: 'taxonomy',
   },
   {
     to: '/my-dashboard/taxonomy-add-requests/new',
     label: 'Request taxonomy',
     title: 'Request taxonomy',
     description:
-      'Ask an admin to add a post/reel type, category, or tag (Central), a GC content type, or a firm document category.',
+      'Ask an admin to add an SM Template Library category or tag, a Generic Compliance content type, or a firm document category.',
     capability: 'taxonomy_request_add',
-    group: 'content',
+    group: 'taxonomy',
   },
   {
     to: '/my-dashboard/taxonomy-add-requests/queue',
     label: 'Taxonomy queue',
     title: 'Taxonomy queue',
     description:
-      'Review requests to add taxonomy options. Approve creates the option; reject needs a note.',
+      'Review taxonomy requests. Approve creates the option; reject needs a note.',
     anyOf: TAX_REVIEW_ANY,
-    group: 'content',
+    group: 'taxonomy',
   },
 
   // —— Hub ——

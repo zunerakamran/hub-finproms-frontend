@@ -91,6 +91,7 @@ export const DASHBOARD_NAV_SECTION_FIELDS = [
   { key: 'dashboard', label: 'Topbar — Dashboard (overview)' },
   { key: 'account', label: 'Separator — Account' },
   { key: 'content', label: 'Separator — SM Template' },
+  { key: 'taxonomy', label: 'Separator — Taxonomy requests' },
   { key: 'hub', label: 'Separator — Hub (generic)' },
   { key: 'hub_central', label: 'Separator — Central Hub' },
   { key: 'hub_shared', label: 'Separator — Shared hub' },

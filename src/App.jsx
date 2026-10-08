@@ -353,15 +353,7 @@ export default function App() {
                 <Route
                   path="taxonomy-add-requests/queue"
                   element={
-                    <HubCapabilityRoute
-                      anyOf={[
-                        'dashboard_manage_types',
-                        'dashboard_manage_categories',
-                        'dashboard_manage_tags',
-                        'gc_manage_content_types',
-                        'firm_documents_manage_categories',
-                      ]}
-                    >
+                    <HubCapabilityRoute anyOf={['taxonomy_request_manage']}>
                       <TaxonomyAddRequestsQueue />
                     </HubCapabilityRoute>
                   }
@@ -370,14 +362,7 @@ export default function App() {
                   path="taxonomy-add-requests/:id"
                   element={
                     <HubCapabilityRoute
-                      anyOf={[
-                        'taxonomy_request_add',
-                        'dashboard_manage_types',
-                        'dashboard_manage_categories',
-                        'dashboard_manage_tags',
-                        'gc_manage_content_types',
-                        'firm_documents_manage_categories',
-                      ]}
+                      anyOf={['taxonomy_request_add', 'taxonomy_request_manage']}
                     >
                       <TaxonomyAddRequestDetail />
                     </HubCapabilityRoute>

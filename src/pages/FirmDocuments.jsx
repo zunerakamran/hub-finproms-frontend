@@ -433,7 +433,7 @@ function VisibleFirmsModal({ open, onClose, firmId, onError, onSaved }) {
 }
 
 export default function FirmDocuments() {
-  const { can, actingHubId, hub } = useHub()
+  const { can, actingHubId } = useHub()
   const [firms, setFirms] = useState([])
   const [firmId, setFirmId] = useState('')
   const [folders, setFolders] = useState([])
@@ -459,28 +459,24 @@ export default function FirmDocuments() {
   const [expanded, setExpanded] = useState(() => new Set())
   const [accessDoc, setAccessDoc] = useState(null)
   const [showVisibleFirms, setShowVisibleFirms] = useState(false)
+  /** active = unarchived, archived = archived only */
+  const [scope, setScope] = useState('active')
 
-  const isFirmHead = Boolean(rights?.is_firm_head)
-  // Strictly the matrix capability (e.g. Power Admin only). Do not OR
-  // is_firm_head / hub.firm_document_rights — that showed this button to every
-  // firm head. Heads still grant per-document rights via the key icon.
+  // Strictly the matrix capability (e.g. Power Admin only). Heads still grant
+  // per-document rights via the key icon.
   const canManageFirmAccess = can('firm_documents_manage_firm_access')
-  const hubWideFirmDocs = Boolean(
-    rights?.hub_wide?.can_view ||
-      rights?.hub_wide?.can_add ||
-      rights?.hub_wide?.can_delete ||
-      rights?.hub_wide?.can_archive ||
-      hub?.firm_document_rights?.hub_wide?.can_view ||
-      hub?.firm_document_rights?.hub_wide?.can_add ||
-      hub?.firm_document_rights?.hub_wide?.can_delete ||
-      hub?.firm_document_rights?.hub_wide?.can_archive
-  )
-  const showFirmPicker = firms.length > 1 || hubWideFirmDocs
 
   const selectedFirm = useMemo(
     () => firms.find((f) => String(f.id) === String(firmId)) || null,
     [firms, firmId]
   )
+
+  const firmOptionLabel = (firm) => {
+    const name = firm?.name || `Firm #${firm?.id}`
+    if (firm?.is_own || firm?.source === 'own') return `${name} (your firm)`
+    if (firm?.source === 'shared') return `${name} (shared access)`
+    return name
+  }
   const folderRows = useMemo(() => flattenFolders(folders), [folders])
   const folderChoices = useMemo(
     () => folderPathOptions(flatFolderOptions),
@@ -491,7 +487,6 @@ export default function FirmDocuments() {
     try {
       const mine = await api.firmDocumentsMyRights()
       const ownFirmId = mine.rights?.firm_id
-      const head = Boolean(mine.rights?.is_firm_head)
       if (mine.rights) setRights(mine.rights)
 
       const hubWide = Boolean(
@@ -501,53 +496,65 @@ export default function FirmDocuments() {
           mine.rights?.hub_wide?.can_archive
       )
 
-      // Power / hub-wide: full firm list.
+      // Power / hub-wide: full firm list in the Firm dropdown.
       if (hubWide) {
         let list = []
         try {
           const data = await api.listFirms({ page: 1, per_page: 100 })
-          list = data.firms || []
+          list = (data.firms || []).map((f) => ({
+            ...f,
+            is_own: ownFirmId != null && String(f.id) === String(ownFirmId),
+            source:
+              ownFirmId != null && String(f.id) === String(ownFirmId) ? 'own' : undefined,
+          }))
         } catch {
           list = []
         }
         if (list.length === 0 && ownFirmId) {
-          list = [{ id: ownFirmId, name: 'My firm' }]
+          list = [{ id: ownFirmId, name: 'My firm', is_own: true, source: 'own' }]
         }
         setFirms(list)
-        if (!firmId && list[0]) setFirmId(String(list[0].id))
+        setFirmId((prev) => {
+          if (prev && list.some((f) => String(f.id) === String(prev))) return prev
+          const preferred =
+            list.find((f) => f.is_own)?.id || list[0]?.id
+          return preferred ? String(preferred) : ''
+        })
         return
       }
 
-      // Head / member: own firm + firms that granted document access (e.g. Central / Network).
+      // All other users: own firm + firms that granted document access.
       const accessible = Array.isArray(mine.accessible_firms) ? mine.accessible_firms : []
-      if (accessible.length > 0) {
-        setFirms(
-          accessible.map((f) => ({
-            id: f.id,
-            name: f.name,
-            is_central: Boolean(f.is_central),
-            is_own: Boolean(f.is_own),
-            source: f.source,
-          }))
-        )
-        const preferred =
-          accessible.find((f) => f.is_own)?.id ||
-          accessible.find((f) => f.is_central)?.id ||
-          accessible[0]?.id
-        if (preferred) setFirmId(String(preferred))
-        return
+      let list =
+        accessible.length > 0
+          ? accessible.map((f) => ({
+              id: f.id,
+              name: f.name,
+              is_central: Boolean(f.is_central),
+              is_own: Boolean(f.is_own),
+              source: f.source,
+            }))
+          : []
+
+      if (list.length === 0 && ownFirmId) {
+        list = [{ id: ownFirmId, name: 'My firm', is_own: true, source: 'own' }]
       }
 
-      if ((head || ownFirmId) && ownFirmId) {
-        setFirms([{ id: ownFirmId, name: 'My firm', is_own: true }])
-        setFirmId(String(ownFirmId))
-      }
+      setFirms(list)
+      setFirmId((prev) => {
+        if (prev && list.some((f) => String(f.id) === String(prev))) return prev
+        const preferred =
+          list.find((f) => f.is_own)?.id ||
+          list.find((f) => f.is_central)?.id ||
+          list[0]?.id
+        return preferred ? String(preferred) : ''
+      })
     } catch (err) {
       setError(err.message)
     }
   }
 
-  const loadDocuments = async (id = firmId) => {
+  const loadDocuments = async (id = firmId, docScope = scope) => {
     if (!id) {
       setFolders([])
       setRootDocuments([])
@@ -560,7 +567,7 @@ export default function FirmDocuments() {
     setError('')
     try {
       const [data, folderList] = await Promise.all([
-        api.listFirmDocuments({ firm_id: id, scope: 'active' }),
+        api.listFirmDocuments({ firm_id: id, scope: docScope }),
         api.listFirmDocumentFolders({ firm_id: id }).catch(() => ({ folders: [] })),
       ])
       setFolders(data.folders || [])
@@ -614,9 +621,9 @@ export default function FirmDocuments() {
 
   useEffect(() => {
     setExpanded(new Set())
-    loadDocuments()
+    loadDocuments(firmId, scope)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firmId, actingHubId])
+  }, [firmId, scope, actingHubId])
 
   const resetUploadForm = () => {
     setTitle('')
@@ -874,24 +881,36 @@ export default function FirmDocuments() {
       ) : null}
 
       <div className="firm-docs-toolbar">
-        {showFirmPicker ? (
-          <label className="firm-docs-toolbar__field">
-            <span>Firm</span>
-            <select value={firmId} onChange={(e) => setFirmId(e.target.value)}>
-              <option value="">Select a firm</option>
-              {firms.map((firm) => (
-                <option key={firm.id} value={firm.id}>
-                  {firm.name}
+        <label className="firm-docs-toolbar__field">
+          <span>Firm</span>
+          <select
+            value={firmId}
+            onChange={(e) => setFirmId(e.target.value)}
+            disabled={firms.length === 0}
+            aria-label="Firm"
+          >
+            {firms.length === 0 ? (
+              <option value="">No firm available</option>
+            ) : (
+              firms.map((firm) => (
+                <option key={firm.id} value={String(firm.id)}>
+                  {firmOptionLabel(firm)}
                 </option>
-              ))}
-            </select>
-          </label>
-        ) : selectedFirm || firmId ? (
-          <div className="firm-docs-toolbar__meta">
-            <span className="muted">Firm</span>
-            <strong>{selectedFirm?.name || 'My firm'}</strong>
-          </div>
-        ) : null}
+              ))
+            )}
+          </select>
+        </label>
+        <label className="firm-docs-toolbar__field">
+          <span>Status</span>
+          <select
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            aria-label="Archive status filter"
+          >
+            <option value="active">Unarchived</option>
+            <option value="archived">Archived</option>
+          </select>
+        </label>
         <div className="firm-docs-toolbar__actions">
           {canManageFirmAccess && firmId ? (
             <button

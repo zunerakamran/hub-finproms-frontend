@@ -389,6 +389,15 @@ export function HubProvider({ children }) {
     if (hub?.firm_document_rights?.is_firm_head) {
       return true
     }
+    // Allowlisted / shared-doc firm members also need the shell + Firm documents menu.
+    if (
+      hub?.firm_document_rights?.can_view ||
+      hub?.firm_document_rights?.can_add ||
+      hub?.firm_document_rights?.can_delete ||
+      hub?.firm_document_rights?.can_archive
+    ) {
+      return true
+    }
     const caps = hub?.effective_capabilities
     if (!caps) return false
     return Object.entries(caps).some(

@@ -259,7 +259,7 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
               {showFirms ? (
                 <RightsTable
                   title={isMixed || showMembers ? 'Firms that can see documents' : null}
-                  emptyLabel="No firms on the allowlist yet. Use “Which firms can see documents” first."
+                  emptyLabel="No firms on the allowlist yet. Use Document access control first."
                   rows={firms}
                   isFirmRows
                   savingId={savingId}
@@ -275,25 +275,40 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
   )
 }
 
+function visibleFirmsErrorMessage(err) {
+  const errors = err?.data?.errors
+  if (errors?.firm_id?.[0]) return errors.firm_id[0]
+  if (errors?.firm_ids?.[0]) return errors.firm_ids[0]
+  return err?.data?.message || err?.message || 'Request failed'
+}
+
 function VisibleFirmsModal({ open, onClose, firmId, onError, onSaved }) {
   const [firms, setFirms] = useState([])
   const [selected, setSelected] = useState(() => new Set())
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     if (!open || !firmId) return undefined
     let cancelled = false
     const load = async () => {
       setLoading(true)
+      setLoadError('')
+      setFirms([])
+      setSelected(new Set())
       try {
-        const data = await api.firmDocumentVisibleFirms({ firm_id: firmId })
+        const data = await api.firmDocumentVisibleFirms({ firm_id: Number(firmId) })
         if (!cancelled) {
           setFirms(data.firms || [])
           setSelected(new Set((data.selected_firm_ids || []).map((id) => Number(id))))
         }
       } catch (err) {
-        if (!cancelled) onError?.(err.data?.message || err.message)
+        if (!cancelled) {
+          const message = visibleFirmsErrorMessage(err)
+          setLoadError(message)
+          onError?.(message)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -338,7 +353,7 @@ function VisibleFirmsModal({ open, onClose, firmId, onError, onSaved }) {
       onSaved?.(data)
       onClose()
     } catch (err) {
-      onError?.(err.data?.message || err.message)
+      onError?.(visibleFirmsErrorMessage(err))
     } finally {
       setSaving(false)
     }
@@ -351,18 +366,18 @@ function VisibleFirmsModal({ open, onClose, firmId, onError, onSaved }) {
       <button
         type="button"
         className="compliance-audit-modal__backdrop"
-        aria-label="Close visible firms"
+        aria-label="Close document access control"
         onClick={onClose}
       />
       <div
         className="compliance-audit-modal__dialog firm-docs-access-modal__dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Which firms can see documents"
+        aria-label="Document access control"
       >
         <div className="compliance-audit-modal__head">
           <div>
-            <h3>Which firms can see documents</h3>
+            <h3>Document access control</h3>
             <p className="muted">Choose other firms that may appear in this firm’s document access rights.</p>
           </div>
           <button
@@ -377,6 +392,8 @@ function VisibleFirmsModal({ open, onClose, firmId, onError, onSaved }) {
         <div className="compliance-audit-modal__body">
           {loading ? (
             <p className="muted">Loading firms…</p>
+          ) : loadError ? (
+            <p className="alert">{loadError}</p>
           ) : firms.length === 0 ? (
             <p className="muted">No other firms on this hub yet.</p>
           ) : (
@@ -399,7 +416,7 @@ function VisibleFirmsModal({ open, onClose, firmId, onError, onSaved }) {
             <button
               type="button"
               className="btn primary"
-              disabled={loading || saving}
+              disabled={loading || saving || Boolean(loadError)}
               onClick={onSave}
             >
               {saving ? 'Saving…' : 'Save'}
@@ -859,7 +876,7 @@ export default function FirmDocuments() {
                 setShowVisibleFirms(true)
               }}
             >
-              Which firms can see documents
+              Document access control
             </button>
           ) : null}
           {functionalityEnabled && canAdd ? (
@@ -1146,7 +1163,7 @@ export default function FirmDocuments() {
         firmId={firmId}
         onClose={() => setShowVisibleFirms(false)}
         onError={setError}
-        onSaved={() => setMessage('Updated which firms can see documents.')}
+        onSaved={() => setMessage('Document access control updated.')}
       />
     </section>
   )

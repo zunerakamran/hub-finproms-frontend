@@ -44,8 +44,15 @@ export default function Layout() {
     tHome('footer_copyright', '© {year} {brand}. All rights reserved.'),
     { year: new Date().getFullYear(), brand: brandName }
   )
-  const footerPoweredBy = tHome('footer_powered_by', 'Powered by Bypass')
   const footerTagline = tHome('footer_tagline', 'Compliant content, ready to publish')
+  const poweredByName =
+    tHome('footer_powered_by_name', '').trim() ||
+    tHome('footer_powered_by', 'Powered by Bypass').replace(/^powered by\s+/i, '').trim() ||
+    'Bypass'
+  const poweredByLogo = tHome('footer_powered_by_logo', '').trim()
+  const poweredByUrl = tHome('footer_powered_by_url', '').trim()
+  const poweredByLabel = `Powered by ${poweredByName}`
+  const userInitial = String(user?.name || 'U').charAt(0).toUpperCase()
 
   return (
     <div className="site-shell">
@@ -129,7 +136,11 @@ export default function Layout() {
                 )}
                 <div className="site-user">
                   <span className="site-user__avatar" aria-hidden="true">
-                    {String(user?.name || 'U').charAt(0).toUpperCase()}
+                    {user?.avatar_url ? (
+                      <img src={user.avatar_url} alt="" />
+                    ) : (
+                      userInitial
+                    )}
                   </span>
                   <span className="site-user__name">{user?.name}</span>
                 </div>
@@ -165,7 +176,30 @@ export default function Layout() {
           </div>
           <div className="site-footer__row site-footer__credits">
             <span className="muted">{footerCopyright}</span>
-            <span className="site-footer__powered">{footerPoweredBy}</span>
+            {poweredByUrl ? (
+              <a
+                className="site-footer__powered"
+                href={poweredByUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {poweredByLogo ? (
+                  <img src={poweredByLogo} alt="" className="site-footer__powered-logo" />
+                ) : null}
+                <span>
+                  Powered by <span className="site-footer__powered-name">{poweredByName}</span>
+                </span>
+              </a>
+            ) : (
+              <span className="site-footer__powered" title={poweredByLabel}>
+                {poweredByLogo ? (
+                  <img src={poweredByLogo} alt="" className="site-footer__powered-logo" />
+                ) : null}
+                <span>
+                  Powered by <span className="site-footer__powered-name">{poweredByName}</span>
+                </span>
+              </span>
+            )}
           </div>
         </div>
       </footer>

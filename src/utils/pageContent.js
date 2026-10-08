@@ -32,7 +32,7 @@ export function formatPageHtml(text, vars = {}) {
 export const PAGE_CONTENT_FIELDS = {
   home: {
     label: 'Home page',
-    hint: 'Hero plus Categories, Website templates, Tickets, Documents, and Need assistance. Contact URLs / email live under assistance fields.',
+    hint: 'Hero plus Categories (4 per row), Website templates (3 per row), Tickets, Documents, Features, and footer copy.',
     fields: [
       { key: 'title', label: 'Hero — Heading', multiline: true, hint: 'Use *word* for italic emphasis.' },
       { key: 'lead', label: 'Hero — Lead paragraph', multiline: true, hint: 'Use **word** for bold.' },
@@ -92,20 +92,19 @@ export const PAGE_CONTENT_FIELDS = {
       { key: 'features_card4_title', label: 'Features — Card 4 title (Generic Compliance)' },
       { key: 'features_card4_text', label: 'Features — Card 4 text', multiline: true },
       { key: 'features_card4_url', label: 'Features — Card 4 link', hint: 'e.g. /my-dashboard/general-compliance' },
-      { key: 'assistance_title', label: 'Assistance — Title', multiline: true },
-      { key: 'assistance_lead', label: 'Assistance — Lead', multiline: true },
-      { key: 'assistance_chat_label', label: 'Assistance — Live chat label' },
-      { key: 'assistance_chat_text', label: 'Assistance — Live chat text', multiline: true },
-      { key: 'assistance_chat_url', label: 'Assistance — Live chat URL' },
-      { key: 'assistance_whatsapp_label', label: 'Assistance — WhatsApp label' },
-      { key: 'assistance_whatsapp_text', label: 'Assistance — WhatsApp text', multiline: true },
-      { key: 'assistance_whatsapp_url', label: 'Assistance — WhatsApp URL', hint: 'e.g. https://wa.me/4477…' },
-      { key: 'assistance_email_label', label: 'Assistance — Email label' },
-      { key: 'assistance_email_text', label: 'Assistance — Email text', multiline: true },
-      { key: 'assistance_email', label: 'Assistance — Email address' },
       { key: 'footer_tagline', label: 'Footer — Tagline' },
       { key: 'footer_copyright', label: 'Footer — Copyright', hint: 'Use {year} and {brand}.' },
-      { key: 'footer_powered_by', label: 'Footer — Powered by line' },
+      { key: 'footer_powered_by_name', label: 'Footer — Powered by name', hint: 'Shown after “Powered by”.' },
+      {
+        key: 'footer_powered_by_logo',
+        label: 'Footer — Powered by logo URL',
+        hint: 'Image URL shown next to the Powered by name.',
+      },
+      {
+        key: 'footer_powered_by_url',
+        label: 'Footer — Powered by URL',
+        hint: 'Opens in a new tab when the Powered by line is clicked.',
+      },
     ],
   },
   catalog: {

@@ -295,41 +295,6 @@ export default function Home() {
     return counts
   }, [tickets])
 
-  const assistanceCards = useMemo(() => {
-    const chatUrl = t('assistance_chat_url').trim()
-    const whatsappUrl = t('assistance_whatsapp_url').trim()
-    const email = t('assistance_email').trim() || branding?.from_email || ''
-    const cards = []
-    if (chatUrl) {
-      cards.push({
-        key: 'chat',
-        label: t('assistance_chat_label', 'Live chat'),
-        text: t('assistance_chat_text', 'Chat with a specialist in real time.'),
-        href: chatUrl,
-        external: true,
-      })
-    }
-    if (whatsappUrl) {
-      cards.push({
-        key: 'whatsapp',
-        label: t('assistance_whatsapp_label', 'WhatsApp'),
-        text: t('assistance_whatsapp_text', 'Message us on WhatsApp for quick help.'),
-        href: whatsappUrl,
-        external: true,
-      })
-    }
-    if (email) {
-      cards.push({
-        key: 'email',
-        label: t('assistance_email_label', 'Email'),
-        text: t('assistance_email_text', 'Send us an email and we will respond soon.'),
-        href: `mailto:${email}`,
-        external: true,
-      })
-    }
-    return cards
-  }, [pageContent, branding])
-
   const documentCategoryStats = useMemo(
     () => buildDocumentCategoryStats(documents, documentCategories),
     [documents, documentCategories]
@@ -1104,39 +1069,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="assistance" className="home-band home-assistance">
-        <div className="home-band__inner">
-          <div className="home-band__head">
-            <h2>
-              {t(
-                'assistance_title',
-                'Need assistance? Our specialized agents will help you!'
-              )}
-            </h2>
-            <p className="muted">
-              {t(
-                'assistance_lead',
-                'Get in touch with experts via live chat, WhatsApp, or email.'
-              )}
-            </p>
-          </div>
-          {assistanceCards.length > 0 && (
-            <div className="home-assistance__grid">
-              {assistanceCards.map((card) => (
-                <a
-                  key={card.key}
-                  className="home-assistance__card"
-                  href={card.href}
-                  {...(card.external ? { target: '_blank', rel: 'noreferrer' } : {})}
-                >
-                  <h3>{card.label}</h3>
-                  <p className="muted">{card.text}</p>
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
     </div>
   )
 }

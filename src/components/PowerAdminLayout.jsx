@@ -147,7 +147,11 @@ export default function PowerAdminLayout() {
           ) : null}
           <div className="dash-user-row">
             <span className="dash-user-avatar" aria-hidden="true">
-              {String(user?.name || 'U').charAt(0).toUpperCase()}
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="" />
+              ) : (
+                String(user?.name || 'U').charAt(0).toUpperCase()
+              )}
             </span>
             <div>
               <strong>{user?.name}</strong>

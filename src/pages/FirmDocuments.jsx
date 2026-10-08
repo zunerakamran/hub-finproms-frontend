@@ -239,7 +239,7 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
         <div className="compliance-audit-modal__body">
           <p className="muted" style={{ marginTop: 0 }}>
             {showFirms
-              ? 'Allowlisted firms can view this document by default (Document access control). Uncheck View to revoke, or grant Add / Archive / Delete. Firm grants apply to every member of that firm.'
+              ? 'Document access control only lists which firms may appear here. Check View (and other rights) to grant this document to that firm’s members.'
               : 'Grant rights for this document only. The Head of Firm always has all rights.'}
           </p>
           {loading ? (
@@ -478,7 +478,7 @@ export default function FirmDocuments() {
       hub?.firm_document_rights?.hub_wide?.can_delete ||
       hub?.firm_document_rights?.hub_wide?.can_archive
   )
-  const showFirmPicker = hubWideFirmDocs
+  const showFirmPicker = firms.length > 1 || hubWideFirmDocs
 
   const selectedFirm = useMemo(
     () => firms.find((f) => String(f.id) === String(firmId)) || null,
@@ -497,36 +497,54 @@ export default function FirmDocuments() {
       const head = Boolean(mine.rights?.is_firm_head)
       if (mine.rights) setRights(mine.rights)
 
-      if (head && ownFirmId) {
-        setFirms([{ id: ownFirmId, name: 'My firm' }])
-        setFirmId(String(ownFirmId))
-        return
-      }
-
       const hubWide = Boolean(
         mine.rights?.hub_wide?.can_view ||
           mine.rights?.hub_wide?.can_add ||
           mine.rights?.hub_wide?.can_delete ||
           mine.rights?.hub_wide?.can_archive
       )
-      if (!hubWide && ownFirmId) {
-        setFirms([{ id: ownFirmId, name: 'My firm' }])
-        setFirmId(String(ownFirmId))
+
+      // Power / hub-wide: full firm list.
+      if (hubWide) {
+        let list = []
+        try {
+          const data = await api.listFirms({ page: 1, per_page: 100 })
+          list = data.firms || []
+        } catch {
+          list = []
+        }
+        if (list.length === 0 && ownFirmId) {
+          list = [{ id: ownFirmId, name: 'My firm' }]
+        }
+        setFirms(list)
+        if (!firmId && list[0]) setFirmId(String(list[0].id))
         return
       }
 
-      let list = []
-      try {
-        const data = await api.listFirms({ page: 1, per_page: 50 })
-        list = data.firms || []
-      } catch {
-        list = []
+      // Head / member: own firm + firms that granted document access (e.g. Central / Network).
+      const accessible = Array.isArray(mine.accessible_firms) ? mine.accessible_firms : []
+      if (accessible.length > 0) {
+        setFirms(
+          accessible.map((f) => ({
+            id: f.id,
+            name: f.name,
+            is_central: Boolean(f.is_central),
+            is_own: Boolean(f.is_own),
+            source: f.source,
+          }))
+        )
+        const preferred =
+          accessible.find((f) => f.is_own)?.id ||
+          accessible.find((f) => f.is_central)?.id ||
+          accessible[0]?.id
+        if (preferred) setFirmId(String(preferred))
+        return
       }
-      if (list.length === 0 && ownFirmId) {
-        list = [{ id: ownFirmId, name: 'My firm' }]
+
+      if ((head || ownFirmId) && ownFirmId) {
+        setFirms([{ id: ownFirmId, name: 'My firm', is_own: true }])
+        setFirmId(String(ownFirmId))
       }
-      setFirms(list)
-      if (!firmId && list[0]) setFirmId(String(list[0].id))
     } catch (err) {
       setError(err.message)
     }
@@ -573,13 +591,14 @@ export default function FirmDocuments() {
       })
       if (data.firm) {
         setFirms((prev) => {
-          if (isFirmHead || prev.length <= 1) return [data.firm]
+          // Keep own firm + shared source firms (e.g. Central) in the picker.
           if (prev.some((f) => String(f.id) === String(data.firm.id))) {
             return prev.map((f) =>
-              String(f.id) === String(data.firm.id) ? data.firm : f
+              String(f.id) === String(data.firm.id) ? { ...f, ...data.firm } : f
             )
           }
-          return [...prev, data.firm]
+          if (prev.length > 0) return [...prev, data.firm]
+          return [data.firm]
         })
       }
     } catch (err) {
@@ -1099,7 +1118,12 @@ export default function FirmDocuments() {
               {!loading && visibleFolderRows.length === 0 && rootDocuments.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="muted">
-                    {firmId ? 'No documents yet.' : 'Select a firm to view documents.'}
+                    {firmId
+                      ? selectedFirm?.source === 'shared' ||
+                        (selectedFirm?.is_central && !selectedFirm?.is_own)
+                        ? 'No documents shared with your firm yet.'
+                        : 'No documents available.'
+                      : 'Select a firm to view documents.'}
                   </td>
                 </tr>
               ) : null}

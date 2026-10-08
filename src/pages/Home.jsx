@@ -1,14 +1,51 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FaFileAlt, FaGlobe, FaPencilAlt, FaShieldAlt } from 'react-icons/fa'
+import {
+  FaFile,
+  FaFileAlt,
+  FaFileArchive,
+  FaFileExcel,
+  FaFileImage,
+  FaFilePdf,
+  FaFilePowerpoint,
+  FaFileWord,
+  FaGlobe,
+  FaPencilAlt,
+  FaShieldAlt,
+} from 'react-icons/fa'
 import { api } from '../api/client'
 import PageLoader from '../components/PageLoader'
 import StStatusBadge from '../components/SupportTicketsUI'
 import TemplateScrollPreview from '../websiteCompliance/components/TemplateScrollPreview'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { fileDisplayName, fileExtension, fileKind } from '../utils/fileDisplay'
 import { fillPageText, formatPageHtml, pageText } from '../utils/pageContent'
 import '../websiteCompliance/wc.css'
+
+const DOC_KIND_ICONS = {
+  image: FaFileImage,
+  pdf: FaFilePdf,
+  word: FaFileWord,
+  excel: FaFileExcel,
+  powerpoint: FaFilePowerpoint,
+  archive: FaFileArchive,
+  text: FaFileAlt,
+  video: FaFileAlt,
+  file: FaFile,
+}
+
+const DOC_KIND_LABELS = {
+  image: 'Image',
+  pdf: 'PDF',
+  word: 'Word',
+  excel: 'Excel',
+  powerpoint: 'PowerPoint',
+  archive: 'Archive',
+  text: 'Text',
+  video: 'Video',
+  file: 'File',
+}
 
 function splitColumns(posts) {
   const left = []
@@ -85,11 +122,23 @@ function docCreatedAt(doc) {
   return doc?.created_at ? new Date(doc.created_at).getTime() : 0
 }
 
-function isImageAttachment(attachment) {
-  const mime = String(attachment?.mime_type || '').toLowerCase()
-  if (mime.startsWith('image/')) return true
-  const name = String(attachment?.original_name || attachment?.file_url || '').toLowerCase()
-  return /\.(png|jpe?g|gif|webp|svg)$/.test(name)
+function primaryAttachment(doc) {
+  const list = doc?.attachments || []
+  return list.find((a) => fileKind(a.original_name, a.mime_type) === 'image') || list[0] || null
+}
+
+function describeAttachment(attachment, docTitle = '') {
+  const name = attachment?.original_name || docTitle || 'Document'
+  const kind = fileKind(name, attachment?.mime_type)
+  const ext = fileExtension(name)
+  return {
+    kind,
+    ext: ext ? ext.toUpperCase() : DOC_KIND_LABELS[kind] || 'FILE',
+    label: fileDisplayName(name) || docTitle || 'Document',
+    kindLabel: DOC_KIND_LABELS[kind] || 'File',
+    isImage: kind === 'image',
+    fileUrl: attachment?.file_url || null,
+  }
 }
 
 /**
@@ -307,29 +356,39 @@ export default function Home() {
     ].filter(Boolean)
 
     if (featuredDocuments.length) {
-      return featuredDocuments.map((doc, index) => {
-        const attachment = (doc.attachments || []).find(isImageAttachment) || doc.attachments?.[0]
-        const imageUrl = isImageAttachment(attachment) ? attachment.file_url : null
+      return featuredDocuments.slice(0, 4).map((doc, index) => {
+        const attachment = primaryAttachment(doc)
+        const meta = describeAttachment(attachment, doc.title)
         return {
           key: doc.id,
-          title: doc.title || attachment?.original_name || 'Document',
+          title: doc.title || meta.label,
           category: doc.category?.name || '',
-          imageUrl:
-            imageUrl ||
-            (fallbackImages.length ? fallbackImages[index % fallbackImages.length] : null),
-          badge: index < 3 ? 'Latest' : 'Most used',
+          imageUrl: meta.isImage
+            ? meta.fileUrl
+            : fallbackImages.length
+              ? fallbackImages[index % fallbackImages.length]
+              : null,
+          kind: meta.kind,
+          ext: meta.ext,
+          kindLabel: meta.kindLabel,
+          badge: index < 2 ? 'Latest' : 'Most used',
           doc,
+          fileUrl: meta.fileUrl,
         }
       })
     }
 
-    return fallbackImages.map((url, index) => ({
+    return fallbackImages.slice(0, 4).map((url, index) => ({
       key: `fallback-${index}`,
       title: t('documents_panel_title', 'Firm documents'),
       category: '',
       imageUrl: url,
+      kind: 'image',
+      ext: 'IMG',
+      kindLabel: 'Image',
       badge: '',
       doc: null,
+      fileUrl: null,
     }))
   }, [featuredDocuments, pageContent])
 
@@ -716,67 +775,92 @@ export default function Home() {
               {t('documents_panel_subtitle', 'Latest uploads | Most used')}
             </p>
 
-            <div className="home-documents__fan" aria-label="Document previews">
+            <div className="home-documents__deck" aria-label="Document previews">
               {(documentStackItems.length
                 ? documentStackItems
-                : [{ key: 'empty', title: 'Documents', imageUrl: null, badge: '', doc: null }]
-              )
-                .slice(0, 6)
-                .map((item, index) => {
-                  const className = `home-documents__sheet home-documents__sheet--${index + 1}`
-                  const style = { zIndex: 10 - index }
-                  const inner = (
-                    <>
-                      {item.badge ? (
-                        <span className="home-documents__sheet-badge">{item.badge}</span>
-                      ) : null}
-                      {item.imageUrl ? (
+                : [
+                    {
+                      key: 'empty',
+                      title: 'Documents',
+                      category: '',
+                      imageUrl: null,
+                      kind: 'file',
+                      ext: 'FILE',
+                      kindLabel: 'File',
+                      badge: '',
+                      doc: null,
+                      fileUrl: null,
+                    },
+                  ]
+              ).map((item, index) => {
+                const Icon = DOC_KIND_ICONS[item.kind] || FaFile
+                const className = `home-doc-tile home-doc-tile--${item.kind || 'file'} home-doc-tile--${index + 1}`
+                const style = { zIndex: 10 - index }
+                const inner = (
+                  <>
+                    {item.badge ? (
+                      <span className="home-doc-tile__badge">{item.badge}</span>
+                    ) : null}
+                    <span className="home-doc-tile__ext">{item.ext || 'FILE'}</span>
+                    {item.kind === 'image' && item.imageUrl ? (
+                      <div className="home-doc-tile__media">
                         <img src={item.imageUrl} alt="" loading="lazy" />
-                      ) : (
-                        <div className="home-documents__sheet-fallback">
-                          <strong>{item.title}</strong>
-                          {item.category ? <span>{item.category}</span> : null}
-                        </div>
-                      )}
-                    </>
-                  )
+                      </div>
+                    ) : (
+                      <div className="home-doc-tile__body">
+                        <span className="home-doc-tile__icon" aria-hidden="true">
+                          <Icon />
+                        </span>
+                        <strong className="home-doc-tile__title">{item.title}</strong>
+                        <span className="home-doc-tile__meta">
+                          {[item.kindLabel, item.category].filter(Boolean).join(' · ')}
+                        </span>
+                        <span className="home-doc-tile__lines" aria-hidden="true">
+                          <i />
+                          <i />
+                          <i />
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )
 
-                  if (item.doc) {
-                    const fileUrl = item.doc.attachments?.[0]?.file_url
-                    if (fileUrl) {
-                      return (
-                        <a
-                          key={item.key}
-                          className={className}
-                          style={style}
-                          href={fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          title={item.title}
-                        >
-                          {inner}
-                        </a>
-                      )
-                    }
-                    return (
-                      <Link
-                        key={item.key}
-                        className={className}
-                        style={style}
-                        to={`/my-dashboard/firm-documents/${item.doc.id}`}
-                        title={item.title}
-                      >
-                        {inner}
-                      </Link>
-                    )
-                  }
-
+                if (item.fileUrl) {
                   return (
-                    <div key={item.key} className={className} style={style}>
+                    <a
+                      key={item.key}
+                      className={className}
+                      style={style}
+                      href={item.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={item.title}
+                    >
                       {inner}
-                    </div>
+                    </a>
                   )
-                })}
+                }
+
+                if (item.doc) {
+                  return (
+                    <Link
+                      key={item.key}
+                      className={className}
+                      style={style}
+                      to={`/my-dashboard/firm-documents/${item.doc.id}`}
+                      title={item.title}
+                    >
+                      {inner}
+                    </Link>
+                  )
+                }
+
+                return (
+                  <div key={item.key} className={className} style={style}>
+                    {inner}
+                  </div>
+                )
+              })}
             </div>
 
             <div className="home-documents__panel-ticker">

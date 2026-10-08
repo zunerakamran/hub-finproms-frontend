@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  FaChevronLeft,
+  FaChevronRight,
   FaFile,
   FaFileAlt,
   FaFileArchive,
@@ -208,6 +210,7 @@ export default function Home() {
   const [documents, setDocuments] = useState([])
   const [documentCategories, setDocumentCategories] = useState([])
   const [ticketTab, setTicketTab] = useState('overview')
+  const [docSlide, setDocSlide] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -356,22 +359,18 @@ export default function Home() {
     ].filter(Boolean)
 
     if (featuredDocuments.length) {
-      return featuredDocuments.slice(0, 4).map((doc, index) => {
+      return featuredDocuments.slice(0, 8).map((doc, index) => {
         const attachment = primaryAttachment(doc)
         const meta = describeAttachment(attachment, doc.title)
         return {
           key: doc.id,
           title: doc.title || meta.label,
           category: doc.category?.name || '',
-          imageUrl: meta.isImage
-            ? meta.fileUrl
-            : fallbackImages.length
-              ? fallbackImages[index % fallbackImages.length]
-              : null,
+          imageUrl: meta.isImage ? meta.fileUrl : null,
           kind: meta.kind,
           ext: meta.ext,
           kindLabel: meta.kindLabel,
-          badge: index < 2 ? 'Latest' : 'Most used',
+          badge: index < 3 ? 'Latest' : 'Most used',
           doc,
           fileUrl: meta.fileUrl,
         }
@@ -391,6 +390,129 @@ export default function Home() {
       fileUrl: null,
     }))
   }, [featuredDocuments, pageContent])
+
+  useEffect(() => {
+    setDocSlide(0)
+  }, [documentStackItems.length])
+
+  useEffect(() => {
+    if (documentStackItems.length < 2) return undefined
+    const timer = window.setInterval(() => {
+      setDocSlide((prev) => (prev + 1) % documentStackItems.length)
+    }, 4200)
+    return () => window.clearInterval(timer)
+  }, [documentStackItems.length])
+
+  const docCarouselItems = documentStackItems.length
+    ? documentStackItems
+    : [
+        {
+          key: 'empty',
+          title: 'Documents',
+          category: '',
+          imageUrl: null,
+          kind: 'file',
+          ext: 'FILE',
+          kindLabel: 'File',
+          badge: '',
+          doc: null,
+          fileUrl: null,
+        },
+      ]
+
+  const docSlideSafe = docCarouselItems.length
+    ? ((docSlide % docCarouselItems.length) + docCarouselItems.length) % docCarouselItems.length
+    : 0
+
+  function docSlideOffset(index) {
+    const total = docCarouselItems.length
+    if (total <= 1) return 0
+    let diff = index - docSlideSafe
+    if (diff > total / 2) diff -= total
+    if (diff < -total / 2) diff += total
+    return diff
+  }
+
+  function renderDocPaper(item) {
+    const Icon = DOC_KIND_ICONS[item.kind] || FaFile
+    if (item.kind === 'image' && item.imageUrl) {
+      return (
+        <div className="home-doc-paper__media">
+          <img src={item.imageUrl} alt="" loading="lazy" />
+          <div className="home-doc-paper__media-caption">
+            <strong>{item.title}</strong>
+          </div>
+        </div>
+      )
+    }
+    if (item.kind === 'excel') {
+      return (
+        <div className="home-doc-paper__sheet home-doc-paper__sheet--excel">
+          <div className="home-doc-paper__sheet-head">
+            <Icon />
+            <span>{item.ext || 'XLSX'}</span>
+          </div>
+          <div className="home-doc-paper__grid" aria-hidden="true">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <span key={i} />
+            ))}
+          </div>
+          <strong>{item.title}</strong>
+        </div>
+      )
+    }
+    if (item.kind === 'word') {
+      return (
+        <div className="home-doc-paper__sheet home-doc-paper__sheet--word">
+          <div className="home-doc-paper__sheet-head">
+            <Icon />
+            <span>{item.ext || 'DOCX'}</span>
+          </div>
+          <div className="home-doc-paper__ruled" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+          <strong>{item.title}</strong>
+        </div>
+      )
+    }
+    if (item.kind === 'pdf') {
+      return (
+        <div className="home-doc-paper__sheet home-doc-paper__sheet--pdf">
+          <div className="home-doc-paper__sheet-head">
+            <Icon />
+            <span>{item.ext || 'PDF'}</span>
+          </div>
+          <div className="home-doc-paper__blocks" aria-hidden="true">
+            <em />
+            <i />
+            <i />
+            <i />
+          </div>
+          <strong>{item.title}</strong>
+        </div>
+      )
+    }
+    return (
+      <div className={`home-doc-paper__sheet home-doc-paper__sheet--${item.kind || 'file'}`}>
+        <div className="home-doc-paper__sheet-head">
+          <Icon />
+          <span>{item.ext || 'FILE'}</span>
+        </div>
+        <span className="home-doc-paper__icon-lg" aria-hidden="true">
+          <Icon />
+        </span>
+        <strong>{item.title}</strong>
+        <span className="home-doc-paper__meta">
+          {[item.kindLabel, item.category].filter(Boolean).join(' · ')}
+        </span>
+      </div>
+    )
+  }
 
   const primaryCta = isAuthenticated
     ? { to: '/posts?type=post', label: t('cta_browse_posts', 'Browse posts') }
@@ -775,93 +897,104 @@ export default function Home() {
               {t('documents_panel_subtitle', 'Latest uploads | Most used')}
             </p>
 
-            <div className="home-documents__deck" aria-label="Document previews">
-              {(documentStackItems.length
-                ? documentStackItems
-                : [
-                    {
-                      key: 'empty',
-                      title: 'Documents',
-                      category: '',
-                      imageUrl: null,
-                      kind: 'file',
-                      ext: 'FILE',
-                      kindLabel: 'File',
-                      badge: '',
-                      doc: null,
-                      fileUrl: null,
-                    },
-                  ]
-              ).map((item) => {
-                const Icon = DOC_KIND_ICONS[item.kind] || FaFile
-                const className = `home-doc-tile home-doc-tile--${item.kind || 'file'}`
-                const inner = (
-                  <>
-                    {item.badge ? (
-                      <span className="home-doc-tile__badge">{item.badge}</span>
-                    ) : null}
-                    <span className="home-doc-tile__ext">{item.ext || 'FILE'}</span>
-                    {item.kind === 'image' && item.imageUrl ? (
-                      <div className="home-doc-tile__media">
-                        <img src={item.imageUrl} alt="" loading="lazy" />
-                        <div className="home-doc-tile__media-caption">
-                          <strong>{item.title}</strong>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="home-doc-tile__body">
-                        <span className="home-doc-tile__icon" aria-hidden="true">
-                          <Icon />
-                        </span>
-                        <strong className="home-doc-tile__title">{item.title}</strong>
-                        <span className="home-doc-tile__meta">
-                          {[item.kindLabel, item.category].filter(Boolean).join(' · ')}
-                        </span>
-                        <span className="home-doc-tile__lines" aria-hidden="true">
-                          <i />
-                          <i />
-                          <i />
-                        </span>
-                      </div>
-                    )}
-                  </>
-                )
+            <div className="home-documents__carousel" aria-roledescription="carousel">
+              {docCarouselItems.length > 1 && (
+                <button
+                  type="button"
+                  className="home-documents__nav home-documents__nav--prev"
+                  aria-label="Previous document"
+                  onClick={() =>
+                    setDocSlide(
+                      (prev) => (prev - 1 + docCarouselItems.length) % docCarouselItems.length
+                    )
+                  }
+                >
+                  <FaChevronLeft />
+                </button>
+              )}
 
-                if (item.fileUrl) {
-                  return (
-                    <a
-                      key={item.key}
-                      className={className}
-                      href={item.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      title={item.title}
-                    >
-                      {inner}
-                    </a>
+              <div className="home-documents__stage">
+                {docCarouselItems.map((item, index) => {
+                  const offset = docSlideOffset(index)
+                  if (Math.abs(offset) > 2) return null
+                  const layer = `home-doc-paper home-doc-paper--${item.kind || 'file'} home-doc-paper--offset-${offset}`
+                  const paper = (
+                    <>
+                      {item.badge ? (
+                        <span className="home-doc-paper__badge">{item.badge}</span>
+                      ) : null}
+                      {renderDocPaper(item)}
+                    </>
                   )
-                }
 
-                if (item.doc) {
+                  if (offset === 0 && item.fileUrl) {
+                    return (
+                      <a
+                        key={item.key}
+                        className={layer}
+                        href={item.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={item.title}
+                      >
+                        {paper}
+                      </a>
+                    )
+                  }
+                  if (offset === 0 && item.doc) {
+                    return (
+                      <Link
+                        key={item.key}
+                        className={layer}
+                        to={`/my-dashboard/firm-documents/${item.doc.id}`}
+                        title={item.title}
+                      >
+                        {paper}
+                      </Link>
+                    )
+                  }
+
                   return (
-                    <Link
+                    <button
                       key={item.key}
-                      className={className}
-                      to={`/my-dashboard/firm-documents/${item.doc.id}`}
+                      type="button"
+                      className={layer}
                       title={item.title}
+                      onClick={() => setDocSlide(index)}
                     >
-                      {inner}
-                    </Link>
+                      {paper}
+                    </button>
                   )
-                }
+                })}
+              </div>
 
-                return (
-                  <div key={item.key} className={className}>
-                    {inner}
-                  </div>
-                )
-              })}
+              {docCarouselItems.length > 1 && (
+                <button
+                  type="button"
+                  className="home-documents__nav home-documents__nav--next"
+                  aria-label="Next document"
+                  onClick={() => setDocSlide((prev) => (prev + 1) % docCarouselItems.length)}
+                >
+                  <FaChevronRight />
+                </button>
+              )}
             </div>
+
+            {docCarouselItems.length > 1 && (
+              <div className="home-documents__dots" role="tablist" aria-label="Document slides">
+                {docCarouselItems.map((item, index) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={index === docSlideSafe}
+                    className={`home-documents__dot${index === docSlideSafe ? ' is-active' : ''}`}
+                    onClick={() => setDocSlide(index)}
+                    aria-label={`Show ${item.title}`}
+                  />
+                ))}
+              </div>
+            )}
 
             <div className="home-documents__panel-ticker">
               <span>{t('documents_panel_subtitle', 'Latest uploads | Most used')}</span>
@@ -893,6 +1026,7 @@ export default function Home() {
                   'features_card1_text',
                   'Browse ready-made social media templates that stay aligned with your hub compliance workflow.'
                 ),
+                to: t('features_card1_url', '/my-dashboard/social-media-compliance'),
               },
               {
                 key: 'canva',
@@ -902,6 +1036,7 @@ export default function Home() {
                   'features_card2_text',
                   'Open templates in Canva, personalise the creative, and keep branding consistent across posts and reels.'
                 ),
+                to: t('features_card2_url', '/posts?type=post'),
               },
               {
                 key: 'website',
@@ -911,6 +1046,7 @@ export default function Home() {
                   'features_card3_text',
                   'Manage website templates and content changes with review, approval, and live publishing controls.'
                 ),
+                to: t('features_card3_url', '/my-dashboard/website-compliance/request-site'),
               },
               {
                 key: 'generic',
@@ -920,17 +1056,48 @@ export default function Home() {
                   'features_card4_text',
                   'Submit generic compliance items, track status, and keep a clear audit trail for every request.'
                 ),
+                to: t('features_card4_url', '/my-dashboard/general-compliance'),
               },
             ].map((card) => {
               const Icon = card.icon
-              return (
-                <article key={card.key} className="home-feature-card">
+              const rawTo = String(card.to || '').trim()
+              const needsAuth = rawTo.startsWith('/my-dashboard')
+              const href =
+                !rawTo
+                  ? '/'
+                  : !isAuthenticated && needsAuth
+                    ? '/login'
+                    : rawTo
+              const isExternal = /^https?:\/\//i.test(href)
+
+              const body = (
+                <>
                   <span className="home-feature-card__icon" aria-hidden="true">
                     <Icon />
                   </span>
                   <h3>{card.title}</h3>
                   <p>{card.text}</p>
-                </article>
+                </>
+              )
+
+              if (isExternal) {
+                return (
+                  <a
+                    key={card.key}
+                    className="home-feature-card"
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {body}
+                  </a>
+                )
+              }
+
+              return (
+                <Link key={card.key} className="home-feature-card" to={href}>
+                  {body}
+                </Link>
               )
             })}
           </div>

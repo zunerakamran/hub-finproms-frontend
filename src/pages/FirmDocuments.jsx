@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   FaArrowDown,
   FaArrowUp,
   FaChevronDown,
   FaChevronRight,
+  FaEye,
   FaFolder,
   FaFolderPlus,
   FaKey,
@@ -22,6 +24,16 @@ import { COMPLIANCE_SUPPORTING_FILES_ACCEPT } from '../utils/complianceSupportin
 function flattenFolders(folders, depth = 0, path = []) {
   const rows = []
   for (const folder of folders || []) {
+    const childRows = flattenFolders(folder.children || [], depth + 1, [...path, folder.name])
+    const docs = folder.documents || []
+    const documentCount =
+      typeof folder.document_count === 'number'
+        ? folder.document_count
+        : docs.length + childRows.filter((r) => r.type === 'document').length
+    // Hide folders the viewer cannot see any documents in (including nested).
+    if (documentCount < 1 && docs.length < 1 && childRows.length < 1) {
+      continue
+    }
     const nextPath = [...path, folder.name]
     rows.push({
       type: 'folder',
@@ -30,11 +42,11 @@ function flattenFolders(folders, depth = 0, path = []) {
       name: folder.name,
       depth,
       pathLabel: nextPath.join(' / '),
-      documentCount: folder.document_count ?? (folder.documents || []).length,
-      documents: folder.documents || [],
+      documentCount,
+      documents: docs,
       isSharedBucket: Boolean(folder.is_shared_bucket),
     })
-    rows.push(...flattenFolders(folder.children || [], depth + 1, nextPath))
+    rows.push(...childRows)
   }
   return rows
 }
@@ -433,6 +445,7 @@ function VisibleFirmsModal({ open, onClose, firmId, onError, onSaved }) {
 
 export default function FirmDocuments() {
   const { can, actingHubId } = useHub()
+  const navigate = useNavigate()
   const [firms, setFirms] = useState([])
   const [firmId, setFirmId] = useState('')
   const [folders, setFolders] = useState([])
@@ -795,6 +808,11 @@ export default function FirmDocuments() {
         <td>{doc.uploader?.name || '—'}</td>
         <td>
           <div className="data-grid__actions">
+            <DataGridIconBtn
+              icon={FaEye}
+              label="View document"
+              onClick={() => navigate(`/my-dashboard/firm-documents/${doc.id}`)}
+            />
             {docCanManageRights(doc) ? (
               <DataGridIconBtn
                 icon={FaKey}

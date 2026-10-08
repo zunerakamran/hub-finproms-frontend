@@ -494,6 +494,7 @@ export const DASHBOARD_LINKS = [
       'firm_documents_delete',
       'firm_documents_archive',
     ],
+    alsoMatch: ['/my-dashboard/firm-documents/'],
     // Account (not Hub) so Advisor / Approver / User see it with member grants —
     // same as Profile — instead of burying it under hub-admin tools.
     group: 'account',

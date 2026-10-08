@@ -36,6 +36,7 @@ const AdminBundles = lazy(() => import('./pages/AdminBundles'))
 const AdminCategories = lazy(() => import('./pages/AdminCategories'))
 const AdminFirms = lazy(() => import('./pages/AdminFirms'))
 const FirmDocuments = lazy(() => import('./pages/FirmDocuments'))
+const FirmDocumentDetail = lazy(() => import('./pages/FirmDocumentDetail'))
 const AdminFirmDocumentCategories = lazy(() => import('./pages/AdminFirmDocumentCategories'))
 const AdminPaymentCard = lazy(() => import('./pages/AdminPaymentCard'))
 const AdminPaymentCardSuccess = lazy(() => import('./pages/AdminPaymentCardSuccess'))
@@ -410,6 +411,21 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="firm_documents_manage_categories">
                       <AdminFirmDocumentCategories />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="firm-documents/:id"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'firm_documents_view',
+                        'firm_documents_add',
+                        'firm_documents_delete',
+                        'firm_documents_archive',
+                      ]}
+                    >
+                      <FirmDocumentDetail />
                     </HubCapabilityRoute>
                   }
                 />

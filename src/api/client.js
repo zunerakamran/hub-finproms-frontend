@@ -317,6 +317,7 @@ export const api = {
     }),
   createFirmDocument: (formData) =>
     request('/firm-documents', { method: 'POST', body: formData }),
+  getFirmDocument: (id) => request(`/firm-documents/${id}`),
   deleteFirmDocument: (id) =>
     request(`/firm-documents/${id}`, { method: 'DELETE' }),
   archiveFirmDocument: (id) =>

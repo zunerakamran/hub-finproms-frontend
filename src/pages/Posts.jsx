@@ -61,12 +61,13 @@ export default function Posts() {
     }
   }, [searchParams, catalogType, setSearchParams])
 
-  // Reset listing filters when switching posts ↔ reels.
+  // Reset listing filters when switching posts ↔ reels; keep ?category= from home links.
   useEffect(() => {
+    const categoryFromUrl = String(searchParams.get('category') || '').trim()
     setSearchDraft('')
-    setFilters({ search: '', category: '', tag: '' })
+    setFilters({ search: '', category: categoryFromUrl, tag: '' })
     setInitialReady(false)
-  }, [catalogType])
+  }, [catalogType, searchParams])
 
   useEffect(() => {
     if (hubLoading) return undefined

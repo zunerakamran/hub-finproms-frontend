@@ -1200,6 +1200,13 @@ export const api = {
     }),
 
   // —— Website Template Library / Content Pre Approval ——
+  /** Public home showcase — up to 4 active hub website templates (no auth). */
+  homeWebsiteTemplates: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/website-compliance/public/templates${query ? `?${query}` : ''}`)
+  },
   websiteComplianceTemplates: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')

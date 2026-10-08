@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { brandLogoUrl } from '../utils/brandLogo'
+import { fillPageText, pageText } from '../utils/pageContent'
 
 function resolveNavCatalogType(search) {
   const type = new URLSearchParams(search).get('type')
@@ -20,6 +21,7 @@ export default function Layout() {
     isActingAsAdvisor,
     registrationEnabled,
     canViewSitePages,
+    pageContent,
   } = useHub()
   const location = useLocation()
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
@@ -31,11 +33,23 @@ export default function Layout() {
   const isHome = location.pathname === '/'
   const showCatalog = canViewSitePages && isAuthenticated && can('member_browse_catalog')
   const showBundles = canViewSitePages && isAuthenticated && can('member_browse_bundles')
+  const showTicketsNav =
+    canViewSitePages && isAuthenticated && can('support_tickets') && can('st_view_own_tickets')
+  const canRaiseTicket =
+    canViewSitePages && isAuthenticated && can('support_tickets') && can('st_submit_ticket')
+  const tHome = (key, fallback = '') => pageText(pageContent, 'home', key, fallback)
   const creditsLabel =
     user?.has_unlimited_credits ||
     (can('unlimited_credits') && (isAdvisor || isActingAsAdvisor))
       ? 'Unlimited'
       : `${user?.credits ?? 0}`
+
+  const footerCopyright = fillPageText(
+    tHome('footer_copyright', '© {year} {brand}. All rights reserved.'),
+    { year: new Date().getFullYear(), brand: brandName }
+  )
+  const footerPoweredBy = tHome('footer_powered_by', 'Powered by Bypass')
+  const footerTagline = tHome('footer_tagline', 'Compliant content, ready to publish')
 
   return (
     <div className="site-shell">
@@ -55,6 +69,12 @@ export default function Layout() {
               <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : undefined)}>
                 Home
               </NavLink>
+            )}
+            {canViewSitePages && (
+              <a href="/#categories">{tHome('nav_categories', 'Categories')}</a>
+            )}
+            {canViewSitePages && (
+              <a href="/#website-templates">{tHome('nav_templates', 'Website templates')}</a>
             )}
             {showCatalog && (
               <NavLink
@@ -88,6 +108,22 @@ export default function Layout() {
                 className={({ isActive }) => (isActive ? 'is-active' : undefined)}
               >
                 Bundles
+              </NavLink>
+            )}
+            {showTicketsNav && (
+              <NavLink
+                to="/my-dashboard/support-tickets"
+                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+              >
+                {tHome('nav_tickets', 'My tickets')}
+              </NavLink>
+            )}
+            {canRaiseTicket && (
+              <NavLink
+                to="/my-dashboard/support-tickets/new"
+                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+              >
+                {tHome('nav_raise_ticket', 'Create a new ticket')}
               </NavLink>
             )}
             {isAuthenticated && showPlans && (
@@ -148,9 +184,15 @@ export default function Layout() {
       </main>
 
       <footer className="site-footer">
-        <div className="site-footer__inner">
-          <span>{brandName}</span>
-          <span className="muted">Compliant content, ready to publish</span>
+        <div className="site-footer__inner site-footer__inner--stack">
+          <div className="site-footer__row">
+            <span>{brandName}</span>
+            <span className="muted">{footerTagline}</span>
+          </div>
+          <div className="site-footer__row site-footer__credits">
+            <span className="muted">{footerCopyright}</span>
+            <span className="site-footer__powered">{footerPoweredBy}</span>
+          </div>
         </div>
       </footer>
     </div>

@@ -137,7 +137,6 @@ export function HubProvider({ children }) {
               if (rights.is_firm_head || rights.can_view || sharedFirms) {
                 caps.firm_documents_view = true
               }
-              if (rights.is_firm_head || rights.can_add) caps.firm_documents_add = true
               const merged = {
                 ...prev,
                 firm_document_rights: rights,
@@ -281,6 +280,7 @@ export function HubProvider({ children }) {
         // Head unlocks view/add for the Firm documents menu only — never
         // manage_firm_access, delete, or archive (those are scoped elsewhere).
         if (key === 'firm_documents_view') return Boolean(fdr.is_firm_head || fdr.can_view)
+        // Upload is Head of Firm only — not grantable via matrix / key icon.
         if (key === 'firm_documents_add') return Boolean(fdr.is_firm_head || fdr.can_add)
         if (key === 'firm_documents_delete') return Boolean(fdr.can_delete)
         if (key === 'firm_documents_archive') return Boolean(fdr.can_archive)

@@ -68,7 +68,6 @@ function RightsTable({ title, emptyLabel, rows, isFirmRows, savingId, onToggle }
               <tr>
                 <th>{isFirmRows ? 'Firm' : 'Member'}</th>
                 <th>View</th>
-                <th>Add</th>
                 <th>Archive</th>
                 <th>Delete</th>
               </tr>
@@ -89,7 +88,7 @@ function RightsTable({ title, emptyLabel, rows, isFirmRows, savingId, onToggle }
                       ) : null}
                     </div>
                   </td>
-                  {['can_view', 'can_add', 'can_archive', 'can_delete'].map((key) => (
+                  {['can_view', 'can_archive', 'can_delete'].map((key) => (
                     <td key={key} className="firm-docs-access-check">
                       <input
                         type="checkbox"
@@ -171,7 +170,7 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
     try {
       await api.setFirmDocumentAccessRights(doc.id, {
         user_id: member.id,
-        can_add: patch.can_add ?? member.can_add,
+        can_add: false,
         can_view: patch.can_view ?? member.can_view,
         can_delete: patch.can_delete ?? member.can_delete,
         can_archive: patch.can_archive ?? member.can_archive,
@@ -189,7 +188,7 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
     try {
       await api.setFirmDocumentAccessRights(doc.id, {
         grantee_firm_id: firmRow.id,
-        can_add: patch.can_add ?? firmRow.can_add,
+        can_add: false,
         can_view: patch.can_view ?? firmRow.can_view,
         can_delete: patch.can_delete ?? firmRow.can_delete,
         can_archive: patch.can_archive ?? firmRow.can_archive,
@@ -740,7 +739,8 @@ export default function FirmDocuments() {
     })
   }
 
-  const canAdd = rights?.can_add || can('firm_documents_add')
+  // Upload is Head of Firm only (not matrix / not key-icon grants).
+  const canAdd = Boolean(rights?.is_firm_head || rights?.can_add)
   const functionalityEnabled = rights?.functionality_enabled !== false
 
   const docCanManageRights = (doc) =>

@@ -239,7 +239,7 @@ function AccessRightsModal({ open, onClose, document: doc, onError }) {
         <div className="compliance-audit-modal__body">
           <p className="muted" style={{ marginTop: 0 }}>
             {showFirms
-              ? 'Grant rights to your firm’s users and to allowlisted firms. Firm grants apply to every member of that firm.'
+              ? 'Allowlisted firms can view this document by default (Document access control). Uncheck View to revoke, or grant Add / Archive / Delete. Firm grants apply to every member of that firm.'
               : 'Grant rights for this document only. The Head of Firm always has all rights.'}
           </p>
           {loading ? (

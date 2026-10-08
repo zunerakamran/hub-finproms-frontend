@@ -287,6 +287,9 @@ export function HubProvider({ children }) {
         if (key === 'firm_documents_manage_firm_access') {
           return Boolean(fdr.can_manage_firm_access)
         }
+        if (key === 'firm_documents_manage_access_rights') {
+          return Boolean(fdr.is_firm_head || fdr.can_manage_member_rights)
+        }
         return false
       }
 

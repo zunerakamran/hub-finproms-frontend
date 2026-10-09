@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FaDownload, FaSearch } from 'react-icons/fa'
+import { FaDownload, FaSearch, FaUserSlash } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useHub } from '../context/HubContext'
@@ -16,6 +16,7 @@ export default function AdminGdpr() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [exportingId, setExportingId] = useState(null)
+  const [erasingId, setErasingId] = useState(null)
 
   const targetName = isActingRemotely
     ? actingHub?.name || hubMeta?.name || 'selected hub'
@@ -72,13 +73,47 @@ export default function AdminGdpr() {
     }
   }
 
+  const onErase = async (user) => {
+    if (!user?.id || user.gdpr_erased_at) return
+    const typed = window.prompt(
+      `UK GDPR erasure anonymises ${user.name} (${user.email}).\n\n` +
+        'Audit events are kept with anonymised identity. Historical backups may still contain personal data until pruned.\n\n' +
+        'Type ERASE to confirm.'
+    )
+    if (typed !== 'ERASE') {
+      setMessage('Erasure cancelled.')
+      return
+    }
+    setErasingId(user.id)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.gdprEraseUser(user.id)
+      setMessage(data.message || 'User anonymised.')
+      await load(q)
+    } catch (err) {
+      setError(err.message || 'Erasure failed.')
+    } finally {
+      setErasingId(null)
+    }
+  }
+
   const columns = useMemo(
     () => [
       {
         key: 'name',
         label: 'Name',
         filterValue: (row) => row.name || '',
-        render: (row) => row.name || '—',
+        render: (row) => (
+          <span>
+            {row.name || '—'}
+            {row.gdpr_erased_at ? (
+              <span className="muted" style={{ marginLeft: 8 }}>
+                (erased)
+              </span>
+            ) : null}
+          </span>
+        ),
       },
       {
         key: 'email',
@@ -124,9 +159,9 @@ export default function AdminGdpr() {
         <div>
           <h1>GDPR / data requests</h1>
           <p className="muted">
-            Search users on <strong>{targetName}</strong> and download a UK GDPR subject-access
-            (DSAR) JSON package of their personal data. Aim to fulfil requests within 30 days.
-            Passwords and payment secrets are never included.
+            Search users on <strong>{targetName}</strong>. Export a subject-access JSON package, or
+            erase (anonymise) personal data while keeping FCA-style audit events. Aim to fulfil
+            requests within 30 days. Passwords and payment secrets are never exported.
           </p>
         </div>
       </header>
@@ -160,17 +195,33 @@ export default function AdminGdpr() {
         getRowKey={(row) => row.id}
         emptyMessage="No users found."
         actions={(user) => (
-          <DataGridIconBtn
-            icon={FaDownload}
-            label={exportingId === user.id ? 'Exporting…' : 'Download GDPR JSON export'}
-            disabled={exportingId === user.id}
-            onClick={() => onExport(user)}
-          />
+          <>
+            <DataGridIconBtn
+              icon={FaDownload}
+              label={exportingId === user.id ? 'Exporting…' : 'Download GDPR JSON export'}
+              disabled={exportingId === user.id || erasingId === user.id}
+              onClick={() => onExport(user)}
+            />
+            <DataGridIconBtn
+              icon={FaUserSlash}
+              label={
+                user.gdpr_erased_at
+                  ? 'Already erased'
+                  : erasingId === user.id
+                    ? 'Erasing…'
+                    : 'Erase / anonymise (UK GDPR)'
+              }
+              variant="danger"
+              disabled={Boolean(user.gdpr_erased_at) || erasingId === user.id || exportingId === user.id}
+              onClick={() => onErase(user)}
+            />
+          </>
         )}
       />
 
       <p className="muted" style={{ marginTop: '0.75rem' }}>
-        Showing {users.length} of {meta.total || 0} user(s).
+        Showing {users.length} of {meta.total || 0} user(s). Historical hub backups may still
+        contain personal data until retention prune.
       </p>
     </div>
   )

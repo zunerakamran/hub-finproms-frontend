@@ -654,7 +654,12 @@ export const api = {
     ).toString()
     return request(`${CLIENT_ADMIN}/gdpr/users${query ? `?${query}` : ''}`)
   },
-  gdprExportUser: async (userId) => {
+  gdprEraseUser: (userId) =>
+    request(`${CLIENT_ADMIN}/gdpr/users/${userId}/erase`, {
+      method: 'POST',
+      body: JSON.stringify({ confirm: true }),
+    }),
+    gdprExportUser: async (userId) => {
     await ensureCsrfCookie().catch(() => {})
     const response = await fetch(`${API_URL}${CLIENT_ADMIN}/gdpr/users/${userId}/export`, {
       headers: buildHeaders({ headers: { Accept: 'application/json' } }),

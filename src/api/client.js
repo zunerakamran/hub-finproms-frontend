@@ -240,10 +240,18 @@ export const api = {
     }),
   categories: () => request('/posts/categories'),
   listCategories: () => request('/categories'),
-  createCategory: (payload, options = {}) =>
-    request(`${adminBase(options)}/categories`, { method: 'POST', body: JSON.stringify(payload) }),
-  updateCategory: (id, payload, options = {}) =>
-    request(`${adminBase(options)}/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  createCategory: (payload, options = {}) => {
+    const body = payload instanceof FormData ? payload : JSON.stringify(payload)
+    return request(`${adminBase(options)}/categories`, { method: 'POST', body })
+  },
+  updateCategory: (id, payload, options = {}) => {
+    const body = payload instanceof FormData ? payload : JSON.stringify(payload)
+    // POST so multipart icon uploads work (PHP does not populate files on PUT).
+    return request(`${adminBase(options)}/categories/${id}`, {
+      method: payload instanceof FormData ? 'POST' : 'PUT',
+      body,
+    })
+  },
   deleteCategory: (id, options = {}) =>
     request(`${adminBase(options)}/categories/${id}`, { method: 'DELETE' }),
   listTypes: () => request('/types'),
@@ -538,16 +546,20 @@ export const api = {
     request(`${adminBase(options)}/hub-content/types/${typeId}`, { method: 'DELETE' }),
   hubContentCategories: (options = {}) =>
     request(`${adminBase(options)}/hub-content/categories`),
-  hubContentCreateCategory: (payload, options = {}) =>
-    request(`${adminBase(options)}/hub-content/categories`, {
+  hubContentCreateCategory: (payload, options = {}) => {
+    const body = payload instanceof FormData ? payload : JSON.stringify(payload)
+    return request(`${adminBase(options)}/hub-content/categories`, {
       method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  hubContentUpdateCategory: (categoryId, payload, options = {}) =>
-    request(`${adminBase(options)}/hub-content/categories/${categoryId}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    }),
+      body,
+    })
+  },
+  hubContentUpdateCategory: (categoryId, payload, options = {}) => {
+    const body = payload instanceof FormData ? payload : JSON.stringify(payload)
+    return request(`${adminBase(options)}/hub-content/categories/${categoryId}`, {
+      method: payload instanceof FormData ? 'POST' : 'PUT',
+      body,
+    })
+  },
   hubContentDeleteCategory: (categoryId, options = {}) =>
     request(`${adminBase(options)}/hub-content/categories/${categoryId}`, { method: 'DELETE' }),
   hubContentTags: (options = {}) =>

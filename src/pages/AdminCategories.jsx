@@ -1,9 +1,37 @@
-import { useEffect, useState } from 'react'
-import { FaEdit, FaTrash } from 'react-icons/fa'
+import { useEffect, useMemo, useState } from 'react'
+import { FaEdit, FaTrash, FaTimes } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import {
+  CATEGORY_ICON_OPTIONS,
+  categoryInitial,
+  getCategoryIconComponent,
+} from '../utils/categoryIcons'
+
+function CategoryIconPreview({ icon, iconUrl, name }) {
+  if (iconUrl) {
+    return (
+      <span className="category-icon-preview has-image">
+        <img src={iconUrl} alt="" />
+      </span>
+    )
+  }
+  const Icon = getCategoryIconComponent(icon)
+  if (Icon) {
+    return (
+      <span className="category-icon-preview">
+        <Icon aria-hidden="true" />
+      </span>
+    )
+  }
+  return (
+    <span className="category-icon-preview is-initial" aria-hidden="true">
+      {categoryInitial(name)}
+    </span>
+  )
+}
 
 export default function AdminCategories({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
@@ -14,11 +42,28 @@ export default function AdminCategories({ shell = 'client-admin' }) {
 
   const [categories, setCategories] = useState([])
   const [name, setName] = useState('')
+  const [icon, setIcon] = useState('')
+  const [iconUrl, setIconUrl] = useState('')
+  const [iconFile, setIconFile] = useState(null)
+  const [iconPreview, setIconPreview] = useState('')
+  const [removeIcon, setRemoveIcon] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+
+  const iconOptions = useMemo(() => CATEGORY_ICON_OPTIONS, [])
+
+  const resetForm = () => {
+    setName('')
+    setIcon('')
+    setIconUrl('')
+    setIconFile(null)
+    setIconPreview('')
+    setRemoveIcon(false)
+    setEditingId(null)
+  }
 
   const load = async () => {
     setLoading(true)
@@ -37,10 +82,19 @@ export default function AdminCategories({ shell = 'client-admin' }) {
 
   useEffect(() => {
     load()
-    setEditingId(null)
-    setName('')
+    resetForm()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actingHubId])
+
+  useEffect(() => {
+    if (!iconFile) {
+      setIconPreview('')
+      return undefined
+    }
+    const url = URL.createObjectURL(iconFile)
+    setIconPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [iconFile])
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -48,22 +102,51 @@ export default function AdminCategories({ shell = 'client-admin' }) {
     setError('')
     setMessage('')
     try {
+      const formData = new FormData()
+      formData.append('name', name.trim())
+      if (icon) {
+        formData.append('icon', icon)
+        if (removeIcon) {
+          formData.append('clear_upload', '1')
+        }
+      } else {
+        formData.append('icon', '')
+      }
+      if (iconFile) {
+        formData.append('icon_file', iconFile)
+      }
+      if (removeIcon && !iconFile) {
+        formData.append('remove_icon', '1')
+      }
+
       if (editingId) {
-        await api.updateCategory(editingId, { name: name.trim() }, apiOpts)
+        await api.updateCategory(editingId, formData, apiOpts)
         setMessage('Category updated.')
       } else {
-        const data = await api.createCategory({ name: name.trim() }, apiOpts)
+        const data = await api.createCategory(formData, apiOpts)
         setMessage(data.message || 'Category created.')
       }
-      setName('')
-      setEditingId(null)
+      resetForm()
       await load()
     } catch (err) {
-      setError(err.data?.errors?.name?.[0] || err.message)
+      setError(err.data?.errors?.name?.[0] || err.data?.errors?.icon_file?.[0] || err.message)
     } finally {
       setSaving(false)
     }
   }
+
+  const startEdit = (row) => {
+    setEditingId(row.id)
+    setName(row.name || '')
+    setIcon(row.icon || '')
+    setIconUrl(row.icon_url || '')
+    setIconFile(null)
+    setRemoveIcon(false)
+    setMessage('')
+    setError('')
+  }
+
+  const currentPreviewUrl = iconPreview || (!removeIcon ? iconUrl : '')
 
   return (
     <section>
@@ -88,7 +171,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
       </div>
 
       {canManage && (
-        <form className="admin-form" onSubmit={onSubmit}>
+        <form className="admin-form category-admin-form" onSubmit={onSubmit}>
           {error && <div className="alert">{error}</div>}
           {message && <div className="alert success">{message}</div>}
           <label>
@@ -100,6 +183,80 @@ export default function AdminCategories({ shell = 'client-admin' }) {
               placeholder="Enter category name"
             />
           </label>
+
+          <div className="category-icon-field">
+            <div className="category-icon-field__head">
+              <span className="category-icon-field__label">Category icon</span>
+              <span className="muted">Pick a font icon or upload an image.</span>
+            </div>
+
+            <div className="category-icon-field__preview-row">
+              <CategoryIconPreview
+                icon={iconFile || removeIcon ? (iconFile ? '' : icon) : icon}
+                iconUrl={currentPreviewUrl}
+                name={name || 'Category'}
+              />
+              <div className="category-icon-field__preview-actions">
+                {(icon || iconUrl || iconFile) && (
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    onClick={() => {
+                      setIcon('')
+                      setIconFile(null)
+                      if (iconUrl) setRemoveIcon(true)
+                      setIconUrl('')
+                    }}
+                  >
+                    <FaTimes aria-hidden="true" /> Clear icon
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="category-icon-picker" role="listbox" aria-label="Font icons">
+              {iconOptions.map((opt) => {
+                const selected = icon === opt.value && !iconFile
+                const Icon = opt.Icon
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    title={opt.label}
+                    className={`category-icon-picker__btn${selected ? ' is-selected' : ''}`}
+                    onClick={() => {
+                      setIcon(opt.value)
+                      setIconFile(null)
+                      if (iconUrl) setRemoveIcon(true)
+                    }}
+                  >
+                    <Icon aria-hidden="true" />
+                    <span className="sr-only">{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <label className="category-icon-upload">
+              Upload custom icon
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null
+                  setIconFile(file)
+                  if (file) {
+                    setIcon('')
+                    setRemoveIcon(false)
+                  }
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </div>
+
           <div className="actions">
             <button className="btn primary" disabled={saving}>
               {saving
@@ -111,14 +268,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
                     : 'Add category'}
             </button>
             {editingId && (
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => {
-                  setEditingId(null)
-                  setName('')
-                }}
-              >
+              <button type="button" className="btn ghost" onClick={resetForm}>
                 Cancel edit
               </button>
             )}
@@ -133,6 +283,15 @@ export default function AdminCategories({ shell = 'client-admin' }) {
       </h2>
       <DataGrid
         columns={[
+          {
+            key: 'icon',
+            label: 'Icon',
+            width: 72,
+            sortable: false,
+            render: (row) => (
+              <CategoryIconPreview icon={row.icon} iconUrl={row.icon_url} name={row.name} />
+            ),
+          },
           {
             key: 'name',
             label: 'Name',
@@ -149,14 +308,7 @@ export default function AdminCategories({ shell = 'client-admin' }) {
           canManage
             ? (row) => (
                 <>
-                  <DataGridIconBtn
-                    icon={FaEdit}
-                    label="Edit"
-                    onClick={() => {
-                      setEditingId(row.id)
-                      setName(row.name)
-                    }}
-                  />
+                  <DataGridIconBtn icon={FaEdit} label="Edit" onClick={() => startEdit(row)} />
                   <DataGridIconBtn
                     icon={FaTrash}
                     label="Delete"

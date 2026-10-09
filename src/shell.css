@@ -2134,6 +2134,19 @@ a.site-footer__powered:hover {
   color: #fff;
   background: linear-gradient(145deg, var(--brand), var(--brand-dark));
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.home-category-card__icon svg {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.home-category-card__icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .home-category-card__name {

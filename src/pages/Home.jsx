@@ -22,6 +22,10 @@ import TemplateScrollPreview from '../websiteCompliance/components/TemplateScrol
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { fileDisplayName, fileExtension, fileKind } from '../utils/fileDisplay'
+import {
+  categoryInitial,
+  getCategoryIconComponent,
+} from '../utils/categoryIcons'
 import { fillPageText, formatPageHtml, pageText } from '../utils/pageContent'
 import '../websiteCompliance/wc.css'
 
@@ -83,9 +87,15 @@ function MarqueeColumn({ posts, direction }) {
   )
 }
 
-function categoryInitial(name) {
-  const text = String(name || '').trim()
-  return text ? text.charAt(0).toUpperCase() : '?'
+function CategoryCardIcon({ category, name }) {
+  if (category?.icon_url) {
+    return <img src={category.icon_url} alt="" className="home-category-card__icon-img" />
+  }
+  const Icon = getCategoryIconComponent(category?.icon)
+  if (Icon) {
+    return <Icon aria-hidden="true" />
+  }
+  return categoryInitial(name)
 }
 
 /** Plain text for API HTML descriptions (e.g. template `<p>…</p>`). */
@@ -618,7 +628,7 @@ export default function Home() {
                       className="home-category-card"
                     >
                       <span className="home-category-card__icon" aria-hidden="true">
-                        {categoryInitial(name)}
+                        <CategoryCardIcon category={category} name={name} />
                       </span>
                       <span className="home-category-card__name">{name}</span>
                       {typeof category.posts_count === 'number' && (

@@ -105,6 +105,7 @@ const PowerAdminModules = lazy(() => import('./pages/PowerAdminModules'))
 const PowerAdminHubDetail = lazy(() => import('./pages/PowerAdminHubDetail'))
 const PowerAdminHubs = lazy(() => import('./pages/PowerAdminHubs'))
 const PowerAdminPaymentMethods = lazy(() => import('./pages/PowerAdminPaymentMethods'))
+const PowerAdminBackups = lazy(() => import('./pages/PowerAdminBackups'))
 const PowerAdminUsers = lazy(() => import('./pages/PowerAdminUsers'))
 const SubscriptionDetail = lazy(() => import('./pages/SubscriptionDetail'))
 const SubscriptionSuccess = lazy(() => import('./pages/SubscriptionSuccess'))
@@ -1006,6 +1007,14 @@ export default function App() {
                   element={
                     <PowerCapabilityRoute capability="pa_manage_power_capabilities">
                       <PowerAdminCapabilities />
+                    </PowerCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="hub-backups"
+                  element={
+                    <PowerCapabilityRoute capability="pa_manage_hub_backups">
+                      <PowerAdminBackups />
                     </PowerCapabilityRoute>
                   }
                 />

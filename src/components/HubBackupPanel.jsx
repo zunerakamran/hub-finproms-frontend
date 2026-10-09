@@ -24,7 +24,7 @@ function formatBytes(n) {
 /**
  * Power Admin backup schedule + list/restore for one hub (Central control plane).
  */
-export default function HubBackupPanel({ hubId, hubName }) {
+export default function HubBackupPanel({ hubId, hubName, embedded = false, onScheduleSaved }) {
   const { canPower } = useAuth()
   const allowed = canPower('pa_manage_hub_backups')
 
@@ -34,6 +34,7 @@ export default function HubBackupPanel({ hubId, hubName }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [backups, setBackups] = useState([])
+  const [lastRunAt, setLastRunAt] = useState(null)
   const [schedule, setSchedule] = useState({
     backup_enabled: false,
     backup_time: '02:00',
@@ -60,6 +61,7 @@ export default function HubBackupPanel({ hubId, hubName }) {
         backup_retention_local: s.retention_local ?? 3,
         backup_retention_central: s.retention_central ?? 14,
       })
+      setLastRunAt(s.last_run_at || null)
       setBackups(Array.isArray(data.backups) ? data.backups : [])
     } catch (err) {
       setError(err.message || 'Could not load backups.')
@@ -95,6 +97,10 @@ export default function HubBackupPanel({ hubId, hubName }) {
         backup_retention_local: s.retention_local ?? prev.backup_retention_local,
         backup_retention_central: s.retention_central ?? prev.backup_retention_central,
       }))
+      setLastRunAt(s.last_run_at || null)
+      if (typeof onScheduleSaved === 'function') {
+        await onScheduleSaved(data)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -110,6 +116,9 @@ export default function HubBackupPanel({ hubId, hubName }) {
       const data = await api.createPowerAdminHubBackup(hubId)
       setMessage(data.message || 'Backup created.')
       await load()
+      if (typeof onScheduleSaved === 'function') {
+        await onScheduleSaved(data)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -153,12 +162,18 @@ export default function HubBackupPanel({ hubId, hubName }) {
   }
 
   return (
-    <div className="admin-form" style={{ marginTop: '2rem' }}>
-      <h2>Backups</h2>
+    <div className="admin-form" style={embedded ? undefined : { marginTop: '2rem' }}>
+      <h2>{embedded ? `Backup settings — ${hubName || 'hub'}` : 'Backups'}</h2>
       <p className="muted">
         Scheduled backups save on the hub&apos;s own server and upload a copy to Central. Restore
         uses the Central copy. Each hub can have its own time and timezone.
       </p>
+      {lastRunAt && (
+        <p className="muted">
+          Last scheduled/manual run:{' '}
+          <strong>{(() => { try { return new Date(lastRunAt).toLocaleString() } catch { return lastRunAt } })()}</strong>
+        </p>
+      )}
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}

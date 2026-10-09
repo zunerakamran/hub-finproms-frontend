@@ -150,6 +150,7 @@ const PLATFORM_PA_ANY = [
   'pa_manage_users_roles',
   'pa_manage_hubs',
   'pa_manage_hub_checklists',
+  'pa_manage_hub_backups',
   'pa_manage_power_capabilities',
 ]
 
@@ -1000,6 +1001,16 @@ export const DASHBOARD_LINKS = [
     title: 'Capabilities',
     description: 'Role × capability matrix for members, hub admins, and Power Admin (per hub).',
     paCapability: 'pa_manage_power_capabilities',
+    controlPlaneOnly: true,
+    group: 'platform',
+  },
+  {
+    to: '/my-dashboard/hub-backups',
+    label: 'Hub backups',
+    title: 'Hub backups & restore',
+    description:
+      'Per-hub backup schedule (time/timezone), Backup now, download Central copies, and restore hubs.',
+    paCapability: 'pa_manage_hub_backups',
     controlPlaneOnly: true,
     group: 'platform',
   },

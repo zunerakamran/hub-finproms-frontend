@@ -60,6 +60,7 @@ const links = [
   },
   { to: '/power-admin/hubs', label: 'White-labelled hubs', capability: 'pa_manage_hubs' },
   { to: '/power-admin/checklist', label: 'Functionalities', capability: 'pa_manage_hub_checklists' },
+  { to: '/power-admin/hub-backups', label: 'Hub backups', capability: 'pa_manage_hub_backups' },
   { to: '/power-admin/modules', label: 'Modules', hubCapability: 'dashboard_manage_modules' },
   {
     to: '/power-admin/capabilities',

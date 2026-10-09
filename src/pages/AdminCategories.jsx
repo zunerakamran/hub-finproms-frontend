@@ -119,13 +119,22 @@ export default function AdminCategories({ shell = 'client-admin' }) {
         formData.append('remove_icon', '1')
       }
 
+      let data
       if (editingId) {
-        await api.updateCategory(editingId, formData, apiOpts)
-        setMessage('Category updated.')
+        data = await api.updateCategory(editingId, formData, apiOpts)
       } else {
-        const data = await api.createCategory(formData, apiOpts)
-        setMessage(data.message || 'Category created.')
+        data = await api.createCategory(formData, apiOpts)
       }
+      const sync = data?.hub_sync
+      const syncNote = sync
+        ? ` Synced to ${sync.synced || 0} hub(s)` +
+          (sync.failed ? `, ${sync.failed} failed` : '') +
+          (sync.skipped ? `, ${sync.skipped} skipped` : '') +
+          '.'
+        : ''
+      setMessage(
+        (data?.message || (editingId ? 'Category updated.' : 'Category created.')) + syncNote
+      )
       resetForm()
       await load()
     } catch (err) {

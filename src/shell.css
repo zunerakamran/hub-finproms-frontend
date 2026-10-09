@@ -2028,14 +2028,15 @@ a.site-footer__powered:hover {
   overflow-x: clip;
 }
 
-/* Alternate section backgrounds: 1st (hero) plain, 2nd tinted, 3rd plain, … */
+/* Alternate section backgrounds: 1st (hero) white, 2nd tinted, 3rd white, … */
 .home-page > section:nth-of-type(odd) {
-  background: transparent;
+  /* Solid white so bands read against the page grey body bg */
+  background: #ffffff;
 }
 
 .home-page > section:nth-of-type(even) {
-  /* Very light primary — soft enough to read as a page band, not a card fill */
-  background: color-mix(in srgb, var(--brand) 4.5%, #ffffff);
+  /* Stronger primary tint so it clearly differs from grey / white bands */
+  background: color-mix(in srgb, var(--brand) 11%, #ffffff);
 }
 
 .home-band__inner {

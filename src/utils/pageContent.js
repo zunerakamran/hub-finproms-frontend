@@ -92,6 +92,11 @@ export const PAGE_CONTENT_FIELDS = {
       { key: 'features_card4_title', label: 'Features — Card 4 title (Generic Compliance)' },
       { key: 'features_card4_text', label: 'Features — Card 4 text', multiline: true },
       { key: 'features_card4_url', label: 'Features — Card 4 link', hint: 'e.g. /my-dashboard/general-compliance' },
+      {
+        key: 'nav_tagline',
+        label: 'Navbar — Tagline',
+        hint: 'Small line under the hub name in the public header. Leave blank to hide.',
+      },
       { key: 'footer_tagline', label: 'Footer — Tagline' },
       { key: 'footer_copyright', label: 'Footer — Copyright', hint: 'Use {year} and {brand}.' },
       { key: 'footer_powered_by_name', label: 'Footer — Powered by name', hint: 'Shown after “Powered by”.' },

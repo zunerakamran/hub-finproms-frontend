@@ -48,6 +48,7 @@ export default function Layout() {
     tHome('footer_copyright', '© {year} {brand}. All rights reserved.'),
     { year: new Date().getFullYear(), brand: brandName }
   )
+  const navTagline = tHome('nav_tagline', 'Compliant content hub').trim()
   const footerTagline = tHome('footer_tagline', 'Compliant content, ready to publish')
   const poweredByName =
     tHome('footer_powered_by_name', '').trim() ||
@@ -167,7 +168,7 @@ export default function Layout() {
             )}
             <span className="site-brand__copy">
               <span className="site-brand__text">{brandName}</span>
-              <span className="site-brand__tagline">Compliant content hub</span>
+              {navTagline ? <span className="site-brand__tagline">{navTagline}</span> : null}
             </span>
           </NavLink>
 

@@ -11,6 +11,7 @@ import { HubProvider } from './context/HubContext'
 import AppBootGate from './components/AppBootGate'
 import TermsGate from './components/TermsGate'
 import PrivacyGate from './components/PrivacyGate'
+import CookieBanner from './components/CookieBanner'
 import './App.css'
 import './shell.css'
 import PageLoader from './components/PageLoader'
@@ -139,6 +140,7 @@ export default function App() {
         <AppBootGate>
           <TermsGate>
           <PrivacyGate>
+          <CookieBanner />
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
             <Routes>

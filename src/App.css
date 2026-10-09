@@ -7838,3 +7838,41 @@ a.file-name-label:hover .file-name-label__text { text-decoration: underline; }
   }
 }
 
+
+
+/* Essential cookies notice (UK PECR / GDPR Phase 5) */
+.cookie-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1200;
+  background: rgba(18, 24, 38, 0.96);
+  color: #f5f7fb;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.9rem 1rem;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2);
+}
+.cookie-banner__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.cookie-banner__text {
+  flex: 1 1 280px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.cookie-banner__text p {
+  margin: 0 0 0.4rem;
+}
+.cookie-banner__text p:last-child {
+  margin-bottom: 0;
+}
+.cookie-banner__text a {
+  color: #9ec5ff;
+}

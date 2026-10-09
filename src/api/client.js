@@ -649,6 +649,22 @@ export const api = {
   resetAdminPrivacy: () => request(`${CLIENT_ADMIN}/privacy/reset`, { method: 'POST' }),
   acceptPrivacy: () => request('/auth/accept-privacy', { method: 'POST' }),
   gdprRetention: () => request(`${CLIENT_ADMIN}/gdpr/retention`),
+  gdprIncidents: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${CLIENT_ADMIN}/gdpr/incidents${query ? `?${query}` : ''}`)
+  },
+  createGdprIncident: (payload) =>
+    request(`${CLIENT_ADMIN}/gdpr/incidents`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateGdprIncident: (id, payload) =>
+    request(`${CLIENT_ADMIN}/gdpr/incidents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
   gdprUsers: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')

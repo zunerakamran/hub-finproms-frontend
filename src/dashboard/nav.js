@@ -1009,7 +1009,7 @@ export const DASHBOARD_LINKS = [
     label: 'Hub backups',
     title: 'Hub backups & restore',
     description:
-      'Per-hub backup schedule (time/timezone), Backup now, download Central copies, and restore hubs.',
+      'Backup schedule, Backup now, download, and restore for the hub selected in Control hub.',
     paCapability: 'pa_manage_hub_backups',
     controlPlaneOnly: true,
     group: 'platform',

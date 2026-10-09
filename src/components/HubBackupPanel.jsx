@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
 import FileNameLabel from './FileNameLabel'
 import { useAuth } from '../context/AuthContext'
@@ -14,11 +14,45 @@ const WEEKDAYS = [
   { value: 6, label: 'Saturday' },
 ]
 
+const TIMEZONES = [
+  'UTC',
+  'Europe/London',
+  'Europe/Dublin',
+  'Asia/Karachi',
+  'Asia/Dubai',
+  'Asia/Kolkata',
+  'Asia/Singapore',
+  'Australia/Sydney',
+  'America/New_York',
+  'America/Chicago',
+  'America/Los_Angeles',
+]
+
 function formatBytes(n) {
   const size = Number(n) || 0
   if (size < 1024) return `${size} B`
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
   return `${(size / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function formatWhen(iso) {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleString()
+  } catch {
+    return iso
+  }
+}
+
+function scheduleSummary(schedule) {
+  if (!schedule.backup_enabled) return 'Automatic backups are off'
+  const time = schedule.backup_time || '02:00'
+  const tz = schedule.backup_timezone || 'UTC'
+  if (schedule.backup_frequency === 'weekly') {
+    const day = WEEKDAYS.find((d) => d.value === Number(schedule.backup_weekday))?.label || 'Sunday'
+    return `Every ${day} at ${time} (${tz})`
+  }
+  return `Every day at ${time} (${tz})`
 }
 
 /**
@@ -31,6 +65,7 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [running, setRunning] = useState(false)
+  const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [backups, setBackups] = useState([])
@@ -73,6 +108,17 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
   useEffect(() => {
     load()
   }, [load])
+
+  const timezoneOptions = useMemo(() => {
+    const tz = schedule.backup_timezone
+    if (tz && !TIMEZONES.includes(tz)) {
+      return [tz, ...TIMEZONES]
+    }
+    return TIMEZONES
+  }, [schedule.backup_timezone])
+
+  const centralCount = backups.filter((b) => b.location === 'central' && b.status === 'completed').length
+  const localCount = backups.filter((b) => b.location === 'local' && b.status === 'completed').length
 
   if (!allowed) {
     return null
@@ -128,10 +174,13 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
 
   const onDownload = async (backup) => {
     setError('')
+    setBusyId(backup.id)
     try {
       await api.downloadPowerAdminHubBackup(hubId, backup.id, backup.filename || 'backup.zip')
     } catch (err) {
       setError(err.message || 'Download failed.')
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -142,189 +191,307 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
     if (!ok) return
     setError('')
     setMessage('')
+    setBusyId(backup.id)
     try {
       const data = await api.restorePowerAdminHubBackup(hubId, backup.id)
       setMessage(data.message || 'Restore completed.')
     } catch (err) {
       setError(err.message)
+    } finally {
+      setBusyId(null)
     }
   }
 
   const onDelete = async (backup) => {
     if (!window.confirm(`Delete backup ${fileDisplayName(backup.filename) || backup.filename || backup.id}?`)) return
     setError('')
+    setBusyId(backup.id)
     try {
       await api.deletePowerAdminHubBackup(hubId, backup.id)
       await load()
     } catch (err) {
       setError(err.message)
+    } finally {
+      setBusyId(null)
     }
   }
 
   return (
-    <div className="admin-form" style={embedded ? undefined : { marginTop: '2rem' }}>
-      <h2>{embedded ? `Backup settings — ${hubName || 'hub'}` : 'Backups'}</h2>
-      <p className="muted">
-        Scheduled backups save on the hub&apos;s own server and upload a copy to Central. Restore
-        uses the Central copy. Each hub can have its own time and timezone.
-      </p>
-      {lastRunAt && (
-        <p className="muted">
-          Last scheduled/manual run:{' '}
-          <strong>{(() => { try { return new Date(lastRunAt).toLocaleString() } catch { return lastRunAt } })()}</strong>
-        </p>
+    <div className={`hub-backup-panel${embedded ? ' hub-backup-panel--embedded' : ''}`}>
+      {!embedded && (
+        <div className="hub-backup-panel__intro">
+          <h2>Backups</h2>
+          <p className="muted">
+            Scheduled backups save on the hub&apos;s own server and upload a copy to Central. Restore
+            uses the Central copy.
+          </p>
+        </div>
       )}
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
       {loading ? (
-        <p className="muted">Loading backups…</p>
+        <div className="state">Loading backup settings…</div>
       ) : (
         <>
-          <form onSubmit={onSaveSchedule}>
-            <label className="toggle-row">
-              <input
-                type="checkbox"
-                checked={schedule.backup_enabled}
-                onChange={(e) => setSchedule({ ...schedule, backup_enabled: e.target.checked })}
-              />
-              <span>Enable scheduled backups</span>
-            </label>
-            <label>
-              Time (24h)
-              <input
-                type="time"
-                required
-                value={schedule.backup_time}
-                onChange={(e) => setSchedule({ ...schedule, backup_time: e.target.value })}
-              />
-            </label>
-            <label>
-              Timezone
-              <input
-                value={schedule.backup_timezone}
-                onChange={(e) => setSchedule({ ...schedule, backup_timezone: e.target.value })}
-                placeholder="Asia/Karachi"
-              />
-            </label>
-            <label>
-              Frequency
-              <select
-                value={schedule.backup_frequency}
-                onChange={(e) => setSchedule({ ...schedule, backup_frequency: e.target.value })}
+          <div className="hub-backup-stats" aria-label="Backup overview">
+            <div className="hub-backup-stat">
+              <span className="hub-backup-stat__label">Schedule</span>
+              <span
+                className={`admin-status-pill ${schedule.backup_enabled ? 'is-on' : 'is-off'}`}
               >
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-              </select>
-            </label>
-            {schedule.backup_frequency === 'weekly' && (
-              <label>
-                Weekday
-                <select
-                  value={schedule.backup_weekday}
-                  onChange={(e) =>
-                    setSchedule({ ...schedule, backup_weekday: Number(e.target.value) })
-                  }
-                >
-                  {WEEKDAYS.map((d) => (
-                    <option key={d.value} value={d.value}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label>
-              Keep local copies
-              <input
-                type="number"
-                min={1}
-                max={60}
-                value={schedule.backup_retention_local}
-                onChange={(e) =>
-                  setSchedule({ ...schedule, backup_retention_local: Number(e.target.value) })
-                }
-              />
-            </label>
-            <label>
-              Keep Central copies
-              <input
-                type="number"
-                min={1}
-                max={90}
-                value={schedule.backup_retention_central}
-                onChange={(e) =>
-                  setSchedule({ ...schedule, backup_retention_central: Number(e.target.value) })
-                }
-              />
-            </label>
-            <div className="actions">
-              <button type="submit" className="btn primary" disabled={saving}>
-                {saving ? 'Saving…' : 'Save backup schedule'}
-              </button>
-              <button type="button" className="btn" disabled={running} onClick={onRunNow}>
-                {running ? 'Running…' : 'Backup now'}
-              </button>
+                {schedule.backup_enabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <strong className="hub-backup-stat__value">{scheduleSummary(schedule)}</strong>
             </div>
-          </form>
+            <div className="hub-backup-stat">
+              <span className="hub-backup-stat__label">Last run</span>
+              <strong className="hub-backup-stat__value">{formatWhen(lastRunAt)}</strong>
+            </div>
+            <div className="hub-backup-stat">
+              <span className="hub-backup-stat__label">Stored copies</span>
+              <strong className="hub-backup-stat__value">
+                {centralCount} Central · {localCount} local
+              </strong>
+            </div>
+          </div>
 
-          <h3 style={{ marginTop: '1.5rem' }}>Stored backups</h3>
-          {backups.length === 0 ? (
-            <p className="muted">No backups yet.</p>
-          ) : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>When</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th>Size</th>
-                    <th>File</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {backups.map((b) => (
-                    <tr key={b.id}>
-                      <td>{b.completed_at || b.created_at || '—'}</td>
-                      <td>{b.location}</td>
-                      <td>{b.status}</td>
-                      <td>{formatBytes(b.size_bytes)}</td>
-                      <td>
-                        {b.filename ? (
-                          <FileNameLabel name={b.filename} mimeType="application/zip" />
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="actions">
-                        {b.downloadable && b.location === 'central' && (
-                          <>
-                            <button type="button" className="btn ghost" onClick={() => onDownload(b)}>
-                              Download
-                            </button>
-                            <button type="button" className="btn ghost" onClick={() => onRestore(b)}>
-                              Restore
-                            </button>
-                          </>
-                        )}
-                        {b.downloadable && b.location === 'local' && (
-                          <button type="button" className="btn ghost" onClick={() => onDownload(b)}>
-                            Download
-                          </button>
-                        )}
-                        <button type="button" className="btn ghost" onClick={() => onDelete(b)}>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <section className="hub-backup-card">
+            <div className="hub-backup-card__head">
+              <div>
+                <h3>Schedule</h3>
+                <p className="muted">
+                  Cron checks every minute. A backup runs when this hub&apos;s local clock matches the
+                  time below.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={running || loading}
+                onClick={onRunNow}
+              >
+                {running ? 'Creating backup…' : 'Backup now'}
+              </button>
             </div>
-          )}
+
+            <form className="hub-backup-form" onSubmit={onSaveSchedule}>
+              <label className="hub-backup-enable">
+                <input
+                  type="checkbox"
+                  checked={schedule.backup_enabled}
+                  onChange={(e) => setSchedule({ ...schedule, backup_enabled: e.target.checked })}
+                />
+                <span>
+                  <strong>Enable scheduled backups</strong>
+                  <small className="muted">
+                    When off, only manual “Backup now” runs. Time settings are still saved.
+                  </small>
+                </span>
+              </label>
+
+              <div className="form-grid">
+                <label>
+                  Time
+                  <input
+                    type="time"
+                    required
+                    value={schedule.backup_time}
+                    onChange={(e) => setSchedule({ ...schedule, backup_time: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Timezone
+                  <select
+                    value={schedule.backup_timezone}
+                    onChange={(e) => setSchedule({ ...schedule, backup_timezone: e.target.value })}
+                  >
+                    {timezoneOptions.map((tz) => (
+                      <option key={tz} value={tz}>
+                        {tz}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Frequency
+                  <select
+                    value={schedule.backup_frequency}
+                    onChange={(e) => setSchedule({ ...schedule, backup_frequency: e.target.value })}
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                  </select>
+                </label>
+                {schedule.backup_frequency === 'weekly' ? (
+                  <label>
+                    Weekday
+                    <select
+                      value={schedule.backup_weekday}
+                      onChange={(e) =>
+                        setSchedule({ ...schedule, backup_weekday: Number(e.target.value) })
+                      }
+                    >
+                      {WEEKDAYS.map((d) => (
+                        <option key={d.value} value={d.value}>
+                          {d.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <div className="hub-backup-field-spacer" aria-hidden="true" />
+                )}
+                <label>
+                  Keep local copies
+                  <input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={schedule.backup_retention_local}
+                    onChange={(e) =>
+                      setSchedule({ ...schedule, backup_retention_local: Number(e.target.value) })
+                    }
+                  />
+                </label>
+                <label>
+                  Keep Central copies
+                  <input
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={schedule.backup_retention_central}
+                    onChange={(e) =>
+                      setSchedule({
+                        ...schedule,
+                        backup_retention_central: Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className="actions">
+                <button type="submit" className="btn primary" disabled={saving}>
+                  {saving ? 'Saving…' : 'Save schedule'}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="hub-backup-card">
+            <div className="hub-backup-card__head">
+              <div>
+                <h3>Archives</h3>
+                <p className="muted">
+                  Restore is only available from completed <strong>Central</strong> copies (safe
+                  source of truth).
+                </p>
+              </div>
+            </div>
+
+            {backups.length === 0 ? (
+              <div className="hub-backup-empty">
+                <p className="muted">No backups yet for this hub.</p>
+                <button type="button" className="btn" disabled={running} onClick={onRunNow}>
+                  {running ? 'Creating backup…' : 'Create first backup'}
+                </button>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table hub-backup-table">
+                  <thead>
+                    <tr>
+                      <th>When</th>
+                      <th>Location</th>
+                      <th>Status</th>
+                      <th>Size</th>
+                      <th>File</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {backups.map((b) => {
+                      const busy = busyId === b.id
+                      return (
+                        <tr key={b.id}>
+                          <td>
+                            <div className="hub-backup-when">
+                              <strong>{formatWhen(b.completed_at || b.created_at)}</strong>
+                              {b.triggered_by ? (
+                                <span className="muted">{b.triggered_by}</span>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              className={`badge ${b.location === 'central' ? 'ok' : 'warn'}`}
+                            >
+                              {b.location === 'central' ? 'Central' : 'Local'}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className={`admin-status-pill ${
+                                b.status === 'completed'
+                                  ? 'is-on'
+                                  : b.status === 'failed'
+                                    ? 'is-off'
+                                    : ''
+                              }`}
+                            >
+                              {b.status}
+                            </span>
+                          </td>
+                          <td>{formatBytes(b.size_bytes)}</td>
+                          <td>
+                            {b.filename ? (
+                              <FileNameLabel name={b.filename} mimeType="application/zip" />
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                          <td>
+                            <div className="hub-backup-actions">
+                              {b.downloadable && (
+                                <button
+                                  type="button"
+                                  className="btn ghost"
+                                  disabled={busy}
+                                  onClick={() => onDownload(b)}
+                                >
+                                  Download
+                                </button>
+                              )}
+                              {b.downloadable && b.location === 'central' && (
+                                <button
+                                  type="button"
+                                  className="btn ghost hub-backup-restore"
+                                  disabled={busy}
+                                  onClick={() => onRestore(b)}
+                                >
+                                  Restore
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="btn ghost"
+                                disabled={busy}
+                                onClick={() => onDelete(b)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         </>
       )}
     </div>

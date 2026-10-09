@@ -32,6 +32,7 @@ const ACTION_LABELS = {
   'auth.profile_updated': 'Profile updated',
   'auth.terms_accepted': 'Accepted terms',
   'auth.privacy_accepted': 'Acknowledged privacy policy',
+  'gdpr.export': 'GDPR data export',
   'activity_logs.view': 'Viewed activity log',
   'activity_logs.report': 'Viewed activity report',
   'modules.update': 'Updated hub modules',

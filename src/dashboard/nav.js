@@ -112,6 +112,7 @@ const HUB_OPS_ANY = [
   'dashboard_manage_settings',
   'dashboard_manage_terms',
   'dashboard_manage_privacy',
+  'dashboard_manage_gdpr',
   'dashboard_manage_role_display_names',
   'dashboard_manage_compliance_status_display_names',
   'dashboard_manage_email_templates',
@@ -545,6 +546,14 @@ export const DASHBOARD_LINKS = [
     title: 'Privacy Policy',
     description: 'Edit the Privacy Policy (UK GDPR notice) users must acknowledge on first login.',
     capability: 'dashboard_manage_privacy',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/gdpr',
+    label: 'GDPR / data requests',
+    title: 'GDPR / data requests',
+    description: 'Export a user\'s personal data package for UK GDPR subject-access requests.',
+    capability: 'dashboard_manage_gdpr',
     group: 'hub',
   },
   {

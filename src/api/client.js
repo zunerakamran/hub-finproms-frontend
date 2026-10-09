@@ -648,6 +648,44 @@ export const api = {
     }),
   resetAdminPrivacy: () => request(`${CLIENT_ADMIN}/privacy/reset`, { method: 'POST' }),
   acceptPrivacy: () => request('/auth/accept-privacy', { method: 'POST' }),
+  gdprUsers: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${CLIENT_ADMIN}/gdpr/users${query ? `?${query}` : ''}`)
+  },
+  gdprExportUser: async (userId) => {
+    await ensureCsrfCookie().catch(() => {})
+    const response = await fetch(`${API_URL}${CLIENT_ADMIN}/gdpr/users/${userId}/export`, {
+      headers: buildHeaders({ headers: { Accept: 'application/json' } }),
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      let message = 'Export failed'
+      try {
+        const data = await response.clone().json()
+        if (data?.message) message = data.message
+      } catch {
+        //
+      }
+      const error = new Error(message)
+      error.status = response.status
+      throw error
+    }
+    const disposition = response.headers.get('Content-Disposition') || ''
+    const match = /filename="?([^";]+)"?/i.exec(disposition)
+    const filename = match?.[1] || `gdpr-export-user-${userId}.json`
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    return { ok: true, filename }
+  },
   powerAdminPaymentMethods: (hubId) => {
     const query = hubId ? `?hub_id=${hubId}` : ''
     return request(`/power-admin/payment-methods${query}`)

@@ -36,6 +36,7 @@ export const DASHBOARD_NAV_DEFAULTS = {
     '/my-dashboard/settings': 'Settings',
     '/my-dashboard/terms': 'Terms & Conditions',
     '/my-dashboard/privacy': 'Privacy Policy',
+    '/my-dashboard/gdpr': 'GDPR / data requests',
     '/my-dashboard/role-display-names': 'Manage roles',
     '/my-dashboard/compliance-status-display-names': 'Workflows status title',
     '/my-dashboard/email-templates': 'Email templates',

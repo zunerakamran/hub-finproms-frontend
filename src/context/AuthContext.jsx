@@ -21,6 +21,8 @@ function sameUser(a, b) {
     Boolean(a.is_discontinued) === Boolean(b.is_discontinued) &&
     Boolean(a.terms_accepted) === Boolean(b.terms_accepted) &&
     a.terms_accepted_version === b.terms_accepted_version &&
+    Boolean(a.privacy_accepted) === Boolean(b.privacy_accepted) &&
+    a.privacy_accepted_version === b.privacy_accepted_version &&
     a.billing_subject_id === b.billing_subject_id &&
     Boolean(a.two_factor_enabled) === Boolean(b.two_factor_enabled) &&
     a.avatar_url === b.avatar_url
@@ -81,7 +83,7 @@ export function AuthProvider({ children }) {
       return data.user
     } catch (err) {
       // Only clear the session when the token is actually invalid.
-      // Do not treat 403 (forbidden/capability) as logout — that remounts the app.
+      // Do not treat 403 (forbidden/capability) as logout â€” that remounts the app.
       if (err?.status === 401) {
         setToken(null)
         setUser(null)
@@ -155,7 +157,7 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (payload) => {
     const data = await api.register(payload)
-    // Self-registration requires email verification — no session token yet.
+    // Self-registration requires email verification â€” no session token yet.
     if (data?.user || data?.token || data?.auth_mode === 'cookie') {
       setToken('1')
       clearHubCaches()

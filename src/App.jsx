@@ -10,6 +10,7 @@ import { AuthProvider } from './context/AuthContext'
 import { HubProvider } from './context/HubContext'
 import AppBootGate from './components/AppBootGate'
 import TermsGate from './components/TermsGate'
+import PrivacyGate from './components/PrivacyGate'
 import './App.css'
 import './shell.css'
 import PageLoader from './components/PageLoader'
@@ -45,6 +46,7 @@ const AdminPosts = lazy(() => import('./pages/AdminPosts'))
 const CentralContentLibrary = lazy(() => import('./pages/CentralContentLibrary'))
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
 const AdminTerms = lazy(() => import('./pages/AdminTerms'))
+const AdminPrivacy = lazy(() => import('./pages/AdminPrivacy'))
 const AdminRoleDisplayNames = lazy(() => import('./pages/AdminRoleDisplayNames'))
 const AdminComplianceStatusDisplayNames = lazy(() => import('./pages/AdminComplianceStatusDisplayNames'))
 const AdminEmailTemplates = lazy(() => import('./pages/AdminEmailTemplates'))
@@ -135,6 +137,7 @@ export default function App() {
       <HubProvider>
         <AppBootGate>
           <TermsGate>
+          <PrivacyGate>
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -890,6 +893,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="privacy"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_privacy">
+                      <AdminPrivacy />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
                   path="role-display-names"
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_role_display_names">
@@ -1051,6 +1062,7 @@ export default function App() {
           </Routes>
             </Suspense>
         </BrowserRouter>
+        </PrivacyGate>
         </TermsGate>
         </AppBootGate>
       </HubProvider>

@@ -31,6 +31,7 @@ const ACTION_LABELS = {
   'auth.login_otp_verified': 'Login OTP verified',
   'auth.profile_updated': 'Profile updated',
   'auth.terms_accepted': 'Accepted terms',
+  'auth.privacy_accepted': 'Acknowledged privacy policy',
   'activity_logs.view': 'Viewed activity log',
   'activity_logs.report': 'Viewed activity report',
   'modules.update': 'Updated hub modules',
@@ -99,7 +100,7 @@ function friendlyAction(action) {
   if (!action) return 'Activity'
   if (ACTION_LABELS[action]) return ACTION_LABELS[action]
   return String(action)
-    .replace(/\./g, ' · ')
+    .replace(/\./g, ' Â· ')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
@@ -117,7 +118,7 @@ function statusTone(code) {
 }
 
 function formatDayLabel(dateStr) {
-  if (!dateStr) return '—'
+  if (!dateStr) return 'â€”'
   return formatDate(`${dateStr}T12:00:00`, dateStr)
 }
 
@@ -285,7 +286,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
   }
 
   const openPersonActivities = (row) => {
-    // Guests have no user_id — use 0 so the API filters where user_id IS NULL.
+    // Guests have no user_id â€” use 0 so the API filters where user_id IS NULL.
     const userId = row?.user_id != null && row.user_id !== '' ? String(row.user_id) : '0'
     const next = {
       ...filters,
@@ -369,7 +370,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           <div>
             <div>
               {row.user_name || 'Guest'}
-              {row.user_role ? ` · ${row.user_role}` : ''}
+              {row.user_role ? ` Â· ${row.user_role}` : ''}
             </div>
             {row.user_email ? <span className="muted">{row.user_email}</span> : null}
           </div>
@@ -379,7 +380,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
         key: 'description',
         label: 'Description',
         filterValue: (row) => plainTextFromHtml(row.description || ''),
-        render: (row) => truncateRichText(row.description, 180) || '—',
+        render: (row) => truncateRichText(row.description, 180) || 'â€”',
       },
       {
         key: 'path',
@@ -391,7 +392,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
               {[row.method, row.path].filter(Boolean).join(' ')}
             </span>
           ) : (
-            '—'
+            'â€”'
           ),
       },
       {
@@ -402,7 +403,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           row.status_code ? (
             <span className={`badge ${statusTone(row.status_code)}`}>{row.status_code}</span>
           ) : (
-            '—'
+            'â€”'
           ),
       },
     ],
@@ -417,7 +418,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
             <p className="eyebrow">Hub</p>
             <h1>Activity logs</h1>
             <p className="muted">
-              Enable &quot;View activity logs / report&quot; for your role under Power Admin →
+              Enable &quot;View activity logs / report&quot; for your role under Power Admin â†’
               Capabilities.
             </p>
           </div>
@@ -433,7 +434,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           <p className="eyebrow">Hub</p>
           <h1>Activity logs</h1>
           <p className="muted">
-            See what people are doing in this hub — sign-ins, reviews, updates, and more. Use the
+            See what people are doing in this hub â€” sign-ins, reviews, updates, and more. Use the
             summary cards for a quick overview, then dig into the detailed timeline when you need
             specifics.
           </p>
@@ -487,7 +488,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
               <FaSearch aria-hidden />
               <input
                 type="search"
-                placeholder="Name, email, description, or page path…"
+                placeholder="Name, email, description, or page pathâ€¦"
                 value={filters.q}
                 onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
               />
@@ -560,7 +561,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
       {error && <div className="alert">{error}</div>}
 
       {loading ? (
-        <div className="state">Loading activity…</div>
+        <div className="state">Loading activityâ€¦</div>
       ) : tab === 'report' ? (
         !report ? (
           <div className="empty-state activity-empty">
@@ -597,7 +598,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
             <div className="activity-insight-grid">
               <article className="activity-insight-card">
                 <p className="activity-insight-card__eyebrow">Most common action</p>
-                <h3>{insights.topAction ? friendlyAction(insights.topAction.action) : '—'}</h3>
+                <h3>{insights.topAction ? friendlyAction(insights.topAction.action) : 'â€”'}</h3>
                 <p className="muted">
                   {insights.topAction
                     ? `${insights.topAction.count} time${insights.topAction.count === 1 ? '' : 's'}`
@@ -621,21 +622,21 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                 }}
               >
                 <p className="activity-insight-card__eyebrow">Most active person</p>
-                <h3>{insights.topUser?.user_name || insights.topUser?.user_email || '—'}</h3>
+                <h3>{insights.topUser?.user_name || insights.topUser?.user_email || 'â€”'}</h3>
                 <p className="muted">
                   {insights.topUser
                     ? `${insights.topUser.count} event${insights.topUser.count === 1 ? '' : 's'}${
-                        insights.topUser.user_role ? ` · ${insights.topUser.user_role}` : ''
+                        insights.topUser.user_role ? ` Â· ${insights.topUser.user_role}` : ''
                       }`
                     : 'No users yet'}
                 </p>
                 {insights.topUser ? (
-                  <p className="activity-insight-card__cta muted">View their activities →</p>
+                  <p className="activity-insight-card__cta muted">View their activities â†’</p>
                 ) : null}
               </article>
               <article className="activity-insight-card">
                 <p className="activity-insight-card__eyebrow">Busiest day</p>
-                <h3>{insights.topDay ? formatDayLabel(insights.topDay.date) : '—'}</h3>
+                <h3>{insights.topDay ? formatDayLabel(insights.topDay.date) : 'â€”'}</h3>
                 <p className="muted">
                   {insights.topDay
                     ? `${insights.topDay.count} event${insights.topDay.count === 1 ? '' : 's'}`
@@ -686,7 +687,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                   total={totalEvents}
                   getKey={(row, idx) => `${row.user_id || 'guest'}-${idx}`}
                   getLabel={(row) =>
-                    [row.user_name || 'Guest', row.user_email, row.user_role].filter(Boolean).join(' · ')
+                    [row.user_name || 'Guest', row.user_email, row.user_role].filter(Boolean).join(' Â· ')
                   }
                   isRowClickable={() => true}
                   onRowClick={openPersonActivities}

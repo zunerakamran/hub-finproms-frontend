@@ -23,7 +23,7 @@ export const GENERAL_DASHBOARD_ANY = [
  *   paCapability?: string,
  *   paAnyOf?: string[],
  *   billingOnly?: boolean,
- *   sharedOnly?: boolean, // legacy — hide while acting on WL / on WL deploy
+ *   sharedOnly?: boolean, // legacy â€” hide while acting on WL / on WL deploy
  *   controlPlaneOnly?: boolean, // Platform tools: only on Central Hub Controller
  *   hideWhenActingRemotely?: boolean, // Hide while Control hub switcher is on Shared/WL
  *   homeOnly?: boolean,
@@ -111,6 +111,7 @@ const HUB_OPS_ANY = [
   'dashboard_manage_plans',
   'dashboard_manage_settings',
   'dashboard_manage_terms',
+  'dashboard_manage_privacy',
   'dashboard_manage_role_display_names',
   'dashboard_manage_compliance_status_display_names',
   'dashboard_manage_email_templates',
@@ -325,7 +326,7 @@ export const DASHBOARD_LINKS = [
     end: true,
   },
 
-  // —— Account ——
+  // â€”â€” Account â€”â€”
   {
     kind: 'section',
     id: 'account',
@@ -373,7 +374,7 @@ export const DASHBOARD_LINKS = [
     group: 'account',
   },
 
-  // —— SM Template ——
+  // â€”â€” SM Template â€”â€”
   {
     kind: 'section',
     id: 'content',
@@ -385,7 +386,7 @@ export const DASHBOARD_LINKS = [
     label: 'Posts / reels',
     title: 'Posts / reels',
     description:
-      'List posts/reels on the current hub. Create/edit only where Manage posts is enabled — content hubs receive posts from the Central library.',
+      'List posts/reels on the current hub. Create/edit only where Manage posts is enabled â€” content hubs receive posts from the Central library.',
     anyOf: ['dashboard_manage_posts', 'dashboard_view_posts'],
     group: 'content',
   },
@@ -436,7 +437,7 @@ export const DASHBOARD_LINKS = [
     group: 'content',
   },
 
-  // —— Taxonomy requests ——
+  // â€”â€” Taxonomy requests â€”â€”
   {
     kind: 'section',
     id: 'taxonomy',
@@ -467,12 +468,12 @@ export const DASHBOARD_LINKS = [
     label: 'Taxonomy queue',
     title: 'Taxonomy queue',
     description:
-      'Review taxonomy requests. Create the option manually, then mark Approved — or reject with a note.',
+      'Review taxonomy requests. Create the option manually, then mark Approved â€” or reject with a note.',
     anyOf: TAX_REVIEW_ANY,
     group: 'taxonomy',
   },
 
-  // —— Hub ——
+  // â€”â€” Hub â€”â€”
   {
     kind: 'section',
     id: 'hub',
@@ -484,7 +485,7 @@ export const DASHBOARD_LINKS = [
     label: 'Firms',
     title: 'Firms',
     description:
-      'Manage firms, appoint a Head of Firm, and set who can review and report on each firm’s compliance requests.',
+      'Manage firms, appoint a Head of Firm, and set who can review and report on each firmâ€™s compliance requests.',
     anyOf: ['dashboard_manage_firms', 'dashboard_assign_firm_head'],
     group: 'hub',
   },
@@ -501,8 +502,8 @@ export const DASHBOARD_LINKS = [
       'firm_documents_archive',
     ],
     alsoMatch: ['/my-dashboard/firm-documents/'],
-    // Account (not Hub) so Advisor / Approver / User see it with member grants —
-    // same as Profile — instead of burying it under hub-admin tools.
+    // Account (not Hub) so Advisor / Approver / User see it with member grants â€”
+    // same as Profile â€” instead of burying it under hub-admin tools.
     group: 'account',
   },
   {
@@ -536,6 +537,14 @@ export const DASHBOARD_LINKS = [
     title: 'Terms & Conditions',
     description: 'Edit the Terms & Conditions users must accept on first login.',
     capability: 'dashboard_manage_terms',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/privacy',
+    label: 'Privacy Policy',
+    title: 'Privacy Policy',
+    description: 'Edit the Privacy Policy (UK GDPR notice) users must acknowledge on first login.',
+    capability: 'dashboard_manage_privacy',
     group: 'hub',
   },
   {
@@ -613,7 +622,7 @@ export const DASHBOARD_LINKS = [
     group: 'hub',
   },
 
-  // —— Modules ——
+  // â€”â€” Modules â€”â€”
   {
     kind: 'section',
     id: 'modules',
@@ -645,7 +654,7 @@ export const DASHBOARD_LINKS = [
     group: 'modules',
   },
 
-  // —— Advisors & billing ——
+  // â€”â€” Advisors & billing â€”â€”
   {
     kind: 'section',
     id: 'advisors',
@@ -658,7 +667,7 @@ export const DASHBOARD_LINKS = [
     label: 'Import Users',
     title: 'Import Users',
     description:
-      'Download template, submit a filled sheet for import, or import users. Discontinue users from Hub → Users.',
+      'Download template, submit a filled sheet for import, or import users. Discontinue users from Hub â†’ Users.',
     anyOf: ['advisor_excel_import', 'advisor_excel_template', 'advisor_excel_submit'],
     group: 'advisors',
   },
@@ -695,7 +704,7 @@ export const DASHBOARD_LINKS = [
     group: 'advisors',
   },
 
-  // —— Social Media Compliance ——
+  // â€”â€” Social Media Compliance â€”â€”
   {
     kind: 'section',
     id: 'smc',
@@ -736,7 +745,7 @@ export const DASHBOARD_LINKS = [
     group: 'smc',
   },
 
-  // —— General Compliance ——
+  // â€”â€” General Compliance â€”â€”
   {
     kind: 'section',
     id: 'gc',
@@ -785,7 +794,7 @@ export const DASHBOARD_LINKS = [
     group: 'gc',
   },
 
-  // —— Support Tickets ——
+  // â€”â€” Support Tickets â€”â€”
   {
     kind: 'section',
     id: 'st',
@@ -813,12 +822,12 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/support-tickets/queue',
     label: 'All tickets',
     title: 'All tickets',
-    description: 'Developer inbox — review tickets and change their status.',
+    description: 'Developer inbox â€” review tickets and change their status.',
     anyOf: ['st_view_all_tickets', 'st_change_ticket_status'],
     group: 'st',
   },
 
-  // —— Website Template Library ——
+  // â€”â€” Website Template Library â€”â€”
   {
     kind: 'section',
     id: 'wtl',
@@ -874,7 +883,7 @@ export const DASHBOARD_LINKS = [
     group: 'wtl',
   },
 
-  // —— Website Content Pre Approval ——
+  // â€”â€” Website Content Pre Approval â€”â€”
   {
     kind: 'section',
     id: 'wc',
@@ -897,7 +906,7 @@ export const DASHBOARD_LINKS = [
     description: 'See your submitted content changes and version history.',
     anyOf: ['wc_submit_change_requests', 'wc_edit_sections'],
     exceptRoles: ['power_admin', 'finproms_admin'],
-    // Detail URLs (/my-requests/:id) are opened from queue/history too — do not
+    // Detail URLs (/my-requests/:id) are opened from queue/history too â€” do not
     // treat them as this nav item (reviewers / Power Admin would get redirected).
     end: true,
     group: 'wc',
@@ -950,7 +959,7 @@ export const DASHBOARD_LINKS = [
     group: 'wc',
   },
 
-  // —— Platform (Power Admin — Central Hub Controller only) ——
+  // â€”â€” Platform (Power Admin â€” Central Hub Controller only) â€”â€”
   {
     kind: 'section',
     id: 'platform',
@@ -999,7 +1008,7 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/capabilities',
     label: 'Capabilities',
     title: 'Capabilities',
-    description: 'Role × capability matrix for members, hub admins, and Power Admin (per hub).',
+    description: 'Role Ã— capability matrix for members, hub admins, and Power Admin (per hub).',
     paCapability: 'pa_manage_power_capabilities',
     controlPlaneOnly: true,
     group: 'platform',
@@ -1111,7 +1120,7 @@ export function getVisibleDashboardNav(ctx) {
     result.push(section, ...kids)
   }
 
-  // Any items whose group is unknown / not in order — append without inventing separators.
+  // Any items whose group is unknown / not in order â€” append without inventing separators.
   const placed = new Set(sectionOrder)
   for (const [group, kids] of Object.entries(byGroup)) {
     if (placed.has(group) || !kids.length) continue
@@ -1144,7 +1153,7 @@ export function findActiveDashboardLink(pathname) {
       let score = 0
       if (pathname.startsWith(`${link.to}/`)) {
         const rest = pathname.slice(link.to.length + 1)
-        // `end: true` mirrors NavLink `end` — do not claim nested detail routes
+        // `end: true` mirrors NavLink `end` â€” do not claim nested detail routes
         // like /social-media-compliance/42 as "My requests".
         if (link.end && /^\d+(\/|$)/.test(rest)) {
           score = 0

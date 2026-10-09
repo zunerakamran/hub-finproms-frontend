@@ -2028,10 +2028,14 @@ a.site-footer__powered:hover {
   overflow-x: clip;
 }
 
-.home-band:nth-of-type(even) {
-  background:
-    radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--brand) 8%, transparent), transparent 45%),
-    #f8fafc;
+/* Alternate section backgrounds: 1st (hero) plain, 2nd tinted, 3rd plain, … */
+.home-page > section:nth-of-type(odd) {
+  background: transparent;
+}
+
+.home-page > section:nth-of-type(even) {
+  /* Very light primary — soft enough to read as a page band, not a card fill */
+  background: color-mix(in srgb, var(--brand) 4.5%, #ffffff);
 }
 
 .home-band__inner {

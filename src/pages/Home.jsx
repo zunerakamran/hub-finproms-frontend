@@ -299,8 +299,23 @@ export default function Home() {
       .then(([nextPosts, nextCategories, nextTemplates, nextTickets, nextDocs]) => {
         if (cancelled) return
         setPosts(nextPosts)
-        setCategories(nextCategories)
-        setTemplates(nextTemplates)
+        // Home shows top 8 categories (by post count when available).
+        const rankedCategories = [...(nextCategories || [])].sort((a, b) => {
+          const ac = typeof a?.posts_count === 'number' ? a.posts_count : -1
+          const bc = typeof b?.posts_count === 'number' ? b.posts_count : -1
+          if (bc !== ac) return bc - ac
+          return String(a?.name || a || '').localeCompare(String(b?.name || b || ''))
+        })
+        setCategories(rankedCategories.slice(0, 8))
+        // Home grid is 3 columns — pad by repeating when fewer unique templates.
+        const uniqueTemplates = (nextTemplates || []).slice(0, 3)
+        const paddedTemplates = []
+        if (uniqueTemplates.length > 0) {
+          for (let i = 0; i < 3; i += 1) {
+            paddedTemplates.push(uniqueTemplates[i % uniqueTemplates.length])
+          }
+        }
+        setTemplates(paddedTemplates)
         setTickets(nextTickets)
         setDocuments(nextDocs.documents || [])
         setDocumentCategories(nextDocs.categories || [])
@@ -661,10 +676,13 @@ export default function Home() {
             </div>
             <div className="wc-app home-templates__scope">
               <div className="home-templates__grid">
-                {templates.map((template) => {
+                {templates.map((template, index) => {
                   const description = plainTextFromHtml(template.description)
                   return (
-                  <article key={template.id || template.slug} className="home-template-card">
+                  <article
+                    key={`${template.id || template.slug || 'template'}-${index}`}
+                    className="home-template-card"
+                  >
                     <TemplateScrollPreview template={template} className="home-template-card__preview" />
                     <div className="home-template-card__body">
                       <h3>{template.name}</h3>

@@ -70,6 +70,7 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
   const [message, setMessage] = useState('')
   const [backups, setBackups] = useState([])
   const [lastRunAt, setLastRunAt] = useState(null)
+  const [singleStore, setSingleStore] = useState(false)
   const [schedule, setSchedule] = useState({
     backup_enabled: false,
     backup_time: '02:00',
@@ -96,6 +97,7 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
         backup_retention_local: s.retention_local ?? 3,
         backup_retention_central: s.retention_central ?? 14,
       })
+      setSingleStore(Boolean(s.single_store))
       setLastRunAt(s.last_run_at || null)
       setBackups(Array.isArray(data.backups) ? data.backups : [])
     } catch (err) {
@@ -144,6 +146,7 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
         backup_retention_central: s.retention_central ?? prev.backup_retention_central,
       }))
       setLastRunAt(s.last_run_at || null)
+      setSingleStore(Boolean(s.single_store))
       if (typeof onScheduleSaved === 'function') {
         await onScheduleSaved(data)
       }
@@ -252,7 +255,9 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
             <div className="hub-backup-stat">
               <span className="hub-backup-stat__label">Stored copies</span>
               <strong className="hub-backup-stat__value">
-                {centralCount} Central · {localCount} local
+                {singleStore
+                  ? `${centralCount} on this server`
+                  : `${centralCount} Central · ${localCount} local`}
               </strong>
             </div>
           </div>
@@ -262,8 +267,9 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
               <div>
                 <h3>Schedule</h3>
                 <p className="muted">
-                  Cron checks every minute. A backup runs when this hub&apos;s local clock matches the
-                  time below.
+                  {singleStore
+                    ? 'Central keeps one archive on this server (no local + Central duplicate). Cron checks every minute.'
+                    : "Cron checks every minute. A backup runs when this hub's local clock matches the time below."}
                 </p>
               </div>
               <button
@@ -343,33 +349,56 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
                 ) : (
                   <div className="hub-backup-field-spacer" aria-hidden="true" />
                 )}
-                <label>
-                  Keep local copies
-                  <input
-                    type="number"
-                    min={1}
-                    max={60}
-                    value={schedule.backup_retention_local}
-                    onChange={(e) =>
-                      setSchedule({ ...schedule, backup_retention_local: Number(e.target.value) })
-                    }
-                  />
-                </label>
-                <label>
-                  Keep Central copies
-                  <input
-                    type="number"
-                    min={1}
-                    max={90}
-                    value={schedule.backup_retention_central}
-                    onChange={(e) =>
-                      setSchedule({
-                        ...schedule,
-                        backup_retention_central: Number(e.target.value),
-                      })
-                    }
-                  />
-                </label>
+                {singleStore ? (
+                  <label className="form-grid__full">
+                    Keep copies
+                    <input
+                      type="number"
+                      min={1}
+                      max={90}
+                      value={schedule.backup_retention_central}
+                      onChange={(e) =>
+                        setSchedule({
+                          ...schedule,
+                          backup_retention_central: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                ) : (
+                  <>
+                    <label>
+                      Keep local copies
+                      <input
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={schedule.backup_retention_local}
+                        onChange={(e) =>
+                          setSchedule({
+                            ...schedule,
+                            backup_retention_local: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Keep Central copies
+                      <input
+                        type="number"
+                        min={1}
+                        max={90}
+                        value={schedule.backup_retention_central}
+                        onChange={(e) =>
+                          setSchedule({
+                            ...schedule,
+                            backup_retention_central: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </label>
+                  </>
+                )}
               </div>
 
               <div className="actions">
@@ -385,8 +414,9 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
               <div>
                 <h3>Archives</h3>
                 <p className="muted">
-                  Restore is only available from completed <strong>Central</strong> copies (safe
-                  source of truth).
+                  {singleStore
+                    ? 'Completed archives on this Central server can be downloaded or restored.'
+                    : 'Restore is only available from completed Central copies (safe source of truth).'}
                 </p>
               </div>
             </div>

@@ -112,6 +112,7 @@ const HUB_OPS_ANY = [
   'dashboard_manage_settings',
   'dashboard_manage_terms',
   'dashboard_manage_privacy',
+  'dashboard_manage_cookies',
   'dashboard_manage_gdpr',
   'dashboard_manage_role_display_names',
   'dashboard_manage_compliance_status_display_names',
@@ -546,6 +547,14 @@ export const DASHBOARD_LINKS = [
     title: 'Privacy Policy',
     description: 'Edit the Privacy Policy (UK GDPR notice) users must acknowledge on first login.',
     capability: 'dashboard_manage_privacy',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/cookies',
+    label: 'Cookie Notice',
+    title: 'Cookie Notice',
+    description: 'Edit the cookie banner notice shown to visitors (essential cookies).',
+    capability: 'dashboard_manage_cookies',
     group: 'hub',
   },
   {

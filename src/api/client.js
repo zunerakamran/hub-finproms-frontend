@@ -648,23 +648,14 @@ export const api = {
     }),
   resetAdminPrivacy: () => request(`${CLIENT_ADMIN}/privacy/reset`, { method: 'POST' }),
   acceptPrivacy: () => request('/auth/accept-privacy', { method: 'POST' }),
-  gdprRetention: () => request(`${CLIENT_ADMIN}/gdpr/retention`),
-  gdprIncidents: (params = {}) => {
-    const query = new URLSearchParams(
-      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
-    ).toString()
-    return request(`${CLIENT_ADMIN}/gdpr/incidents${query ? `?${query}` : ''}`)
-  },
-  createGdprIncident: (payload) =>
-    request(`${CLIENT_ADMIN}/gdpr/incidents`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  updateGdprIncident: (id, payload) =>
-    request(`${CLIENT_ADMIN}/gdpr/incidents/${id}`, {
+  adminCookies: () => request(`${CLIENT_ADMIN}/cookies`),
+  updateAdminCookies: (payload) =>
+    request(`${CLIENT_ADMIN}/cookies`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
+  resetAdminCookies: () => request(`${CLIENT_ADMIN}/cookies/reset`, { method: 'POST' }),
+  gdprRetention: () => request(`${CLIENT_ADMIN}/gdpr/retention`),
   gdprUsers: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
@@ -676,7 +667,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ confirm: true }),
     }),
-    gdprExportUser: async (userId) => {
+  gdprExportUser: async (userId) => {
     await ensureCsrfCookie().catch(() => {})
     const response = await fetch(`${API_URL}${CLIENT_ADMIN}/gdpr/users/${userId}/export`, {
       headers: buildHeaders({ headers: { Accept: 'application/json' } }),

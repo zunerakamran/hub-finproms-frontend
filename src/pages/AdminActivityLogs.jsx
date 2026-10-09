@@ -34,8 +34,6 @@ const ACTION_LABELS = {
   'auth.privacy_accepted': 'Acknowledged privacy policy',
   'gdpr.export': 'GDPR data export',
   'gdpr.erase': 'GDPR data erasure',
-  'gdpr.incident_created': 'GDPR incident logged',
-  'gdpr.incident_updated': 'GDPR incident updated',
   'activity_logs.view': 'Viewed activity log',
   'activity_logs.report': 'Viewed activity report',
   'modules.update': 'Updated hub modules',

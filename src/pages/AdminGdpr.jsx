@@ -21,16 +21,6 @@ function formatRetention(policy) {
   }))
 }
 
-const EMPTY_INCIDENT = {
-  title: '',
-  summary: '',
-  severity: 'medium',
-  status: 'investigating',
-  ico_notified: false,
-  individuals_notified: false,
-  actions_taken: '',
-}
-
 export default function AdminGdpr() {
   const { can, loading: hubLoading, actingHub, isActingRemotely, roleLabel } = useHub()
   const enabled = can('dashboard_manage_gdpr')
@@ -40,11 +30,7 @@ export default function AdminGdpr() {
   const [meta, setMeta] = useState({ total: 0 })
   const [hubMeta, setHubMeta] = useState(null)
   const [retention, setRetention] = useState(null)
-  const [incidents, setIncidents] = useState([])
-  const [runbook, setRunbook] = useState(null)
-  const [incidentForm, setIncidentForm] = useState(EMPTY_INCIDENT)
   const [loading, setLoading] = useState(true)
-  const [savingIncident, setSavingIncident] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [exportingId, setExportingId] = useState(null)
@@ -60,23 +46,18 @@ export default function AdminGdpr() {
     setLoading(true)
     setError('')
     try {
-      const [data, ret, inc] = await Promise.all([
+      const [data, ret] = await Promise.all([
         api.gdprUsers({
           q: search || undefined,
           per_page: 50,
           page: 1,
         }),
         api.gdprRetention().catch(() => null),
-        api.gdprIncidents({ per_page: 20 }).catch(() => null),
       ])
       setUsers(data.users || [])
       setMeta(data.meta || { total: 0 })
       setHubMeta(data.hub || null)
       if (ret) setRetention(ret)
-      if (inc) {
-        setIncidents(inc.incidents || [])
-        setRunbook(inc.runbook || null)
-      }
     } catch (err) {
       setError(err.message || 'Failed to load GDPR tools.')
       setUsers([])
@@ -141,36 +122,6 @@ export default function AdminGdpr() {
     }
   }
 
-  const onCreateIncident = async (e) => {
-    e.preventDefault()
-    setSavingIncident(true)
-    setError('')
-    setMessage('')
-    try {
-      const data = await api.createGdprIncident(incidentForm)
-      setMessage(data.message || 'Incident logged.')
-      setIncidentForm(EMPTY_INCIDENT)
-      await load(q)
-    } catch (err) {
-      setError(err.message || 'Could not log incident.')
-    } finally {
-      setSavingIncident(false)
-    }
-  }
-
-  const onMarkIco = async (incident) => {
-    try {
-      await api.updateGdprIncident(incident.id, {
-        ico_notified: true,
-        status: incident.status === 'open' ? 'investigating' : incident.status,
-      })
-      setMessage('Marked ICO notified.')
-      await load(q)
-    } catch (err) {
-      setError(err.message || 'Update failed.')
-    }
-  }
-
   const columns = useMemo(
     () => [
       {
@@ -232,8 +183,9 @@ export default function AdminGdpr() {
         <div>
           <h1>GDPR / data requests</h1>
           <p className="muted">
-            Search users on <strong>{targetName}</strong>. Export or erase personal data, review
-            retention, and log personal-data incidents. Aim to fulfil SARs within 30 days.
+            Search users on <strong>{targetName}</strong>. Export or erase personal data and
+            review retention. Aim to fulfil SARs within 30 days. Use Support Tickets for breach
+            / incident tracking.
           </p>
         </div>
       </header>
@@ -310,119 +262,9 @@ export default function AdminGdpr() {
         )}
       />
 
-      <p className="muted" style={{ marginTop: '0.75rem', marginBottom: '2rem' }}>
+      <p className="muted" style={{ marginTop: '0.75rem' }}>
         Showing {users.length} of {meta.total || 0} user(s).
       </p>
-
-      <h2 style={{ fontSize: '1.1rem' }}>Breach / incident log</h2>
-      {runbook && (
-        <div className="panel" style={{ padding: '1rem', marginBottom: '1rem' }}>
-          <p className="muted" style={{ marginTop: 0 }}>
-            Quick runbook (ICO ≤72h when notification is required):
-          </p>
-          <ol style={{ margin: '0 0 0.75rem', paddingLeft: '1.25rem' }}>
-            {(runbook.steps || []).map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-          <p className="muted" style={{ marginBottom: 0 }}>
-            {runbook.sar_owners}{' '}
-            {runbook.ico_url ? (
-              <a href={runbook.ico_url} target="_blank" rel="noopener noreferrer">
-                ICO breach reporting
-              </a>
-            ) : null}
-          </p>
-        </div>
-      )}
-
-      <form onSubmit={onCreateIncident} className="stack-form panel" style={{ padding: '1rem', marginBottom: '1rem' }}>
-        <h3 style={{ marginTop: 0, fontSize: '1rem' }}>Log a new incident</h3>
-        <label className="admin-field">
-          <span className="field-label-text">Title</span>
-          <input
-            required
-            value={incidentForm.title}
-            onChange={(e) => setIncidentForm((f) => ({ ...f, title: e.target.value }))}
-          />
-        </label>
-        <label className="admin-field">
-          <span className="field-label-text">Summary</span>
-          <textarea
-            required
-            rows={3}
-            value={incidentForm.summary}
-            onChange={(e) => setIncidentForm((f) => ({ ...f, summary: e.target.value }))}
-          />
-        </label>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <label className="admin-field">
-            <span className="field-label-text">Severity</span>
-            <select
-              value={incidentForm.severity}
-              onChange={(e) => setIncidentForm((f) => ({ ...f, severity: e.target.value }))}
-            >
-              <option value="unknown">Unknown</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </select>
-          </label>
-          <label className="admin-field">
-            <span className="field-label-text">Status</span>
-            <select
-              value={incidentForm.status}
-              onChange={(e) => setIncidentForm((f) => ({ ...f, status: e.target.value }))}
-            >
-              <option value="open">Open</option>
-              <option value="investigating">Investigating</option>
-              <option value="contained">Contained</option>
-              <option value="closed">Closed</option>
-            </select>
-          </label>
-        </div>
-        <label className="admin-field">
-          <span className="field-label-text">Actions taken</span>
-          <textarea
-            rows={2}
-            value={incidentForm.actions_taken}
-            onChange={(e) => setIncidentForm((f) => ({ ...f, actions_taken: e.target.value }))}
-          />
-        </label>
-        <button className="btn primary" disabled={savingIncident}>
-          {savingIncident ? 'Saving…' : 'Log incident'}
-        </button>
-      </form>
-
-      {incidents.length === 0 ? (
-        <p className="muted">No incidents logged yet.</p>
-      ) : (
-        <div className="panel" style={{ padding: '1rem' }}>
-          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-            {incidents.map((inc) => (
-              <li key={inc.id} style={{ marginBottom: '0.85rem' }}>
-                <strong>{inc.title}</strong>{' '}
-                <span className="muted">
-                  ({inc.severity} · {inc.status}
-                  {inc.ico_notified ? ' · ICO notified' : ''})
-                </span>
-                <div className="muted">{inc.summary}</div>
-                {!inc.ico_notified && (
-                  <button
-                    type="button"
-                    className="btn ghost"
-                    style={{ marginTop: 6 }}
-                    onClick={() => onMarkIco(inc)}
-                  >
-                    Mark ICO notified
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   )
 }

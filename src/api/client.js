@@ -648,6 +648,7 @@ export const api = {
     }),
   resetAdminPrivacy: () => request(`${CLIENT_ADMIN}/privacy/reset`, { method: 'POST' }),
   acceptPrivacy: () => request('/auth/accept-privacy', { method: 'POST' }),
+  gdprRetention: () => request(`${CLIENT_ADMIN}/gdpr/retention`),
   gdprUsers: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')

@@ -4,6 +4,23 @@ import { api } from '../api/client'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useHub } from '../context/HubContext'
 
+function formatRetention(policy) {
+  if (!policy) return []
+  const rows = [
+    ['Activity logs', policy.activity_logs_days, 'days'],
+    ['Login OTP tokens', policy.login_otp_hours, 'hours'],
+    ['Email verification tokens', policy.email_verification_days, 'days'],
+    ['Password reset tokens', policy.password_reset_days, 'days'],
+    ['Sessions', policy.sessions_days, 'days'],
+    ['Advisor import files', policy.advisor_import_files_days, 'days'],
+    ['Closed support tickets', policy.closed_support_tickets_days, 'days'],
+  ]
+  return rows.map(([label, value, unit]) => ({
+    label,
+    text: !value ? 'Disabled' : `${value} ${unit}`,
+  }))
+}
+
 export default function AdminGdpr() {
   const { can, loading: hubLoading, actingHub, isActingRemotely, roleLabel } = useHub()
   const enabled = can('dashboard_manage_gdpr')
@@ -12,6 +29,7 @@ export default function AdminGdpr() {
   const [users, setUsers] = useState([])
   const [meta, setMeta] = useState({ total: 0 })
   const [hubMeta, setHubMeta] = useState(null)
+  const [retention, setRetention] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -22,18 +40,24 @@ export default function AdminGdpr() {
     ? actingHub?.name || hubMeta?.name || 'selected hub'
     : hubMeta?.name || 'this hub'
 
+  const retentionRows = useMemo(() => formatRetention(retention?.policy), [retention])
+
   const load = useCallback(async (search = q) => {
     setLoading(true)
     setError('')
     try {
-      const data = await api.gdprUsers({
-        q: search || undefined,
-        per_page: 50,
-        page: 1,
-      })
+      const [data, ret] = await Promise.all([
+        api.gdprUsers({
+          q: search || undefined,
+          per_page: 50,
+          page: 1,
+        }),
+        api.gdprRetention().catch(() => null),
+      ])
       setUsers(data.users || [])
       setMeta(data.meta || { total: 0 })
       setHubMeta(data.hub || null)
+      if (ret) setRetention(ret)
     } catch (err) {
       setError(err.message || 'Failed to load users.')
       setUsers([])
@@ -169,6 +193,24 @@ export default function AdminGdpr() {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
+      {retentionRows.length > 0 && (
+        <div className="panel" style={{ padding: '1rem', marginBottom: '1.25rem' }}>
+          <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Retention policy</h2>
+          <p className="muted" style={{ marginBottom: '0.75rem' }}>
+            Automatic daily prune at {retention?.schedule?.time || '02:30'} via{' '}
+            <code>gdpr:prune-retention</code>. Compliance audit trails and hub backups are not
+            pruned by this job.
+          </p>
+          <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+            {retentionRows.map((row) => (
+              <li key={row.label}>
+                {row.label}: <strong>{row.text}</strong>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <form onSubmit={onSearch} className="stack-form" style={{ marginBottom: '1rem', maxWidth: 480 }}>
         <label className="admin-field">
           <span className="field-label-text">Search name or email</span>
@@ -221,7 +263,7 @@ export default function AdminGdpr() {
 
       <p className="muted" style={{ marginTop: '0.75rem' }}>
         Showing {users.length} of {meta.total || 0} user(s). Historical hub backups may still
-        contain personal data until retention prune.
+        contain personal data until their own retention prune.
       </p>
     </div>
   )

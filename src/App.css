@@ -752,18 +752,37 @@ h2,
   top: 0.7rem;
   left: 0.7rem;
   z-index: 4;
-  padding: 0.28rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.82);
   color: #fff;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.listing-tile .media-type-chip.is-reel {
+  background: rgba(15, 23, 42, 0.88);
 }
 
 .listing-tile .new-banner + .media-type-chip {
   left: 4.1rem;
+}
+
+.listing-tile .media-type-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.listing-tile .media-type-meta.is-reel {
+  color: var(--brand);
 }
 
 .listing-tile .cover-overlay {

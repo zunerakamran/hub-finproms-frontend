@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { FaFilm, FaImage } from 'react-icons/fa'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import FilterSelect from '../components/FilterSelect'
@@ -460,9 +461,17 @@ export default function Posts() {
 
                   {post.is_new && <span className="new-banner">NEW</span>}
 
-                  {isReel && !locked && (
-                    <span className="media-type-chip" aria-hidden="true">
-                      {t('reel_label', 'Reel')}
+                  {!locked && (
+                    <span
+                      className={`media-type-chip ${isReel ? 'is-reel' : 'is-post'}`}
+                      title={isReel ? t('reel_label', 'Reel') : post.type || 'Post'}
+                      aria-label={isReel ? t('reel_label', 'Reel') : post.type || 'Post'}
+                    >
+                      {isReel ? (
+                        <FaFilm aria-hidden="true" />
+                      ) : (
+                        <FaImage aria-hidden="true" />
+                      )}
                     </span>
                   )}
 
@@ -487,8 +496,16 @@ export default function Posts() {
                 </div>
                 <div className="post-tile-body">
                   <div className="post-meta">
-                    <span className="category-label">
-                      {isReel ? t('reel_label', 'Reel') : post.type || 'Post'}
+                    <span
+                      className={`category-label media-type-meta ${isReel ? 'is-reel' : 'is-post'}`}
+                      title={isReel ? t('reel_label', 'Reel') : post.type || 'Post'}
+                      aria-label={isReel ? t('reel_label', 'Reel') : post.type || 'Post'}
+                    >
+                      {isReel ? (
+                        <FaFilm aria-hidden="true" />
+                      ) : (
+                        <FaImage aria-hidden="true" />
+                      )}
                     </span>
                     <span className="muted">{post.category}</span>
                     <span>{formatDate(post.last_updated || post.updated_at)}</span>

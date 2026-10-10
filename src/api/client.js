@@ -607,6 +607,12 @@ export const api = {
       body,
     })
   },
+  pageContentImportSources: () => request(`${CLIENT_ADMIN}/page-content/import-sources`),
+  importPageContent: (sourceHubId) =>
+    request(`${CLIENT_ADMIN}/page-content/import`, {
+      method: 'POST',
+      body: JSON.stringify({ source_hub_id: sourceHubId }),
+    }),
   adminDashboardNav: () => request(`${CLIENT_ADMIN}/dashboard-nav`),
   updateDashboardNav: (payload) =>
     request(`${CLIENT_ADMIN}/dashboard-nav`, {

@@ -26,6 +26,9 @@ export default function AdminPageContent() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [importSources, setImportSources] = useState([])
+  const [sourceHubId, setSourceHubId] = useState('')
+  const [importing, setImporting] = useState(false)
 
   const applyPageContent = (incoming) => {
     const next = emptyPageContent()
@@ -56,8 +59,17 @@ export default function AdminPageContent() {
     setError('')
     setMessage('')
     try {
-      const data = await api.adminPageContent()
+      const [data, sourcesData] = await Promise.all([
+        api.adminPageContent(),
+        api.pageContentImportSources().catch(() => ({ sources: [] })),
+      ])
       applyPageContent(data.page_content)
+      const sources = Array.isArray(sourcesData?.sources) ? sourcesData.sources : []
+      setImportSources(sources)
+      setSourceHubId((prev) => {
+        if (prev && sources.some((row) => String(row.id) === String(prev))) return prev
+        return sources[0] ? String(sources[0].id) : ''
+      })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -117,6 +129,33 @@ export default function AdminPageContent() {
     }
   }
 
+  const onImport = async () => {
+    if (!sourceHubId) return
+    const source = importSources.find((row) => String(row.id) === String(sourceHubId))
+    const sourceName = source?.name || 'the selected hub'
+    if (
+      !window.confirm(
+        `Replace this hub’s website content with the copy from “${sourceName}”? Unsaved edits on this page will be lost.`
+      )
+    ) {
+      return
+    }
+
+    setImporting(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.importPageContent(Number(sourceHubId))
+      applyPageContent(data.page_content)
+      await refreshHub({ silent: true })
+      setMessage(data.message || `Website content imported from ${sourceName}.`)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <section>
       <div className="page-head">
@@ -143,6 +182,41 @@ export default function AdminPageContent() {
         <form className="admin-form settings-form" onSubmit={onSubmit}>
           {error && <div className="alert">{error}</div>}
           {message && <div className="alert success">{message}</div>}
+
+          {importSources.length > 0 ? (
+            <div className="settings-block dash-nav-import">
+              <h2>Import from another hub</h2>
+              <p className="muted form-hint">
+                Copy Home / catalog / post detail page copy from a hub you’ve already set up (for
+                example another white-labelled hub). This replaces the website content on the hub
+                you’re currently managing.
+              </p>
+              <div className="dash-nav-import__row">
+                <label>
+                  Source hub
+                  <select
+                    value={sourceHubId}
+                    onChange={(e) => setSourceHubId(e.target.value)}
+                    disabled={importing || saving}
+                  >
+                    {importSources.map((hub) => (
+                      <option key={hub.id} value={hub.id}>
+                        {hub.label || hub.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={importing || saving || !sourceHubId}
+                  onClick={onImport}
+                >
+                  {importing ? 'Importing...' : 'Import content'}
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="settings-block">
             <p className="muted form-hint">

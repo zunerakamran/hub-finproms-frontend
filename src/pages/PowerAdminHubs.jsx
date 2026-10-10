@@ -54,10 +54,17 @@ export default function PowerAdminHubs() {
   const [applying, setApplying] = useState(false)
   const [selectedHubIds, setSelectedHubIds] = useState([])
   const [applyResults, setApplyResults] = useState(null)
+  const [historyFilterHubId, setHistoryFilterHubId] = useState('')
 
   const latest = overview?.latest_release
   const readyToApply = Boolean(latest?.ready_to_apply)
   const counts = overview?.counts || {}
+  const history = overview?.history || []
+
+  const filteredHistory = useMemo(() => {
+    if (!historyFilterHubId) return history
+    return history.filter((row) => String(row.hub_id) === String(historyFilterHubId))
+  }, [history, historyFilterHubId])
 
   const selectedHubs = useMemo(
     () => hubs.filter((h) => selectedHubIds.includes(h.id)),
@@ -626,6 +633,99 @@ export default function PowerAdminHubs() {
           })}
         </div>
       )}
+
+      <div className="hubs-update-panel hubs-history-panel">
+        <div className="hubs-update-panel__head">
+          <div>
+            <p className="eyebrow">Audit</p>
+            <h2>Update history</h2>
+            <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+              Every apply (and manual version mark) is kept here — which hub, which version, success
+              or fail, and when.
+            </p>
+          </div>
+          <label className="hubs-history-filter">
+            Filter by hub
+            <select
+              value={historyFilterHubId}
+              onChange={(e) => setHistoryFilterHubId(e.target.value)}
+            >
+              <option value="">All hubs</option>
+              {hubs.map((hub) => (
+                <option key={hub.id} value={hub.id}>
+                  {hub.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {filteredHistory.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>
+            No update history yet. Apply a release to selected hubs to start the log.
+          </p>
+        ) : (
+          <div className="hubs-history-table-wrap">
+            <table className="hubs-history-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Hub</th>
+                  <th>Version</th>
+                  <th>Action</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                  <th>By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredHistory.map((row) => (
+                  <tr key={row.id} className={row.status === 'success' ? 'is-ok' : 'is-fail'}>
+                    <td>
+                      {row.finished_at
+                        ? new Date(row.finished_at).toLocaleString()
+                        : '—'}
+                    </td>
+                    <td>
+                      <strong>{row.hub_name || row.hub_slug || '—'}</strong>
+                      {row.hub_slug ? (
+                        <>
+                          <br />
+                          <code>{row.hub_slug}</code>
+                        </>
+                      ) : null}
+                    </td>
+                    <td>
+                      <code>{row.version}</code>
+                    </td>
+                    <td>{row.action_label || row.action}</td>
+                    <td>
+                      <span className={`badge ${row.status === 'success' ? 'ok' : 'warn'}`}>
+                        {row.status_label || row.status}
+                      </span>
+                    </td>
+                    <td className="hubs-history-details">
+                      {row.message || '—'}
+                      {row.backend_applied || row.frontend_applied || row.migrated ? (
+                        <span className="muted">
+                          {[
+                            row.backend_applied ? 'backend' : null,
+                            row.frontend_applied ? 'frontend' : null,
+                            row.migrated ? 'migrated' : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td>{row.triggered_by_name || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </section>
   )
 }

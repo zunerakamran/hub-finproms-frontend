@@ -746,6 +746,13 @@ export const api = {
   updatePowerAdminHub: (id, payload) =>
     request(`/power-admin/hubs/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   powerAdminReleases: () => request('/power-admin/releases'),
+  powerAdminReleaseHistory: (params = {}) => {
+    const qs = new URLSearchParams()
+    if (params.hub_id) qs.set('hub_id', String(params.hub_id))
+    if (params.limit) qs.set('limit', String(params.limit))
+    const query = qs.toString()
+    return request(`/power-admin/releases/history${query ? `?${query}` : ''}`)
+  },
   publishPowerAdminRelease: (payload) => {
     if (payload instanceof FormData) {
       return request('/power-admin/releases', { method: 'POST', body: payload })

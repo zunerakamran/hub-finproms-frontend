@@ -3847,6 +3847,66 @@ label {
   color: var(--danger);
 }
 
+.hubs-history-filter {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  min-width: 12rem;
+}
+
+.hubs-history-filter select {
+  font: inherit;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.45rem 0.65rem;
+  background: #fff;
+}
+
+.hubs-history-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.hubs-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.hubs-history-table th,
+.hubs-history-table td {
+  text-align: left;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.hubs-history-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: var(--brand-softer);
+  white-space: nowrap;
+}
+
+.hubs-history-table tr:last-child td {
+  border-bottom: none;
+}
+
+.hubs-history-table tr.is-fail td {
+  background: color-mix(in srgb, var(--danger) 4%, white);
+}
+
+.hubs-history-details {
+  display: grid;
+  gap: 0.2rem;
+  max-width: 22rem;
+}
+
 @media (max-width: 900px) {
   .hubs-stats,
   .hubs-zip-row {

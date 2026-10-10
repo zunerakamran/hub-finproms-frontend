@@ -24,6 +24,8 @@ const emptyRelease = {
   backend_version: '',
   frontend_version: '',
   notes: '',
+  backend_zip: null,
+  frontend_zip: null,
 }
 
 function hubTypeLabel(type) {
@@ -45,6 +47,8 @@ export default function PowerAdminHubs() {
   const [releaseForm, setReleaseForm] = useState(emptyRelease)
   const [publishing, setPublishing] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [applying, setApplying] = useState(false)
+  const [selectedHubIds, setSelectedHubIds] = useState([])
 
   const load = async () => {
     setLoading(true)
@@ -73,12 +77,24 @@ export default function PowerAdminHubs() {
     setError('')
     setMessage('')
     try {
-      const data = await api.publishPowerAdminRelease({
-        version: releaseForm.version.trim(),
-        backend_version: releaseForm.backend_version.trim() || undefined,
-        frontend_version: releaseForm.frontend_version.trim() || undefined,
-        notes: releaseForm.notes.trim() || null,
-      })
+      const fd = new FormData()
+      fd.append('version', releaseForm.version.trim())
+      if (releaseForm.backend_version.trim()) {
+        fd.append('backend_version', releaseForm.backend_version.trim())
+      }
+      if (releaseForm.frontend_version.trim()) {
+        fd.append('frontend_version', releaseForm.frontend_version.trim())
+      }
+      if (releaseForm.notes.trim()) {
+        fd.append('notes', releaseForm.notes.trim())
+      }
+      if (releaseForm.backend_zip) {
+        fd.append('backend_zip', releaseForm.backend_zip)
+      }
+      if (releaseForm.frontend_zip) {
+        fd.append('frontend_zip', releaseForm.frontend_zip)
+      }
+      const data = await api.publishPowerAdminRelease(fd)
       setMessage(data.message || 'Release published.')
       setOverview(data.overview || null)
       setReleaseForm(emptyRelease)
@@ -103,6 +119,42 @@ export default function PowerAdminHubs() {
       setError(err.message)
     } finally {
       setRefreshing(false)
+    }
+  }
+
+  const toggleHub = (id) => {
+    setSelectedHubIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    )
+  }
+
+  const selectAllHubs = () => {
+    setSelectedHubIds(hubs.map((h) => h.id))
+  }
+
+  const clearHubSelection = () => setSelectedHubIds([])
+
+  const onApplyRelease = async () => {
+    if (selectedHubIds.length === 0) {
+      setError('Select at least one hub to apply the release.')
+      return
+    }
+    setApplying(true)
+    setError('')
+    setMessage('')
+    try {
+      const payload = { hub_ids: selectedHubIds }
+      if (overview?.latest_release?.id) {
+        payload.release_id = overview.latest_release.id
+      }
+      const data = await api.applyPowerAdminRelease(payload)
+      setMessage(data.message || 'Apply finished.')
+      setOverview(data.overview || overview)
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setApplying(false)
     }
   }
 
@@ -156,7 +208,8 @@ export default function PowerAdminHubs() {
             slug). Open a hub for deploy wiring / DB credentials. Manage Functionalities, Modules,
             Capabilities, and credits by selecting the hub in the <strong>Control hub</strong>{' '}
             switcher — not from the hub detail page. After you ship a code update (Git / FTP),
-            publish the release here and refresh versions to see who is behind.
+            Publish a release with zip packages, select hubs, and apply — or refresh versions after
+            a manual Git/FTP ship.
           </p>
         </div>
         <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
@@ -174,6 +227,15 @@ export default function PowerAdminHubs() {
             <p className="muted" style={{ margin: '0.35rem 0 0' }}>
               Latest release:{' '}
               <strong>{overview?.latest_release?.version || 'not published yet'}</strong>
+              {overview?.latest_release ? (
+                <>
+                  {' '}
+                  · artifacts:{' '}
+                  {overview.latest_release.backend_artifact ? 'backend' : 'no backend'}
+                  {' / '}
+                  {overview.latest_release.frontend_artifact ? 'frontend' : 'no frontend'}
+                </>
+              ) : null}
               {overview?.this_deploy?.version ? (
                 <>
                   {' '}
@@ -189,14 +251,26 @@ export default function PowerAdminHubs() {
               ) : null}
             </p>
           </div>
-          <button
-            type="button"
-            className="btn"
-            onClick={onRefreshVersions}
-            disabled={refreshing}
-          >
-            {refreshing ? 'Refreshing…' : 'Refresh all versions'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn"
+              onClick={onRefreshVersions}
+              disabled={refreshing}
+            >
+              {refreshing ? 'Refreshing…' : 'Refresh all versions'}
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={onApplyRelease}
+              disabled={applying || selectedHubIds.length === 0}
+            >
+              {applying
+                ? 'Applying…'
+                : `Apply to selected (${selectedHubIds.length})`}
+            </button>
+          </div>
         </div>
         <form className="admin-form" onSubmit={onPublishRelease}>
           <div className="form-row two">
@@ -220,29 +294,46 @@ export default function PowerAdminHubs() {
           </div>
           <div className="form-row two">
             <label>
-              Backend version (optional)
+              Backend zip (Laravel package)
               <input
-                value={releaseForm.backend_version}
+                type="file"
+                accept=".zip,application/zip"
                 onChange={(e) =>
-                  setReleaseForm({ ...releaseForm, backend_version: e.target.value })
+                  setReleaseForm({
+                    ...releaseForm,
+                    backend_zip: e.target.files?.[0] || null,
+                  })
                 }
-                placeholder="Defaults to version"
               />
             </label>
             <label>
-              Frontend version (optional)
+              Frontend zip (Vite dist)
               <input
-                value={releaseForm.frontend_version}
+                type="file"
+                accept=".zip,application/zip"
                 onChange={(e) =>
-                  setReleaseForm({ ...releaseForm, frontend_version: e.target.value })
+                  setReleaseForm({
+                    ...releaseForm,
+                    frontend_zip: e.target.files?.[0] || null,
+                  })
                 }
-                placeholder="Defaults to version"
               />
             </label>
           </div>
+          <p className="muted form-hint">
+            Backend zip should include <code>vendor/</code> if the target cPanel has no Composer.
+            Frontend zip = built <code>dist-*</code>. Set each hub&apos;s{' '}
+            <strong>frontend extract path</strong> on the hub detail page before applying frontend.
+          </p>
           <div className="actions">
             <button className="btn primary" disabled={publishing}>
               {publishing ? 'Publishing…' : 'Publish as latest'}
+            </button>
+            <button type="button" className="btn ghost" onClick={selectAllHubs}>
+              Select all hubs
+            </button>
+            <button type="button" className="btn ghost" onClick={clearHubSelection}>
+              Clear selection
             </button>
           </div>
         </form>
@@ -385,18 +476,36 @@ export default function PowerAdminHubs() {
             const enabledCount = (hub.checklist || []).filter((item) => item.enabled).length
             const typeLabel = hubTypeLabel(hub.type)
             const versionBadge = codeUpdateBadge(hub.code_update)
+            const checked = selectedHubIds.includes(hub.id)
+            const applyLabel = hub.code_update?.apply_status_label
             return (
               <article key={hub.id} className="hub-card">
                 <div className="hub-card-head">
-                  <div>
-                    <h2>
-                      <Link to={`/my-dashboard/hubs/${hub.id}`}>{hub.name}</Link>
-                    </h2>
-                    <p className="muted">
-                      <code>{hub.slug}</code>
-                      {' · code '}
-                      <code>{formatReportedVersion(hub.code_update)}</code>
-                    </p>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                    <label className="toggle-row" style={{ margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleHub(hub.id)}
+                        aria-label={`Select ${hub.name}`}
+                      />
+                    </label>
+                    <div>
+                      <h2>
+                        <Link to={`/my-dashboard/hubs/${hub.id}`}>{hub.name}</Link>
+                      </h2>
+                      <p className="muted">
+                        <code>{hub.slug}</code>
+                        {' · code '}
+                        <code>{formatReportedVersion(hub.code_update)}</code>
+                        {applyLabel && applyLabel !== 'Idle' ? (
+                          <>
+                            {' · '}
+                            {applyLabel}
+                          </>
+                        ) : null}
+                      </p>
+                    </div>
                   </div>
                   <div className="hub-card-badges">
                     <span
@@ -429,6 +538,12 @@ export default function PowerAdminHubs() {
                   ) : (
                     ' · No frontend URL set'
                   )}
+                  {hub.code_update?.apply_error ? (
+                    <>
+                      {' · '}
+                      <span className="badge warn">Apply error</span>
+                    </>
+                  ) : null}
                 </p>
               </article>
             )

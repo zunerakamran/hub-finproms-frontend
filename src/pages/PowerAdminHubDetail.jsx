@@ -38,6 +38,7 @@ export default function PowerAdminHubDetail() {
     db_ssl_ca: '',
     clear_db_ssl_ca: false,
     is_active: true,
+    code_frontend_path: '',
   })
 
   const load = async () => {
@@ -64,6 +65,7 @@ export default function PowerAdminHubDetail() {
         db_ssl_ca: '',
         clear_db_ssl_ca: false,
         is_active: Boolean(next.is_active),
+        code_frontend_path: next.code_update?.frontend_path || '',
       })
     } catch (err) {
       setError(err.message)
@@ -121,6 +123,7 @@ export default function PowerAdminHubDetail() {
         frontend_url: meta.frontend_url.trim() || null,
         api_url: meta.api_url.trim() || null,
         deploy_notes: meta.deploy_notes.trim() || null,
+        code_frontend_path: meta.code_frontend_path.trim() || null,
         db_driver: 'mysql',
         db_host: meta.db_host.trim() || null,
         db_port: 3306,
@@ -161,6 +164,7 @@ export default function PowerAdminHubDetail() {
             : prev.db_port,
         db_database: data.hub.deploy?.database?.database || '',
         db_username: data.hub.deploy?.database?.username || '',
+        code_frontend_path: data.hub.code_update?.frontend_path || '',
       }))
       setMessage(data.message || 'Hub updated.')
     } catch (err) {
@@ -246,9 +250,24 @@ export default function PowerAdminHubDetail() {
           <div className="alert">{hub.code_update.error}</div>
         ) : null}
         <p className="muted">
-          After Git/FTP deploy on this hub, set <code>APP_VERSION</code> /{' '}
-          <code>FRONTEND_VERSION</code> (or bump the backend <code>VERSION</code> file), then
-          refresh. Requires <code>api_url</code> for remote hubs.
+          Phase 2 apply pushes zips from Central to this hub via <code>api_url</code>. Set the
+          frontend extract path (server folder for Vite dist). You can still ship manually via
+          Git/FTP and refresh/mark version.
+        </p>
+        {hub.code_update?.apply_error ? (
+          <div className="alert">{hub.code_update.apply_error}</div>
+        ) : null}
+        <label>
+          Frontend extract path (on that hub&apos;s server)
+          <input
+            value={meta.code_frontend_path}
+            onChange={(e) => setMeta({ ...meta, code_frontend_path: e.target.value })}
+            placeholder="/home/user/public_html or ../public_html"
+          />
+        </label>
+        <p className="muted form-hint">
+          Saved with <strong>Save hub details</strong> / deploy wiring below. Required to apply a
+          frontend zip to this hub.
         </p>
         <div className="actions">
           <button

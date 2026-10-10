@@ -746,8 +746,22 @@ export const api = {
   updatePowerAdminHub: (id, payload) =>
     request(`/power-admin/hubs/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   powerAdminReleases: () => request('/power-admin/releases'),
-  publishPowerAdminRelease: (payload) =>
-    request('/power-admin/releases', { method: 'POST', body: JSON.stringify(payload) }),
+  publishPowerAdminRelease: (payload) => {
+    if (payload instanceof FormData) {
+      return request('/power-admin/releases', { method: 'POST', body: payload })
+    }
+    return request('/power-admin/releases', { method: 'POST', body: JSON.stringify(payload) })
+  },
+  uploadPowerAdminReleaseArtifacts: (releaseId, formData) =>
+    request(`/power-admin/releases/${releaseId}/artifacts`, {
+      method: 'POST',
+      body: formData,
+    }),
+  applyPowerAdminRelease: (payload) =>
+    request('/power-admin/releases/apply', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   refreshPowerAdminHubVersions: () =>
     request('/power-admin/hubs/refresh-versions', { method: 'POST', body: JSON.stringify({}) }),
   refreshPowerAdminHubVersion: (hubId) =>

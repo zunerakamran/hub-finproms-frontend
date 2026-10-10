@@ -599,6 +599,20 @@ export const api = {
       body,
     })
   },
+  adminPageContent: () => request(`${CLIENT_ADMIN}/page-content`),
+  updatePageContent: (payload) => {
+    const body = payload instanceof FormData ? payload : JSON.stringify(payload)
+    return request(`${CLIENT_ADMIN}/page-content`, {
+      method: payload instanceof FormData ? 'POST' : 'PUT',
+      body,
+    })
+  },
+  adminDashboardNav: () => request(`${CLIENT_ADMIN}/dashboard-nav`),
+  updateDashboardNav: (payload) =>
+    request(`${CLIENT_ADMIN}/dashboard-nav`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
   roleDisplayNames: () => request(`${CLIENT_ADMIN}/role-display-names`),
   updateRoleDisplayNames: (roles) =>
     request(`${CLIENT_ADMIN}/role-display-names`, {

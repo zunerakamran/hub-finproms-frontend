@@ -41,7 +41,17 @@ const links = [
     label: 'Active sessions',
     capability: 'dashboard_manage_active_sessions',
   },
-  { to: '/client-admin/settings', label: 'Settings', capability: 'dashboard_manage_settings' },
+  { to: '/client-admin/settings', label: 'General settings', capability: 'dashboard_manage_settings' },
+  {
+    to: '/client-admin/page-content',
+    label: 'Website content',
+    capability: 'dashboard_manage_page_content',
+  },
+  {
+    to: '/client-admin/dashboard-menu',
+    label: 'Dashboard menu',
+    capability: 'dashboard_manage_dashboard_nav',
+  },
   {
     to: '/client-admin/role-display-names',
     label: 'Manage roles',

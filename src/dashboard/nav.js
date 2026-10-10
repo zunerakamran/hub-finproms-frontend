@@ -110,6 +110,8 @@ const CONTENT_ANY = [
 const HUB_OPS_ANY = [
   'dashboard_manage_plans',
   'dashboard_manage_settings',
+  'dashboard_manage_page_content',
+  'dashboard_manage_dashboard_nav',
   'dashboard_manage_terms',
   'dashboard_manage_privacy',
   'dashboard_manage_cookies',
@@ -527,10 +529,26 @@ export const DASHBOARD_LINKS = [
   },
   {
     to: '/my-dashboard/settings',
-    label: 'Settings',
-    title: 'Settings',
-    description: 'Configure branding, NEW banner duration, and other hub options.',
+    label: 'General settings',
+    title: 'General settings',
+    description: 'Configure branding, colours, logos, and NEW banner duration.',
     capability: 'dashboard_manage_settings',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/page-content',
+    label: 'Website content',
+    title: 'Website content',
+    description: 'Edit public Home, Posts/Reels catalog, and post detail page copy.',
+    capability: 'dashboard_manage_page_content',
+    group: 'hub',
+  },
+  {
+    to: '/my-dashboard/dashboard-menu',
+    label: 'Dashboard menu',
+    title: 'Dashboard menu',
+    description: 'Rename and reorder sidebar separators and menu items.',
+    capability: 'dashboard_manage_dashboard_nav',
     group: 'hub',
   },
   {

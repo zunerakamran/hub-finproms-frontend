@@ -95,9 +95,21 @@ const sections = [
   },
   {
     to: '/client-admin/settings',
-    title: 'Settings',
-    description: 'Configure NEW banner duration and other hub options.',
+    title: 'General settings',
+    description: 'Configure branding, colours, logos, and NEW banner duration.',
     capability: 'dashboard_manage_settings',
+  },
+  {
+    to: '/client-admin/page-content',
+    title: 'Website content',
+    description: 'Edit public Home, Posts/Reels catalog, and post detail page copy.',
+    capability: 'dashboard_manage_page_content',
+  },
+  {
+    to: '/client-admin/dashboard-menu',
+    title: 'Dashboard menu',
+    description: 'Rename and reorder sidebar separators and menu items.',
+    capability: 'dashboard_manage_dashboard_nav',
   },
   {
     to: '/client-admin/role-display-names',

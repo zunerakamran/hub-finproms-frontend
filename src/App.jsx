@@ -46,6 +46,8 @@ const AdminPlans = lazy(() => import('./pages/AdminPlans'))
 const AdminPosts = lazy(() => import('./pages/AdminPosts'))
 const CentralContentLibrary = lazy(() => import('./pages/CentralContentLibrary'))
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
+const AdminPageContent = lazy(() => import('./pages/AdminPageContent'))
+const AdminDashboardMenu = lazy(() => import('./pages/AdminDashboardMenu'))
 const AdminTerms = lazy(() => import('./pages/AdminTerms'))
 const AdminPrivacy = lazy(() => import('./pages/AdminPrivacy'))
 const AdminCookies = lazy(() => import('./pages/AdminCookies'))
@@ -885,6 +887,22 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_settings">
                       <AdminSettings />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="page-content"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_page_content">
+                      <AdminPageContent />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="dashboard-menu"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_dashboard_nav">
+                      <AdminDashboardMenu />
                     </HubCapabilityRoute>
                   }
                 />

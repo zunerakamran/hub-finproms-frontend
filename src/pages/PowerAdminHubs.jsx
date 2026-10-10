@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
@@ -55,6 +55,8 @@ export default function PowerAdminHubs() {
   const [selectedHubIds, setSelectedHubIds] = useState([])
   const [applyResults, setApplyResults] = useState(null)
   const [historyFilterHubId, setHistoryFilterHubId] = useState('')
+  const createFormRef = useRef(null)
+  const nameInputRef = useRef(null)
 
   const latest = overview?.latest_release
   const readyToApply = Boolean(latest?.ready_to_apply)
@@ -70,6 +72,17 @@ export default function PowerAdminHubs() {
     () => hubs.filter((h) => selectedHubIds.includes(h.id)),
     [hubs, selectedHubIds],
   )
+
+  useEffect(() => {
+    if (!showForm) return
+    const node = createFormRef.current
+    if (node) {
+      node.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    // Focus after the panel paints.
+    const t = window.setTimeout(() => nameInputRef.current?.focus(), 120)
+    return () => window.clearTimeout(t)
+  }, [showForm])
 
   const load = async () => {
     setLoading(true)
@@ -225,13 +238,147 @@ export default function PowerAdminHubs() {
             opening each cPanel.
           </p>
         </div>
-        <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
+        <button
+          type="button"
+          className="btn primary"
+          onClick={() => setShowForm((v) => !v)}
+          aria-expanded={showForm}
+        >
           {showForm ? 'Cancel' : 'New hub'}
         </button>
       </div>
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
+
+      {showForm && (
+        <form
+          ref={createFormRef}
+          className="admin-form hub-create-form hubs-create-panel"
+          onSubmit={onCreate}
+        >
+          <h2>Register a new hub</h2>
+          <p className="muted">
+            This only adds the hub to the Central registry. You still copy the codebase once onto
+            that hub&apos;s cPanel for the first install.
+          </p>
+          <label>
+            Hub type
+            <select
+              value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value })}
+            >
+              <option value="white_label">White-labelled</option>
+              <option value="shared">Shared</option>
+            </select>
+          </label>
+          <label>
+            Name
+            <input
+              ref={nameInputRef}
+              required
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder={form.type === 'shared' ? 'Shared Hub' : 'My Hub'}
+            />
+          </label>
+          <label>
+            Slug (optional)
+            <input
+              value={form.slug}
+              onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              placeholder={form.type === 'shared' ? 'shared-uk' : 'my-hub'}
+            />
+          </label>
+          <label>
+            Frontend URL
+            <input
+              type="url"
+              value={form.frontend_url}
+              onChange={(e) => setForm({ ...form, frontend_url: e.target.value })}
+              placeholder="https://my-hub.com"
+            />
+          </label>
+          <label>
+            API URL (needed for remote updates)
+            <input
+              type="url"
+              value={form.api_url}
+              onChange={(e) => setForm({ ...form, api_url: e.target.value })}
+              placeholder="https://api.my-hub.com"
+            />
+          </label>
+          <label>
+            Deploy notes (optional)
+            <textarea
+              rows={3}
+              value={form.deploy_notes}
+              onChange={(e) => setForm({ ...form, deploy_notes: e.target.value })}
+              placeholder="Hosting notes, env checklist, etc."
+            />
+          </label>
+          <h3 style={{ margin: '0.5rem 0 0' }}>Remote database (own DB)</h3>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Stored on Central so you can control this hub remotely. Also set these in that hub&apos;s{' '}
+            <code>.env</code>.
+          </p>
+          <div className="form-row two">
+            <label>
+              Driver
+              <input value="mysql" readOnly disabled />
+            </label>
+            <label>
+              Port
+              <input value="3306" readOnly disabled />
+            </label>
+          </div>
+          <label>
+            Host
+            <input
+              value={form.db_host}
+              onChange={(e) => setForm({ ...form, db_host: e.target.value })}
+              placeholder="db.my-hub.com"
+            />
+          </label>
+          <label>
+            Database name
+            <input
+              value={form.db_database}
+              onChange={(e) => setForm({ ...form, db_database: e.target.value })}
+              placeholder="db_my_hub"
+            />
+          </label>
+          <div className="form-row two">
+            <label>
+              Username
+              <input
+                value={form.db_username}
+                onChange={(e) => setForm({ ...form, db_username: e.target.value })}
+                placeholder="my_hub_user"
+                autoComplete="off"
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                value={form.db_password}
+                onChange={(e) => setForm({ ...form, db_password: e.target.value })}
+                placeholder="Database password"
+                autoComplete="new-password"
+              />
+            </label>
+          </div>
+          <div className="actions">
+            <button className="btn primary" disabled={creating}>
+              {creating ? 'Creating...' : 'Create hub'}
+            </button>
+            <button type="button" className="btn ghost" onClick={() => setShowForm(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
       <div className="hubs-howto">
         <h2>How code updates work</h2>
@@ -422,127 +569,6 @@ export default function PowerAdminHubs() {
           </ul>
         ) : null}
       </div>
-
-      {showForm && (
-        <form className="admin-form hub-create-form" onSubmit={onCreate}>
-          <h2>Register a new hub</h2>
-          <p className="muted">
-            This only adds the hub to the Central registry. You still copy the codebase once onto
-            that hub&apos;s cPanel for the first install.
-          </p>
-          <label>
-            Hub type
-            <select
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value })}
-            >
-              <option value="white_label">White-labelled</option>
-              <option value="shared">Shared</option>
-            </select>
-          </label>
-          <label>
-            Name
-            <input
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder={form.type === 'shared' ? 'Shared Hub' : 'My Hub'}
-            />
-          </label>
-          <label>
-            Slug (optional)
-            <input
-              value={form.slug}
-              onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              placeholder={form.type === 'shared' ? 'shared-uk' : 'my-hub'}
-            />
-          </label>
-          <label>
-            Frontend URL
-            <input
-              type="url"
-              value={form.frontend_url}
-              onChange={(e) => setForm({ ...form, frontend_url: e.target.value })}
-              placeholder="https://my-hub.com"
-            />
-          </label>
-          <label>
-            API URL (needed for remote updates)
-            <input
-              type="url"
-              value={form.api_url}
-              onChange={(e) => setForm({ ...form, api_url: e.target.value })}
-              placeholder="https://api.my-hub.com"
-            />
-          </label>
-          <label>
-            Deploy notes (optional)
-            <textarea
-              rows={3}
-              value={form.deploy_notes}
-              onChange={(e) => setForm({ ...form, deploy_notes: e.target.value })}
-              placeholder="Hosting notes, env checklist, etc."
-            />
-          </label>
-          <h3 style={{ margin: '0.5rem 0 0' }}>Remote database (own DB)</h3>
-          <p className="muted" style={{ marginTop: 0 }}>
-            Stored on Central so you can control this hub remotely. Also set these in that hub&apos;s{' '}
-            <code>.env</code>.
-          </p>
-          <div className="form-row two">
-            <label>
-              Driver
-              <input value="mysql" readOnly disabled />
-            </label>
-            <label>
-              Port
-              <input value="3306" readOnly disabled />
-            </label>
-          </div>
-          <label>
-            Host
-            <input
-              value={form.db_host}
-              onChange={(e) => setForm({ ...form, db_host: e.target.value })}
-              placeholder="db.my-hub.com"
-            />
-          </label>
-          <label>
-            Database name
-            <input
-              value={form.db_database}
-              onChange={(e) => setForm({ ...form, db_database: e.target.value })}
-              placeholder="db_my_hub"
-            />
-          </label>
-          <div className="form-row two">
-            <label>
-              Username
-              <input
-                value={form.db_username}
-                onChange={(e) => setForm({ ...form, db_username: e.target.value })}
-                placeholder="my_hub_user"
-                autoComplete="off"
-              />
-            </label>
-            <label>
-              Password
-              <input
-                type="password"
-                value={form.db_password}
-                onChange={(e) => setForm({ ...form, db_password: e.target.value })}
-                placeholder="Database password"
-                autoComplete="new-password"
-              />
-            </label>
-          </div>
-          <div className="actions">
-            <button className="btn primary" disabled={creating}>
-              {creating ? 'Creating...' : 'Create hub'}
-            </button>
-          </div>
-        </form>
-      )}
 
       <div className="hubs-list-head">
         <h2>All hubs</h2>

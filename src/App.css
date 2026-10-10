@@ -3579,6 +3579,12 @@ label {
   max-width: 42rem;
 }
 
+.hubs-create-panel {
+  scroll-margin-top: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--brand) 28%, var(--line));
+  box-shadow: 0 0 0 3px var(--brand-glow), var(--shadow);
+}
+
 .hubs-howto {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);

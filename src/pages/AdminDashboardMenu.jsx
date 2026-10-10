@@ -23,6 +23,9 @@ export default function AdminDashboardMenu() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [dragIndex, setDragIndex] = useState(null)
+  const [importSources, setImportSources] = useState([])
+  const [sourceHubId, setSourceHubId] = useState('')
+  const [importing, setImporting] = useState(false)
 
   const setDashNavField = (bucket, key, value) => {
     setDashboardNav((prev) => ({
@@ -105,8 +108,17 @@ export default function AdminDashboardMenu() {
     setError('')
     setMessage('')
     try {
-      const data = await api.adminDashboardNav()
+      const [data, sourcesData] = await Promise.all([
+        api.adminDashboardNav(),
+        api.dashboardNavImportSources().catch(() => ({ sources: [] })),
+      ])
       setDashboardNav(fillDashboardNavFromSettings(data.dashboard_nav))
+      const sources = Array.isArray(sourcesData?.sources) ? sourcesData.sources : []
+      setImportSources(sources)
+      setSourceHubId((prev) => {
+        if (prev && sources.some((row) => String(row.id) === String(prev))) return prev
+        return sources[0] ? String(sources[0].id) : ''
+      })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -140,6 +152,33 @@ export default function AdminDashboardMenu() {
     }
   }
 
+  const onImport = async () => {
+    if (!sourceHubId) return
+    const source = importSources.find((row) => String(row.id) === String(sourceHubId))
+    const sourceName = source?.name || 'the selected hub'
+    if (
+      !window.confirm(
+        `Replace this hub’s dashboard menu with the menu from “${sourceName}”? Unsaved edits on this page will be lost.`
+      )
+    ) {
+      return
+    }
+
+    setImporting(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.importDashboardNav(Number(sourceHubId))
+      setDashboardNav(fillDashboardNavFromSettings(data.dashboard_nav))
+      await refreshHub({ silent: true })
+      setMessage(data.message || `Dashboard menu imported from ${sourceName}.`)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <section>
       <div className="page-head">
@@ -166,6 +205,41 @@ export default function AdminDashboardMenu() {
         <form className="admin-form settings-form" onSubmit={onSubmit}>
           {error && <div className="alert">{error}</div>}
           {message && <div className="alert success">{message}</div>}
+
+          {importSources.length > 0 ? (
+            <div className="settings-block dash-nav-import">
+              <h2>Import from another hub</h2>
+              <p className="muted form-hint">
+                Copy separators, menu labels, order, and grouping from a hub you’ve already set up
+                (for example another white-labelled hub). This replaces the menu on the hub you’re
+                currently managing.
+              </p>
+              <div className="dash-nav-import__row">
+                <label>
+                  Source hub
+                  <select
+                    value={sourceHubId}
+                    onChange={(e) => setSourceHubId(e.target.value)}
+                    disabled={importing || saving}
+                  >
+                    {importSources.map((hub) => (
+                      <option key={hub.id} value={hub.id}>
+                        {hub.label || hub.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={importing || saving || !sourceHubId}
+                  onClick={onImport}
+                >
+                  {importing ? 'Importing...' : 'Import menu'}
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="settings-block">
             <p className="muted form-hint">

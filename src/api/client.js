@@ -613,6 +613,12 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
+  dashboardNavImportSources: () => request(`${CLIENT_ADMIN}/dashboard-nav/import-sources`),
+  importDashboardNav: (sourceHubId) =>
+    request(`${CLIENT_ADMIN}/dashboard-nav/import`, {
+      method: 'POST',
+      body: JSON.stringify({ source_hub_id: sourceHubId }),
+    }),
   roleDisplayNames: () => request(`${CLIENT_ADMIN}/role-display-names`),
   updateRoleDisplayNames: (roles) =>
     request(`${CLIENT_ADMIN}/role-display-names`, {

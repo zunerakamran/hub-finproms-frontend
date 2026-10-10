@@ -62,7 +62,7 @@ export function buildDeployPreview(hub, meta) {
       },
       {
         key: 'api_url',
-        label: 'API URL recorded (optional)',
+        label: 'API URL recorded (optional — needed for version checks)',
         done: Boolean(api),
         required: false,
       },
@@ -79,6 +79,12 @@ export function buildDeployPreview(hub, meta) {
         required: needsRemoteDb,
       },
       {
+        key: 'app_version',
+        label: 'After each code update set APP_VERSION / FRONTEND_VERSION (or bump VERSION file)',
+        done: Boolean(hub?.code_update?.reported_version),
+        required: false,
+      },
+      {
         key: 'deploy_notes',
         label: 'Deploy notes added (optional)',
         done: Boolean(notes),
@@ -91,6 +97,8 @@ export function buildDeployPreview(hub, meta) {
       hub?.type === 'shared' ? 'HUB_IS_CONTROL_PLANE=false' : null,
       frontend ? `FRONTEND_URL=${frontend.replace(/\/$/, '')}` : 'FRONTEND_URL=https://example.com',
       api ? `APP_URL=${api.replace(/\/$/, '')}` : 'APP_URL=https://api.example.com',
+      'APP_VERSION=1.0.0',
+      'FRONTEND_VERSION=1.0.0',
       `DB_CONNECTION=${driver}`,
       `DB_HOST=${dbHost || '127.0.0.1'}`,
       `DB_PORT=${port || 3306}`,

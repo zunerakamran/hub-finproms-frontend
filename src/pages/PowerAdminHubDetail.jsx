@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import HubBackupPanel from '../components/HubBackupPanel'
 import HubDeployChecklist from '../components/HubDeployChecklist'
+import { codeUpdateBadge, formatReportedVersion } from '../utils/codeUpdate'
 import { buildDeployPreview } from '../utils/hubDeploy'
 
 /**
@@ -15,6 +16,9 @@ export default function PowerAdminHubDetail() {
   const [hub, setHub] = useState(null)
   const [loading, setLoading] = useState(true)
   const [savingMeta, setSavingMeta] = useState(false)
+  const [refreshingVersion, setRefreshingVersion] = useState(false)
+  const [markingVersion, setMarkingVersion] = useState(false)
+  const [manualVersion, setManualVersion] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [meta, setMeta] = useState({
@@ -71,6 +75,40 @@ export default function PowerAdminHubDetail() {
   useEffect(() => {
     load()
   }, [hubId])
+
+  const onRefreshVersion = async () => {
+    setRefreshingVersion(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.refreshPowerAdminHubVersion(hubId)
+      setHub(data.hub)
+      setMessage(data.message || 'Version refreshed.')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRefreshingVersion(false)
+    }
+  }
+
+  const onMarkVersion = async (e) => {
+    e.preventDefault()
+    setMarkingVersion(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.markPowerAdminHubVersion(hubId, {
+        version: manualVersion.trim(),
+      })
+      setHub(data.hub)
+      setMessage(data.message || 'Version recorded.')
+      setManualVersion('')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setMarkingVersion(false)
+    }
+  }
 
   const onSaveMeta = async (e) => {
     e.preventDefault()
@@ -168,6 +206,14 @@ export default function PowerAdminHubDetail() {
               <span className={`badge ${hub.deploy.ready ? 'ok' : 'warn'}`}>
                 {hub.deploy.status_label}
               </span>
+              {hub.code_update ? (
+                <>
+                  {' '}
+                  <span className={codeUpdateBadge(hub.code_update).className}>
+                    {codeUpdateBadge(hub.code_update).label}
+                  </span>
+                </>
+              ) : null}
             </p>
           )}
         </div>
@@ -178,6 +224,59 @@ export default function PowerAdminHubDetail() {
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
+
+      <div className="admin-form hub-meta-form" style={{ marginBottom: '1.25rem' }}>
+        <h2>Code version</h2>
+        <p className="muted">
+          Reported: <code>{formatReportedVersion(hub.code_update)}</code>
+          {hub.code_update?.source ? (
+            <>
+              {' '}
+              · source <code>{hub.code_update.source}</code>
+            </>
+          ) : null}
+          {hub.code_update?.checked_at ? (
+            <>
+              {' '}
+              · checked {new Date(hub.code_update.checked_at).toLocaleString()}
+            </>
+          ) : null}
+        </p>
+        {hub.code_update?.error ? (
+          <div className="alert">{hub.code_update.error}</div>
+        ) : null}
+        <p className="muted">
+          After Git/FTP deploy on this hub, set <code>APP_VERSION</code> /{' '}
+          <code>FRONTEND_VERSION</code> (or bump the backend <code>VERSION</code> file), then
+          refresh. Requires <code>api_url</code> for remote hubs.
+        </p>
+        <div className="actions">
+          <button
+            type="button"
+            className="btn primary"
+            onClick={onRefreshVersion}
+            disabled={refreshingVersion}
+          >
+            {refreshingVersion ? 'Refreshing…' : 'Refresh version'}
+          </button>
+        </div>
+        <form onSubmit={onMarkVersion} style={{ marginTop: '0.75rem' }}>
+          <label>
+            Mark version manually (if API check unavailable)
+            <input
+              value={manualVersion}
+              onChange={(e) => setManualVersion(e.target.value)}
+              placeholder="1.2.0"
+              required
+            />
+          </label>
+          <div className="actions">
+            <button className="btn" disabled={markingVersion}>
+              {markingVersion ? 'Saving…' : 'Record version'}
+            </button>
+          </div>
+        </form>
+      </div>
 
       <form className="admin-form hub-meta-form" onSubmit={onSaveMeta}>
         <h2>Hub details</h2>

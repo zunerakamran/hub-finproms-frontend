@@ -745,6 +745,21 @@ export const api = {
     request('/power-admin/hubs', { method: 'POST', body: JSON.stringify(payload) }),
   updatePowerAdminHub: (id, payload) =>
     request(`/power-admin/hubs/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  powerAdminReleases: () => request('/power-admin/releases'),
+  publishPowerAdminRelease: (payload) =>
+    request('/power-admin/releases', { method: 'POST', body: JSON.stringify(payload) }),
+  refreshPowerAdminHubVersions: () =>
+    request('/power-admin/hubs/refresh-versions', { method: 'POST', body: JSON.stringify({}) }),
+  refreshPowerAdminHubVersion: (hubId) =>
+    request(`/power-admin/hubs/${hubId}/refresh-version`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  markPowerAdminHubVersion: (hubId, payload) =>
+    request(`/power-admin/hubs/${hubId}/mark-version`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   updatePowerAdminHubChecklist: (id, checklist) =>
     request(`/power-admin/hubs/${id}/checklist`, {
       method: 'PUT',

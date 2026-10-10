@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
+import { codeUpdateBadge, formatReportedVersion } from '../utils/codeUpdate'
 
 const emptyForm = {
   name: '',
@@ -18,6 +19,13 @@ const emptyForm = {
   db_password: '',
 }
 
+const emptyRelease = {
+  version: '',
+  backend_version: '',
+  frontend_version: '',
+  notes: '',
+}
+
 function hubTypeLabel(type) {
   if (type === 'central') return 'Central'
   if (type === 'shared') return 'Shared'
@@ -27,19 +35,27 @@ function hubTypeLabel(type) {
 export default function PowerAdminHubs() {
   const { refreshHub } = useHub()
   const [hubs, setHubs] = useState([])
+  const [overview, setOverview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [creating, setCreating] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [releaseForm, setReleaseForm] = useState(emptyRelease)
+  const [publishing, setPublishing] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   const load = async () => {
     setLoading(true)
     setError('')
     try {
-      const data = await api.powerAdminHubs()
-      setHubs(data.hubs || [])
+      const [hubsData, releasesData] = await Promise.all([
+        api.powerAdminHubs(),
+        api.powerAdminReleases().catch(() => null),
+      ])
+      setHubs(hubsData.hubs || [])
+      if (releasesData) setOverview(releasesData)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -50,6 +66,45 @@ export default function PowerAdminHubs() {
   useEffect(() => {
     load()
   }, [])
+
+  const onPublishRelease = async (e) => {
+    e.preventDefault()
+    setPublishing(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.publishPowerAdminRelease({
+        version: releaseForm.version.trim(),
+        backend_version: releaseForm.backend_version.trim() || undefined,
+        frontend_version: releaseForm.frontend_version.trim() || undefined,
+        notes: releaseForm.notes.trim() || null,
+      })
+      setMessage(data.message || 'Release published.')
+      setOverview(data.overview || null)
+      setReleaseForm(emptyRelease)
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  const onRefreshVersions = async () => {
+    setRefreshing(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.refreshPowerAdminHubVersions()
+      setMessage(data.message || 'Versions refreshed.')
+      setOverview(data.overview || overview)
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   const onCreate = async (e) => {
     e.preventDefault()
@@ -100,7 +155,8 @@ export default function PowerAdminHubs() {
             <strong>many White-labelled</strong> hubs (same codebase, each with its own database and
             slug). Open a hub for deploy wiring / DB credentials. Manage Functionalities, Modules,
             Capabilities, and credits by selecting the hub in the <strong>Control hub</strong>{' '}
-            switcher — not from the hub detail page.
+            switcher — not from the hub detail page. After you ship a code update (Git / FTP),
+            publish the release here and refresh versions to see who is behind.
           </p>
         </div>
         <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
@@ -110,6 +166,87 @@ export default function PowerAdminHubs() {
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
+
+      <div className="admin-card" style={{ marginBottom: '1.25rem' }}>
+        <div className="page-head" style={{ marginBottom: '0.75rem' }}>
+          <div>
+            <h2 style={{ margin: 0 }}>Code updates</h2>
+            <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+              Latest release:{' '}
+              <strong>{overview?.latest_release?.version || 'not published yet'}</strong>
+              {overview?.this_deploy?.version ? (
+                <>
+                  {' '}
+                  · This Central deploy reports <code>{overview.this_deploy.version}</code>
+                </>
+              ) : null}
+              {overview?.counts ? (
+                <>
+                  {' '}
+                  · {overview.counts.up_to_date || 0} up to date · {overview.counts.behind || 0}{' '}
+                  behind · {overview.counts.unknown || 0} unknown
+                </>
+              ) : null}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            onClick={onRefreshVersions}
+            disabled={refreshing}
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh all versions'}
+          </button>
+        </div>
+        <form className="admin-form" onSubmit={onPublishRelease}>
+          <div className="form-row two">
+            <label>
+              New latest version
+              <input
+                required
+                value={releaseForm.version}
+                onChange={(e) => setReleaseForm({ ...releaseForm, version: e.target.value })}
+                placeholder="1.2.0"
+              />
+            </label>
+            <label>
+              Notes (optional)
+              <input
+                value={releaseForm.notes}
+                onChange={(e) => setReleaseForm({ ...releaseForm, notes: e.target.value })}
+                placeholder="What changed in this release"
+              />
+            </label>
+          </div>
+          <div className="form-row two">
+            <label>
+              Backend version (optional)
+              <input
+                value={releaseForm.backend_version}
+                onChange={(e) =>
+                  setReleaseForm({ ...releaseForm, backend_version: e.target.value })
+                }
+                placeholder="Defaults to version"
+              />
+            </label>
+            <label>
+              Frontend version (optional)
+              <input
+                value={releaseForm.frontend_version}
+                onChange={(e) =>
+                  setReleaseForm({ ...releaseForm, frontend_version: e.target.value })
+                }
+                placeholder="Defaults to version"
+              />
+            </label>
+          </div>
+          <div className="actions">
+            <button className="btn primary" disabled={publishing}>
+              {publishing ? 'Publishing…' : 'Publish as latest'}
+            </button>
+          </div>
+        </form>
+      </div>
 
       {showForm && (
         <form className="admin-form hub-create-form" onSubmit={onCreate}>
@@ -247,6 +384,7 @@ export default function PowerAdminHubs() {
           {hubs.map((hub) => {
             const enabledCount = (hub.checklist || []).filter((item) => item.enabled).length
             const typeLabel = hubTypeLabel(hub.type)
+            const versionBadge = codeUpdateBadge(hub.code_update)
             return (
               <article key={hub.id} className="hub-card">
                 <div className="hub-card-head">
@@ -256,6 +394,8 @@ export default function PowerAdminHubs() {
                     </h2>
                     <p className="muted">
                       <code>{hub.slug}</code>
+                      {' · code '}
+                      <code>{formatReportedVersion(hub.code_update)}</code>
                     </p>
                   </div>
                   <div className="hub-card-badges">
@@ -274,6 +414,7 @@ export default function PowerAdminHubs() {
                         {hub.deploy?.ready ? 'Wiring ready' : 'Needs wiring'}
                       </span>
                     ) : null}
+                    <span className={versionBadge.className}>{versionBadge.label}</span>
                   </div>
                 </div>
                 <p className="muted">

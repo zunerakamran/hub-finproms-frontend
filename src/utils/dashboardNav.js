@@ -188,6 +188,23 @@ export function moveListItem(list, index, direction) {
   return next
 }
 
+/** Move an item from one index to another (for drag-and-drop / “move to #”). */
+export function moveListItemToIndex(list, fromIndex, toIndex) {
+  const next = [...list]
+  if (
+    fromIndex < 0 ||
+    fromIndex >= next.length ||
+    toIndex < 0 ||
+    toIndex >= next.length ||
+    fromIndex === toIndex
+  ) {
+    return next
+  }
+  const [item] = next.splice(fromIndex, 1)
+  next.splice(toIndex, 0, item)
+  return next
+}
+
 export function addCustomSeparator(dashboardNav, label = 'New separator') {
   const existing = extractCustomSectionIds(dashboardNav?.sections, dashboardNav?.section_order)
   const id = createCustomSectionId(existing)

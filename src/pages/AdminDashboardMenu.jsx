@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
+import { SortableOrderControls, sortableRowDropProps } from '../components/SortableOrderControls'
 import { useHub } from '../context/HubContext'
 import {
   assignableSectionsFromNav,
@@ -9,6 +10,7 @@ import {
   fillDashboardNavFromSettings,
   isCustomSectionId,
   moveListItem,
+  moveListItemToIndex,
   removeCustomSeparator,
 } from '../utils/dashboardNav'
 
@@ -20,6 +22,7 @@ export default function AdminDashboardMenu() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [dragIndex, setDragIndex] = useState(null)
 
   const setDashNavField = (bucket, key, value) => {
     setDashboardNav((prev) => ({
@@ -31,6 +34,13 @@ export default function AdminDashboardMenu() {
     }))
   }
 
+  const sectionOrder = dashboardNav?.section_order || []
+
+  const itemOrder = useMemo(() => {
+    const order = dashboardNav?.item_order || Object.keys(DASHBOARD_NAV_DEFAULTS.items)
+    return order.filter((path) => path !== '/my-dashboard')
+  }, [dashboardNav?.item_order])
+
   const moveSection = (index, direction) => {
     setDashboardNav((prev) => ({
       ...prev,
@@ -38,14 +48,33 @@ export default function AdminDashboardMenu() {
     }))
   }
 
-  const moveItem = (path, direction) => {
+  const moveSectionTo = (fromIndex, toIndex) => {
+    setDashboardNav((prev) => ({
+      ...prev,
+      section_order: moveListItemToIndex(prev.section_order || [], fromIndex, toIndex),
+    }))
+  }
+
+  const moveItemRelative = (index, direction) => {
     setDashboardNav((prev) => {
-      const order = [...(prev.item_order || [])]
-      const index = order.indexOf(path)
-      if (index < 0) return prev
+      const full = [...(prev.item_order || Object.keys(DASHBOARD_NAV_DEFAULTS.items))]
+      const editable = full.filter((path) => path !== '/my-dashboard')
+      const nextEditable = moveListItem(editable, index, direction)
       return {
         ...prev,
-        item_order: moveListItem(order, index, direction),
+        item_order: mergeEditableItemOrder(full, nextEditable),
+      }
+    })
+  }
+
+  const moveItemTo = (fromIndex, toIndex) => {
+    setDashboardNav((prev) => {
+      const full = [...(prev.item_order || Object.keys(DASHBOARD_NAV_DEFAULTS.items))]
+      const editable = full.filter((path) => path !== '/my-dashboard')
+      const nextEditable = moveListItemToIndex(editable, fromIndex, toIndex)
+      return {
+        ...prev,
+        item_order: mergeEditableItemOrder(full, nextEditable),
       }
     })
   }
@@ -88,6 +117,10 @@ export default function AdminDashboardMenu() {
   useEffect(() => {
     load()
   }, [actingHubId])
+
+  useEffect(() => {
+    setDragIndex(null)
+  }, [dashNavTab])
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -214,14 +247,30 @@ export default function AdminDashboardMenu() {
                 </>
               ) : null}
 
-              {dashNavTab === 'order'
-                ? (dashboardNav?.section_order || []).map((sectionKey, index) => {
+              {dashNavTab === 'order' ? (
+                <>
+                  <p className="muted form-hint dash-nav-reorder-hint">
+                    Drag the ⋮⋮ handle to reorder, or type a position number and press Enter to jump.
+                  </p>
+                  {sectionOrder.map((sectionKey, index) => {
                     const label =
                       dashboardNav?.sections?.[sectionKey] ||
                       DASHBOARD_NAV_DEFAULTS.sections[sectionKey] ||
                       sectionKey
+                    const rowDrop = sortableRowDropProps({
+                      index,
+                      dragIndex,
+                      setDragIndex,
+                      onReorder: moveSectionTo,
+                      disabled: saving,
+                    })
                     return (
-                      <div key={`order-${sectionKey}`} className="dash-nav-order-row">
+                      <div
+                        key={`order-${sectionKey}`}
+                        onDragOver={rowDrop.onDragOver}
+                        onDrop={rowDrop.onDrop}
+                        className={`dash-nav-order-row ${rowDrop.className}`.trim()}
+                      >
                         <div className="dash-nav-order-row__meta">
                           <strong>{label}</strong>
                           <span className="muted form-hint">
@@ -229,94 +278,93 @@ export default function AdminDashboardMenu() {
                             {isCustomSectionId(sectionKey) ? ' · custom' : ''}
                           </span>
                         </div>
-                        <div className="dash-nav-order-row__actions">
-                          <button
-                            type="button"
-                            className="btn ghost"
-                            disabled={index === 0}
-                            onClick={() => moveSection(index, -1)}
-                          >
-                            Up
-                          </button>
-                          <button
-                            type="button"
-                            className="btn ghost"
-                            disabled={index === (dashboardNav?.section_order?.length || 0) - 1}
-                            onClick={() => moveSection(index, 1)}
-                          >
-                            Down
-                          </button>
-                          {isCustomSectionId(sectionKey) ? (
-                            <button
-                              type="button"
-                              className="btn ghost"
-                              onClick={() => removeSeparator(sectionKey)}
-                            >
-                              Remove
-                            </button>
-                          ) : null}
-                        </div>
+                        <SortableOrderControls
+                          index={index}
+                          total={sectionOrder.length}
+                          disabled={saving}
+                          onMoveRelative={(direction) => moveSection(index, direction)}
+                          onMoveToIndex={(toIndex) => moveSectionTo(index, toIndex)}
+                          onDragStartIndex={setDragIndex}
+                          onDragEnd={() => setDragIndex(null)}
+                          extraActions={
+                            isCustomSectionId(sectionKey) ? (
+                              <button
+                                type="button"
+                                className="btn ghost"
+                                onClick={() => removeSeparator(sectionKey)}
+                              >
+                                Remove
+                              </button>
+                            ) : null
+                          }
+                        />
                       </div>
                     )
-                  })
-                : null}
+                  })}
+                </>
+              ) : null}
 
-              {dashNavTab === 'items'
-                ? (dashboardNav?.item_order || Object.keys(DASHBOARD_NAV_DEFAULTS.items)).map(
-                    (path, index, list) => {
-                      if (path === '/my-dashboard') return null
-                      const defaultLabel = DASHBOARD_NAV_DEFAULTS.items[path] || path
-                      return (
-                        <div key={`item-${path}`} className="dash-nav-item-row">
-                          <label>
-                            {defaultLabel}
-                            <span className="muted form-hint">{path}</span>
-                            <input
-                              value={dashboardNav?.items?.[path] ?? ''}
-                              onChange={(e) => setDashNavField('items', path, e.target.value)}
-                              placeholder={defaultLabel}
-                            />
-                          </label>
-                          <label>
-                            Separator
-                            <select
-                              value={
-                                dashboardNav?.item_groups?.[path] ||
-                                DASHBOARD_NAV_DEFAULTS.item_groups[path] ||
-                                'account'
-                              }
-                              onChange={(e) => setItemGroup(path, e.target.value)}
-                            >
-                              {assignableSections.map((section) => (
-                                <option key={section.key} value={section.key}>
-                                  {section.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <div className="dash-nav-order-row__actions">
-                            <button
-                              type="button"
-                              className="btn ghost"
-                              disabled={index === 0}
-                              onClick={() => moveItem(path, -1)}
-                            >
-                              Up
-                            </button>
-                            <button
-                              type="button"
-                              className="btn ghost"
-                              disabled={index === list.length - 1}
-                              onClick={() => moveItem(path, 1)}
-                            >
-                              Down
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    }
-                  )
-                : null}
+              {dashNavTab === 'items' ? (
+                <>
+                  <p className="muted form-hint dash-nav-reorder-hint">
+                    Drag the ⋮⋮ handle to reorder, or type a position number and press Enter to jump.
+                  </p>
+                  {itemOrder.map((path, index) => {
+                    const defaultLabel = DASHBOARD_NAV_DEFAULTS.items[path] || path
+                    const rowDrop = sortableRowDropProps({
+                      index,
+                      dragIndex,
+                      setDragIndex,
+                      onReorder: moveItemTo,
+                      disabled: saving,
+                    })
+                    return (
+                      <div
+                        key={`item-${path}`}
+                        onDragOver={rowDrop.onDragOver}
+                        onDrop={rowDrop.onDrop}
+                        className={`dash-nav-item-row ${rowDrop.className}`.trim()}
+                      >
+                        <label>
+                          {defaultLabel}
+                          <span className="muted form-hint">{path}</span>
+                          <input
+                            value={dashboardNav?.items?.[path] ?? ''}
+                            onChange={(e) => setDashNavField('items', path, e.target.value)}
+                            placeholder={defaultLabel}
+                          />
+                        </label>
+                        <label>
+                          Separator
+                          <select
+                            value={
+                              dashboardNav?.item_groups?.[path] ||
+                              DASHBOARD_NAV_DEFAULTS.item_groups[path] ||
+                              'account'
+                            }
+                            onChange={(e) => setItemGroup(path, e.target.value)}
+                          >
+                            {assignableSections.map((section) => (
+                              <option key={section.key} value={section.key}>
+                                {section.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <SortableOrderControls
+                          index={index}
+                          total={itemOrder.length}
+                          disabled={saving}
+                          onMoveRelative={(direction) => moveItemRelative(index, direction)}
+                          onMoveToIndex={(toIndex) => moveItemTo(index, toIndex)}
+                          onDragStartIndex={setDragIndex}
+                          onDragEnd={() => setDragIndex(null)}
+                        />
+                      </div>
+                    )
+                  })}
+                </>
+              ) : null}
             </div>
           </div>
 
@@ -329,4 +377,15 @@ export default function AdminDashboardMenu() {
       )}
     </section>
   )
+}
+
+/** Keep non-editable paths (e.g. Overview) in place while reordering the rest. */
+function mergeEditableItemOrder(fullOrder, nextEditable) {
+  const editableQueue = [...nextEditable]
+  return fullOrder
+    .map((path) => {
+      if (path === '/my-dashboard') return path
+      return editableQueue.shift() ?? path
+    })
+    .concat(editableQueue)
 }

@@ -6853,6 +6853,7 @@ td.data-grid__actions {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
 .dash-nav-order-row {
@@ -6863,6 +6864,22 @@ td.data-grid__actions {
 .dash-nav-item-row {
   grid-template-columns: minmax(0, 1.4fr) minmax(10rem, 0.8fr) auto;
   align-items: end;
+}
+
+.dash-nav-order-row.is-dragging,
+.dash-nav-item-row.is-dragging {
+  opacity: 0.55;
+  border-color: var(--brand-primary, #0f5c45);
+}
+
+.dash-nav-order-row.is-drop-target,
+.dash-nav-item-row.is-drop-target {
+  border-color: var(--brand-accent, #c2410c);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-accent, #c2410c) 35%, transparent);
+}
+
+.dash-nav-reorder-hint {
+  margin: 0 0 0.35rem;
 }
 
 .dash-nav-order-row__meta {
@@ -6877,11 +6894,64 @@ td.data-grid__actions {
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .dash-nav-order-row__actions .btn {
   padding: 0.4rem 0.7rem;
   font-size: 0.8rem;
+}
+
+.dash-nav-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8faf9;
+  color: #4b5563;
+  font-size: 0.95rem;
+  letter-spacing: -0.08em;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+}
+
+.dash-nav-drag-handle:hover:not(:disabled) {
+  border-color: var(--brand-primary, #0f5c45);
+  color: var(--brand-primary, #0f5c45);
+}
+
+.dash-nav-drag-handle:active:not(:disabled) {
+  cursor: grabbing;
+}
+
+.dash-nav-drag-handle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dash-nav-pos-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.dash-nav-pos-field input[type='number'] {
+  width: 3.6rem;
+  min-width: 3.6rem;
+  padding: 0.35rem 0.4rem;
+  text-align: center;
+}
+
+.dash-nav-pos-field__of {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
 }
 
 .dash-nav-custom-section {

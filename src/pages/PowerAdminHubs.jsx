@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
@@ -21,8 +21,6 @@ const emptyForm = {
 
 const emptyRelease = {
   version: '',
-  backend_version: '',
-  frontend_version: '',
   notes: '',
   backend_zip: null,
   frontend_zip: null,
@@ -32,6 +30,12 @@ function hubTypeLabel(type) {
   if (type === 'central') return 'Central'
   if (type === 'shared') return 'Shared'
   return 'White-labelled'
+}
+
+function fileLabel(file) {
+  if (!file) return 'No file chosen'
+  const mb = file.size / (1024 * 1024)
+  return `${file.name} (${mb < 0.1 ? `${Math.round(file.size / 1024)} KB` : `${mb.toFixed(1)} MB`})`
 }
 
 export default function PowerAdminHubs() {
@@ -49,6 +53,16 @@ export default function PowerAdminHubs() {
   const [refreshing, setRefreshing] = useState(false)
   const [applying, setApplying] = useState(false)
   const [selectedHubIds, setSelectedHubIds] = useState([])
+  const [applyResults, setApplyResults] = useState(null)
+
+  const latest = overview?.latest_release
+  const readyToApply = Boolean(latest?.ready_to_apply)
+  const counts = overview?.counts || {}
+
+  const selectedHubs = useMemo(
+    () => hubs.filter((h) => selectedHubIds.includes(h.id)),
+    [hubs, selectedHubIds],
+  )
 
   const load = async () => {
     setLoading(true)
@@ -73,27 +87,20 @@ export default function PowerAdminHubs() {
 
   const onPublishRelease = async (e) => {
     e.preventDefault()
+    if (!releaseForm.backend_zip && !releaseForm.frontend_zip) {
+      setError('Attach at least one zip (backend and/or frontend) so you can apply this release.')
+      return
+    }
     setPublishing(true)
     setError('')
     setMessage('')
+    setApplyResults(null)
     try {
       const fd = new FormData()
       fd.append('version', releaseForm.version.trim())
-      if (releaseForm.backend_version.trim()) {
-        fd.append('backend_version', releaseForm.backend_version.trim())
-      }
-      if (releaseForm.frontend_version.trim()) {
-        fd.append('frontend_version', releaseForm.frontend_version.trim())
-      }
-      if (releaseForm.notes.trim()) {
-        fd.append('notes', releaseForm.notes.trim())
-      }
-      if (releaseForm.backend_zip) {
-        fd.append('backend_zip', releaseForm.backend_zip)
-      }
-      if (releaseForm.frontend_zip) {
-        fd.append('frontend_zip', releaseForm.frontend_zip)
-      }
+      if (releaseForm.notes.trim()) fd.append('notes', releaseForm.notes.trim())
+      if (releaseForm.backend_zip) fd.append('backend_zip', releaseForm.backend_zip)
+      if (releaseForm.frontend_zip) fd.append('frontend_zip', releaseForm.frontend_zip)
       const data = await api.publishPowerAdminRelease(fd)
       setMessage(data.message || 'Release published.')
       setOverview(data.overview || null)
@@ -128,28 +135,33 @@ export default function PowerAdminHubs() {
     )
   }
 
-  const selectAllHubs = () => {
-    setSelectedHubIds(hubs.map((h) => h.id))
-  }
-
+  const selectAllHubs = () => setSelectedHubIds(hubs.map((h) => h.id))
+  const selectBehindHubs = () =>
+    setSelectedHubIds(
+      hubs.filter((h) => h.code_update?.status === 'behind').map((h) => h.id),
+    )
   const clearHubSelection = () => setSelectedHubIds([])
 
   const onApplyRelease = async () => {
     if (selectedHubIds.length === 0) {
-      setError('Select at least one hub to apply the release.')
+      setError('Select at least one hub (include Central if you want Central updated too).')
+      return
+    }
+    if (!readyToApply) {
+      setError('Publish a release with at least one zip before applying.')
       return
     }
     setApplying(true)
     setError('')
     setMessage('')
+    setApplyResults(null)
     try {
       const payload = { hub_ids: selectedHubIds }
-      if (overview?.latest_release?.id) {
-        payload.release_id = overview.latest_release.id
-      }
+      if (latest?.id) payload.release_id = latest.id
       const data = await api.applyPowerAdminRelease(payload)
       setMessage(data.message || 'Apply finished.')
       setOverview(data.overview || overview)
+      setApplyResults(data.results || [])
       await load()
     } catch (err) {
       setError(err.message)
@@ -183,11 +195,10 @@ export default function PowerAdminHubs() {
       setForm(emptyForm)
       setShowForm(false)
       await load()
-      // Refresh hub context so the top Control hub switcher includes the new hub.
       try {
         await refreshHub({ silent: true })
       } catch {
-        // Ignore — page list already refreshed.
+        // Ignore
       }
     } catch (err) {
       setError(err.message)
@@ -197,19 +208,14 @@ export default function PowerAdminHubs() {
   }
 
   return (
-    <section>
+    <section className="hubs-page">
       <div className="page-head">
         <div>
           <p className="eyebrow">Platform</p>
           <h1>Hubs</h1>
-          <p className="muted">
-            Central Hub Controller registry. You can create <strong>many Shared</strong> hubs and{' '}
-            <strong>many White-labelled</strong> hubs (same codebase, each with its own database and
-            slug). Open a hub for deploy wiring / DB credentials. Manage Functionalities, Modules,
-            Capabilities, and credits by selecting the hub in the <strong>Control hub</strong>{' '}
-            switcher — not from the hub detail page. After you ship a code update (Git / FTP),
-            Publish a release with zip packages, select hubs, and apply — or refresh versions after
-            a manual Git/FTP ship.
+          <p className="muted hubs-page__lede">
+            Register Shared / White-labelled hubs, then push code updates from here — without
+            opening each cPanel.
           </p>
         </div>
         <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
@@ -220,81 +226,104 @@ export default function PowerAdminHubs() {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
-      <div className="admin-card" style={{ marginBottom: '1.25rem' }}>
-        <div className="page-head" style={{ marginBottom: '0.75rem' }}>
-          <div>
-            <h2 style={{ margin: 0 }}>Code updates</h2>
-            <p className="muted" style={{ margin: '0.35rem 0 0' }}>
-              Latest release:{' '}
-              <strong>{overview?.latest_release?.version || 'not published yet'}</strong>
-              {overview?.latest_release ? (
-                <>
-                  {' '}
-                  · artifacts:{' '}
-                  {overview.latest_release.backend_artifact ? 'backend' : 'no backend'}
-                  {' / '}
-                  {overview.latest_release.frontend_artifact ? 'frontend' : 'no frontend'}
-                </>
-              ) : null}
-              {overview?.this_deploy?.version ? (
-                <>
-                  {' '}
-                  · This Central deploy reports <code>{overview.this_deploy.version}</code>
-                </>
-              ) : null}
-              {overview?.counts ? (
-                <>
-                  {' '}
-                  · {overview.counts.up_to_date || 0} up to date · {overview.counts.behind || 0}{' '}
-                  behind · {overview.counts.unknown || 0} unknown
-                </>
-              ) : null}
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="btn"
-              onClick={onRefreshVersions}
-              disabled={refreshing}
-            >
-              {refreshing ? 'Refreshing…' : 'Refresh all versions'}
-            </button>
-            <button
-              type="button"
-              className="btn primary"
-              onClick={onApplyRelease}
-              disabled={applying || selectedHubIds.length === 0}
-            >
-              {applying
-                ? 'Applying…'
-                : `Apply to selected (${selectedHubIds.length})`}
-            </button>
-          </div>
+      <div className="hubs-howto">
+        <h2>How code updates work</h2>
+        <ol className="hubs-howto__steps">
+          <li>
+            <strong>Update code on your computer</strong>
+            <span>Edit backend/frontend locally (Git). You do not hand-edit each live hub.</span>
+          </li>
+          <li>
+            <strong>Make zip packages</strong>
+            <span>
+              Backend = Laravel project zip (include <code>vendor/</code> if needed). Frontend =
+              built <code>dist-*</code> zip after npm build.
+            </span>
+          </li>
+          <li>
+            <strong>Publish here, then select hubs &amp; Apply</strong>
+            <span>
+              Include <em>Central</em> in the selection if you want Central updated too. Selected
+              hubs receive the new code automatically.
+            </span>
+          </li>
+        </ol>
+        <p className="muted hubs-howto__note">
+          You still need this dashboard running on Central to upload/apply. After that, choose
+          Central + other hubs in step 3 — no manual FTP/git per hub for that release.
+        </p>
+      </div>
+
+      <div className="hubs-stats">
+        <div className="hubs-stat">
+          <span className="hubs-stat__label">Latest release</span>
+          <strong>{latest?.version || '—'}</strong>
+          <span className="muted">
+            {latest
+              ? [
+                  latest.backend_artifact ? 'Backend zip' : null,
+                  latest.frontend_artifact ? 'Frontend zip' : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || 'No zips yet'
+              : 'Publish a release below'}
+          </span>
         </div>
-        <form className="admin-form" onSubmit={onPublishRelease}>
+        <div className="hubs-stat">
+          <span className="hubs-stat__label">This Central</span>
+          <strong>
+            <code>{overview?.this_deploy?.version || '—'}</code>
+          </strong>
+          <span className="muted">Version this server reports now</span>
+        </div>
+        <div className="hubs-stat">
+          <span className="hubs-stat__label">Fleet status</span>
+          <strong>
+            {counts.up_to_date || 0} up to date
+          </strong>
+          <span className="muted">
+            {counts.behind || 0} behind · {counts.unknown || 0} unknown
+            {(counts.error || 0) > 0 ? ` · ${counts.error} check failed` : ''}
+          </span>
+        </div>
+      </div>
+
+      <div className="hubs-update-panel">
+        <div className="hubs-update-panel__head">
+          <div>
+            <p className="eyebrow">Step 1</p>
+            <h2>Publish release package</h2>
+          </div>
+          <button type="button" className="btn" onClick={onRefreshVersions} disabled={refreshing}>
+            {refreshing ? 'Checking…' : 'Check all versions'}
+          </button>
+        </div>
+
+        <form className="admin-form hubs-release-form" onSubmit={onPublishRelease}>
           <div className="form-row two">
             <label>
-              New latest version
+              Version number
               <input
                 required
                 value={releaseForm.version}
                 onChange={(e) => setReleaseForm({ ...releaseForm, version: e.target.value })}
-                placeholder="1.2.0"
+                placeholder="e.g. 1.2.0"
               />
             </label>
             <label>
-              Notes (optional)
+              What changed? (optional)
               <input
                 value={releaseForm.notes}
                 onChange={(e) => setReleaseForm({ ...releaseForm, notes: e.target.value })}
-                placeholder="What changed in this release"
+                placeholder="Short release note"
               />
             </label>
           </div>
-          <div className="form-row two">
-            <label>
-              Backend zip (Laravel package)
+
+          <div className="hubs-zip-row">
+            <label className={`hubs-zip ${releaseForm.backend_zip ? 'is-filled' : ''}`}>
+              <span className="hubs-zip__title">Backend zip</span>
+              <span className="hubs-zip__hint">Laravel app package</span>
               <input
                 type="file"
                 accept=".zip,application/zip"
@@ -305,9 +334,11 @@ export default function PowerAdminHubs() {
                   })
                 }
               />
+              <span className="hubs-zip__file">{fileLabel(releaseForm.backend_zip)}</span>
             </label>
-            <label>
-              Frontend zip (Vite dist)
+            <label className={`hubs-zip ${releaseForm.frontend_zip ? 'is-filled' : ''}`}>
+              <span className="hubs-zip__title">Frontend zip</span>
+              <span className="hubs-zip__hint">Built Vite dist folder</span>
               <input
                 type="file"
                 accept=".zip,application/zip"
@@ -318,30 +349,80 @@ export default function PowerAdminHubs() {
                   })
                 }
               />
+              <span className="hubs-zip__file">{fileLabel(releaseForm.frontend_zip)}</span>
             </label>
           </div>
+
           <p className="muted form-hint">
-            Backend zip should include <code>vendor/</code> if the target cPanel has no Composer.
-            Frontend zip = built <code>dist-*</code>. Set each hub&apos;s{' '}
-            <strong>frontend extract path</strong> on the hub detail page before applying frontend.
+            Before applying a frontend zip, open each hub and set its{' '}
+            <strong>frontend extract path</strong> (server folder). Content hubs also need{' '}
+            <strong>API URL</strong> in deploy wiring.
           </p>
+
           <div className="actions">
             <button className="btn primary" disabled={publishing}>
               {publishing ? 'Publishing…' : 'Publish as latest'}
-            </button>
-            <button type="button" className="btn ghost" onClick={selectAllHubs}>
-              Select all hubs
-            </button>
-            <button type="button" className="btn ghost" onClick={clearHubSelection}>
-              Clear selection
             </button>
           </div>
         </form>
       </div>
 
+      <div className="hubs-update-panel hubs-update-panel--apply">
+        <div className="hubs-update-panel__head">
+          <div>
+            <p className="eyebrow">Step 2 &amp; 3</p>
+            <h2>Select hubs, then apply</h2>
+            <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+              {selectedHubIds.length === 0
+                ? 'No hubs selected yet.'
+                : `${selectedHubIds.length} selected: ${selectedHubs.map((h) => h.name).join(', ')}`}
+            </p>
+          </div>
+          <div className="hubs-apply-actions">
+            <button type="button" className="btn ghost" onClick={selectAllHubs} disabled={!hubs.length}>
+              Select all
+            </button>
+            <button type="button" className="btn ghost" onClick={selectBehindHubs}>
+              Select behind
+            </button>
+            <button type="button" className="btn ghost" onClick={clearHubSelection}>
+              Clear
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={onApplyRelease}
+              disabled={applying || selectedHubIds.length === 0 || !readyToApply}
+            >
+              {applying
+                ? 'Applying…'
+                : `Apply ${latest?.version || 'release'} (${selectedHubIds.length})`}
+            </button>
+          </div>
+        </div>
+        {!readyToApply && (
+          <p className="hubs-apply-banner">
+            Publish a release with at least one zip in Step 1 before you can apply.
+          </p>
+        )}
+        {applyResults?.length ? (
+          <ul className="hubs-apply-results">
+            {applyResults.map((row) => (
+              <li key={row.hub_id} className={row.ok ? 'ok' : 'fail'}>
+                <strong>{row.slug}</strong> — {row.message}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
       {showForm && (
         <form className="admin-form hub-create-form" onSubmit={onCreate}>
-          <h2>Create hub</h2>
+          <h2>Register a new hub</h2>
+          <p className="muted">
+            This only adds the hub to the Central registry. You still copy the codebase once onto
+            that hub&apos;s cPanel for the first install.
+          </p>
           <label>
             Hub type
             <select
@@ -369,12 +450,6 @@ export default function PowerAdminHubs() {
               placeholder={form.type === 'shared' ? 'shared-uk' : 'my-hub'}
             />
           </label>
-          <p className="muted form-hint">
-            Each Shared / White-label hub needs a <strong>unique slug</strong> (HUB_SLUG on that
-            deploy). Examples: <code>shared</code>, <code>shared-uk</code>, <code>acme-advisors</code>.
-            For Shared content hubs whose slug is not <code>shared</code>, set{' '}
-            <code>HUB_TYPE=shared</code> in that hub&apos;s <code>.env</code>.
-          </p>
           <label>
             Frontend URL
             <input
@@ -385,7 +460,7 @@ export default function PowerAdminHubs() {
             />
           </label>
           <label>
-            API URL (optional)
+            API URL (needed for remote updates)
             <input
               type="url"
               value={form.api_url}
@@ -399,14 +474,13 @@ export default function PowerAdminHubs() {
               rows={3}
               value={form.deploy_notes}
               onChange={(e) => setForm({ ...form, deploy_notes: e.target.value })}
-              placeholder="Enter hosting notes, env checklist, etc."
+              placeholder="Hosting notes, env checklist, etc."
             />
           </label>
           <h3 style={{ margin: '0.5rem 0 0' }}>Remote database (own DB)</h3>
           <p className="muted" style={{ marginTop: 0 }}>
-            Stored encrypted on Central Hub so content can be managed in this hub&apos;s database.
-            The content hub server also uses these values in its own <code>.env</code>. Set{' '}
-            <code>HUB_IS_CONTROL_PLANE=false</code> on Shared content deploys.
+            Stored on Central so you can control this hub remotely. Also set these in that hub&apos;s{' '}
+            <code>.env</code>.
           </p>
           <div className="form-row two">
             <label>
@@ -450,7 +524,7 @@ export default function PowerAdminHubs() {
                 type="password"
                 value={form.db_password}
                 onChange={(e) => setForm({ ...form, db_password: e.target.value })}
-                placeholder="Enter database password"
+                placeholder="Database password"
                 autoComplete="new-password"
               />
             </label>
@@ -463,6 +537,11 @@ export default function PowerAdminHubs() {
         </form>
       )}
 
+      <div className="hubs-list-head">
+        <h2>All hubs</h2>
+        <p className="muted">Tick hubs to include them in Apply. Open a hub for wiring &amp; paths.</p>
+      </div>
+
       {loading ? (
         <div className="state">Loading hubs...</div>
       ) : hubs.length === 0 ? (
@@ -473,37 +552,35 @@ export default function PowerAdminHubs() {
       ) : (
         <div className="hub-list">
           {hubs.map((hub) => {
-            const enabledCount = (hub.checklist || []).filter((item) => item.enabled).length
             const typeLabel = hubTypeLabel(hub.type)
             const versionBadge = codeUpdateBadge(hub.code_update)
             const checked = selectedHubIds.includes(hub.id)
             const applyLabel = hub.code_update?.apply_status_label
+            const canApplyRemote = hub.type === 'central' || Boolean(hub.deploy?.api_url)
             return (
-              <article key={hub.id} className="hub-card">
+              <article
+                key={hub.id}
+                className={`hub-card hub-card--selectable ${checked ? 'is-selected' : ''}`}
+              >
                 <div className="hub-card-head">
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                    <label className="toggle-row" style={{ margin: 0 }}>
+                  <div className="hub-card__identity">
+                    <label className="hub-card__check">
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleHub(hub.id)}
                         aria-label={`Select ${hub.name}`}
                       />
+                      <span />
                     </label>
                     <div>
                       <h2>
                         <Link to={`/my-dashboard/hubs/${hub.id}`}>{hub.name}</Link>
                       </h2>
-                      <p className="muted">
+                      <p className="muted hub-card__meta">
                         <code>{hub.slug}</code>
-                        {' · code '}
-                        <code>{formatReportedVersion(hub.code_update)}</code>
-                        {applyLabel && applyLabel !== 'Idle' ? (
-                          <>
-                            {' · '}
-                            {applyLabel}
-                          </>
-                        ) : null}
+                        <span>Code {formatReportedVersion(hub.code_update)}</span>
+                        {applyLabel && applyLabel !== 'Idle' ? <span>{applyLabel}</span> : null}
                       </p>
                     </div>
                   </div>
@@ -524,27 +601,26 @@ export default function PowerAdminHubs() {
                       </span>
                     ) : null}
                     <span className={versionBadge.className}>{versionBadge.label}</span>
+                    {!canApplyRemote ? (
+                      <span className="badge warn">No API URL</span>
+                    ) : null}
                   </div>
                 </div>
-                <p className="muted">
-                  {enabledCount} of {(hub.checklist || []).length} Functionalities enabled
+                <div className="hub-card__foot">
                   {hub.deploy?.frontend_url ? (
-                    <>
-                      {' · '}
-                      <a href={hub.deploy.frontend_url} target="_blank" rel="noreferrer">
-                        {hub.deploy.frontend_url}
-                      </a>
-                    </>
+                    <a href={hub.deploy.frontend_url} target="_blank" rel="noreferrer">
+                      {hub.deploy.frontend_url}
+                    </a>
                   ) : (
-                    ' · No frontend URL set'
+                    <span className="muted">No frontend URL</span>
                   )}
-                  {hub.code_update?.apply_error ? (
-                    <>
-                      {' · '}
-                      <span className="badge warn">Apply error</span>
-                    </>
-                  ) : null}
-                </p>
+                  <Link to={`/my-dashboard/hubs/${hub.id}`} className="btn ghost hub-card__open">
+                    Open wiring
+                  </Link>
+                </div>
+                {hub.code_update?.apply_error ? (
+                  <p className="hub-card__error">{hub.code_update.apply_error}</p>
+                ) : null}
               </article>
             )
           })}

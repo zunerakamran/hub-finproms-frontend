@@ -22,7 +22,7 @@ function typesLabel(types) {
   if (types === 'one_time') return 'One time'
   if (types === 'per_user_buying') return 'Per user buying'
   if (types === 'ongoing') return 'Ongoing'
-  return types || '—'
+  return types || '-'
 }
 
 export default function AdminAdvisorInvoices({ shell = 'client-admin' }) {

@@ -93,22 +93,22 @@ export const DASHBOARD_NAV_DEFAULTS = {
 
 /** Built-in separators that can be renamed (includes hub context variants + topbar). */
 export const DASHBOARD_NAV_SECTION_FIELDS = [
-  { key: 'dashboard', label: 'Topbar â€” Dashboard (overview)' },
-  { key: 'account', label: 'Separator â€” Account' },
-  { key: 'content', label: 'Separator â€” SM Template' },
-  { key: 'taxonomy', label: 'Separator â€” Taxonomy requests' },
-  { key: 'hub', label: 'Separator â€” Hub (generic)' },
-  { key: 'hub_central', label: 'Separator â€” Central Hub' },
-  { key: 'hub_shared', label: 'Separator â€” Shared hub' },
-  { key: 'hub_white_label', label: 'Separator â€” White-labelled hub' },
-  { key: 'modules', label: 'Separator â€” Modules' },
-  { key: 'advisors', label: 'Separator â€” Advisors & billing' },
-  { key: 'smc', label: 'Separator â€” Social Media Compliance' },
-  { key: 'gc', label: 'Separator â€” General Compliance' },
-  { key: 'st', label: 'Separator â€” Support Tickets' },
-  { key: 'wtl', label: 'Separator â€” Website Template Library' },
-  { key: 'wc', label: 'Separator â€” Website Content Pre Approval' },
-  { key: 'platform', label: 'Separator â€” Platform' },
+  { key: 'dashboard', label: 'Topbar - Dashboard (overview)' },
+  { key: 'account', label: 'Separator - Account' },
+  { key: 'content', label: 'Separator - SM Template' },
+  { key: 'taxonomy', label: 'Separator - Taxonomy requests' },
+  { key: 'hub', label: 'Separator - Hub (generic)' },
+  { key: 'hub_central', label: 'Separator - Central Hub' },
+  { key: 'hub_shared', label: 'Separator - Shared hub' },
+  { key: 'hub_white_label', label: 'Separator - White-labelled hub' },
+  { key: 'modules', label: 'Separator - Modules' },
+  { key: 'advisors', label: 'Separator - Advisors & billing' },
+  { key: 'smc', label: 'Separator - Social Media Compliance' },
+  { key: 'gc', label: 'Separator - General Compliance' },
+  { key: 'st', label: 'Separator - Support Tickets' },
+  { key: 'wtl', label: 'Separator - Website Template Library' },
+  { key: 'wc', label: 'Separator - Website Content Pre Approval' },
+  { key: 'platform', label: 'Separator - Platform' },
 ]
 
 export function assignableSectionsFromNav(dashboardNav) {

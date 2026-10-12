@@ -138,7 +138,7 @@ export default function WebsiteComplianceDeployments() {
         </p>
       ) : null}
 
-      {/* DataGrid / filters-row must stay OUTSIDE .wc-app — WC resets break .btn and icon actions. */}
+      {/* DataGrid / filters-row must stay OUTSIDE .wc-app - WC resets break .btn and icon actions. */}
       <div>
         {safeTab === 'templates' && canBrowseTemplates ? (
           <WebsiteComplianceTemplatesPanel

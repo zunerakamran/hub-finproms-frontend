@@ -77,7 +77,7 @@ function StatusTransition({ fromStatus, toStatus, complianceStatusLabel }) {
       {fromStatus ? (
         <ComplianceStatusText status={fromStatus} label={complianceStatusLabel(fromStatus)} />
       ) : (
-        <span className="muted">—</span>
+        <span className="muted">-</span>
       )}
       <span className="compliance-audit-trail__arrow" aria-hidden>
         →
@@ -85,7 +85,7 @@ function StatusTransition({ fromStatus, toStatus, complianceStatusLabel }) {
       {toStatus ? (
         <ComplianceStatusText status={toStatus} label={complianceStatusLabel(toStatus)} />
       ) : (
-        <span className="muted">—</span>
+        <span className="muted">-</span>
       )}
     </p>
   )
@@ -154,7 +154,7 @@ export default function ComplianceAuditTrail({
   const list = Array.isArray(events) ? events : []
 
   if (list.length === 0) {
-    if (compact) return <span className="muted">—</span>
+    if (compact) return <span className="muted">-</span>
     return (
       <div className="compliance-audit-trail compliance-audit-trail--empty">
         <div className="compliance-audit-trail__head">
@@ -171,7 +171,7 @@ export default function ComplianceAuditTrail({
         <div className="compliance-audit-trail__head">
           <h2>{title}</h2>
           <p className="muted">
-            {list.length} event{list.length === 1 ? '' : 's'} — who submitted, assigned, reviewed,
+            {list.length} event{list.length === 1 ? '' : 's'} - who submitted, assigned, reviewed,
             and every status change.
           </p>
         </div>
@@ -194,11 +194,11 @@ export default function ComplianceAuditTrail({
 /** Compact person cell for report grids (name · role + email). */
 export function CompliancePersonCell({ name, email, role }) {
   const { roleLabel } = useHub()
-  if (!name && !email) return '—'
+  if (!name && !email) return '-'
   const roleText = role ? roleLabel(role) : ''
   return (
     <>
-      {name || '—'}
+      {name || '-'}
       {roleText ? <span className="muted"> · {roleText}</span> : null}
       {email ? (
         <>
@@ -284,7 +284,7 @@ export function ComplianceAuditTrailCell({
         No events
       </span>
     ) : (
-      <span className="muted">—</span>
+      <span className="muted">-</span>
     )
   }
 
@@ -398,7 +398,7 @@ export function ComplianceReportAuditPanel({
         <div>
           <h2>{title}</h2>
           <p className="muted">
-            Who submitted, who assigned, every status change — with user name, role, and email.
+            Who submitted, who assigned, every status change - with user name, role, and email.
           </p>
         </div>
         <div className="compliance-report-audit__count">
@@ -415,7 +415,7 @@ export function ComplianceReportAuditPanel({
           <p className="muted" style={{ marginTop: '0.5rem' }}>
             History lives on each content hub database. From Central Hub, use the{' '}
             <strong>hub switcher</strong> to select that content hub, then open Reports → Audit
-            trail — you stay on Central, but read that hub’s history.
+            trail - you stay on Central, but read that hub’s history.
           </p>
           <p className="muted" style={{ marginTop: '0.5rem' }}>
             If the trail is still empty after a backfill, run{' '}
@@ -491,7 +491,7 @@ export function ComplianceReportAuditPanel({
 
           <div className="data-grid__footer compliance-report-audit__footer">
             <span className="muted data-grid__count">
-              Showing {rangeStart}–{rangeEnd} of {events.length}
+              Showing {rangeStart}-{rangeEnd} of {events.length}
             </span>
             {totalPages > 1 ? (
               <div className="data-grid__pager">

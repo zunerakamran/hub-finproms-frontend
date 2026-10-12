@@ -3,7 +3,7 @@ import { FaCheck } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 
-/** TEMPORARY admin page — remove when BANK_TRANSFER_ENABLED is turned off. */
+/** TEMPORARY admin page - remove when BANK_TRANSFER_ENABLED is turned off. */
 export default function AdminBankTransfers() {
   const [subscriptions, setSubscriptions] = useState([])
   const [contentCheckouts, setContentCheckouts] = useState([])
@@ -105,7 +105,7 @@ export default function AdminBankTransfers() {
                     key: 'plan',
                     label: 'Plan',
                     filterValue: (row) => row.plan?.name || '',
-                    render: (row) => row.plan?.name || '—',
+                    render: (row) => row.plan?.name || '-',
                   },
                   {
                     key: 'amount_paid',

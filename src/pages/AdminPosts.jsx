@@ -42,7 +42,7 @@ function normalizeCategoryNames(categories, legacyCategory) {
 
 function formatCategories(post) {
   const list = normalizeCategoryNames(post?.categories, post?.category)
-  return list.length ? list.join(', ') : '—'
+  return list.length ? list.join(', ') : '-'
 }
 
 export default function AdminPosts({ shell = 'client-admin' }) {
@@ -407,7 +407,7 @@ export default function AdminPosts({ shell = 'client-admin' }) {
           sortable: false,
           render: (row) =>
             row.archived_at || row.is_archived ? (
-              <span className="muted">{row.archive_remarks || '—'}</span>
+              <span className="muted">{row.archive_remarks || '-'}</span>
             ) : (
               <input
                 className="data-grid__filter-input"

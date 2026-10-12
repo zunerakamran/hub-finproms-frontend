@@ -1,4 +1,4 @@
-/** Shared display date formats — always DD/MM/YYYY (UK-style). */
+/** Shared display date formats - always DD/MM/YYYY (UK-style). */
 
 const DATE_LOCALE = 'en-GB'
 
@@ -13,14 +13,14 @@ function toValidDate(value) {
 }
 
 /** DD/MM/YYYY */
-export function formatDate(value, fallback = '—') {
+export function formatDate(value, fallback = '-') {
   const date = toValidDate(value)
   if (!date) return fallback
   return date.toLocaleDateString(DATE_LOCALE, DATE_OPTS)
 }
 
 /** DD/MM/YYYY HH:mm */
-export function formatDateTime(value, fallback = '—') {
+export function formatDateTime(value, fallback = '-') {
   const date = toValidDate(value)
   if (!date) return fallback
   const day = date.toLocaleDateString(DATE_LOCALE, DATE_OPTS)
@@ -29,7 +29,7 @@ export function formatDateTime(value, fallback = '—') {
 }
 
 /** Time only HH:mm (for same-day list rows). */
-export function formatTime(value, fallback = '—') {
+export function formatTime(value, fallback = '-') {
   const date = toValidDate(value)
   if (!date) return fallback
   return date.toLocaleTimeString(DATE_LOCALE, TIME_OPTS)

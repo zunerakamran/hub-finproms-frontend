@@ -526,7 +526,7 @@ export function TemplateRequestContentFields({
           >
             <FaBriefcase className="w-5 h-5 text-slate-300 mx-auto mb-2" aria-hidden="true" />
             <p className="text-sm font-bold text-gray-600">No services yet</p>
-            <p className="text-[11px] text-gray-500 mt-1">Optional — add a name and attach a document.</p>
+            <p className="text-[11px] text-gray-500 mt-1">Optional - add a name and attach a document.</p>
             <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-[var(--brand-dark)]">
               <FaPlus className="w-3 h-3" aria-hidden="true" />
               Add first service
@@ -598,7 +598,7 @@ export function TemplateRequestContentFields({
           >
             <FaImage className="w-5 h-5 text-slate-300 mx-auto mb-2" aria-hidden="true" />
             <p className="text-sm font-bold text-gray-600">No images yet</p>
-            <p className="text-[11px] text-gray-500 mt-1">Optional — hero, team, office, or other photos.</p>
+            <p className="text-[11px] text-gray-500 mt-1">Optional - hero, team, office, or other photos.</p>
             <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-[var(--brand-dark)]">
               <FaPlus className="w-3 h-3" aria-hidden="true" />
               Add first image
@@ -738,7 +738,7 @@ export function TemplateRequestContentFields({
           >
             <FaFileContract className="w-5 h-5 text-slate-300 mx-auto mb-2" aria-hidden="true" />
             <p className="text-sm font-bold text-gray-600">No policies yet</p>
-            <p className="text-[11px] text-gray-500 mt-1">Optional — attach a PDF or Word document for each policy.</p>
+            <p className="text-[11px] text-gray-500 mt-1">Optional - attach a PDF or Word document for each policy.</p>
             <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-[var(--brand-dark)]">
               <FaPlus className="w-3 h-3" aria-hidden="true" />
               Add first policy
@@ -909,7 +909,7 @@ function DetailRow({ label, value, mono = false }) {
           mono ? 'font-mono text-xs' : ''
         }`}
       >
-        {display || <span className="text-gray-400 font-normal italic">—</span>}
+        {display || <span className="text-gray-400 font-normal italic">-</span>}
       </span>
     </div>
   )

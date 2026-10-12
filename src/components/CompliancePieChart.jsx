@@ -23,7 +23,7 @@ export default function CompliancePieChart({
   const cleaned = (Array.isArray(segments) ? segments : [])
     .map((segment, index) => ({
       key: segment.key || segment.label || String(index),
-      label: segment.label || '—',
+      label: segment.label || '-',
       value: Math.max(0, Number(segment.value) || 0),
       color: segment.color || PIE_COLORS[index % PIE_COLORS.length],
     }))

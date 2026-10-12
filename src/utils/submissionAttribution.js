@@ -16,7 +16,7 @@ export function hasOnBehalfAttribution(row) {
  * @param {'submitter'|'editor'} [ownerKey='submitter']
  */
 export function gridActorName(row, ownerKey = 'submitter') {
-  return row?.on_behalf_by?.name || row?.[ownerKey]?.name || row?.name || '—'
+  return row?.on_behalf_by?.name || row?.[ownerKey]?.name || row?.name || '-'
 }
 
 /**

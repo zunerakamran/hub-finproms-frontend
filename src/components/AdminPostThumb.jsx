@@ -1,7 +1,7 @@
 import ReelPlayer from './ReelPlayer'
 
 /**
- * Thumbnail for admin post rows — images use cover; reels use an autoplaying
+ * Thumbnail for admin post rows - images use cover; reels use an autoplaying
  * muted preview when a video URL is available (same player as the website).
  */
 function isVideoUrl(url) {

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 
 /**
- * Admin-staff advisor picker — work on behalf of a firm-scoped advisor.
+ * Admin-staff advisor picker - work on behalf of a firm-scoped advisor.
  * Optional: leave empty to use Admin-staff Capabilities matrix cells.
  */
 export default function ActingAdvisorSwitcher() {

@@ -7,14 +7,14 @@ import { useHub } from '../context/HubContext'
 
 function formatBytes(n) {
   const size = Number(n)
-  if (!Number.isFinite(size) || size < 0) return '—'
+  if (!Number.isFinite(size) || size < 0) return '-'
   if (size < 1024) return `${size} B`
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
   return `${(size / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function formatWhen(iso) {
-  if (!iso) return '—'
+  if (!iso) return '-'
   try {
     return new Date(iso).toLocaleString()
   } catch {
@@ -107,7 +107,7 @@ export default function FirmDocumentDetail() {
           </div>
           <div>
             <dt>Firm</dt>
-            <dd>{firm?.name || '—'}</dd>
+            <dd>{firm?.name || '-'}</dd>
           </div>
           <div>
             <dt>Folder</dt>
@@ -115,12 +115,12 @@ export default function FirmDocumentDetail() {
           </div>
           <div>
             <dt>Category</dt>
-            <dd>{document.category?.name || '—'}</dd>
+            <dd>{document.category?.name || '-'}</dd>
           </div>
           <div>
             <dt>Uploaded by</dt>
             <dd>
-              {document.uploader?.name || '—'}
+              {document.uploader?.name || '-'}
               {document.uploader?.email ? (
                 <span className="muted"> · {document.uploader.email}</span>
               ) : null}

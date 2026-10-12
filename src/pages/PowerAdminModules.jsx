@@ -13,7 +13,7 @@ const MODULE_CHILDREN = {
 function lockedHint(item) {
   if (!item.locked) return null
   if (item.locked_reason === 'central_hub') {
-    return 'Always enabled on Central Hub Controller (cannot be turned off). This instance is control plane only — no content catalog modules.'
+    return 'Always enabled on Central Hub Controller (cannot be turned off). This instance is control plane only - no content catalog modules.'
   }
   if (item.locked_reason === 'shared_hub') {
     return 'Always enabled on the shared hub (cannot be turned off). Other modules depend on this.'
@@ -117,7 +117,7 @@ export default function PowerAdminModules() {
     setError('')
     setMessage('')
     try {
-      // Omit locked modules from the payload — backend enforces type locks + deps.
+      // Omit locked modules from the payload - backend enforces type locks + deps.
       const payload = {}
       for (const row of modules) {
         if (row.locked) continue

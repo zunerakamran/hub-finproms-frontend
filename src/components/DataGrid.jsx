@@ -69,7 +69,7 @@ function DataGridPagination({ page, totalPages, totalItems, pageSize, onPageChan
   return (
     <div className="data-grid__footer">
       <span className="muted data-grid__count">
-        Showing {start}–{end} of {totalItems}
+        Showing {start}-{end} of {totalItems}
       </span>
       {totalPages > 1 ? (
         <div className="data-grid__pager">
@@ -128,10 +128,10 @@ export function DataGridPager({
  * Resolve layout flags for a column.
  *
  * Column flags (optional overrides):
- * - narrow  — ID / # / Ver strip (~3rem)
- * - fit     — status / badges (~7rem)
- * - date    — compact two-line dates (~5.75rem)
- * - grow    — description / title; takes remaining space + truncates by default
+ * - narrow  - ID / # / Ver strip (~3rem)
+ * - fit     - status / badges (~7rem)
+ * - date    - compact two-line dates (~5.75rem)
+ * - grow    - description / title; takes remaining space + truncates by default
  *
  * Auto rules:
  * - key `id` or label `#` / `Ver` / key `version` → narrow
@@ -247,7 +247,7 @@ function SortButton({ active, direction, label, onClick }) {
       className={`data-grid__sort-btn${stateClass}`}
       onClick={onClick}
       aria-label={`Sort by ${label}${active ? `, currently ${direction}ending` : ''}`}
-      title={active ? `Sorted ${direction}ending — click to change` : `Sort by ${label}`}
+      title={active ? `Sorted ${direction}ending - click to change` : `Sort by ${label}`}
     >
       <span className="data-grid__sort-icon" aria-hidden="true" />
     </button>
@@ -258,11 +258,11 @@ function SortButton({ active, direction, label, onClick }) {
  * Compact two-line date for grid cells: day on top, smaller time below.
  */
 export function DataGridDate({ value, withTime = true, secondary }) {
-  if (!value) return <span className="data-grid__date data-grid__date--empty">—</span>
+  if (!value) return <span className="data-grid__date data-grid__date--empty">-</span>
 
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) {
-    return <span className="data-grid__date data-grid__date--empty">—</span>
+    return <span className="data-grid__date data-grid__date--empty">-</span>
   }
 
   const day = formatDate(date, '')
@@ -271,7 +271,7 @@ export function DataGridDate({ value, withTime = true, secondary }) {
 
   return (
     <span className="data-grid__date" title={title || undefined}>
-      <span className="data-grid__date-day">{day || '—'}</span>
+      <span className="data-grid__date-day">{day || '-'}</span>
       {time ? <span className="data-grid__date-time">{time}</span> : null}
       {secondary ? <span className="data-grid__date-secondary">{secondary}</span> : null}
     </span>
@@ -502,7 +502,7 @@ export default function DataGrid({
                     {allColumns.map((col, i) => {
                       const layout = layouts[i]
                       const content =
-                        typeof col.render === 'function' ? col.render(row) : row?.[col.key] ?? '—'
+                        typeof col.render === 'function' ? col.render(row) : row?.[col.key] ?? '-'
                       const isActions = layout.kind === 'actions' || col.key === 'actions'
                       const truncate = layout.truncate && !isActions
                       const wrap = Boolean(col.wrap) && !isActions && !truncate

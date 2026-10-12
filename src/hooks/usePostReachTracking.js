@@ -3,7 +3,7 @@ import { api } from '../api/client'
 
 /**
  * Track listing impressions: when a post tile scrolls into view, record reach
- * (unique per viewer). Does not fire on click — views are recorded on detail.
+ * (unique per viewer). Does not fire on click - views are recorded on detail.
  *
  * @param {Array<{ id: number|string }>} posts
  * @param {(ids: number[]) => void} [onReached] - optional local UI bump

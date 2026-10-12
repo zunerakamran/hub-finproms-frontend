@@ -209,7 +209,7 @@ export default function SupportTicketSubmit() {
         <FileDropzone
           id="st-submit-screenshots"
           label="Screenshots (optional)"
-          hint="JPG, PNG, GIF, WebP or PDF — up to 8 files"
+          hint="JPG, PNG, GIF, WebP or PDF - up to 8 files"
           accept={ST_SCREENSHOT_ACCEPT}
           multiple
           maxFiles={8}

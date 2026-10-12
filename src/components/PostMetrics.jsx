@@ -5,7 +5,7 @@ function formatCount(value) {
 /**
  * Renders only metrics present on the post payload.
  * Backend omits reach_count / views_count / buy_count when the user's plan
- * does not allow them — do not default missing values to 0.
+ * does not allow them - do not default missing values to 0.
  */
 export default function PostMetrics({ post, className = 'post-metrics' }) {
   if (!post) {

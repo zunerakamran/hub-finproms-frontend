@@ -51,7 +51,7 @@ export default function WebsiteCompliancePublish() {
           <p className="eyebrow">Website Content Pre Approval · Direct publish</p>
           <h1>Edit &amp; publish</h1>
           <p className="muted">
-            Changes publish to the live site immediately — no approver review. Deployment #{deploymentId}.
+            Changes publish to the live site immediately - no approver review. Deployment #{deploymentId}.
           </p>
         </div>
         <Link className="btn ghost" to="/my-dashboard/website-compliance/publish-live">

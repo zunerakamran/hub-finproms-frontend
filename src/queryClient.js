@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 
 /**
- * Shared client for boot/session APIs — dedupes StrictMode + remount fetches.
+ * Shared client for boot/session APIs - dedupes StrictMode + remount fetches.
  */
 export const queryClient = new QueryClient({
   defaultOptions: {

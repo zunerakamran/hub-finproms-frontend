@@ -209,7 +209,7 @@ export default function SupportTicketDetail() {
         <div className="card" style={{ padding: '1rem 1.25rem' }}>
           <h2 style={{ marginTop: 0 }}>Details</h2>
           <p>
-            <strong>Submitted by:</strong> {row.submitter?.name || '—'}
+            <strong>Submitted by:</strong> {row.submitter?.name || '-'}
             {row.submitter?.email ? ` (${row.submitter.email})` : ''}
           </p>
           <p>

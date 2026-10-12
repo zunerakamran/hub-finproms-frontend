@@ -198,7 +198,7 @@ export default function BundleDetail() {
 
           {bundle.is_purchased ? (
             <div className="unlock-box">
-              <p className="badge ok">Purchased — all posts unlocked</p>
+              <p className="badge ok">Purchased - all posts unlocked</p>
             </div>
           ) : canBuy ? (
             <div className="unlock-box">

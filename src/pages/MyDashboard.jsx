@@ -87,7 +87,7 @@ export default function MyDashboard() {
         if (link.to === '/my-dashboard/credits' && credits) {
           const balanceLabel = credits.has_unlimited_credits
             ? 'Unlimited credits'
-            : `${credits.balance ?? '—'} credits remaining`
+            : `${credits.balance ?? '-'} credits remaining`
           description = actingAdvisor
             ? `${balanceLabel} (${actingAdvisor.name}). Credits are spent when unlocking posts or bundles on their behalf.`
             : `${balanceLabel}. Credits are spent when you unlock posts or bundles.`

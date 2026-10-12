@@ -154,7 +154,7 @@ export default function AdminGcContentTypes() {
             label: 'Slug',
             fit: true,
             filterValue: (row) => row.slug || '',
-            render: (row) => row.slug || '—',
+            render: (row) => row.slug || '-',
           },
           {
             key: 'usage',

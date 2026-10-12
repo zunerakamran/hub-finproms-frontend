@@ -138,5 +138,5 @@ export function invoiceDetailPath(invoiceId, folder) {
   return `${base}?folder=${encodeURIComponent(folder)}`
 }
 
-// Silence unused import warning if NavLink not needed — keep for future folder links
+// Silence unused import warning if NavLink not needed - keep for future folder links
 void NavLink

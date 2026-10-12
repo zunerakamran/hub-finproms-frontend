@@ -6,7 +6,7 @@ import { sanitizeRichText, isRichTextEmpty } from '../utils/richText'
 export default function RichTextDisplay({
   html,
   className = '',
-  empty = '—',
+  empty = '-',
   as: Tag = 'div',
 }) {
   if (isRichTextEmpty(html)) {

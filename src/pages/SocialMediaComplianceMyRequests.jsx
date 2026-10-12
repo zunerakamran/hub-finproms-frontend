@@ -66,13 +66,13 @@ export default function SocialMediaComplianceMyRequests() {
     {
       key: 'firm',
       label: 'Firm',
-      render: (row) => row.submitter?.firm?.name || '—',
+      render: (row) => row.submitter?.firm?.name || '-',
       filterValue: (row) => row.submitter?.firm?.name || '',
     },
     {
       key: 'approver',
       label: 'Approver',
-      render: (row) => row.assignee?.name || <span className="muted">—</span>,
+      render: (row) => row.assignee?.name || <span className="muted">-</span>,
       filterValue: (row) => row.assignee?.name || '',
     },
     {

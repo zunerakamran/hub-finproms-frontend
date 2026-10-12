@@ -164,7 +164,7 @@ export default function PowerAdminCapabilities() {
         matrixPayload[role.key] = {}
       }
       for (const row of rows) {
-        // Keep stored white-labelled hub caps when shared (inactive) — don't overwrite with false.
+        // Keep stored white-labelled hub caps when shared (inactive) - don't overwrite with false.
         if (row.inactive) continue
         for (const role of roles) {
           const cell = row.cells?.[role.key]
@@ -356,7 +356,7 @@ export default function PowerAdminCapabilities() {
                                         }
                                       />
                                     ) : (
-                                      <span className="matrix-dash">—</span>
+                                      <span className="matrix-dash">-</span>
                                     )}
                                   </td>
                                 )

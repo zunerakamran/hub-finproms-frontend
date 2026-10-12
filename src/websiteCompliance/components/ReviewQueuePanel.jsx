@@ -26,13 +26,13 @@ function getRequestSections(req) {
 
 function getSectionLabel(req) {
   const { type, names } = getRequestSections(req)
-  if (type === 'single') return names[0] || '—'
+  if (type === 'single') return names[0] || '-'
   if (type === 'batch') {
     const preview = names.slice(0, 3).join(', ')
     const extra = names.length > 3 ? ` +${names.length - 3} more` : ''
-    return `${preview}${extra}` || '—'
+    return `${preview}${extra}` || '-'
   }
-  return '—'
+  return '-'
 }
 
 function isPickupPool(r) {
@@ -197,7 +197,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
       {
         key: 'approver',
         label: 'Approver',
-        render: (row) => row.approver?.name || <span className="muted">—</span>,
+        render: (row) => row.approver?.name || <span className="muted">-</span>,
         filterValue: (row) => row.approver?.name || '',
       },
       {
@@ -213,7 +213,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
         key: 'version',
         label: 'Ver',
         narrow: true,
-        render: (row) => (row.current_version ? `v${row.current_version}` : '—'),
+        render: (row) => (row.current_version ? `v${row.current_version}` : '-'),
         filterValue: (row) => String(row.current_version || ''),
         sortValue: (row) => Number(row.current_version) || 0,
       },

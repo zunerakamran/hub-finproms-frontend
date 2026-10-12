@@ -147,7 +147,7 @@ export default function PostDetail() {
   if (!post) return null
 
   const locked = Boolean(post.is_locked) && !post.is_purchased && !isClientAdmin
-  // Preview / Canva only after a real purchase — hub admin role must not fake ownership.
+  // Preview / Canva only after a real purchase - hub admin role must not fake ownership.
   const unlocked = Boolean(post.is_purchased)
   const isReel = Boolean(post.is_reel)
   const previewVideo = post.video_url || (unlocked && post.is_video ? post.attachment_url : null)
@@ -198,7 +198,7 @@ export default function PostDetail() {
             <p className="locked-gate-lead">
               {t(
                 'locked_lead',
-                'Sign in to preview this post and buy it with credits — no subscription required.'
+                'Sign in to preview this post and buy it with credits - no subscription required.'
               )}
             </p>
 

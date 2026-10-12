@@ -113,7 +113,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
       ) : billingDisabled ? null : (
         <form className="admin-form" onSubmit={onSubmit}>
           <label>
-            Renew day (1–28)
+            Renew day (1-28)
             <input
               type="number"
               min="1"
@@ -124,7 +124,7 @@ export default function AdminAdvisorRenewal({ shell = 'client-admin' }) {
             />
           </label>
           <label>
-            Grace day (1–28, on or after renew day)
+            Grace day (1-28, on or after renew day)
             <input
               type="number"
               min="1"

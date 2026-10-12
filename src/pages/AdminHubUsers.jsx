@@ -10,7 +10,7 @@ const CONTROL_PLANE_ROLES = new Set(['power_admin', 'finproms_admin'])
 
 function formatUserModules(user) {
   const mods = user?.modules
-  if (!mods) return '—'
+  if (!mods) return '-'
   if (mods.unrestricted) return 'All hub modules'
   const labels = (mods.labels || []).filter((label) => !BASE_MODULE_LABELS.has(label))
   if (labels.length === 0) return 'Base hub only'
@@ -108,25 +108,25 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
         key: 'name',
         label: 'Name',
         filterValue: (row) => row.name || '',
-        render: (row) => row.name || '—',
+        render: (row) => row.name || '-',
       },
       {
         key: 'email',
         label: 'Email',
         filterValue: (row) => row.email || '',
-        render: (row) => row.email || '—',
+        render: (row) => row.email || '-',
       },
       {
         key: 'role',
         label: 'Role',
         filterValue: (row) => row.role_label || roleLabel(row.role) || row.role || '',
-        render: (row) => row.role_label || roleLabel(row.role) || row.role || '—',
+        render: (row) => row.role_label || roleLabel(row.role) || row.role || '-',
       },
       {
         key: 'firm',
         label: 'Firm',
         filterValue: (row) => row.firm?.name || '',
-        render: (row) => row.firm?.name || '—',
+        render: (row) => row.firm?.name || '-',
       },
       {
         key: 'credits',

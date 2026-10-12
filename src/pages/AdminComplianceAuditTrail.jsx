@@ -231,7 +231,7 @@ export default function AdminComplianceAuditTrail({ shell = 'client-admin' }) {
             <ComplianceReportAuditPanel
               events={events}
               hub={hubMeta}
-              title={`${activeTab.label} — full audit history`}
+              title={`${activeTab.label} - full audit history`}
               requestLabel={activeTab.requestLabel}
               requestPath={activeTab.requestPath}
               LinkComponent={Link}

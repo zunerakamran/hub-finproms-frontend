@@ -141,13 +141,13 @@ export default function WebsiteComplianceGoLive() {
         key: 'domain_name',
         label: 'Requested live domain',
         grow: true,
-        render: (row) => row.domain_name || '—',
+        render: (row) => row.domain_name || '-',
         filterValue: (row) => row.domain_name || '',
       },
       {
         key: 'staging',
         label: 'Staging URL',
-        render: (row) => row.staging_domain || row.cpanel_domain || '—',
+        render: (row) => row.staging_domain || row.cpanel_domain || '-',
         filterValue: (row) => row.staging_domain || row.cpanel_domain || '',
       },
       {
@@ -272,9 +272,9 @@ export default function WebsiteComplianceGoLive() {
               <div className="muted" style={{ fontSize: '0.85rem' }}>
                 <FaGlobe aria-hidden style={{ marginRight: 6 }} />
                 Currently on staging:{' '}
-                <strong>{selectedStaging.staging_domain || selectedStaging.cpanel_domain || '—'}</strong>
+                <strong>{selectedStaging.staging_domain || selectedStaging.cpanel_domain || '-'}</strong>
                 {' · '}
-                Template: <strong>{selectedStaging.template_name || '—'}</strong>
+                Template: <strong>{selectedStaging.template_name || '-'}</strong>
               </div>
             ) : null}
 

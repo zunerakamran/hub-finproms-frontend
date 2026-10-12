@@ -9,7 +9,7 @@ import { buildDeployPreview } from '../utils/hubDeploy'
 /**
  * Hub registry detail: name / slug / deploy wiring only.
  * Functionalities, Modules, Capabilities, and Subscriber credits are managed
- * after selecting the hub in the Control hub switcher — not from this page.
+ * after selecting the hub in the Control hub switcher - not from this page.
  */
 export default function PowerAdminHubDetail() {
   const { hubId } = useParams()
@@ -322,7 +322,7 @@ export default function PowerAdminHubDetail() {
           <strong>Branding</strong>
           <p className="muted">
             Logo, application name, and primary / secondary colours are configured in{' '}
-            <em>My Dashboard → Settings</em> on this hub — they are not edited here.
+            <em>My Dashboard → Settings</em> on this hub - they are not edited here.
           </p>
         </div>
         {hub.type !== 'shared' && hub.type !== 'central' && (

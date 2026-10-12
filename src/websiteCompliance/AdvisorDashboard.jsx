@@ -453,7 +453,7 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
             </p>
             {assignedToYou && (
               <p className="text-xs text-violet-700 mt-2">
-                This website was assigned to you for content editing — it is not your own website request.
+                This website was assigned to you for content editing - it is not your own website request.
               </p>
             )}
             {request.status === 'rejected' && request.rejection_reason && (
@@ -2068,7 +2068,7 @@ export default function AdvisorDashboard({
     }
 
     // Advisors and Power Admin both edit deployment-scoped sections
-    // (template_request_id set) — never the NULL hub copies.
+    // (template_request_id set) - never the NULL hub copies.
     const deployment = templateRequests.find(
       r => r.id === (powerAdminDeploymentId || selectedDeploymentId) && isDeploymentOnSite(r.status)
     ) || templateRequests.find(r => isDeploymentOnSite(r.status))
@@ -2490,7 +2490,7 @@ export default function AdvisorDashboard({
       return cr.section.display_name || cr.section.name
     }
     const ids = getCrEditableSectionIds(cr)
-    return ids.length ? ids.map((id) => `Section #${id}`).join(', ') : '—'
+    return ids.length ? ids.map((id) => `Section #${id}`).join(', ') : '-'
   }
 
   const crApiError = (err, fallback) => (
@@ -2610,7 +2610,7 @@ export default function AdvisorDashboard({
         setRevisionFocusCrId(null)
         clearReviseQueryParam()
       } else {
-        // No returned request selected — create a brand-new change request.
+        // No returned request selected - create a brand-new change request.
         await api.post(
           '/change-requests',
           buildChangeRequestBody(batchPayload, submitSupportingFiles)
@@ -2758,13 +2758,13 @@ export default function AdvisorDashboard({
   const pageContent = (
     <>
       <div className={embedded ? 'w-full min-w-0' : 'max-w-7xl mx-auto px-4 sm:px-6 py-8'}>
-        {/* Header — skip full page chrome when embedded in hub dashboard (hub page-head already shown) */}
+        {/* Header - skip full page chrome when embedded in hub dashboard (hub page-head already shown) */}
         <div className={embedded ? 'mb-5' : 'mb-8'}>
           {!embedded && (
             <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
               <div>
                 <p className="text-xs font-extrabold text-[var(--brand)] uppercase tracking-widest mb-1">
-                  {isPowerAdminPublishMode ? `${powerAdminLabel} — Direct Publish` : getConsoleTitle('advisor')}
+                  {isPowerAdminPublishMode ? `${powerAdminLabel} - Direct Publish` : getConsoleTitle('advisor')}
                 </p>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--brand-dark)] tracking-tight">
                   {isPowerAdminPublishMode ? 'Edit Deployment Content' : 'Content Management'}
@@ -2844,7 +2844,7 @@ export default function AdvisorDashboard({
             </div>
           )}
 
-          {/* Quick stats — hide on dedicated request-site page */}
+          {/* Quick stats - hide on dedicated request-site page */}
           {forcedTab !== 'templates' && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="bg-white rounded-xl border border-gray-200/80 p-4 shadow-sm">
@@ -2902,7 +2902,7 @@ export default function AdvisorDashboard({
           )}
         </div>
 
-        {/* Workflow progress — only on the combined / editor flow */}
+        {/* Workflow progress - only on the combined / editor flow */}
         {!isPowerAdminPublishMode && !forcedTab && (
         <WorkflowStepper
           isSiteDeployed={hasDeployedSite}
@@ -2916,7 +2916,7 @@ export default function AdvisorDashboard({
         {message && <AlertBanner type="success" message={message} onDismiss={() => setMessage('')} />}
         {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
 
-        {/* Tabs — hidden when each concern has its own page */}
+        {/* Tabs - hidden when each concern has its own page */}
         {!singleTabMode && (
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           {tabs.map(tab => {
@@ -2953,7 +2953,7 @@ export default function AdvisorDashboard({
             <div>
               <h2 className="text-lg font-bold text-[var(--brand-dark)]">Showcase Templates</h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                Browse available website templates — hover to preview the full page, then request a deployment.
+                Browse available website templates - hover to preview the full page, then request a deployment.
               </p>
             </div>
             <div className="wc-icon-field w-full sm:w-72">
@@ -3058,7 +3058,7 @@ export default function AdvisorDashboard({
         <StepCard
           step={1}
           title="Site Deployments"
-          description="Request multiple showcase sites — each with its own domain and template. Select a live site to edit its content."
+          description="Request multiple showcase sites - each with its own domain and template. Select a live site to edit its content."
           defaultOpen={!hasDeployedSite}
           badge={
             <DeploymentSummaryBadge
@@ -3364,7 +3364,7 @@ export default function AdvisorDashboard({
               <div className="space-y-8">
                 <StepCard
                   step={deployedRequests.length > 1 && !isPowerAdminPublishMode ? 4 : 3}
-                  title={`Select Sections — ${selectedPage.title}`}
+                  title={`Select Sections - ${selectedPage.title}`}
                   description={
                     isPowerAdminPublishMode
                       ? 'Check sections to edit them. Changes publish directly to this staging or live site when you click Publish.'
@@ -3453,7 +3453,7 @@ export default function AdvisorDashboard({
                                 {isLockedByOther
                                   ? (section.locked_by
                                       ? `Locked by ${section.locked_by_user?.name || 'another user'}`
-                                      : 'Pending or scheduled change request — locked until reviewed')
+                                      : 'Pending or scheduled change request - locked until reviewed')
                                   : isChecked || isLockedByMe
                                     ? 'Ready to edit below'
                                     : 'Click to lock & edit'}
@@ -3581,7 +3581,7 @@ export default function AdvisorDashboard({
                                   return (
                                     <div className="space-y-4">
                                       <div className="flex items-center justify-between flex-wrap gap-3">
-                                        <p className="text-xs text-gray-500">Edit one slide at a time — switch tabs to update each hero slide.</p>
+                                        <p className="text-xs text-gray-500">Edit one slide at a time - switch tabs to update each hero slide.</p>
                                         <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
                                           {[0, 1, 2].map((slideIndex) => {
                                             const s = slides[slideIndex] || {}
@@ -3759,7 +3759,7 @@ export default function AdvisorDashboard({
 
                                       <div className="space-y-4">
                                         <ItemTabBar
-                                          hint="Edit one box at a time — switch tabs to update each feature box."
+                                          hint="Edit one box at a time - switch tabs to update each feature box."
                                           count={3}
                                           labelPrefix="Box"
                                           activeIndex={activeBoxIndex}
@@ -5123,7 +5123,7 @@ export default function AdvisorDashboard({
                               <div className="bg-white px-5 py-3 rounded-xl border border-gray-200/80 shadow-sm flex items-center justify-between">
                                 <span className="text-xs font-extrabold text-[var(--brand-dark)] flex items-center gap-2">
                                   <FaEye className="w-3.5 h-3.5 text-[var(--brand)]" />
-                                  Live Preview — reflects your edits
+                                  Live Preview - reflects your edits
                                 </span>
                                 <span className="text-[11px] text-gray-400 font-mono bg-gray-50 px-2 py-0.5 rounded">
                                   {sectionDisplayName(section)}

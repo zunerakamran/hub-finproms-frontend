@@ -363,7 +363,7 @@ export default function SocialMediaComplianceRequestDetail() {
 
       {isOwner && can('smc_submit_request') && row.status === 'Rejected' && (
         <form className="admin-form smc-panel" onSubmit={resubmit}>
-          <h2>Rejected — resubmit</h2>
+          <h2>Rejected - resubmit</h2>
           <div className="admin-field">
             <span className="field-label-text">
               <RequiredMark>Updated description</RequiredMark>

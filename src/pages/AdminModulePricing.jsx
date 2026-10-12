@@ -152,7 +152,7 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
       {!loading && chargeEnabled === false && recurringEnabled === false && (
         <div className="alert">
           Both charge functionalities are off
-          {targetHub?.name ? ` for ${targetHub.name}` : ' for this hub'} — enable one-time and/or
+          {targetHub?.name ? ` for ${targetHub.name}` : ' for this hub'} - enable one-time and/or
           recurring under Functionalities to generate invoices.
         </div>
       )}
@@ -208,7 +208,7 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
             </select>
           </label>
           <label>
-            Recurring slot (1–3)
+            Recurring slot (1-3)
             <input
               type="number"
               min="1"
@@ -276,7 +276,7 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
                         {row.recurring_billing_unit || 'none'}
                       </div>
                     </td>
-                    <td>{row.recurring_tier_slot || '—'}</td>
+                    <td>{row.recurring_tier_slot || '-'}</td>
                     <td>{row.is_active ? 'Yes' : 'No'}</td>
                     <td className="actions">
                       <button type="button" className="btn ghost" onClick={() => startEdit(row)}>
@@ -315,7 +315,7 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
                     <td>#{tier.slot}</td>
                     <td>
                       {tier.min_users}
-                      {tier.max_users == null ? '+' : `–${tier.max_users}`}
+                      {tier.max_users == null ? '+' : `-${tier.max_users}`}
                     </td>
                     <td>{formatMoney(tier.rate_per_user)}</td>
                     <td>{formatMoney(tier.network_margin_per_user)}</td>

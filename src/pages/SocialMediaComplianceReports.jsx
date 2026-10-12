@@ -132,7 +132,7 @@ export default function SocialMediaComplianceReports() {
     {
       key: 'firm',
       label: 'Firm',
-      render: (row) => row.firm_name || '—',
+      render: (row) => row.firm_name || '-',
       filterValue: (row) => row.firm_name || '',
     },
     {
@@ -185,7 +185,7 @@ export default function SocialMediaComplianceReports() {
     {
       key: 'reviewed_by',
       label: 'Reviewed by',
-      render: (row) => row.reviewed_by || '—',
+      render: (row) => row.reviewed_by || '-',
       filterValue: (row) => row.reviewed_by || '',
     },
     {

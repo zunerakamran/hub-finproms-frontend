@@ -11,7 +11,7 @@ function normalizeName(name) {
   return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
-/** Pass through real branding — never invent hub/showcase colour defaults. */
+/** Pass through real branding - never invent hub/showcase colour defaults. */
 function normalizeBranding(branding) {
   if (!branding || typeof branding !== 'object') return null
   const primary = branding.primary_color || branding.primaryColor || null
@@ -34,7 +34,7 @@ function normalizeBranding(branding) {
  * Uses the hub embed proxy so X-Frame-Options on the advisor host cannot block it.
  *
  * For hero/slider sections, injects `preview_slide` and (unless disabled) shows
- * slide tabs so reviewers can see slide 2, 3, etc. — not only the first slide.
+ * slide tabs so reviewers can see slide 2, 3, etc. - not only the first slide.
  */
 export default function SectionIframePreview({
   sectionName,
@@ -293,7 +293,7 @@ export default function SectionIframePreview({
           key={src}
           src={src}
           onLoad={handleIframeLoad}
-          title={`Live preview — ${sectionName}`}
+          title={`Live preview - ${sectionName}`}
           className="w-full h-full border-none"
           style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.3s ease' }}
         />

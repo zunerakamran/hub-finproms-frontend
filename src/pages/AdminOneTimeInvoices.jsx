@@ -22,7 +22,7 @@ function typeLabel(type) {
   if (type === 'post_purchase') return 'Post purchase'
   if (type === 'bundle_purchase') return 'Bundle purchase'
   if (type === 'module_billing') return 'Module (one time)'
-  return type || '—'
+  return type || '-'
 }
 
 export default function AdminOneTimeInvoices({ shell = 'client-admin' }) {
@@ -89,7 +89,7 @@ export default function AdminOneTimeInvoices({ shell = 'client-admin' }) {
           <h1>One-time invoices</h1>
           <p className="muted">
             All one-time invoices for <strong>{targetName}</strong>
-            {meta?.total != null ? ` · ${meta.total} total` : ''} — content purchases and one-time
+            {meta?.total != null ? ` · ${meta.total} total` : ''} - content purchases and one-time
             module charges.
           </p>
         </div>
@@ -112,7 +112,7 @@ export default function AdminOneTimeInvoices({ shell = 'client-admin' }) {
             render: (row) =>
               row.user ? (
                 <div>
-                  <div>{row.user.name || '—'}</div>
+                  <div>{row.user.name || '-'}</div>
                   {row.user.email ? (
                     <div className="muted" style={{ fontSize: '0.85em' }}>
                       {row.user.email}
@@ -120,7 +120,7 @@ export default function AdminOneTimeInvoices({ shell = 'client-admin' }) {
                   ) : null}
                 </div>
               ) : (
-                '—'
+                '-'
               ),
           },
           {
@@ -150,7 +150,7 @@ export default function AdminOneTimeInvoices({ shell = 'client-admin' }) {
             filterValue: (row) => row.status || '',
             render: (row) => (
               <span className={`badge ${row.status === 'paid' ? 'ok' : 'warn'}`}>
-                {row.status || '—'}
+                {row.status || '-'}
               </span>
             ),
           },

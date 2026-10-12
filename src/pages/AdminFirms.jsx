@@ -219,7 +219,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                   : 'Edit Firm'
                 : 'Add Firm'
               : headFirmId
-                ? `Head of Firm — ${headFirm?.name || ''}`
+                ? `Head of Firm - ${headFirm?.name || ''}`
                 : 'Firms'}
           </h1>
           <p className="muted">

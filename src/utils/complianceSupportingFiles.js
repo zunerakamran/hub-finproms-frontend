@@ -4,7 +4,7 @@ export const COMPLIANCE_SUPPORTING_FILES_ACCEPT =
   '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.zip'
 
 export const COMPLIANCE_SUPPORTING_FILES_HELPER =
-  'PDF, Office, images, or ZIP — up to 10 files, 10 MB each.'
+  'PDF, Office, images, or ZIP - up to 10 files, 10 MB each.'
 
 export const COMPLIANCE_SUPPORTING_FILES_MAX = 10
 
@@ -28,7 +28,7 @@ export function appendComplianceAttachments(form, files) {
 }
 
 /**
- * Supporting files for a version/request — never falls back to `attachments`
+ * Supporting files for a version/request - never falls back to `attachments`
  * (those are primary content on General Compliance).
  */
 export function resolveComplianceSupportingFiles(rowOrVersion) {

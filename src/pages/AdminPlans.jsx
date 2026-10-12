@@ -160,7 +160,7 @@ export default function AdminPlans({ shell = 'client-admin' }) {
 
   useEffect(() => {
     if (hubLoading || !enabled) return
-    // Fetch once when the page becomes ready — do not re-fetch on hub re-renders.
+    // Fetch once when the page becomes ready - do not re-fetch on hub re-renders.
     if (hasLoadedRef.current) return
     load({ silent: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps

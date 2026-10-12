@@ -37,7 +37,7 @@ export function typesLabel(types) {
     case 'ongoing':
       return 'Ongoing'
     default:
-      return types || '—'
+      return types || '-'
   }
 }
 

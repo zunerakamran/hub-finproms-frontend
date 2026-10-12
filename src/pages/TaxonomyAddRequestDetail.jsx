@@ -189,12 +189,12 @@ export default function TaxonomyAddRequestDetail() {
         </div>
         <div>
           <strong>Remarks</strong>
-          <div style={{ whiteSpace: 'pre-wrap' }}>{row.remarks || '—'}</div>
+          <div style={{ whiteSpace: 'pre-wrap' }}>{row.remarks || '-'}</div>
         </div>
         <div>
           <strong>Requested by</strong>
           <div>
-            {row.submitter?.name || '—'}
+            {row.submitter?.name || '-'}
             {row.submitter?.email ? ` (${row.submitter.email})` : ''}
           </div>
         </div>

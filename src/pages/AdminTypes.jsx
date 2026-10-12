@@ -145,7 +145,7 @@ export default function AdminTypes({ shell = 'client-admin' }) {
             label: 'Slug',
             fit: true,
             filterValue: (row) => row.slug || '',
-            render: (row) => row.slug || '—',
+            render: (row) => row.slug || '-',
           },
         ]}
         rows={types}

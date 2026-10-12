@@ -36,7 +36,7 @@ function formatBytes(n) {
 }
 
 function formatWhen(iso) {
-  if (!iso) return '—'
+  if (!iso) return '-'
   try {
     return new Date(iso).toLocaleString()
   } catch {
@@ -479,7 +479,7 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
                             {b.filename ? (
                               <FileNameLabel name={b.filename} mimeType="application/zip" />
                             ) : (
-                              '—'
+                              '-'
                             )}
                           </td>
                           <td>

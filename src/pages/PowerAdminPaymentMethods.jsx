@@ -215,7 +215,7 @@ export default function PowerAdminPaymentMethods() {
                   platformStripe.secret_set
                     ? '•••••••• (leave blank to keep current)'
                     : platformStripe.env_secret_set
-                      ? 'Using .env — paste to store in dashboard'
+                      ? 'Using .env - paste to store in dashboard'
                       : 'sk_live_... or sk_test_...'
                 }
                 autoComplete="new-password"
@@ -233,7 +233,7 @@ export default function PowerAdminPaymentMethods() {
                   platformStripe.webhook_secret_set
                     ? '•••••••• (leave blank to keep current)'
                     : platformStripe.env_webhook_set
-                      ? 'Using .env — paste to store in dashboard'
+                      ? 'Using .env - paste to store in dashboard'
                       : 'whsec_...'
                 }
                 autoComplete="new-password"

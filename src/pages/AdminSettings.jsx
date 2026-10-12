@@ -213,7 +213,7 @@ export default function AdminSettings() {
           <p className="eyebrow">Hub</p>
           <h1>General settings</h1>
           <p className="muted">
-            Branding for this hub — name, logos, favicon, auth background, colours, and NEW banner
+            Branding for this hub - name, logos, favicon, auth background, colours, and NEW banner
             duration.
           </p>
         </div>
@@ -373,7 +373,7 @@ export default function AdminSettings() {
                 </button>
               </div>
             ) : (
-              <p className="muted">No background image set — auth pages use the default gradient.</p>
+              <p className="muted">No background image set - auth pages use the default gradient.</p>
             )}
 
             <ul className="settings-logo-usage" aria-label="Where the auth background is used">

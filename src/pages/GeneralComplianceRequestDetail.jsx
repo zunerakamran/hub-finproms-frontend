@@ -408,7 +408,7 @@ export default function GeneralComplianceRequestDetail() {
 
       {isOwner && can('gc_submit_request') && row.status === 'Rejected' && (
         <form className="admin-form gc-panel" onSubmit={resubmit}>
-          <h2>Rejected — resubmit</h2>
+          <h2>Rejected - resubmit</h2>
           {row.feedback ? (
             <div style={{ marginBottom: '0.75rem' }}>
               <p className="muted label">Remedial Feedback/notes</p>

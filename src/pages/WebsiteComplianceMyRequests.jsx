@@ -106,13 +106,13 @@ export default function WebsiteComplianceMyRequests() {
     {
       key: 'firm',
       label: 'Firm',
-      render: (row) => row.editor?.firm?.name || '—',
+      render: (row) => row.editor?.firm?.name || '-',
       filterValue: (row) => row.editor?.firm?.name || '',
     },
     {
       key: 'approver',
       label: 'Approver',
-      render: (row) => row.approver?.name || <span className="muted">—</span>,
+      render: (row) => row.approver?.name || <span className="muted">-</span>,
       filterValue: (row) => row.approver?.name || '',
     },
     {

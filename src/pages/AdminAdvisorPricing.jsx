@@ -237,7 +237,7 @@ export default function AdminAdvisorPricing({ shell = 'client-admin' }) {
               <tbody>
                 {tiers.map((tier) => (
                   <tr key={tier.id}>
-                    <td>{tier.label || '—'}</td>
+                    <td>{tier.label || '-'}</td>
                     <td>{tier.min_advisors}+</td>
                     <td>{formatMoney(tier.rate_per_advisor)}</td>
                     <td>{tier.is_active ? 'Yes' : 'No'}</td>

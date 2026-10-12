@@ -19,7 +19,7 @@ export function codeUpdateBadge(codeUpdate) {
 }
 
 export function formatReportedVersion(codeUpdate) {
-  if (!codeUpdate?.reported_version) return '—'
+  if (!codeUpdate?.reported_version) return '-'
   const latest = codeUpdate.latest_version
   if (latest && latest !== codeUpdate.reported_version) {
     return `${codeUpdate.reported_version} (latest ${latest})`

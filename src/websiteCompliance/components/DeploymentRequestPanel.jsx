@@ -411,7 +411,7 @@ export function CreateDeploymentModal({
         err.response?.data?.message || 'Could not load showcase templates for this hub.'
       )
     }).finally(() => {
-      // Content load / layout can push the scroll position down — keep top of form visible.
+      // Content load / layout can push the scroll position down - keep top of form visible.
       requestAnimationFrame(scrollBodyToTop)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once when modal opens
@@ -730,10 +730,10 @@ export function CreateDeploymentModal({
                     className={fieldClass('assignedAdvisorId')}
                     aria-invalid={Boolean(fieldErrors.assignedAdvisorId)}
                   >
-                    <option value="">— Select an advisor —</option>
+                    <option value="">- Select an advisor -</option>
                     {eligibleAdvisors.map(a => (
                       <option key={a.id} value={a.id}>
-                        {a.name} ({a.email}){a.firm?.name ? ` — ${a.firm.name}` : ''}
+                        {a.name} ({a.email}){a.firm?.name ? ` - ${a.firm.name}` : ''}
                       </option>
                     ))}
                   </select>
@@ -847,7 +847,7 @@ export function CreateDeploymentModal({
             <div className="rounded-xl border border-dashed border-gray-200 bg-slate-50/70 px-4 py-3">
               <p className="text-sm font-bold text-[var(--brand-dark)]">Starter content</p>
               <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
-                Everything here is optional — you can flesh out the site after deployment.
+                Everything here is optional - you can flesh out the site after deployment.
               </p>
             </div>
             <TemplateRequestContentFields
@@ -885,7 +885,7 @@ export function CreateDeploymentModal({
                     label="Advisor"
                     value={
                       selectedAdvisor
-                        ? `${selectedAdvisor.name}${selectedAdvisor.firm?.name ? ` — ${selectedAdvisor.firm.name}` : ''}`
+                        ? `${selectedAdvisor.name}${selectedAdvisor.firm?.name ? ` - ${selectedAdvisor.firm.name}` : ''}`
                         : ''
                     }
                   />
@@ -1028,10 +1028,10 @@ export function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
             onChange={e => setAdvisorId(e.target.value)}
             className="w-full text-sm p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] outline-none"
           >
-            <option value="">— Select an advisor —</option>
+            <option value="">- Select an advisor -</option>
             {eligibleAdvisors.map(a => (
               <option key={a.id} value={a.id}>
-                {a.name} ({a.email}){a.firm?.name ? ` — ${a.firm.name}` : ''}
+                {a.name} ({a.email}){a.firm?.name ? ` - ${a.firm.name}` : ''}
               </option>
             ))}
           </select>
@@ -1049,7 +1049,7 @@ export function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
           <div className="flex items-start gap-2">
             <FaExclamationTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
             <p>
-              This assigns the website to the advisor for editing — it is <strong>not</strong> treated as the advisor&apos;s own website request.
+              This assigns the website to the advisor for editing - it is <strong>not</strong> treated as the advisor&apos;s own website request.
               They will see it marked as assigned in their <strong>Deployments</strong> tab. Edits still go through the standard change request → approver approval workflow.
             </p>
           </div>
@@ -1185,7 +1185,7 @@ export default function DeploymentRequestPanel() {
     {
       key: 'template_name',
       label: 'Template',
-      render: (row) => row.template_name || '—',
+      render: (row) => row.template_name || '-',
       filterValue: (row) => row.template_name || '',
     },
     {
@@ -1206,7 +1206,7 @@ export default function DeploymentRequestPanel() {
       label: 'Requested by',
       render: (row) => {
         const requester = row.requested_by || row.requestedBy || row.advisor
-        return requester?.name || '—'
+        return requester?.name || '-'
       },
       filterValue: (row) => {
         const requester = row.requested_by || row.requestedBy || row.advisor
@@ -1254,7 +1254,7 @@ export default function DeploymentRequestPanel() {
             {row.cpanel_domain}
           </a>
         ) : (
-          '—'
+          '-'
         ),
       filterValue: (row) => row.cpanel_domain || '',
       truncate: false,

@@ -139,7 +139,7 @@ export default function WebsiteCompliancePublishLive() {
           <p className="eyebrow">Website Content Pre Approval</p>
           <h1>Publish content</h1>
           <p className="muted">
-            Edit sections on staging or live sites and publish straight to that website — no approver review.
+            Edit sections on staging or live sites and publish straight to that website - no approver review.
           </p>
         </div>
       </div>
@@ -205,7 +205,7 @@ export default function WebsiteCompliancePublishLive() {
         ) : (
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((req) => {
-              const domain = req.cpanel_domain || req.staging_domain || req.domain_name || req.domain || '—'
+              const domain = req.cpanel_domain || req.staging_domain || req.domain_name || req.domain || '-'
               const badge = statusBadge(req)
               return (
                 <article

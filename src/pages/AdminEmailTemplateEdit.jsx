@@ -324,7 +324,7 @@ export default function AdminEmailTemplateEdit() {
               {event.variables.map((variable) => (
                 <li key={variable.key}>
                   <code>{`{{${variable.key}}}`}</code>
-                  {variable.label ? ` — ${variable.label}` : ''}
+                  {variable.label ? ` - ${variable.label}` : ''}
                 </li>
               ))}
             </ul>

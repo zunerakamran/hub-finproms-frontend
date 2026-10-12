@@ -52,28 +52,28 @@ export default function SupportTicketsMyTickets() {
     {
       key: 'subject',
       label: 'Subject',
-      render: (row) => row.subject || '—',
+      render: (row) => row.subject || '-',
       filterValue: (row) => row.subject || '',
     },
     {
       key: 'module',
       label: 'Module',
       fit: true,
-      render: (row) => row.module_area_label || row.module_area || '—',
+      render: (row) => row.module_area_label || row.module_area || '-',
       filterValue: (row) => row.module_area_label || row.module_area || '',
     },
     {
       key: 'category',
       label: 'Category',
       fit: true,
-      render: (row) => row.category_label || row.category || '—',
+      render: (row) => row.category_label || row.category || '-',
       filterValue: (row) => row.category_label || row.category || '',
     },
     {
       key: 'priority',
       label: 'Priority',
       fit: true,
-      render: (row) => row.priority_label || row.priority || '—',
+      render: (row) => row.priority_label || row.priority || '-',
       filterValue: (row) => row.priority_label || row.priority || '',
     },
     {

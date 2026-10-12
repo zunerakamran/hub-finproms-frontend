@@ -23,7 +23,7 @@ function typesLabel(types) {
   if (types === 'recurring') return 'Recurring'
   if (types === 'per_user_buying') return 'Per user buying'
   if (types === 'ongoing') return 'Ongoing'
-  return types || '—'
+  return types || '-'
 }
 
 function typesBadgeClass(types) {
@@ -112,7 +112,7 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
         targetHub.charge_amount_per_module === false &&
         targetHub.charge_recurring_per_module === false && (
           <div className="alert">
-            Both charge functionalities are off for this hub — enable one-time and/or recurring
+            Both charge functionalities are off for this hub - enable one-time and/or recurring
             under Functionalities to generate invoices.
           </div>
         )}
@@ -138,10 +138,10 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
             filterValue: (row) => row.billing_breakdown?.summary || '',
             render: (row) => {
               const b = row.billing_breakdown
-              if (!b) return '—'
+              if (!b) return '-'
               return (
                 <div>
-                  <div>{b.summary || '—'}</div>
+                  <div>{b.summary || '-'}</div>
                   {b.active_users_for_rate != null && (
                     <div className="muted" style={{ fontSize: '0.8em' }}>
                       {b.active_users_for_rate} active
@@ -160,7 +160,7 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
             filterValue: (row) =>
               row.module_recurring_billing?.module_key || row.module_billing?.module_key || '',
             render: (row) =>
-              row.module_recurring_billing?.module_key || row.module_billing?.module_key || '—',
+              row.module_recurring_billing?.module_key || row.module_billing?.module_key || '-',
           },
           {
             key: 'types',
@@ -187,7 +187,7 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
             filterValue: (row) => row.status || '',
             render: (row) => (
               <span className={`badge ${row.status === 'paid' ? 'ok' : 'warn'}`}>
-                {row.status || '—'}
+                {row.status || '-'}
               </span>
             ),
           },

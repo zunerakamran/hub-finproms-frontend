@@ -110,7 +110,7 @@ export default function TaxonomyAddRequestSubmit() {
           <p className="muted">
             Request an SM Templates Library category or tag, a Generic Compliance content type, or a
             firm document category. Reviewers create the option manually, then mark the request
-            Approved — or reject.
+            Approved - or reject.
           </p>
         </div>
         <Link to="/my-dashboard/taxonomy-add-requests" className="btn ghost">

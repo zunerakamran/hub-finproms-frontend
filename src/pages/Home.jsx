@@ -307,7 +307,7 @@ export default function Home() {
           return String(a?.name || a || '').localeCompare(String(b?.name || b || ''))
         })
         setCategories(rankedCategories.slice(0, 8))
-        // Home grid is 3 columns — pad by repeating when fewer unique templates.
+        // Home grid is 3 columns - pad by repeating when fewer unique templates.
         const uniqueTemplates = (nextTemplates || []).slice(0, 3)
         const paddedTemplates = []
         if (uniqueTemplates.length > 0) {
@@ -576,7 +576,7 @@ export default function Home() {
                 __html: formatPageHtml(
                   t(
                     'lead',
-                    'Discover **fully editable** posts and reels designed to simplify your creative process — compliant content, ready to publish.'
+                    'Discover **fully editable** posts and reels designed to simplify your creative process - compliant content, ready to publish.'
                   )
                 ),
               }}
@@ -762,15 +762,15 @@ export default function Home() {
                     <p>{t('tickets_overview_body', 'Track open requests and get help from the support team.')}</p>
                     <div className="home-tickets__stats">
                       <div className="home-tickets__stat">
-                        <strong>{canViewTickets ? ticketCounts.open : '—'}</strong>
+                        <strong>{canViewTickets ? ticketCounts.open : '-'}</strong>
                         <span>{t('tickets_status_open', 'Open')}</span>
                       </div>
                       <div className="home-tickets__stat">
-                        <strong>{canViewTickets ? ticketCounts.progress : '—'}</strong>
+                        <strong>{canViewTickets ? ticketCounts.progress : '-'}</strong>
                         <span>{t('tickets_status_progress', 'In progress')}</span>
                       </div>
                       <div className="home-tickets__stat">
-                        <strong>{canViewTickets ? ticketCounts.completed : '—'}</strong>
+                        <strong>{canViewTickets ? ticketCounts.completed : '-'}</strong>
                         <span>{t('tickets_status_completed', 'Completed')}</span>
                       </div>
                     </div>
@@ -1030,7 +1030,7 @@ export default function Home() {
             <p className="muted">
               {t(
                 'features_lead',
-                'Everything you need to publish with confidence — templates, editing, and compliance in one hub.'
+                'Everything you need to publish with confidence - templates, editing, and compliance in one hub.'
               )}
             </p>
           </div>

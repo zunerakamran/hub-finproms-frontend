@@ -140,13 +140,13 @@ export default function WebsiteComplianceReports() {
     {
       key: 'firm',
       label: 'Firm',
-      render: (row) => row.firm_name || '—',
+      render: (row) => row.firm_name || '-',
       filterValue: (row) => row.firm_name || '',
     },
     {
       key: 'section',
       label: 'Section',
-      render: (row) => row.section_name || '—',
+      render: (row) => row.section_name || '-',
       filterValue: (row) => row.section_name || '',
     },
     {
@@ -182,7 +182,7 @@ export default function WebsiteComplianceReports() {
     {
       key: 'reviewed_by',
       label: 'Reviewed by',
-      render: (row) => row.reviewed_by || '—',
+      render: (row) => row.reviewed_by || '-',
       filterValue: (row) => row.reviewed_by || '',
     },
     {
@@ -357,7 +357,7 @@ export default function WebsiteComplianceReports() {
                   <div>
                     <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Website Compliance request</h2>
                     <p className="muted" style={{ margin: '0.25rem 0 0' }}>
-                      Open a request’s audit trail from the column — it opens in a dialog, not inside
+                      Open a request’s audit trail from the column - it opens in a dialog, not inside
                       the table.
                     </p>
                   </div>

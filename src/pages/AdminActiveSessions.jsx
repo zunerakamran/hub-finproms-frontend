@@ -57,7 +57,7 @@ export default function AdminActiveSessions({ shell = 'client-admin' }) {
     if (!id) return
 
     const label = row.user?.email || row.user?.name || `user #${id}`
-    const selfNote = row.is_current_user ? ' This is your own account — you will be signed out.' : ''
+    const selfNote = row.is_current_user ? ' This is your own account - you will be signed out.' : ''
     if (!window.confirm(`Force-logout ${label}? All of their sessions will end.${selfNote}`)) {
       return
     }
@@ -145,7 +145,7 @@ export default function AdminActiveSessions({ shell = 'client-admin' }) {
               key: 'role',
               label: 'Role',
               filterValue: (row) => roleLabel(row.user?.role) || row.user?.role || '',
-              render: (row) => roleLabel(row.user?.role) || row.user?.role || '—',
+              render: (row) => roleLabel(row.user?.role) || row.user?.role || '-',
             },
             {
               key: 'session_count',

@@ -130,7 +130,7 @@ export default function AdminGdpr() {
         filterValue: (row) => row.name || '',
         render: (row) => (
           <span>
-            {row.name || '—'}
+            {row.name || '-'}
             {row.gdpr_erased_at ? (
               <span className="muted" style={{ marginLeft: 8 }}>
                 (erased)
@@ -143,19 +143,19 @@ export default function AdminGdpr() {
         key: 'email',
         label: 'Email',
         filterValue: (row) => row.email || '',
-        render: (row) => row.email || '—',
+        render: (row) => row.email || '-',
       },
       {
         key: 'role',
         label: 'Role',
         filterValue: (row) => roleLabel?.(row.role) || row.role || '',
-        render: (row) => roleLabel?.(row.role) || row.role || '—',
+        render: (row) => roleLabel?.(row.role) || row.role || '-',
       },
       {
         key: 'firm',
         label: 'Firm',
         filterValue: (row) => row.firm?.name || '',
-        render: (row) => row.firm?.name || '—',
+        render: (row) => row.firm?.name || '-',
       },
     ],
     [roleLabel]

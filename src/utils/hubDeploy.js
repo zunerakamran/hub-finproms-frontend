@@ -62,7 +62,7 @@ export function buildDeployPreview(hub, meta) {
       },
       {
         key: 'api_url',
-        label: 'API URL recorded (optional — needed for version checks)',
+        label: 'API URL recorded (optional - needed for version checks)',
         done: Boolean(api),
         required: false,
       },
@@ -92,7 +92,7 @@ export function buildDeployPreview(hub, meta) {
       },
     ],
     env_snippet: [
-      `# ${typeLabel} deploy — same codebase, OWN database`,
+      `# ${typeLabel} deploy - same codebase, OWN database`,
       `HUB_SLUG=${slug}`,
       hub?.type === 'shared' ? 'HUB_IS_CONTROL_PLANE=false' : null,
       frontend ? `FRONTEND_URL=${frontend.replace(/\/$/, '')}` : 'FRONTEND_URL=https://example.com',

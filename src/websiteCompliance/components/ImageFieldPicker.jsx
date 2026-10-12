@@ -1,6 +1,6 @@
 /**
  * Image picker for WC section editors.
- * Local /assets/intime/* catalog thumbs are not shipped in hub-finproms-frontend —
+ * Local /assets/intime/* catalog thumbs are not shipped in hub-finproms-frontend -
  * use Upload (websiteComplianceUploadImage) or paste a remote https URL.
  */
 import { useMemo, useRef, useState } from 'react'
@@ -75,7 +75,7 @@ export default function ImageFieldPicker({
               <span className="truncate">{displayName}</span>
             </p>
           ) : (
-            <p className="text-[11px] text-gray-400 mt-0.5">No image selected — use Preview tab to see result</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">No image selected - use Preview tab to see result</p>
           )}
         </div>
         {value && (

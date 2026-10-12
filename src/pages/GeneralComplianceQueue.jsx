@@ -115,7 +115,7 @@ export default function GeneralComplianceQueue() {
     {
       key: 'firm',
       label: 'Firm',
-      render: (row) => row.submitter?.firm?.name || '—',
+      render: (row) => row.submitter?.firm?.name || '-',
       filterValue: (row) => row.submitter?.firm?.name || '',
     },
     {
@@ -129,7 +129,7 @@ export default function GeneralComplianceQueue() {
       key: 'content_type',
       label: 'Content type',
       fit: true,
-      render: (row) => row.content_type || '—',
+      render: (row) => row.content_type || '-',
       filterValue: (row) => row.content_type || '',
     },
     {
@@ -137,7 +137,7 @@ export default function GeneralComplianceQueue() {
       label: 'Attachments',
       render: (row) => {
         const count = resolveComplianceAttachments(row).length
-        return count ? <span className="muted">{count} file(s)</span> : '—'
+        return count ? <span className="muted">{count} file(s)</span> : '-'
       },
       filterValue: (row) => String(resolveComplianceAttachments(row).length),
     },
@@ -249,7 +249,7 @@ export default function GeneralComplianceQueue() {
                 aria-label="Assign reviewer"
                 title="Assign reviewer"
               >
-                <option value="">— Unassigned —</option>
+                <option value="">- Unassigned -</option>
                 {reviewersForSubmitterFirm(reviewers, row.submitter?.firm).map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}
@@ -269,7 +269,7 @@ export default function GeneralComplianceQueue() {
               ) : Number(row.assigned_to) === Number(user?.id) ? (
                 <span className="muted">You</span>
               ) : (
-                <span className="muted">—</span>
+                <span className="muted">-</span>
               )
             ) : null}
           </>

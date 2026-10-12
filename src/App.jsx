@@ -147,12 +147,12 @@ export default function App() {
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
             <Routes>
-            {/* Home — public on shared hubs; login required on white-labelled */}
+            {/* Home - public on shared hubs; login required on white-labelled */}
             <Route element={<Layout />}>
               <Route index element={<HomeRoute />} />
             </Route>
 
-            {/* Member catalog & plans — login + View website pages capability */}
+            {/* Member catalog & plans - login + View website pages capability */}
             <Route
               element={
                 <ProtectedRoute>
@@ -234,7 +234,7 @@ export default function App() {
               />
             </Route>
 
-            {/* Universal dashboard — tools from Capabilities matrix (+ Power Admin pa_* tools) */}
+            {/* Universal dashboard - tools from Capabilities matrix (+ Power Admin pa_* tools) */}
             <Route
               element={
                 <ProtectedRoute dashboardOnly>

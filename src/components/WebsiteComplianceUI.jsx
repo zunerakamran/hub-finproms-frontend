@@ -46,7 +46,7 @@ export function WcVersionCard({ version, isLatest, requestId = null, request = n
         </div>
         <div>
           <p className="muted label">Submitted by</p>
-          <p className="wc-pre">{version.submitted_by || '—'}</p>
+          <p className="wc-pre">{version.submitted_by || '-'}</p>
         </div>
         {resolveComplianceSupportingFiles(version).length ? (
           <div>

@@ -50,7 +50,7 @@ function ImportBatchDetails({ batch }) {
             <ul className="muted">
               {section.rows.map((row) => (
                 <li key={`${section.key}-${row.email || row.name}`}>
-                  {row.name || '—'} ({row.email || '—'})
+                  {row.name || '-'} ({row.email || '-'})
                   {row.role ? ` · ${row.role}` : ''}
                   {row.firm ? ` · ${row.firm}` : ''}
                 </li>
@@ -333,7 +333,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           const person = row.submitted_by || row.imported_by
           return person?.name
             ? `${person.name}${person.email ? ` (${person.email})` : ''}`
-            : '—'
+            : '-'
         },
       },
       {
@@ -343,7 +343,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           row.original_filename ? (
             <FileNameLabel name={row.original_filename} mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
           ) : (
-            '—'
+            '-'
           ),
       },
       {
@@ -373,7 +373,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
             ? 'Pending'
             : row.status === 'completed'
               ? 'Completed'
-              : row.status || '—'
+              : row.status || '-'
           return <span className={`badge ${row.status === 'completed' ? 'ok' : ''}`}>{label}</span>
         },
       },
@@ -554,7 +554,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
               <p className="muted">
                 {quote?.has_saved_card
                   ? 'Stripe will charge the client admin card on file from Payment card settings.'
-                  : 'No card on file yet — Stripe Checkout will collect a card, or add one under Payment card first.'}
+                  : 'No card on file yet - Stripe Checkout will collect a card, or add one under Payment card first.'}
               </p>
               {(quote.payment_methods || []).map((method) => (
                 <label key={method.id} className="checklist-item">
@@ -575,7 +575,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
                       : ''}
                     {method.id === 'saved_card' ? ' (charge now + keep auto-renew)' : ''}
                     {!method.available && method.unavailable_reason
-                      ? ` — ${method.unavailable_reason}`
+                      ? ` - ${method.unavailable_reason}`
                       : ''}
                   </span>
                 </label>
@@ -623,7 +623,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           <h2>{result.awaiting_payment ? 'Import preview' : 'Import result'}</h2>
           <p className="muted">
             {result.awaiting_payment
-              ? `Will create ${result.summary?.created ?? result.preview?.created?.length ?? 0}, update ${result.summary?.updated ?? result.preview?.updated?.length ?? 0}, skip ${result.summary?.skipped ?? 0} — after payment.`
+              ? `Will create ${result.summary?.created ?? result.preview?.created?.length ?? 0}, update ${result.summary?.updated ?? result.preview?.updated?.length ?? 0}, skip ${result.summary?.skipped ?? 0} - after payment.`
               : `Created ${result.summary?.created ?? 0}, updated ${result.summary?.updated ?? 0}, skipped ${result.summary?.skipped ?? 0}`}
           </p>
 
@@ -661,10 +661,10 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
                       <tr key={row.email}>
                         <td>{row.name}</td>
                         <td>{row.email}</td>
-                        <td>{row.role || '—'}</td>
-                        <td>{row.firm || '—'}</td>
+                        <td>{row.role || '-'}</td>
+                        <td>{row.firm || '-'}</td>
                         <td>
-                          <code>{row.temporary_password || '—'}</code>
+                          <code>{row.temporary_password || '-'}</code>
                         </td>
                       </tr>
                     ))}

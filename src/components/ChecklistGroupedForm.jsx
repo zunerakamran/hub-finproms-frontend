@@ -47,7 +47,7 @@ export default function ChecklistGroupedForm({ items, flags, setFlags, onSubmit,
               const tip = item.locked
                 ? 'This option is locked for this hub.'
                 : item.inactive && item.requires_module
-                  ? `Requires ${item.requires_module.replace(/^module_/, '').replace(/_/g, ' ')} module — enable it under Modules.`
+                  ? `Requires ${item.requires_module.replace(/^module_/, '').replace(/_/g, ' ')} module - enable it under Modules.`
                   : undefined
               return (
                 <label

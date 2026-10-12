@@ -89,7 +89,7 @@ export function HubProvider({ children }) {
       const key = hubQueryKey(user?.id ?? 'guest')
 
       // After hub switch / checklist save, always hit the network.
-      // Never reuse boot prefetch here — stale boot was overwriting the acting hub
+      // Never reuse boot prefetch here - stale boot was overwriting the acting hub
       // and then /hub-content/* returned 422 ("select a hub" / credentials).
       let hubData
       if (force) {
@@ -193,7 +193,7 @@ export function HubProvider({ children }) {
     const previous = lastIdentityRef.current
     lastIdentityRef.current = identity
 
-    // Guest/pending hub payloads have no effective_capabilities — force a fresh
+    // Guest/pending hub payloads have no effective_capabilities - force a fresh
     // /hub after login so dashboard nav options appear without a hard refresh.
     const becameAuthed = Boolean(
       user &&
@@ -280,10 +280,10 @@ export function HubProvider({ children }) {
       const firmDocRight = (key) => {
         const fdr = hub?.firm_document_rights
         if (!fdr) return false
-        // Head unlocks view/add for the Firm documents menu only — never
+        // Head unlocks view/add for the Firm documents menu only - never
         // manage_firm_access, delete, or archive (those are scoped elsewhere).
         if (key === 'firm_documents_view') return Boolean(fdr.is_firm_head || fdr.can_view)
-        // Upload is Head of Firm only — not grantable via matrix / key icon.
+        // Upload is Head of Firm only - not grantable via matrix / key icon.
         if (key === 'firm_documents_add') return Boolean(fdr.is_firm_head || fdr.can_add)
         if (key === 'firm_documents_delete') return Boolean(fdr.can_delete)
         if (key === 'firm_documents_archive') return Boolean(fdr.can_archive)
@@ -296,7 +296,7 @@ export function HubProvider({ children }) {
         return false
       }
 
-      // Authenticated viewers must use role-resolved caps — never the hub-wide
+      // Authenticated viewers must use role-resolved caps - never the hub-wide
       // OR checklist (that would show tools unchecked for this role).
       if (hub?.effective_capabilities) {
         if (Object.prototype.hasOwnProperty.call(hub.effective_capabilities, flag)) {
@@ -379,7 +379,7 @@ export function HubProvider({ children }) {
     return Boolean(actingChecklist.private_invite_only)
   }, [hub, actingChecklist, actingRemotelyForChecklist])
 
-  /** Advisor billing is on for this hub — not a capabilities-matrix flag. */
+  /** Advisor billing is on for this hub - not a capabilities-matrix flag. */
   const advisorBillingEnabled = useMemo(() => {
     return Boolean(
       actingChecklist.advisor_subscriber_billing || actingChecklist.private_invite_only
@@ -389,7 +389,7 @@ export function HubProvider({ children }) {
   /**
    * Payment-card is the client-admin payer tool only on white-labelled hubs
    * (matches backend AdvisorPaymentCardController). Power / FinProms staff
-   * complete import checkout against the client admin card — they do not
+   * complete import checkout against the client admin card - they do not
    * manage Payment card settings.
    */
   const canManagePaymentCard = useMemo(() => {
@@ -444,7 +444,7 @@ export function HubProvider({ children }) {
         const data = await api.setActingHub(hubId, { asPowerAdmin })
         const switcher = data?.hub_switcher
         if (switcher) {
-          // Apply switcher payload directly — avoids a second heavy GET /hub.
+          // Apply switcher payload directly - avoids a second heavy GET /hub.
           setHub((prev) => {
             if (!prev) return prev
             return {
@@ -500,12 +500,12 @@ export function HubProvider({ children }) {
           : null
 
       // Public/member website chrome follows THIS deploy's member_view_site_pages
-      // (control-plane matrix while on Central — not the selected remote hub).
+      // (control-plane matrix while on Central - not the selected remote hub).
       const canViewSitePages = can('member_view_site_pages')
 
       return {
         hub,
-        // Only block the tree on the first hub fetch — not background refreshes.
+        // Only block the tree on the first hub fetch - not background refreshes.
         loading: (loading && !hub) || authLoading,
         error,
         refreshHub,

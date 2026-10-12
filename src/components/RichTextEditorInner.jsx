@@ -43,7 +43,7 @@ const FULL_FORMATS = [
 ]
 
 /**
- * Quill implementation — loaded only when an editor mounts.
+ * Quill implementation - loaded only when an editor mounts.
  */
 export default function RichTextEditorInner({
   value = '',

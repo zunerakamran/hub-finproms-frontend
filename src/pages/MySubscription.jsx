@@ -17,7 +17,7 @@ function formatMoney(amount, currency = 'gbp') {
 }
 
 function statusLabel(status) {
-  if (!status) return '—'
+  if (!status) return '-'
   return String(status).replace(/_/g, ' ')
 }
 
@@ -103,7 +103,7 @@ export default function MySubscription() {
           row.credits_granted != null ? (
             <span className="credits-amt credits-amt--in">+{row.credits_granted}</span>
           ) : (
-            '—'
+            '-'
           ),
       },
       {
@@ -178,11 +178,11 @@ export default function MySubscription() {
               <div className="subscription-card__meta">
                 <div>
                   <span className="muted">Current balance</span>
-                  <strong>{unlimitedBalance ? 'Unlimited' : balance ?? '—'}</strong>
+                  <strong>{unlimitedBalance ? 'Unlimited' : balance ?? '-'}</strong>
                 </div>
                 <div>
                   <span className="muted">Hub setting</span>
-                  <strong>{allotment?.label || '—'}</strong>
+                  <strong>{allotment?.label || '-'}</strong>
                 </div>
               </div>
             </>
@@ -235,7 +235,7 @@ export default function MySubscription() {
           <div className="subscription-card__meta subscription-card__meta--stack">
             <div>
               <span className="muted">Credits remaining</span>
-              <strong>{unlimitedBalance ? 'Unlimited' : balance ?? '—'}</strong>
+              <strong>{unlimitedBalance ? 'Unlimited' : balance ?? '-'}</strong>
             </div>
             <div>
               <span className="muted">History records</span>

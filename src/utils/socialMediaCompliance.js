@@ -70,21 +70,21 @@ export function inactiveReasonHint(reason) {
 export function inactiveReasonTitle(reason) {
   switch (reason) {
     case 'public_only':
-      return 'Shared hub only — inactive while this hub is white-labelled'
+      return 'Shared hub only - inactive while this hub is white-labelled'
     case 'private_only':
-      return 'White-labelled hub only — inactive while this hub is shared'
+      return 'White-labelled hub only - inactive while this hub is shared'
     case 'module_social_media_template_library_off':
-      return 'Requires Social Media Template Library — enable it under Modules'
+      return 'Requires Social Media Template Library - enable it under Modules'
     case 'module_social_media_compliance_off':
-      return 'Requires Social Media Pre Approval Workflow — enable it under Modules'
+      return 'Requires Social Media Pre Approval Workflow - enable it under Modules'
     case 'module_general_compliance_off':
-      return 'Requires Generic Content Pre Approval Workflow — enable it under Modules'
+      return 'Requires Generic Content Pre Approval Workflow - enable it under Modules'
     case 'module_website_template_library_off':
-      return 'Requires Website Template Library — enable it under Modules'
+      return 'Requires Website Template Library - enable it under Modules'
     case 'module_website_compliance_off':
-      return 'Requires Website Content Pre Approval Workflow — enable it under Modules'
+      return 'Requires Website Content Pre Approval Workflow - enable it under Modules'
     case 'charge_amount_per_module_off':
-      return 'Requires Charge amount per module (one time) — enable it under Functionalities'
+      return 'Requires Charge amount per module (one time) - enable it under Functionalities'
     case 'central_hub_no_member_catalog':
       return 'Not applicable on Central Hub Controller'
     default:

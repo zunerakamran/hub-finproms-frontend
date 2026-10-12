@@ -61,13 +61,13 @@ function getRequestSections(req) {
 
 function getSectionLabel(req) {
   const { type, names } = getRequestSections(req)
-  if (type === 'single') return names[0] || '—'
+  if (type === 'single') return names[0] || '-'
   if (type === 'batch') {
     const preview = names.slice(0, 3).join(', ')
     const extra = names.length > 3 ? ` +${names.length - 3} more` : ''
-    return `${preview}${extra}` || '—'
+    return `${preview}${extra}` || '-'
   }
-  return '—'
+  return '-'
 }
 
 function RequestTitle({ req }) {
@@ -337,7 +337,7 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
                 <option value="">Choose {approverLabel.toLowerCase()}…</option>
                 {approvers.map(a => (
                   <option key={a.id} value={a.id}>
-                    {a.name} ({a.email}){a.firm?.name ? ` — ${a.firm.name}` : ''}
+                    {a.name} ({a.email}){a.firm?.name ? ` - ${a.firm.name}` : ''}
                   </option>
                 ))}
               </select>
@@ -688,7 +688,7 @@ export default function ChangeRequestAssignmentPanel({
       {
         key: 'firm',
         label: 'Firm',
-        render: (row) => row.editor?.firm?.name || '—',
+        render: (row) => row.editor?.firm?.name || '-',
         filterValue: (row) => row.editor?.firm?.name || '',
       },
       {

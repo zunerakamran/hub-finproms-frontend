@@ -160,7 +160,7 @@ export default function ChangeRequestReviewActions({
       } else if (queued) {
         onMessage?.(
           apiMessage ||
-            'Request approved in the hub. Live site sync was queued — refresh the advisor site after the worker runs.'
+            'Request approved in the hub. Live site sync was queued - refresh the advisor site after the worker runs.'
         )
       } else {
         onError?.(

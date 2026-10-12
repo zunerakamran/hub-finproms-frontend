@@ -132,13 +132,13 @@ export default function GeneralComplianceReports() {
     {
       key: 'firm',
       label: 'Firm',
-      render: (row) => row.firm_name || '—',
+      render: (row) => row.firm_name || '-',
       filterValue: (row) => row.firm_name || '',
     },
     {
       key: 'files',
       label: 'Files',
-      render: (row) => row.attachment_count ?? '—',
+      render: (row) => row.attachment_count ?? '-',
       filterValue: (row) => String(row.attachment_count ?? ''),
     },
     {
@@ -156,7 +156,7 @@ export default function GeneralComplianceReports() {
       key: 'content_type',
       label: 'Content type',
       fit: true,
-      render: (row) => row.content_type || '—',
+      render: (row) => row.content_type || '-',
       filterValue: (row) => row.content_type || '',
     },
     {
@@ -198,7 +198,7 @@ export default function GeneralComplianceReports() {
     {
       key: 'reviewed_by',
       label: 'Reviewed by',
-      render: (row) => row.reviewed_by || '—',
+      render: (row) => row.reviewed_by || '-',
       filterValue: (row) => row.reviewed_by || '',
     },
     {

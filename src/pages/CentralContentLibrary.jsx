@@ -41,7 +41,7 @@ function normalizeNames(list) {
 function hubTypeLabel(type) {
   if (type === 'white_label') return 'White-labelled'
   if (type === 'shared') return 'Shared'
-  return type || '—'
+  return type || '-'
 }
 
 function isArchivedPost(post) {
@@ -193,7 +193,7 @@ export default function CentralContentLibrary() {
       try {
         await refreshHub({ silent: true })
       } catch {
-        // Ignore — still attempt load with current caps.
+        // Ignore - still attempt load with current caps.
       }
       if (cancelled) return
     })()
@@ -421,7 +421,7 @@ export default function CentralContentLibrary() {
 
       setMessage(
         queued.message ||
-          'Distribution started in the background. You can keep working — this updates when finished.'
+          'Distribution started in the background. You can keep working - this updates when finished.'
       )
       setSelectedIds([])
       setSelectedHubIds([])
@@ -478,7 +478,7 @@ export default function CentralContentLibrary() {
             <div className="library-grid-title">
               <strong>{row.title}</strong>
               <span className="muted">
-                {row.type || '—'} · {row.credits_cost ?? '—'} credits
+                {row.type || '-'} · {row.credits_cost ?? '-'} credits
               </span>
               {hubNames.length > 0 ? (
                 <span className="library-already-on" title={hubNames.join(', ')}>
@@ -505,7 +505,7 @@ export default function CentralContentLibrary() {
         width: 150,
         filterValue: (row) => row.updated_at || '',
         render: (row) =>
-          row.updated_at ? new Date(row.updated_at).toLocaleDateString() : '—',
+          row.updated_at ? new Date(row.updated_at).toLocaleDateString() : '-',
       },
     ],
     [selectedIds]
@@ -563,7 +563,7 @@ export default function CentralContentLibrary() {
           const parts = []
           if (row.manual_posts) parts.push('Manual')
           if (row.ai_posts) parts.push('AI')
-          return parts.length ? parts.join(', ') : '—'
+          return parts.length ? parts.join(', ') : '-'
         },
       },
       {
@@ -592,7 +592,7 @@ export default function CentralContentLibrary() {
           <div className="library-grid-title">
             <strong>{row.title}</strong>
             <span className="muted">
-              {row.creation_source || 'manual'} · {row.type || '—'}
+              {row.creation_source || 'manual'} · {row.type || '-'}
             </span>
           </div>
         ),
@@ -618,7 +618,7 @@ export default function CentralContentLibrary() {
         wrap: true,
         render: (row) =>
           isArchivedPost(row) ? (
-            <span className="muted">{row.archive_remarks || '—'}</span>
+            <span className="muted">{row.archive_remarks || '-'}</span>
           ) : (
             <input
               className="library-remarks-input"
@@ -788,7 +788,7 @@ export default function CentralContentLibrary() {
                     ))}
                   </datalist>
                   <span className="field-hint">
-                    Pick an existing Central type or type a new name — it is saved to Central when
+                    Pick an existing Central type or type a new name - it is saved to Central when
                     you add the post. <Link to="/my-dashboard/types">Manage types</Link>
                   </span>
                 </label>
@@ -823,7 +823,7 @@ export default function CentralContentLibrary() {
                     createPlaceholder="Or type a new category and press Enter…"
                     emptyHint={
                       <>
-                        No categories yet — type a new name above, or{' '}
+                        No categories yet - type a new name above, or{' '}
                         <Link to="/my-dashboard/categories">manage categories</Link>.
                       </>
                     }
@@ -840,7 +840,7 @@ export default function CentralContentLibrary() {
                     createPlaceholder="Or type a new tag and press Enter…"
                     emptyHint={
                       <>
-                        No tags yet — type a new name above, or{' '}
+                        No tags yet - type a new name above, or{' '}
                         <Link to="/my-dashboard/tags">manage tags</Link>.
                       </>
                     }
@@ -883,7 +883,7 @@ export default function CentralContentLibrary() {
       {tab === 'ai' && (
         <div className="settings-block library-ai-stub">
           <h2>AI posts</h2>
-          <p className="muted">Under development — AI generation is not available yet.</p>
+          <p className="muted">Under development - AI generation is not available yet.</p>
           <div className="empty-state">
             <h2>Coming soon</h2>
             <p className="muted">This workspace is reserved for AI-generated posts.</p>
@@ -1096,7 +1096,7 @@ export default function CentralContentLibrary() {
             <div className="library-picker__intro">
               <h2>Archive / unarchive</h2>
               <p className="muted" style={{ marginTop: 0 }}>
-                Search the full library, filter by status, and archive with remarks — or restore
+                Search the full library, filter by status, and archive with remarks - or restore
                 archived posts to the distribute pool.
               </p>
             </div>

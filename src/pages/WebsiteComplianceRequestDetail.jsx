@@ -214,7 +214,7 @@ export default function WebsiteComplianceRequestDetail() {
   )
   const editorPath = `/my-dashboard/website-compliance/content-editor`
   const reviseEditorPath = `${editorPath}?revise=${row.id}`
-  const sectionLabel = wcSectionTitle(row) || '—'
+  const sectionLabel = wcSectionTitle(row) || '-'
   const submittedBy = row.attribution_label
     ? row.attribution_label
     : row.on_behalf_by?.name
@@ -266,7 +266,7 @@ export default function WebsiteComplianceRequestDetail() {
           </div>
         </MetaItem>
         <MetaItem icon={FaBuilding} label="Firm">
-          {row.editor?.firm?.name || '—'}
+          {row.editor?.firm?.name || '-'}
         </MetaItem>
         <MetaItem icon={FaClipboardCheck} label="Approver">
           {row.approver?.name ? (
@@ -412,7 +412,7 @@ export default function WebsiteComplianceRequestDetail() {
 
       {isOwner && canSubmit && row.status === 'rejected' ? (
         <div className="admin-form wc-panel wc-detail-card">
-          <h2>Rejected — resubmit</h2>
+          <h2>Rejected - resubmit</h2>
           <p className="muted">
             Open the content editor to revise <strong>only the sections edited in this request</strong>,
             then resubmit. Or start a new request for any sections.
@@ -428,7 +428,7 @@ export default function WebsiteComplianceRequestDetail() {
         </div>
       ) : null}
 
-      {/* Tailwind WC utilities are scoped to `.wc-app` — required for preview components. */}
+      {/* Tailwind WC utilities are scoped to `.wc-app` - required for preview components. */}
       <div className="wc-app wc-detail-body">
         <div className="wc-panel wc-detail-card wc-detail-preview">
           <div className="wc-detail-card__head">

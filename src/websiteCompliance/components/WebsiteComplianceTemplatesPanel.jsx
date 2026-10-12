@@ -359,7 +359,7 @@ export default function WebsiteComplianceTemplatesPanel({
       {
         key: 'template_name',
         label: 'Template',
-        render: (row) => row.template_name || '—',
+        render: (row) => row.template_name || '-',
         filterValue: (row) => row.template_name || '',
       },
       {
@@ -373,7 +373,7 @@ export default function WebsiteComplianceTemplatesPanel({
             <span className="min-w-0">
               <span className="inline-flex items-center gap-1.5">
                 <FaGlobe className="w-3 h-3 text-gray-400 shrink-0" aria-hidden="true" />
-                <span className="truncate">{intended || '—'}</span>
+                <span className="truncate">{intended || '-'}</span>
               </span>
               {active && active !== intended ? (
                 <span className="block text-[10px] text-gray-500 mt-0.5 truncate">
@@ -551,7 +551,7 @@ export default function WebsiteComplianceTemplatesPanel({
     setCpanelDbHost(req.cpanel_db_host || 'localhost')
     setCpanelDbName(req.cpanel_db_name || '')
     setCpanelDbUser(req.cpanel_db_user || '')
-    // Secrets are never returned by the API — leave blank to keep existing values.
+    // Secrets are never returned by the API - leave blank to keep existing values.
     setCpanelDbPass('')
     setCpanelApiKey('')
     fillBrandingFromRequest(req)
@@ -567,7 +567,7 @@ export default function WebsiteComplianceTemplatesPanel({
     setCpanelDbHost(req.cpanel_db_host || 'localhost')
     setCpanelDbName(req.cpanel_db_name || '')
     setCpanelDbUser(req.cpanel_db_user || '')
-    // Secrets are never returned by the API — leave blank to keep existing values.
+    // Secrets are never returned by the API - leave blank to keep existing values.
     setCpanelDbPass('')
     setCpanelApiKey('')
     fillBrandingFromRequest(req)
@@ -1093,7 +1093,7 @@ export default function WebsiteComplianceTemplatesPanel({
                 (onSite && canPublishLive) ||
                 (onSite && canManageSections) ||
                 canDeployWebsites
-              if (!hasAction) return <span className="muted">—</span>
+              if (!hasAction) return <span className="muted">-</span>
               return (
                 <span className="data-grid__actions-inner">
                   {canViewDeployments ? (
@@ -1192,7 +1192,7 @@ export default function WebsiteComplianceTemplatesPanel({
 
             <div>
               <label className={fieldLabelClass} htmlFor="wc-tpl-slug">
-                Slug <span className="font-normal text-gray-400">(optional — auto from name)</span>
+                Slug <span className="font-normal text-gray-400">(optional - auto from name)</span>
               </label>
               <input
                 id="wc-tpl-slug"
@@ -1398,7 +1398,7 @@ export default function WebsiteComplianceTemplatesPanel({
               ) : null}
             </div>
             <div className="rounded-xl border border-gray-100 bg-slate-50/80 px-4 py-3 text-[11px] text-gray-600">
-              Hosting only — URL, database, and API key. To change logos or colours, use the branding action.
+              Hosting only - URL, database, and API key. To change logos or colours, use the branding action.
             </div>
             <div>
               <label className={fieldLabelClass} htmlFor="wc-deploy-domain">
@@ -1531,7 +1531,7 @@ export default function WebsiteComplianceTemplatesPanel({
               <p>
                 Staging URL:{' '}
                 <span className="font-mono font-semibold">
-                  {promoteRequest.staging_domain || promoteRequest.cpanel_domain || '—'}
+                  {promoteRequest.staging_domain || promoteRequest.cpanel_domain || '-'}
                 </span>
               </p>
               {promoteRequest.go_live_notes ? (
@@ -1541,7 +1541,7 @@ export default function WebsiteComplianceTemplatesPanel({
               ) : null}
             </div>
             <div className="rounded-xl border border-gray-100 bg-slate-50/80 px-4 py-3 text-[11px] text-gray-600">
-              Hosting only — URL, database, and API key. Branding is managed separately.
+              Hosting only - URL, database, and API key. Branding is managed separately.
             </div>
             <div>
               <label className={fieldLabelClass} htmlFor="wc-promote-domain">

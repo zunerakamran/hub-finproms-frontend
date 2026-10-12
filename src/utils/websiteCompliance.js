@@ -17,7 +17,7 @@ export const WC_STATUSES = [
   'approved_with_feedback',
 ]
 
-/** Manager override options — matches SMC/GC order. */
+/** Manager override options - matches SMC/GC order. */
 export const WC_CHANGE_STATUS_OPTIONS = [
   'pending',
   'approved',

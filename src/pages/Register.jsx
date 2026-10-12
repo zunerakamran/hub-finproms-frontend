@@ -36,7 +36,7 @@ export default function Register() {
             </div>
           </div>
           <p className="muted">
-            Public registration is disabled for this hub. Access is for invited advisors only —
+            Public registration is disabled for this hub. Access is for invited advisors only -
             please sign in with the account from your invite list.
           </p>
           <p className="muted center">

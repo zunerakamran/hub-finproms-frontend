@@ -50,13 +50,13 @@ export default function TaxonomyAddRequestsMy() {
     {
       key: 'target',
       label: 'What to add',
-      render: (row) => row.target_label || row.target || '—',
+      render: (row) => row.target_label || row.target || '-',
       filterValue: (row) => row.target_label || row.target || '',
     },
     {
       key: 'proposed_name',
       label: 'Proposed name',
-      render: (row) => row.proposed_name || '—',
+      render: (row) => row.proposed_name || '-',
       filterValue: (row) => row.proposed_name || '',
     },
     {

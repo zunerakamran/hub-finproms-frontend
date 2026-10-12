@@ -766,7 +766,7 @@ export default function FirmDocuments() {
         (rights?.can_manage_firm_access && (doc.shared_from || rights?.is_central))
     )
   // Prefer per-document viewer_rights so view-only grants never show Archive/Delete.
-  // Do not OR hub-wide can('firm_documents_*') — heads / matrix users wrongly
+  // Do not OR hub-wide can('firm_documents_*') - heads / matrix users wrongly
   // got those caps globally and saw actions on shared view-only docs.
   const docCanArchive = (doc) => {
     if (doc?.viewer_rights && typeof doc.viewer_rights.can_archive === 'boolean') {
@@ -804,10 +804,10 @@ export default function FirmDocuments() {
           </div>
         </td>
         <td className="firm-docs-desc-cell">
-          {doc.description ? doc.description : <span className="muted">—</span>}
+          {doc.description ? doc.description : <span className="muted">-</span>}
         </td>
-        <td>{doc.category?.name || '—'}</td>
-        <td>{doc.uploader?.name || '—'}</td>
+        <td>{doc.category?.name || '-'}</td>
+        <td>{doc.uploader?.name || '-'}</td>
         <td>
           <div className="data-grid__actions">
             <DataGridIconBtn

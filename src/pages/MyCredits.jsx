@@ -70,7 +70,7 @@ export default function MyCredits() {
         label: 'Detail',
         grow: true,
         filterValue: (row) => row.description || row.item_title || '',
-        render: (row) => row.description || row.item_title || '—',
+        render: (row) => row.description || row.item_title || '-',
       },
       {
         key: 'direction',
@@ -202,7 +202,7 @@ export default function MyCredits() {
                 ? 'Unlimited'
                 : allotment?.credits != null
                   ? allotment.credits
-                  : '—'}
+                  : '-'}
             </strong>
             <span className="muted">
               {allotment?.label ||

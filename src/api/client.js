@@ -22,7 +22,7 @@ function xsrfHeader() {
   return readCookie('XSRF-TOKEN')
 }
 
-/** @returns {boolean} soft â€œmaybe signed inâ€ hint for boot (not a secret). */
+/** @returns {boolean} soft "maybe signed in" hint for boot (not a secret). */
 export function hasAuthSession() {
   try {
     return sessionStorage.getItem(AUTH_FLAG) === '1'
@@ -32,7 +32,7 @@ export function hasAuthSession() {
 }
 
 /**
- * Session marker only â€” the real credential is the httpOnly session cookie.
+ * Session marker only - the real credential is the httpOnly session cookie.
  * Kept as setToken() so existing AuthContext call sites keep working.
  */
 export function setToken(token) {
@@ -49,7 +49,7 @@ export function setToken(token) {
   }
 }
 
-/** @deprecated use hasAuthSession â€” no Bearer token is stored in JS anymore */
+/** @deprecated use hasAuthSession - no Bearer token is stored in JS anymore */
 export function getToken() {
   return hasAuthSession() ? 'cookie' : null
 }
@@ -103,7 +103,7 @@ async function request(path, options = {}) {
     try {
       await ensureCsrfCookie()
     } catch {
-      // Continue â€” server may still accept if cookie already present.
+      // Continue - server may still accept if cookie already present.
     }
   }
 
@@ -125,7 +125,7 @@ async function request(path, options = {}) {
     throw error
   }
 
-  // CSRF cookie stale â€” refresh once and retry.
+  // CSRF cookie stale - refresh once and retry.
   if (response.status === 419) {
     csrfPromise = null
     await ensureCsrfCookie()
@@ -1082,7 +1082,7 @@ export const api = {
     })
   },
 
-  // â€”â€” Social Media Compliance â€”â€”
+  // -- Social Media Compliance --
   socialMediaComplianceMine: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
@@ -1165,7 +1165,7 @@ export const api = {
     )
   },
 
-  // â€”â€” General Compliance â€”â€”
+  // -- General Compliance --
   generalComplianceMine: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
@@ -1267,7 +1267,7 @@ export const api = {
       method: 'DELETE',
     }),
 
-  // â€”â€” Support Tickets â€”â€”
+  // -- Support Tickets --
   supportTicketsOptions: () => request('/support-tickets/options'),
   supportTicketsMine: (params = {}) => {
     const query = new URLSearchParams(
@@ -1299,7 +1299,7 @@ export const api = {
       body: formData,
     }),
 
-  // â€”â€” Taxonomy add requests â€”â€”
+  // -- Taxonomy add requests --
   taxonomyAddRequestsOptions: () => request('/taxonomy-add-requests/options'),
   taxonomyAddRequestsMine: (params = {}) => {
     const query = new URLSearchParams(
@@ -1332,8 +1332,8 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  // â€”â€” Website Template Library / Content Pre Approval â€”â€”
-  /** Public home showcase â€” up to 4 active hub website templates (no auth). */
+  // -- Website Template Library / Content Pre Approval --
+  /** Public home showcase - up to 4 active hub website templates (no auth). */
   homeWebsiteTemplates: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')

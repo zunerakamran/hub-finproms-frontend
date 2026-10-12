@@ -257,7 +257,7 @@ export default function WebsiteComplianceHome() {
         {editorCards.length > 0 && (
           <div className="space-y-3">
             <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">
-              Website Content Pre Approval — editing
+              Website Content Pre Approval - editing
             </p>
             <CardGrid cards={editorCards} />
           </div>
@@ -266,7 +266,7 @@ export default function WebsiteComplianceHome() {
         {approverCards.length > 0 && (
           <div className="space-y-3">
             <p className="text-xs font-extrabold uppercase tracking-wider text-gray-500">
-              Website Content Pre Approval — review
+              Website Content Pre Approval - review
             </p>
             <CardGrid cards={approverCards} />
           </div>

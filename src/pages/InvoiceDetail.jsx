@@ -47,7 +47,7 @@ function typesLabel(types) {
     case 'ongoing':
       return 'Ongoing'
     default:
-      return types || '—'
+      return types || '-'
   }
 }
 
@@ -77,7 +77,7 @@ function paymentMethodLabel(method) {
     case 'other':
       return 'Other'
     default:
-      return method || '—'
+      return method || '-'
   }
 }
 
@@ -421,7 +421,7 @@ export default function InvoiceDetail() {
           <div className="invoice-parties">
             <div>
               <h2>Recorded</h2>
-              <p>{payment.paid_at ? formatDateTime(payment.paid_at) : '—'}</p>
+              <p>{payment.paid_at ? formatDateTime(payment.paid_at) : '-'}</p>
               {payment.paid_by && (
                 <>
                   <p>{payment.paid_by.name}</p>
@@ -438,7 +438,7 @@ export default function InvoiceDetail() {
             </div>
             <div>
               <h2>Notes</h2>
-              <p>{payment.payment_notes || '—'}</p>
+              <p>{payment.payment_notes || '-'}</p>
               {payment.attachment?.url && (
                 <p style={{ marginTop: '0.5rem' }}>
                   <FileNameLabel

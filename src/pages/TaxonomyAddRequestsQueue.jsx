@@ -68,19 +68,19 @@ export default function TaxonomyAddRequestsQueue() {
     {
       key: 'target',
       label: 'What to add',
-      render: (row) => row.target_label || row.target || '—',
+      render: (row) => row.target_label || row.target || '-',
       filterValue: (row) => row.target_label || row.target || '',
     },
     {
       key: 'proposed_name',
       label: 'Proposed name',
-      render: (row) => row.proposed_name || '—',
+      render: (row) => row.proposed_name || '-',
       filterValue: (row) => row.proposed_name || '',
     },
     {
       key: 'submitter',
       label: 'Requested by',
-      render: (row) => row.submitter?.name || '—',
+      render: (row) => row.submitter?.name || '-',
       filterValue: (row) => row.submitter?.name || '',
     },
     {

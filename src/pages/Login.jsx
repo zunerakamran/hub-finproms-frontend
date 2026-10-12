@@ -197,7 +197,7 @@ export default function Login() {
         </div>
         <p className="muted">
           {inviteOnly
-            ? 'Invite-only hub — sign in with your invited advisor account, or as an admin.'
+            ? 'Invite-only hub - sign in with your invited advisor account, or as an admin.'
             : 'One login for members, Client Admin, and Power Admin.'}
         </p>
         {error && <div className="alert">{error}</div>}

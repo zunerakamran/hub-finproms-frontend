@@ -28,7 +28,7 @@ export default function MyDashboardLayout() {
   const topbarRef = useRef(null)
   const dashMainRef = useRef(null)
 
-  // WC CSS is large — load only when a Website Compliance route is open.
+  // WC CSS is large - load only when a Website Compliance route is open.
   useEffect(() => {
     if (!location.pathname.includes('/website-compliance')) return undefined
     let cancelled = false
@@ -216,7 +216,7 @@ export default function MyDashboardLayout() {
         ) : null}
         {actingAdvisor ? (
           <div className="dash-acting-pill">
-            On behalf of {actingAdvisor.name} — acting as {roleLabel('advisor') || 'Advisor'} (
+            On behalf of {actingAdvisor.name} - acting as {roleLabel('advisor') || 'Advisor'} (
             {roleLabel('admin_staff') || 'Admin-staff'})
           </div>
         ) : null}

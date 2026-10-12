@@ -234,7 +234,7 @@ export default function PowerAdminHubs() {
           <p className="eyebrow">Platform</p>
           <h1>Hubs</h1>
           <p className="muted hubs-page__lede">
-            Register Shared / White-labelled hubs, then push code updates from here — without
+            Register Shared / White-labelled hubs, then push code updates from here - without
             opening each cPanel.
           </p>
         </div>
@@ -404,14 +404,14 @@ export default function PowerAdminHubs() {
         </ol>
         <p className="muted hubs-howto__note">
           You still need this dashboard running on Central to upload/apply. After that, choose
-          Central + other hubs in step 3 — no manual FTP/git per hub for that release.
+          Central + other hubs in step 3 - no manual FTP/git per hub for that release.
         </p>
       </div>
 
       <div className="hubs-stats">
         <div className="hubs-stat">
           <span className="hubs-stat__label">Latest release</span>
-          <strong>{latest?.version || '—'}</strong>
+          <strong>{latest?.version || '-'}</strong>
           <span className="muted">
             {latest
               ? [
@@ -426,7 +426,7 @@ export default function PowerAdminHubs() {
         <div className="hubs-stat">
           <span className="hubs-stat__label">This Central</span>
           <strong>
-            <code>{overview?.this_deploy?.version || '—'}</code>
+            <code>{overview?.this_deploy?.version || '-'}</code>
           </strong>
           <span className="muted">Version this server reports now</span>
         </div>
@@ -563,7 +563,7 @@ export default function PowerAdminHubs() {
           <ul className="hubs-apply-results">
             {applyResults.map((row) => (
               <li key={row.hub_id} className={row.ok ? 'ok' : 'fail'}>
-                <strong>{row.slug}</strong> — {row.message}
+                <strong>{row.slug}</strong> - {row.message}
               </li>
             ))}
           </ul>
@@ -666,7 +666,7 @@ export default function PowerAdminHubs() {
             <p className="eyebrow">Audit</p>
             <h2>Update history</h2>
             <p className="muted" style={{ margin: '0.35rem 0 0' }}>
-              Every apply (and manual version mark) is kept here — which hub, which version, success
+              Every apply (and manual version mark) is kept here - which hub, which version, success
               or fail, and when.
             </p>
           </div>
@@ -710,10 +710,10 @@ export default function PowerAdminHubs() {
                     <td>
                       {row.finished_at
                         ? new Date(row.finished_at).toLocaleString()
-                        : '—'}
+                        : '-'}
                     </td>
                     <td>
-                      <strong>{row.hub_name || row.hub_slug || '—'}</strong>
+                      <strong>{row.hub_name || row.hub_slug || '-'}</strong>
                       {row.hub_slug ? (
                         <>
                           <br />
@@ -731,7 +731,7 @@ export default function PowerAdminHubs() {
                       </span>
                     </td>
                     <td className="hubs-history-details">
-                      {row.message || '—'}
+                      {row.message || '-'}
                       {row.backend_applied || row.frontend_applied || row.migrated ? (
                         <span className="muted">
                           {[
@@ -744,7 +744,7 @@ export default function PowerAdminHubs() {
                         </span>
                       ) : null}
                     </td>
-                    <td>{row.triggered_by_name || '—'}</td>
+                    <td>{row.triggered_by_name || '-'}</td>
                   </tr>
                 ))}
               </tbody>

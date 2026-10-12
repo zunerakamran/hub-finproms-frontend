@@ -62,27 +62,27 @@ export default function SupportTicketsQueue() {
     {
       key: 'subject',
       label: 'Subject',
-      render: (row) => row.subject || '—',
+      render: (row) => row.subject || '-',
       filterValue: (row) => row.subject || '',
     },
     {
       key: 'submitter',
       label: 'Submitted by',
-      render: (row) => row.submitter?.name || '—',
+      render: (row) => row.submitter?.name || '-',
       filterValue: (row) => row.submitter?.name || '',
     },
     {
       key: 'module',
       label: 'Module',
       fit: true,
-      render: (row) => row.module_area_label || row.module_area || '—',
+      render: (row) => row.module_area_label || row.module_area || '-',
       filterValue: (row) => row.module_area_label || row.module_area || '',
     },
     {
       key: 'priority',
       label: 'Priority',
       fit: true,
-      render: (row) => row.priority_label || row.priority || '—',
+      render: (row) => row.priority_label || row.priority || '-',
       filterValue: (row) => row.priority_label || row.priority || '',
     },
     {

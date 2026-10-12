@@ -115,7 +115,7 @@ export default function SocialMediaComplianceQueue() {
     {
       key: 'firm',
       label: 'Firm',
-      render: (row) => row.submitter?.firm?.name || '—',
+      render: (row) => row.submitter?.firm?.name || '-',
       filterValue: (row) => row.submitter?.firm?.name || '',
     },
     {
@@ -139,7 +139,7 @@ export default function SocialMediaComplianceQueue() {
             )}
           </a>
         ) : (
-          '—'
+          '-'
         ),
     },
     {
@@ -250,7 +250,7 @@ export default function SocialMediaComplianceQueue() {
                 aria-label="Assign reviewer"
                 title="Assign reviewer"
               >
-                <option value="">— Unassigned —</option>
+                <option value="">- Unassigned -</option>
                 {reviewersForSubmitterFirm(reviewers, row.submitter?.firm).map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}
@@ -270,7 +270,7 @@ export default function SocialMediaComplianceQueue() {
               ) : Number(row.assigned_to) === Number(user?.id) ? (
                 <span className="muted">You</span>
               ) : (
-                <span className="muted">—</span>
+                <span className="muted">-</span>
               )
             ) : null}
           </>

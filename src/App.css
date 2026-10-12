@@ -5243,12 +5243,45 @@ label {
 .filters-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.75rem;
   margin-bottom: 1rem;
-  align-items: center;
+  align-items: flex-end;
 }
 .filters-row input,
-.filters-row select { min-width: 140px; }
+.filters-row select {
+  min-width: 160px;
+  min-height: 2.5rem;
+}
+.filters-row__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  min-width: 0;
+}
+.filters-row__label {
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #64748b);
+}
+.filters-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.st-queue-filters {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.12));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface, #fff) 92%, var(--brand, #1d4ed8) 8%);
+}
+.st-queue-filters select {
+  min-width: 200px;
+  background: #fff;
+}
 .tab-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
 .tab-row .btn.active {
   background: var(--brand, #1d4ed8);

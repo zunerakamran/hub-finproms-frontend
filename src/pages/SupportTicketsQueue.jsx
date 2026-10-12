@@ -135,15 +135,14 @@ export default function SupportTicketsQueue() {
       </div>
 
       <form
-        className="filters-row"
+        className="filters-row st-queue-filters"
         onSubmit={(e) => {
           e.preventDefault()
           setAppliedStatus(status)
         }}
-        style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}
       >
-        <label>
-          Status
+        <label className="filters-row__field">
+          <span className="filters-row__label">Status</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">All statuses</option>
             {ST_STATUSES.map((item) => (
@@ -153,10 +152,22 @@ export default function SupportTicketsQueue() {
             ))}
           </select>
         </label>
-        <div className="actions" style={{ alignSelf: 'end' }}>
-          <button type="submit" className="btn">
+        <div className="filters-row__actions">
+          <button type="submit" className="btn primary">
             Apply
           </button>
+          {appliedStatus ? (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                setStatus('')
+                setAppliedStatus('')
+              }}
+            >
+              Clear
+            </button>
+          ) : null}
         </div>
       </form>
 

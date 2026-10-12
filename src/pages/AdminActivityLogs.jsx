@@ -420,8 +420,8 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
             <p className="eyebrow">Hub</p>
             <h1>Activity logs</h1>
             <p className="muted">
-              Enable &quot;View activity logs / report&quot; for your role under Power Admin ->
-              Capabilities.
+              Enable &quot;View activity logs / report&quot; for your role under Power Admin
+              - Capabilities.
             </p>
           </div>
         </div>
@@ -633,7 +633,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                     : 'No users yet'}
                 </p>
                 {insights.topUser ? (
-                  <p className="activity-insight-card__cta muted">View their activities -></p>
+                  <p className="activity-insight-card__cta muted">View their activities</p>
                 ) : null}
               </article>
               <article className="activity-insight-card">

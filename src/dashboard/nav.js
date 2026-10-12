@@ -489,7 +489,7 @@ export const DASHBOARD_LINKS = [
     label: 'Firms',
     title: 'Firms',
     description:
-      'Manage firms, appoint a Head of Firm, and set who can review and report on each firm's compliance requests.',
+      "Manage firms, appoint a Head of Firm, and set who can review and report on each firm's compliance requests.",
     anyOf: ['dashboard_manage_firms', 'dashboard_assign_firm_head'],
     group: 'hub',
   },
@@ -703,7 +703,7 @@ export const DASHBOARD_LINKS = [
     label: 'Import Users',
     title: 'Import Users',
     description:
-      'Download template, submit a filled sheet for import, or import users. Discontinue users from Hub -> Users.',
+      'Download template, submit a filled sheet for import, or import users. Discontinue users from Hub - Users.',
     anyOf: ['advisor_excel_import', 'advisor_excel_template', 'advisor_excel_submit'],
     group: 'advisors',
   },

@@ -1,0 +1,1 @@
+import{j as r}from"./react-vendor-BrnG2GJc.js";import{t as o}from"./taxonomyAddRequests-DVy6oBpr.js";import{S as e}from"./website-compliance-CqoDIx-G.js";function x({status:n,at:t}){const s=n||"Pending",a=r.jsx("span",{className:o(s),children:s});return t?r.jsx(e,{badge:a,at:t}):a}export{x as T};

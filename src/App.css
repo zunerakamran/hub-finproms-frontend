@@ -8064,7 +8064,24 @@ td.data-grid__actions {
   text-decoration: none;
   color: inherit;
 }
-a.file-name-label:hover .file-name-label__text { text-decoration: underline; }
+button.file-name-label {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+button.file-name-label:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+a.file-name-label:hover .file-name-label__text,
+button.file-name-label:hover:not(:disabled) .file-name-label__text {
+  text-decoration: underline;
+}
 .file-name-label__icon {
   width: 0.95rem;
   height: 0.95rem;

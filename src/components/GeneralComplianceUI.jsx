@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { api } from '../api/client'
 import { gcStatusClass, formatGcFileSize } from '../utils/generalCompliance'
 import {
   resolveComplianceAttachments,
@@ -58,27 +60,51 @@ export function GcAttachmentList({
   emptyLabel = 'No attachments',
   showUploader = false,
 }) {
+  const [busyId, setBusyId] = useState(null)
+  const [error, setError] = useState('')
+
   if (!attachments.length) {
     return <p className="muted">{emptyLabel}</p>
   }
 
+  async function downloadFile(file) {
+    if (!file?.id || busyId) return
+    setError('')
+    setBusyId(file.id)
+    try {
+      await api.generalComplianceDownloadFile(file)
+    } catch (err) {
+      setError(err?.message || 'Unable to download file')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <ul className="gc-attach-list">
+      {error ? (
+        <li className="gc-attach-error" role="alert">
+          <p className="error">{error}</p>
+        </li>
+      ) : null}
       {attachments.map((file) => {
         const roleLabel = showUploader ? supportingFileRoleLabel(file) : null
         const byName = showUploader ? file.uploaded_by_name : null
+        const canDownload = Boolean(file.id)
         return (
           <li key={file.id || `${file.original_name}-${file.file_path}`}>
             <div className="gc-attach-row">
               <FileNameLabel
                 name={file.original_name}
                 mimeType={file.mime_type}
-                href={file.file_url || undefined}
-                fallback={file.file_url ? 'Download' : 'File'}
+                onClick={canDownload ? () => downloadFile(file) : undefined}
+                disabled={busyId === file.id}
+                fallback={canDownload ? 'Download' : 'File'}
               />
               {file.size_bytes != null && (
                 <span className="muted"> ({formatGcFileSize(file.size_bytes)})</span>
               )}
+              {busyId === file.id ? <span className="muted"> Downloading…</span> : null}
             </div>
             {(roleLabel || byName) && (
               <p className="muted gc-attach-meta">

@@ -30,6 +30,8 @@ const KIND_ICONS = {
  * @param {string} [props.name]
  * @param {string} [props.mimeType]
  * @param {string} [props.href]
+ * @param {(event: import('react').MouseEvent) => void} [props.onClick] — when set, renders a button (auth downloads)
+ * @param {boolean} [props.disabled]
  * @param {string} [props.className]
  * @param {string} [props.iconClassName]
  * @param {string} [props.fallback]
@@ -39,6 +41,8 @@ export default function FileNameLabel({
   name,
   mimeType,
   href,
+  onClick,
+  disabled = false,
   className = '',
   iconClassName = '',
   fallback = 'File',
@@ -49,6 +53,7 @@ export default function FileNameLabel({
   const Icon = KIND_ICONS[kind] || FaFile
   const title = name || label
   const iconClass = ['file-name-label__icon', iconClassName].filter(Boolean).join(' ')
+  const rootClass = `file-name-label ${className}`.trim()
 
   const content = (
     <>
@@ -57,13 +62,27 @@ export default function FileNameLabel({
     </>
   )
 
+  if (typeof onClick === 'function') {
+    return (
+      <button
+        type="button"
+        className={rootClass}
+        title={title}
+        onClick={onClick}
+        disabled={disabled}
+      >
+        {content}
+      </button>
+    )
+  }
+
   if (href) {
     return (
       <a
         href={href}
         target="_blank"
         rel="noreferrer"
-        className={`file-name-label ${className}`.trim()}
+        className={rootClass}
         title={title}
       >
         {content}
@@ -72,7 +91,7 @@ export default function FileNameLabel({
   }
 
   return (
-    <span className={`file-name-label ${className}`.trim()} title={title}>
+    <span className={rootClass} title={title}>
       {content}
     </span>
   )

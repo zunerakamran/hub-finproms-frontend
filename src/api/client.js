@@ -1295,6 +1295,59 @@ export const api = {
       `${adminBase(options)}/general-compliance/charts/advisor-comparison${query ? `?${query}` : ''}`
     )
   },
+  /**
+   * Download a GC attachment / supporting file (decrypts server-side when encrypted).
+   * Always uses cookie session credentials — do not open file_url in a bare <a href>.
+   * Path is the member /gc/file/{id} route; the API enforces view permissions.
+   */
+  generalComplianceDownloadFile: async (file) => {
+    const id = Number(file?.id)
+    if (!Number.isFinite(id) || id <= 0) {
+      throw new Error('Missing attachment id')
+    }
+
+    await ensureCsrfCookie().catch(() => {})
+    const response = await fetch(`${API_URL}/gc/file/${id}`, {
+      method: 'GET',
+      headers: buildHeaders({
+        headers: { Accept: '*/*' },
+      }),
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      let message = 'Unable to download file'
+      try {
+        const contentType = response.headers.get('Content-Type') || ''
+        if (contentType.includes('application/json')) {
+          const data = await response.clone().json()
+          if (data?.message) message = data.message
+        } else {
+          const text = (await response.clone().text()).trim()
+          if (text) message = text.slice(0, 300)
+        }
+      } catch {
+        //
+      }
+      const error = new Error(message)
+      error.status = response.status
+      throw error
+    }
+
+    const disposition = response.headers.get('Content-Disposition') || ''
+    const match = /filename="?([^";]+)"?/i.exec(disposition)
+    const filename = match?.[1] || file?.original_name || `gc-file-${id}`
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    return { ok: true, filename }
+  },
   generalComplianceContentTypes: () => request('/general-compliance/content-types'),
   generalComplianceAdminContentTypes: (options = {}) =>
     request(`${adminBase(options)}/general-compliance/content-types`),

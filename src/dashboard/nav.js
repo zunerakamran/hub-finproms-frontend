@@ -62,6 +62,13 @@ const ST_NAV_ANY = [
   'st_comment_on_tickets',
 ]
 
+const SECMON_NAV_ANY = [
+  'secmon_view_events',
+  'secmon_view_report',
+  'secmon_manage_incidents',
+  'secmon_manage_alerts',
+]
+
 const WTL_NAV_ANY = [
   'wc_request_deployments',
   'wc_assign_website_templates',
@@ -622,6 +629,21 @@ export const DASHBOARD_LINKS = [
     description: 'Audit trail and activity report for the current hub.',
     capability: 'dashboard_view_activity_logs',
     group: 'hub',
+  },
+  {
+    kind: 'section',
+    id: 'secmon',
+    label: 'Security Monitoring',
+    anyOf: SECMON_NAV_ANY,
+  },
+  {
+    to: '/my-dashboard/security-monitoring',
+    label: 'Security monitoring',
+    title: 'Security monitoring',
+    description:
+      'Regular security event feed, incident investigations, and monitoring report (when / what / status).',
+    anyOf: SECMON_NAV_ANY,
+    group: 'secmon',
   },
   {
     to: '/my-dashboard/active-sessions',

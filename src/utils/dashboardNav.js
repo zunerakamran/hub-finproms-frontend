@@ -45,6 +45,7 @@ export const DASHBOARD_NAV_DEFAULTS = {
     '/my-dashboard/email-templates': 'Email templates',
     '/my-dashboard/bank-transfers': 'Bank transfers',
     '/my-dashboard/activity-logs': 'Activity logs',
+    '/my-dashboard/security-monitoring': 'Security monitoring',
     '/my-dashboard/active-sessions': 'Active sessions',
     '/my-dashboard/hub-users': 'Users',
     '/my-dashboard/compliance-audit-trail': 'Audit trail',

@@ -1045,6 +1045,52 @@ export const api = {
     ).toString()
     return request(`${base}/activity-logs/report${query ? `?${query}` : ''}`)
   },
+
+  // -- Security Monitoring --
+  securityMonitoringOptions: (options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/options`),
+  securityMonitoringEvents: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/security-monitoring/events${query ? `?${query}` : ''}`)
+  },
+  securityMonitoringEvent: (id, options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/events/${id}`),
+  securityMonitoringIncidents: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/security-monitoring/incidents${query ? `?${query}` : ''}`)
+  },
+  securityMonitoringIncident: (id, options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/incidents/${id}`),
+  securityMonitoringDeclareIncident: (payload, options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/incidents`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  securityMonitoringUpdateIncident: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/incidents/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+  securityMonitoringReport: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/security-monitoring/report${query ? `?${query}` : ''}`)
+  },
+  securityMonitoringScanNow: (options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/scan-now`, { method: 'POST' }),
+  securityMonitoringAlertSettings: (options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/alert-settings`),
+  securityMonitoringUpdateAlertSettings: (payload, options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/alert-settings`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
   activeSessions: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/active-sessions`)

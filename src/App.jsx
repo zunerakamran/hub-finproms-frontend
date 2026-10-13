@@ -78,6 +78,7 @@ const SupportTicketsMyTickets = lazy(() => import('./pages/SupportTicketsMyTicke
 const SupportTicketSubmit = lazy(() => import('./pages/SupportTicketSubmit'))
 const SupportTicketsQueue = lazy(() => import('./pages/SupportTicketsQueue'))
 const SupportTicketDetail = lazy(() => import('./pages/SupportTicketDetail'))
+const SecurityMonitoring = lazy(() => import('./pages/SecurityMonitoring'))
 const TaxonomyAddRequestsMy = lazy(() => import('./pages/TaxonomyAddRequestsMy'))
 const TaxonomyAddRequestSubmit = lazy(() => import('./pages/TaxonomyAddRequestSubmit'))
 const TaxonomyAddRequestsQueue = lazy(() => import('./pages/TaxonomyAddRequestsQueue'))
@@ -477,6 +478,21 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_view_activity_logs">
                       <AdminActivityLogs />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="security-monitoring"
+                  element={
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'secmon_view_events',
+                        'secmon_view_report',
+                        'secmon_manage_incidents',
+                        'secmon_manage_alerts',
+                      ]}
+                    >
+                      <SecurityMonitoring />
                     </HubCapabilityRoute>
                   }
                 />

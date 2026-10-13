@@ -22,7 +22,7 @@ const TABS = [
 
 function severityClass(severity) {
   const s = String(severity || '').toLowerCase()
-  if (s === 'critical' || s === 'high') return 'gc-status gc-status--reject'
+  if (s === 'critical' || s === 'high') return 'gc-status gc-status--bad'
   if (s === 'medium') return 'gc-status gc-status--awf'
   if (s === 'low') return 'gc-status gc-status--pending'
   return 'gc-status'
@@ -33,6 +33,21 @@ function statusClass(status) {
   if (s === 'resolved' || s === 'closed' || s === 'false_positive') return 'gc-status gc-status--ok'
   if (s === 'investigating' || s === 'acknowledged') return 'gc-status gc-status--awf'
   return 'gc-status gc-status--pending'
+}
+
+function scanAlertClass(status) {
+  const s = String(status || '').toLowerCase()
+  if (s === 'pass' || s === 'ok' || s === 'success') return 'alert success secmon-alert'
+  if (s === 'fail' || s === 'error') return 'alert secmon-alert'
+  // unavailable / unknown / overdue → amber (not red)
+  return 'alert secmon-alert secmon-alert--warn'
+}
+
+function scanSummaryCardClass(status) {
+  const s = String(status || '').toLowerCase()
+  if (s === 'pass' || s === 'ok' || s === 'success') return 'secmon-card secmon-card--ok'
+  if (s === 'fail' || s === 'error') return 'secmon-card secmon-card--danger'
+  return 'secmon-card secmon-card--warn'
 }
 
 function Badge({ children, className }) {
@@ -121,6 +136,7 @@ export default function SecurityMonitoring() {
   const [saving, setSaving] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [scanMessage, setScanMessage] = useState('')
+  const [scanStatus, setScanStatus] = useState('')
 
   useEffect(() => {
     if (availableTabs.length && !availableTabs.some((t) => t.id === tab)) {
@@ -260,11 +276,14 @@ export default function SecurityMonitoring() {
     if (!canViewReport && !canManageAlerts) return
     setScanning(true)
     setScanMessage('')
+    setScanStatus('')
     setError('')
     try {
       const data = await api.securityMonitoringScanNow({ asPowerAdmin })
       if (data.report) setReport(data.report)
-      setScanMessage(data.data?.summary || `Scan finished: ${data.data?.status || 'done'}`)
+      const status = data.data?.status || 'done'
+      setScanStatus(status)
+      setScanMessage(data.data?.summary || `Scan finished: ${status}`)
       if (tab !== 'report') setTab('report')
     } catch (err) {
       setError(err.message || 'Failed to run security check now.')
@@ -295,6 +314,7 @@ export default function SecurityMonitoring() {
         { asPowerAdmin }
       )
       setSettings(data.data)
+      setScanStatus('pass')
       setScanMessage('Alert settings saved.')
     } catch (err) {
       setError(err.message || 'Failed to save alert settings.')
@@ -444,7 +464,7 @@ export default function SecurityMonitoring() {
         </div>
       </div>
 
-      {scanMessage ? <div className="alert secmon-alert">{scanMessage}</div> : null}
+      {scanMessage ? <div className={scanAlertClass(scanStatus)}>{scanMessage}</div> : null}
       {error ? <div className="alert">{error}</div> : null}
 
       <div className="tab-row" role="tablist" aria-label="Security monitoring views">
@@ -458,6 +478,7 @@ export default function SecurityMonitoring() {
               setSelectedEvent(null)
               setSelectedIncident(null)
               setScanMessage('')
+              setScanStatus('')
             }}
           >
             {t.label}
@@ -658,8 +679,12 @@ export default function SecurityMonitoring() {
               </div>
 
               {report.dependency_scan?.summary ? (
-                <div className="secmon-card secmon-card--warn">
-                  <FaExclamationTriangle aria-hidden />
+                <div className={scanSummaryCardClass(report.dependency_scan?.status)}>
+                  {String(report.dependency_scan?.status || '').toLowerCase() === 'pass' ? (
+                    <FaShieldAlt aria-hidden />
+                  ) : (
+                    <FaExclamationTriangle aria-hidden />
+                  )}
                   <p>{report.dependency_scan.summary}</p>
                 </div>
               ) : null}
@@ -913,6 +938,11 @@ export default function SecurityMonitoring() {
         .secmon-alert {
           margin-bottom: 1rem;
         }
+        .secmon-alert--warn {
+          background: #fff7ed;
+          border-color: #fdba74;
+          color: #9a3412;
+        }
         .secmon-link {
           background: none;
           border: 0;
@@ -944,15 +974,31 @@ export default function SecurityMonitoring() {
           margin: 0 0 0.35rem;
           font-size: 1.05rem;
         }
-        .secmon-card--warn {
+        .secmon-card--warn,
+        .secmon-card--ok,
+        .secmon-card--danger {
           display: flex;
           gap: 0.75rem;
           align-items: flex-start;
+        }
+        .secmon-card--warn {
           background: #fff7ed;
           border-color: #fdba74;
           color: #9a3412;
         }
-        .secmon-card--warn p {
+        .secmon-card--ok {
+          background: #f0fdf4;
+          border-color: #86efac;
+          color: #166534;
+        }
+        .secmon-card--danger {
+          background: #fef2f2;
+          border-color: #fca5a5;
+          color: #991b1b;
+        }
+        .secmon-card--warn p,
+        .secmon-card--ok p,
+        .secmon-card--danger p {
           margin: 0;
         }
         .secmon-form-grid {

@@ -1,8 +1,14 @@
 /* eslint-disable react/prop-types */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FaExclamationTriangle, FaFilter, FaSearch, FaShieldAlt } from 'react-icons/fa'
+import {
+  FaBolt,
+  FaExclamationTriangle,
+  FaShieldAlt,
+  FaSync,
+  FaTimes,
+} from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid, { DataGridDate } from '../components/DataGrid'
+import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatDateTime } from '../utils/dateFormat'
@@ -31,6 +37,28 @@ function statusClass(status) {
 
 function Badge({ children, className }) {
   return <span className={className}>{children}</span>
+}
+
+function StatCard({ label, value, hint }) {
+  return (
+    <article className="secmon-stat">
+      <p className="secmon-stat__value">{value ?? 0}</p>
+      <p className="secmon-stat__label">{label}</p>
+      {hint ? <p className="secmon-stat__hint">{hint}</p> : null}
+    </article>
+  )
+}
+
+function DetailDrawer({ title, onClose, children }) {
+  return (
+    <aside className="secmon-drawer" role="dialog" aria-label={title}>
+      <div className="secmon-drawer__head">
+        <h2>{title}</h2>
+        <DataGridIconBtn icon={FaTimes} label="Close" onClick={onClose} />
+      </div>
+      <div className="secmon-drawer__body">{children}</div>
+    </aside>
+  )
 }
 
 export default function SecurityMonitoring() {
@@ -74,6 +102,14 @@ export default function SecurityMonitoring() {
     from: '',
     to: '',
   })
+  const [applied, setApplied] = useState({
+    q: '',
+    severity: '',
+    category: '',
+    status: '',
+    from: '',
+    to: '',
+  })
   const [declareForm, setDeclareForm] = useState({
     title: '',
     description: '',
@@ -103,41 +139,29 @@ export default function SecurityMonitoring() {
       const opts = await api.securityMonitoringOptions({ asPowerAdmin })
       setOptions(opts)
 
+      const filterParams = {
+        per_page: 50,
+        q: applied.q || undefined,
+        severity: applied.severity || undefined,
+        category: applied.category || undefined,
+        status: applied.status || undefined,
+        from: applied.from || undefined,
+        to: applied.to || undefined,
+      }
+
       if (tab === 'events' && canViewEvents) {
-        const data = await api.securityMonitoringEvents(
-          {
-            per_page: 50,
-            q: filters.q || undefined,
-            severity: filters.severity || undefined,
-            category: filters.category || undefined,
-            status: filters.status || undefined,
-            from: filters.from || undefined,
-            to: filters.to || undefined,
-          },
-          { asPowerAdmin }
-        )
+        const data = await api.securityMonitoringEvents(filterParams, { asPowerAdmin })
         setEvents(data.data || [])
       }
 
       if (tab === 'incidents' && canViewEvents) {
-        const data = await api.securityMonitoringIncidents(
-          {
-            per_page: 50,
-            q: filters.q || undefined,
-            severity: filters.severity || undefined,
-            category: filters.category || undefined,
-            status: filters.status || undefined,
-            from: filters.from || undefined,
-            to: filters.to || undefined,
-          },
-          { asPowerAdmin }
-        )
+        const data = await api.securityMonitoringIncidents(filterParams, { asPowerAdmin })
         setIncidents(data.data || [])
       }
 
       if (tab === 'report' && canViewReport) {
         const data = await api.securityMonitoringReport(
-          { from: filters.from || undefined, to: filters.to || undefined },
+          { from: applied.from || undefined, to: applied.to || undefined },
           { asPowerAdmin }
         )
         setReport(data.report || null)
@@ -156,7 +180,7 @@ export default function SecurityMonitoring() {
     hubLoading,
     enabled,
     tab,
-    filters,
+    applied,
     asPowerAdmin,
     canViewEvents,
     canViewReport,
@@ -240,10 +264,7 @@ export default function SecurityMonitoring() {
     try {
       const data = await api.securityMonitoringScanNow({ asPowerAdmin })
       if (data.report) setReport(data.report)
-      setScanMessage(
-        data.data?.summary ||
-          `Scan finished: ${data.data?.status || 'done'} at ${formatDateTime(data.data?.scanned_at)}`
-      )
+      setScanMessage(data.data?.summary || `Scan finished: ${data.data?.status || 'done'}`)
       if (tab !== 'report') setTab('report')
     } catch (err) {
       setError(err.message || 'Failed to run security check now.')
@@ -274,6 +295,7 @@ export default function SecurityMonitoring() {
         { asPowerAdmin }
       )
       setSettings(data.data)
+      setScanMessage('Alert settings saved.')
     } catch (err) {
       setError(err.message || 'Failed to save alert settings.')
     } finally {
@@ -281,23 +303,15 @@ export default function SecurityMonitoring() {
     }
   }
 
-  if (hubLoading) {
-    return <p className="muted">Loading…</p>
+  const applyFilters = (e) => {
+    e.preventDefault()
+    setApplied({ ...filters, q: filters.q.trim() })
   }
 
-  if (!enabled) {
-    return (
-      <div className="panel">
-        <h1>
-          <FaShieldAlt /> Security monitoring
-        </h1>
-        <p className="muted">
-          Security Monitoring is not enabled for this hub, or your role does not have access.
-          Power Admin can turn on Functionalities → Security Monitoring and grant `secmon_*`
-          capabilities.
-        </p>
-      </div>
-    )
+  const clearFilters = () => {
+    const empty = { q: '', severity: '', category: '', status: '', from: '', to: '' }
+    setFilters(empty)
+    setApplied(empty)
   }
 
   const eventColumns = [
@@ -320,7 +334,7 @@ export default function SecurityMonitoring() {
       key: 'title',
       label: 'What happened',
       render: (row) => (
-        <button type="button" className="linkish" onClick={() => openEvent(row.id)}>
+        <button type="button" className="secmon-link" onClick={() => openEvent(row.id)}>
           {row.title}
         </button>
       ),
@@ -369,7 +383,7 @@ export default function SecurityMonitoring() {
       key: 'title',
       label: 'Incident',
       render: (row) => (
-        <button type="button" className="linkish" onClick={() => openIncident(row.id)}>
+        <button type="button" className="secmon-link" onClick={() => openIncident(row.id)}>
           {row.title}
         </button>
       ),
@@ -391,35 +405,59 @@ export default function SecurityMonitoring() {
     },
   ]
 
+  if (!hubLoading && !enabled) {
+    return (
+      <section>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Hub</p>
+            <h1>Security monitoring</h1>
+            <p className="muted">
+              {!moduleOn
+                ? 'Security Monitoring is off for this hub. Enable it under Functionalities.'
+                : 'You do not have permission to view Security Monitoring.'}
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
-    <div className="panel">
-      <div className="panel-header">
-        <h1>
-          <FaShieldAlt /> Security monitoring
-        </h1>
-        <p className="muted">
-          Security events are recorded continuously. Open this page anytime to review when something
-          happened, what happened, and its status. Use <strong>Monitor now</strong> for an on-demand
-          dependency check (no daily schedule).
-        </p>
-        {(canViewReport || canManageAlerts) && (
-          <button type="button" className="btn primary" onClick={monitorNow} disabled={scanning}>
-            <FaShieldAlt /> {scanning ? 'Monitoring…' : 'Monitor now'}
-          </button>
-        )}
-        {scanMessage ? <p className="muted">{scanMessage}</p> : null}
+    <section className="secmon-page">
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Hub</p>
+          <h1>Security monitoring</h1>
+          <p className="muted">
+            Review security events as they happen — when, what, severity, and status. Use Monitor
+            now for an on-demand dependency check.
+          </p>
+        </div>
+        <div className="actions">
+          <DataGridIconBtn icon={FaSync} label="Refresh" onClick={load} disabled={loading || scanning} />
+          {(canViewReport || canManageAlerts) && (
+            <button type="button" className="btn primary" onClick={monitorNow} disabled={scanning}>
+              <FaShieldAlt aria-hidden /> {scanning ? 'Monitoring…' : 'Monitor now'}
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="tabs" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+      {scanMessage ? <div className="alert secmon-alert">{scanMessage}</div> : null}
+      {error ? <div className="alert">{error}</div> : null}
+
+      <div className="tab-row" role="tablist" aria-label="Security monitoring views">
         {availableTabs.map((t) => (
           <button
             key={t.id}
             type="button"
-            className={tab === t.id ? 'btn primary' : 'btn ghost'}
+            className={`btn ghost ${tab === t.id ? 'active' : ''}`}
             onClick={() => {
               setTab(t.id)
               setSelectedEvent(null)
               setSelectedIncident(null)
+              setScanMessage('')
             }}
           >
             {t.label}
@@ -428,17 +466,17 @@ export default function SecurityMonitoring() {
       </div>
 
       {(tab === 'events' || tab === 'incidents' || tab === 'report') && (
-        <div className="filters-bar" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          <label>
-            <FaSearch />{' '}
+        <form className="filters-row st-queue-filters" onSubmit={applyFilters}>
+          <label className="filters-row__field">
+            <span className="filters-row__label">Search</span>
             <input
               value={filters.q}
               onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-              placeholder="Search"
+              placeholder="Title, IP, email…"
             />
           </label>
-          <label>
-            Severity{' '}
+          <label className="filters-row__field">
+            <span className="filters-row__label">Severity</span>
             <select
               value={filters.severity}
               onChange={(e) => setFilters((f) => ({ ...f, severity: e.target.value }))}
@@ -451,8 +489,8 @@ export default function SecurityMonitoring() {
               ))}
             </select>
           </label>
-          <label>
-            Category{' '}
+          <label className="filters-row__field">
+            <span className="filters-row__label">Category</span>
             <select
               value={filters.category}
               onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
@@ -465,263 +503,381 @@ export default function SecurityMonitoring() {
               ))}
             </select>
           </label>
-          <label>
-            From{' '}
+          {(tab === 'events' || tab === 'incidents') && (
+            <label className="filters-row__field">
+              <span className="filters-row__label">Status</span>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
+              >
+                <option value="">All</option>
+                {(tab === 'incidents' ? options?.statuses : options?.event_statuses || options?.statuses || []).map(
+                  (s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  )
+                )}
+              </select>
+            </label>
+          )}
+          <label className="filters-row__field">
+            <span className="filters-row__label">From</span>
             <input
               type="date"
               value={filters.from}
               onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
             />
           </label>
-          <label>
-            To{' '}
+          <label className="filters-row__field">
+            <span className="filters-row__label">To</span>
             <input
               type="date"
               value={filters.to}
               onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
             />
           </label>
-          <button type="button" className="btn ghost" onClick={load}>
-            <FaFilter /> Apply
-          </button>
-        </div>
+          <div className="filters-row__actions">
+            <button type="submit" className="btn primary" disabled={loading}>
+              Apply
+            </button>
+            <button type="button" className="btn" onClick={clearFilters} disabled={loading}>
+              Clear
+            </button>
+          </div>
+        </form>
       )}
 
-      {error ? <p className="error">{error}</p> : null}
-      {loading ? <p className="muted">Loading…</p> : null}
-
-      {!loading && tab === 'events' && (
-        <>
-          {events.length === 0 ? (
-            <p className="muted">No open high/critical issues in this filter — no security events yet.</p>
-          ) : (
-            <DataGrid columns={eventColumns} rows={events} rowKey={(r) => r.id} />
+      {tab === 'events' && (
+        <DataGrid
+          columns={eventColumns}
+          rows={events}
+          loading={loading || hubLoading}
+          emptyMessage="No security events yet for this filter."
+          pageSize={15}
+          actions={(row) => (
+            <DataGridIconBtn icon={FaBolt} label="Open" onClick={() => openEvent(row.id)} />
           )}
-        </>
+        />
       )}
 
-      {!loading && tab === 'incidents' && (
-        <>
+      {tab === 'incidents' && (
+        <div className="secmon-incidents">
           {canManageIncidents && (
-            <form className="stack" onSubmit={declareIncident} style={{ marginBottom: '1.5rem' }}>
+            <form className="secmon-card" onSubmit={declareIncident}>
               <h2>Declare incident</h2>
-              <input
-                required
-                placeholder="Title"
-                value={declareForm.title}
-                onChange={(e) => setDeclareForm((f) => ({ ...f, title: e.target.value }))}
-              />
-              <textarea
-                placeholder="What happened?"
-                rows={3}
-                value={declareForm.description}
-                onChange={(e) => setDeclareForm((f) => ({ ...f, description: e.target.value }))}
-              />
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <select
-                  value={declareForm.severity}
-                  onChange={(e) => setDeclareForm((f) => ({ ...f, severity: e.target.value }))}
-                >
-                  {(options?.severities || ['medium']).map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={declareForm.category}
-                  onChange={(e) => setDeclareForm((f) => ({ ...f, category: e.target.value }))}
-                >
-                  {(options?.categories || []).map((c) => (
-                    <option key={c.key} value={c.key}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+              <p className="muted">Manually record something found outside automated detectors.</p>
+              <div className="secmon-form-grid">
+                <label className="filters-row__field secmon-span-2">
+                  <span className="filters-row__label">Title</span>
+                  <input
+                    required
+                    value={declareForm.title}
+                    onChange={(e) => setDeclareForm((f) => ({ ...f, title: e.target.value }))}
+                    placeholder="Short summary"
+                  />
+                </label>
+                <label className="filters-row__field">
+                  <span className="filters-row__label">Severity</span>
+                  <select
+                    value={declareForm.severity}
+                    onChange={(e) => setDeclareForm((f) => ({ ...f, severity: e.target.value }))}
+                  >
+                    {(options?.severities || ['medium']).map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="filters-row__field">
+                  <span className="filters-row__label">Category</span>
+                  <select
+                    value={declareForm.category}
+                    onChange={(e) => setDeclareForm((f) => ({ ...f, category: e.target.value }))}
+                  >
+                    {(options?.categories || []).map((c) => (
+                      <option key={c.key} value={c.key}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="filters-row__field secmon-span-2">
+                  <span className="filters-row__label">What happened</span>
+                  <textarea
+                    rows={3}
+                    value={declareForm.description}
+                    onChange={(e) => setDeclareForm((f) => ({ ...f, description: e.target.value }))}
+                    placeholder="Describe the security issue…"
+                  />
+                </label>
+              </div>
+              <div className="filters-row__actions">
                 <button type="submit" className="btn primary" disabled={saving}>
-                  Declare
+                  Declare incident
                 </button>
               </div>
             </form>
           )}
-          {incidents.length === 0 ? (
-            <p className="muted">No security incidents yet.</p>
-          ) : (
-            <DataGrid columns={incidentColumns} rows={incidents} rowKey={(r) => r.id} />
-          )}
-        </>
-      )}
 
-      {!loading && tab === 'report' && report && (
-        <div className="stack">
-          <div className="stat-row" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <div className="card">
-              <strong>{report.totals?.events ?? 0}</strong>
-              <div className="muted">Events</div>
-            </div>
-            <div className="card">
-              <strong>{report.totals?.open_high_critical_incidents ?? 0}</strong>
-              <div className="muted">Open high/critical incidents</div>
-            </div>
-            <div className="card">
-              <strong>{report.dependency_scan?.status || 'unknown'}</strong>
-              <div className="muted">
-                Last dependency scan
-                {report.dependency_scan?.overdue ? ' (overdue)' : ''}
-              </div>
-              <div className="muted small">{report.dependency_scan?.last_at ? formatDateTime(report.dependency_scan.last_at) : 'Never'}</div>
-            </div>
-          </div>
-          {report.dependency_scan?.summary ? (
-            <p>
-              <FaExclamationTriangle /> {report.dependency_scan.summary}
-            </p>
-          ) : null}
-          <h3>By severity</h3>
-          <ul>
-            {Object.entries(report.by_severity || {}).map(([k, v]) => (
-              <li key={k}>
-                <Badge className={severityClass(k)}>{k}</Badge> — {v}
-              </li>
-            ))}
-          </ul>
-          <h3>By category</h3>
-          <ul>
-            {Object.entries(report.by_category || {}).map(([k, v]) => (
-              <li key={k}>
-                {k}: {v}
-              </li>
-            ))}
-          </ul>
-          <h3>Top source IPs</h3>
-          <ul>
-            {(report.top_source_ips || []).map((row) => (
-              <li key={row.source_ip}>
-                {row.source_ip}: {row.total}
-              </li>
-            ))}
-          </ul>
-          <p className="muted small">Generated {formatDateTime(report.generated_at)}</p>
+          <DataGrid
+            columns={incidentColumns}
+            rows={incidents}
+            loading={loading || hubLoading}
+            emptyMessage="No security incidents yet."
+            pageSize={15}
+            actions={(row) => (
+              <DataGridIconBtn icon={FaBolt} label="Open" onClick={() => openIncident(row.id)} />
+            )}
+          />
         </div>
       )}
 
-      {!loading && tab === 'settings' && settings && (
-        <form className="stack" onSubmit={saveSettings}>
-          <label>
-            Alert minimum severity
-            <select
-              value={settings.alert_min_severity || 'high'}
-              onChange={(e) => setSettings((s) => ({ ...s, alert_min_severity: e.target.value }))}
-            >
-              {(options?.severities || []).map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={!!settings.alert_email_enabled}
-              onChange={(e) => setSettings((s) => ({ ...s, alert_email_enabled: e.target.checked }))}
-            />{' '}
-            Email alerts enabled
-          </label>
-          <label>
-            Alert emails (comma-separated)
-            <input
-              value={Array.isArray(settings.alert_emails) ? settings.alert_emails.join(', ') : settings.alert_emails || ''}
-              onChange={(e) => setSettings((s) => ({ ...s, alert_emails: e.target.value }))}
-            />
-          </label>
-          <label>
-            Failed login threshold
-            <input
-              type="number"
-              min={2}
-              max={100}
-              value={settings.failed_login_threshold ?? 5}
-              onChange={(e) => setSettings((s) => ({ ...s, failed_login_threshold: e.target.value }))}
-            />
-          </label>
-          <label>
-            Failed login window (minutes)
-            <input
-              type="number"
-              min={1}
-              max={1440}
-              value={settings.failed_login_window_minutes ?? 15}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, failed_login_window_minutes: e.target.value }))
-              }
-            />
-          </label>
-          <button type="submit" className="btn primary" disabled={saving}>
-            Save settings
-          </button>
-        </form>
+      {tab === 'report' && (
+        <div className="secmon-report">
+          {loading ? (
+            <p className="muted">Loading report…</p>
+          ) : report ? (
+            <>
+              <div className="secmon-stat-grid">
+                <StatCard label="Events" value={report.totals?.events ?? 0} />
+                <StatCard
+                  label="Open high / critical"
+                  value={report.totals?.open_high_critical_incidents ?? 0}
+                />
+                <StatCard
+                  label="Dependency scan"
+                  value={report.dependency_scan?.status || 'unknown'}
+                  hint={
+                    report.dependency_scan?.last_at
+                      ? formatDateTime(report.dependency_scan.last_at)
+                      : 'Never run — use Monitor now'
+                  }
+                />
+              </div>
+
+              {report.dependency_scan?.summary ? (
+                <div className="secmon-card secmon-card--warn">
+                  <FaExclamationTriangle aria-hidden />
+                  <p>{report.dependency_scan.summary}</p>
+                </div>
+              ) : null}
+
+              <div className="secmon-report-grid">
+                <div className="secmon-card">
+                  <h3>By severity</h3>
+                  {(Object.keys(report.by_severity || {}).length === 0) ? (
+                    <p className="muted">No data.</p>
+                  ) : (
+                    <ul className="secmon-list">
+                      {Object.entries(report.by_severity || {}).map(([k, v]) => (
+                        <li key={k}>
+                          <Badge className={severityClass(k)}>{k}</Badge>
+                          <strong>{v}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="secmon-card">
+                  <h3>By category</h3>
+                  {(Object.keys(report.by_category || {}).length === 0) ? (
+                    <p className="muted">No data.</p>
+                  ) : (
+                    <ul className="secmon-list">
+                      {Object.entries(report.by_category || {}).map(([k, v]) => (
+                        <li key={k}>
+                          <span>{k}</span>
+                          <strong>{v}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="secmon-card">
+                  <h3>Top source IPs</h3>
+                  {(report.top_source_ips || []).length === 0 ? (
+                    <p className="muted">No data.</p>
+                  ) : (
+                    <ul className="secmon-list">
+                      {(report.top_source_ips || []).map((row) => (
+                        <li key={row.source_ip}>
+                          <code>{row.source_ip}</code>
+                          <strong>{row.total}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              <p className="muted">Generated {formatDateTime(report.generated_at)}</p>
+            </>
+          ) : (
+            <p className="muted">No report data yet.</p>
+          )}
+        </div>
+      )}
+
+      {tab === 'settings' && (
+        <div className="secmon-settings">
+          {loading || !settings ? (
+            <p className="muted">Loading settings…</p>
+          ) : (
+            <form className="secmon-card" onSubmit={saveSettings}>
+              <h2>Alert settings</h2>
+              <p className="muted">Configure thresholds used by real-time detectors.</p>
+              <div className="secmon-form-grid">
+                <label className="filters-row__field">
+                  <span className="filters-row__label">Alert minimum severity</span>
+                  <select
+                    value={settings.alert_min_severity || 'high'}
+                    onChange={(e) =>
+                      setSettings((s) => ({ ...s, alert_min_severity: e.target.value }))
+                    }
+                  >
+                    {(options?.severities || []).map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="filters-row__field">
+                  <span className="filters-row__label">Failed login threshold</span>
+                  <input
+                    type="number"
+                    min={2}
+                    max={100}
+                    value={settings.failed_login_threshold ?? 5}
+                    onChange={(e) =>
+                      setSettings((s) => ({ ...s, failed_login_threshold: e.target.value }))
+                    }
+                  />
+                </label>
+                <label className="filters-row__field">
+                  <span className="filters-row__label">Failed login window (minutes)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={1440}
+                    value={settings.failed_login_window_minutes ?? 15}
+                    onChange={(e) =>
+                      setSettings((s) => ({ ...s, failed_login_window_minutes: e.target.value }))
+                    }
+                  />
+                </label>
+                <label className="filters-row__field secmon-span-2 secmon-check">
+                  <input
+                    type="checkbox"
+                    checked={!!settings.alert_email_enabled}
+                    onChange={(e) =>
+                      setSettings((s) => ({ ...s, alert_email_enabled: e.target.checked }))
+                    }
+                  />
+                  <span>Email alerts enabled</span>
+                </label>
+                <label className="filters-row__field secmon-span-2">
+                  <span className="filters-row__label">Alert emails (comma-separated)</span>
+                  <input
+                    value={
+                      Array.isArray(settings.alert_emails)
+                        ? settings.alert_emails.join(', ')
+                        : settings.alert_emails || ''
+                    }
+                    onChange={(e) => setSettings((s) => ({ ...s, alert_emails: e.target.value }))}
+                    placeholder="ops@example.com, security@example.com"
+                  />
+                </label>
+              </div>
+              <div className="filters-row__actions">
+                <button type="submit" className="btn primary" disabled={saving}>
+                  Save settings
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       )}
 
       {selectedEvent && (
-        <div className="panel" style={{ marginTop: '1.5rem' }}>
-          <h2>Event detail</h2>
-          <p>
-            <Badge className={severityClass(selectedEvent.severity)}>{selectedEvent.severity}</Badge>{' '}
+        <DetailDrawer title="Event detail" onClose={() => setSelectedEvent(null)}>
+          <div className="secmon-badges">
+            <Badge className={severityClass(selectedEvent.severity)}>{selectedEvent.severity}</Badge>
             <Badge className={statusClass(selectedEvent.status)}>{selectedEvent.status}</Badge>
-          </p>
-          <p>
-            <strong>When:</strong> {formatDateTime(selectedEvent.occurred_at)}
-          </p>
-          <p>
-            <strong>What:</strong> {selectedEvent.description}
-          </p>
-          <p>
-            <strong>Type:</strong> {selectedEvent.event_type}
-          </p>
-          <p>
-            <strong>Source IP:</strong> {selectedEvent.source_ip || '—'}
-          </p>
-          <p>
-            <strong>Actor:</strong>{' '}
-            {selectedEvent.actor?.email || selectedEvent.actor?.name || 'anonymous / unknown'}
-          </p>
-          <button type="button" className="btn ghost" onClick={() => setSelectedEvent(null)}>
-            Close
-          </button>
-        </div>
+          </div>
+          <dl className="secmon-dl">
+            <div>
+              <dt>When</dt>
+              <dd>{formatDateTime(selectedEvent.occurred_at)}</dd>
+            </div>
+            <div>
+              <dt>What happened</dt>
+              <dd>{selectedEvent.description}</dd>
+            </div>
+            <div>
+              <dt>Type</dt>
+              <dd>
+                <code>{selectedEvent.event_type}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Source IP</dt>
+              <dd>{selectedEvent.source_ip || '—'}</dd>
+            </div>
+            <div>
+              <dt>Actor</dt>
+              <dd>
+                {selectedEvent.actor?.email ||
+                  selectedEvent.actor?.name ||
+                  'anonymous / unknown'}
+              </dd>
+            </div>
+          </dl>
+        </DetailDrawer>
       )}
 
       {selectedIncident && (
-        <div className="panel" style={{ marginTop: '1.5rem' }}>
-          <h2>Incident #{selectedIncident.id}</h2>
-          <p>
-            <Badge className={severityClass(selectedIncident.severity)}>{selectedIncident.severity}</Badge>{' '}
+        <DetailDrawer
+          title={`Incident #${selectedIncident.id}`}
+          onClose={() => setSelectedIncident(null)}
+        >
+          <div className="secmon-badges">
+            <Badge className={severityClass(selectedIncident.severity)}>
+              {selectedIncident.severity}
+            </Badge>
             <Badge className={statusClass(selectedIncident.status)}>{selectedIncident.status}</Badge>
-          </p>
-          <p>
-            <strong>Opened:</strong> {formatDateTime(selectedIncident.created_at)}
-          </p>
-          <p>
-            <strong>What:</strong> {selectedIncident.description || selectedIncident.title}
-          </p>
+          </div>
+          <dl className="secmon-dl">
+            <div>
+              <dt>Opened</dt>
+              <dd>{formatDateTime(selectedIncident.created_at)}</dd>
+            </div>
+            <div>
+              <dt>What happened</dt>
+              <dd>{selectedIncident.description || selectedIncident.title}</dd>
+            </div>
+          </dl>
+
           {(selectedIncident.investigation_notes || []).length > 0 && (
-            <>
+            <div className="secmon-notes">
               <h3>Investigation notes</h3>
               <ul>
                 {selectedIncident.investigation_notes.map((n) => (
                   <li key={n.id}>
-                    <strong>{n.author_name || 'User'}</strong> ({formatDateTime(n.created_at)}):{' '}
-                    {n.body}
+                    <strong>{n.author_name || 'User'}</strong>
+                    <span className="muted"> · {formatDateTime(n.created_at)}</span>
+                    <p>{n.body}</p>
                   </li>
                 ))}
               </ul>
-            </>
+            </div>
           )}
+
           {canManageIncidents && (
-            <form className="stack" onSubmit={updateIncident}>
-              <label>
-                Status
+            <form className="secmon-update" onSubmit={updateIncident}>
+              <label className="filters-row__field">
+                <span className="filters-row__label">Status</span>
                 <select value={incidentStatus} onChange={(e) => setIncidentStatus(e.target.value)}>
                   {(options?.statuses || []).map((s) => (
                     <option key={s} value={s}>
@@ -730,22 +886,231 @@ export default function SecurityMonitoring() {
                   ))}
                 </select>
               </label>
-              <textarea
-                rows={3}
-                placeholder="Add investigation note"
-                value={incidentNote}
-                onChange={(e) => setIncidentNote(e.target.value)}
-              />
+              <label className="filters-row__field">
+                <span className="filters-row__label">Add note</span>
+                <textarea
+                  rows={3}
+                  placeholder="Investigation note"
+                  value={incidentNote}
+                  onChange={(e) => setIncidentNote(e.target.value)}
+                />
+              </label>
               <button type="submit" className="btn primary" disabled={saving}>
                 Update incident
               </button>
             </form>
           )}
-          <button type="button" className="btn ghost" onClick={() => setSelectedIncident(null)}>
-            Close
-          </button>
-        </div>
+        </DetailDrawer>
       )}
-    </div>
+
+      <style>{`
+        .secmon-page .page-head .actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          align-items: center;
+        }
+        .secmon-alert {
+          margin-bottom: 1rem;
+        }
+        .secmon-link {
+          background: none;
+          border: 0;
+          padding: 0;
+          color: var(--brand, #1d4ed8);
+          font: inherit;
+          font-weight: 600;
+          text-align: left;
+          cursor: pointer;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+        .secmon-incidents,
+        .secmon-report,
+        .secmon-settings {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .secmon-card {
+          border: 1px solid var(--line, rgba(15, 23, 42, 0.12));
+          border-radius: 12px;
+          background: var(--panel, #fff);
+          padding: 1rem 1.15rem;
+          box-shadow: var(--shadow, 0 1px 2px rgba(15, 23, 42, 0.04));
+        }
+        .secmon-card h2,
+        .secmon-card h3 {
+          margin: 0 0 0.35rem;
+          font-size: 1.05rem;
+        }
+        .secmon-card--warn {
+          display: flex;
+          gap: 0.75rem;
+          align-items: flex-start;
+          background: #fff7ed;
+          border-color: #fdba74;
+          color: #9a3412;
+        }
+        .secmon-card--warn p {
+          margin: 0;
+        }
+        .secmon-form-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.85rem;
+          margin: 0.85rem 0 1rem;
+        }
+        .secmon-span-2 {
+          grid-column: 1 / -1;
+        }
+        .secmon-form-grid textarea,
+        .secmon-update textarea,
+        .secmon-form-grid input,
+        .secmon-form-grid select,
+        .secmon-update select {
+          width: 100%;
+          min-height: 2.5rem;
+        }
+        .secmon-form-grid textarea,
+        .secmon-update textarea {
+          min-height: 5rem;
+          resize: vertical;
+        }
+        .secmon-check {
+          flex-direction: row !important;
+          align-items: center;
+          gap: 0.55rem !important;
+        }
+        .secmon-check input {
+          width: auto;
+          min-height: auto;
+        }
+        .secmon-stat-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1rem;
+        }
+        .secmon-stat {
+          border: 1px solid var(--line, rgba(15, 23, 42, 0.12));
+          border-radius: 12px;
+          padding: 1rem 1.1rem;
+          background: var(--panel, #fff);
+        }
+        .secmon-stat__value {
+          margin: 0;
+          font-size: 1.6rem;
+          font-weight: 750;
+          line-height: 1.1;
+          text-transform: capitalize;
+        }
+        .secmon-stat__label {
+          margin: 0.35rem 0 0;
+          font-weight: 600;
+        }
+        .secmon-stat__hint {
+          margin: 0.25rem 0 0;
+          font-size: 0.82rem;
+          color: var(--muted, #64748b);
+        }
+        .secmon-report-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1rem;
+        }
+        .secmon-list {
+          list-style: none;
+          margin: 0.75rem 0 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 0.55rem;
+        }
+        .secmon-list li {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.75rem;
+        }
+        .secmon-drawer {
+          margin-top: 1.25rem;
+          border: 1px solid var(--line, rgba(15, 23, 42, 0.12));
+          border-radius: 12px;
+          background: var(--panel, #fff);
+          padding: 1rem 1.15rem;
+        }
+        .secmon-drawer__head {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 0.85rem;
+        }
+        .secmon-drawer__head h2 {
+          margin: 0;
+          font-size: 1.15rem;
+        }
+        .secmon-badges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+          margin-bottom: 0.85rem;
+        }
+        .secmon-dl {
+          margin: 0;
+          display: grid;
+          gap: 0.75rem;
+        }
+        .secmon-dl dt {
+          font-size: 0.75rem;
+          font-weight: 650;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: var(--muted, #64748b);
+          margin: 0 0 0.2rem;
+        }
+        .secmon-dl dd {
+          margin: 0;
+        }
+        .secmon-notes {
+          margin-top: 1rem;
+        }
+        .secmon-notes h3 {
+          margin: 0 0 0.5rem;
+          font-size: 0.95rem;
+        }
+        .secmon-notes ul {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .secmon-notes li {
+          border-top: 1px solid var(--line, rgba(15, 23, 42, 0.1));
+          padding-top: 0.65rem;
+        }
+        .secmon-notes p {
+          margin: 0.35rem 0 0;
+        }
+        .secmon-update {
+          margin-top: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        @media (max-width: 900px) {
+          .secmon-stat-grid,
+          .secmon-report-grid,
+          .secmon-form-grid {
+            grid-template-columns: 1fr;
+          }
+          .secmon-span-2 {
+            grid-column: auto;
+          }
+        }
+      `}</style>
+    </section>
   )
 }

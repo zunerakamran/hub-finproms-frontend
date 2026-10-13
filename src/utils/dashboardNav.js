@@ -107,6 +107,7 @@ export const DASHBOARD_NAV_SECTION_FIELDS = [
   { key: 'smc', label: 'Separator - Social Media Compliance' },
   { key: 'gc', label: 'Separator - General Compliance' },
   { key: 'st', label: 'Separator - Support Tickets' },
+  { key: 'secmon', label: 'Separator - Security Monitoring' },
   { key: 'wtl', label: 'Separator - Website Template Library' },
   { key: 'wc', label: 'Separator - Website Content Pre Approval' },
   { key: 'platform', label: 'Separator - Platform' },

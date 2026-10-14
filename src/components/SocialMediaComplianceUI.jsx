@@ -3,6 +3,7 @@ import { smcStatusClass } from '../utils/socialMediaCompliance'
 import {
   downloadComplianceFile,
   loadFileForPreview,
+  revokePreviewUrl,
 } from '../utils/filePreviewActions'
 import { useHub } from '../context/HubContext'
 import AttachmentPreview from './AttachmentPreview'
@@ -86,14 +87,14 @@ export function SmcVersionCard({ version, isLatest }) {
 
   const closePreview = useCallback(() => {
     setPreview((prev) => {
-      if (prev?.url) URL.revokeObjectURL(prev.url)
+      revokePreviewUrl(prev)
       return null
     })
   }, [])
 
   useEffect(() => () => {
-    if (preview?.url) URL.revokeObjectURL(preview.url)
-  }, [preview?.url])
+    revokePreviewUrl(preview)
+  }, [preview])
 
   async function openMediaPreview() {
     if (!mediaUrl || busy) return
@@ -104,7 +105,7 @@ export function SmcVersionCard({ version, isLatest }) {
     try {
       const next = await loadFileForPreview(file, 'public')
       setPreview((prev) => {
-        if (prev?.url) URL.revokeObjectURL(prev.url)
+        revokePreviewUrl(prev)
         return next
       })
     } catch (err) {
@@ -172,21 +173,9 @@ export function SmcVersionCard({ version, isLatest }) {
                   />
                 )}
               </button>
-              <div className="gc-attach-row" style={{ marginTop: '0.35rem' }}>
-                <button
-                  type="button"
-                  className="btn ghost gc-attach-download"
-                  onClick={downloadMedia}
-                  disabled={busy}
-                >
-                  Download
-                </button>
-                {busy ? (
-                  <span className="muted">
-                    {busyKind === 'download' ? 'Downloading…' : 'Opening…'}
-                  </span>
-                ) : null}
-              </div>
+              {busy && busyKind === 'preview' ? (
+                <p className="muted" style={{ marginTop: '0.35rem' }}>Opening…</p>
+              ) : null}
               {error ? <p className="error">{error}</p> : null}
             </div>
           ) : (

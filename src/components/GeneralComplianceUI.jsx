@@ -9,6 +9,7 @@ import {
   downloadComplianceFile,
   fileRowKey,
   loadFileForPreview,
+  revokePreviewUrl,
 } from '../utils/filePreviewActions'
 import { useHub } from '../context/HubContext'
 import AttachmentPreview from './AttachmentPreview'
@@ -86,7 +87,7 @@ export function GcBarChart({ labels = [], data = [], title }) {
  * Shared attachment / supporting-file list with in-app preview.
  *
  * @param {'gc'|'public'} accessMode — GC encrypted auth API vs public file_url
- * @param {'capability'|'always'|'never'} downloadMode — GC capability gate vs always show Download
+ * @param {'capability'|'always'|'never'} downloadMode — GC capability gate vs always allow Download in the preview modal
  */
 export function GcAttachmentList({
   attachments = [],
@@ -105,14 +106,14 @@ export function GcAttachmentList({
 
   const closePreview = useCallback(() => {
     setPreview((prev) => {
-      if (prev?.url) URL.revokeObjectURL(prev.url)
+      revokePreviewUrl(prev)
       return null
     })
   }, [])
 
   useEffect(() => () => {
-    if (preview?.url) URL.revokeObjectURL(preview.url)
-  }, [preview?.url])
+    revokePreviewUrl(preview)
+  }, [preview])
 
   if (!attachments.length) {
     return <p className="muted">{emptyLabel}</p>
@@ -127,7 +128,7 @@ export function GcAttachmentList({
     try {
       const next = await loadFileForPreview(file, accessMode)
       setPreview((prev) => {
-        if (prev?.url) URL.revokeObjectURL(prev.url)
+        revokePreviewUrl(prev)
         return next
       })
     } catch (err) {
@@ -179,7 +180,6 @@ export function GcAttachmentList({
           const roleLabel = showUploader ? supportingFileRoleLabel(file) : null
           const byName = showUploader ? file.uploaded_by_name : null
           const canOpen = fileCanOpen(file, accessMode)
-          const canDownload = fileAllowsDownload(file, can, downloadMode)
           const isBusy = busyKey === key
           return (
             <li key={key}>
@@ -194,21 +194,8 @@ export function GcAttachmentList({
                 {file.size_bytes != null && typeof formatSize === 'function' && (
                   <span className="muted"> ({formatSize(file.size_bytes)})</span>
                 )}
-                {canDownload ? (
-                  <button
-                    type="button"
-                    className="btn ghost gc-attach-download"
-                    onClick={() => downloadFile(file)}
-                    disabled={isBusy}
-                  >
-                    Download
-                  </button>
-                ) : null}
-                {isBusy ? (
-                  <span className="muted">
-                    {' '}
-                    {busyKind === 'download' ? 'Downloading…' : 'Opening…'}
-                  </span>
+                {isBusy && busyKind === 'preview' ? (
+                  <span className="muted"> Opening…</span>
                 ) : null}
               </div>
               {(roleLabel || byName) && (

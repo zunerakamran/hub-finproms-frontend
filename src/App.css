@@ -8249,11 +8249,6 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   align-items: center;
   gap: 0.25rem 0.35rem;
 }
-.gc-attach-download {
-  padding: 0.15rem 0.55rem;
-  font-size: 0.8rem;
-  line-height: 1.3;
-}
 .file-dropzone-chip-icon {
   min-width: 1.85rem;
   width: 1.85rem;

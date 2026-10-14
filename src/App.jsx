@@ -21,6 +21,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import VerifyEmail from './pages/VerifyEmail'
 import HomeRoute from './components/HomeRoute'
+import NavigationSecurityBootstrap from './components/NavigationSecurityBootstrap'
 
 const AdminBankTransfers = lazy(() => import('./pages/AdminBankTransfers'))
 const AdminAdvisors = lazy(() => import('./pages/AdminAdvisors'))
@@ -146,6 +147,7 @@ export default function App() {
           <PrivacyGate>
           <CookieBanner />
           <BrowserRouter>
+            <NavigationSecurityBootstrap />
             <Suspense fallback={<PageLoader />}>
             <Routes>
             {/* Home - public on shared hubs; login required on white-labelled */}

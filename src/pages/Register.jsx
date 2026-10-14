@@ -5,6 +5,7 @@ import AuthFavicon from '../components/AuthFavicon'
 import AuthScreen from '../components/AuthScreen'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { markNavigationContinuity } from '../security/navigationContinuity'
 
 export default function Register() {
   const { register, isAuthenticated } = useAuth()
@@ -22,7 +23,10 @@ export default function Register() {
   const [resending, setResending] = useState(false)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
-  if (isAuthenticated) return <Navigate to="/my-dashboard" replace />
+  if (isAuthenticated) {
+    markNavigationContinuity()
+    return <Navigate to="/my-dashboard" replace />
+  }
 
   if (!hubLoading && !registrationEnabled) {
     return (

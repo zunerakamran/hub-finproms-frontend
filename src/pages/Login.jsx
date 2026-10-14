@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import AuthFavicon from '../components/AuthFavicon'
 import AuthScreen from '../components/AuthScreen'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { markNavigationContinuity } from '../security/navigationContinuity'
 
 function roleHome() {
   return '/my-dashboard'
@@ -14,7 +15,6 @@ export default function Login() {
   const { login, verifyLoginOtp, isAuthenticated } = useAuth()
   const { hub, branding, registrationEnabled, inviteOnly } = useHub()
   const navigate = useNavigate()
-  const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [otpCode, setOtpCode] = useState('')
   const [otpChallenge, setOtpChallenge] = useState('')
@@ -27,21 +27,14 @@ export default function Login() {
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
 
   if (isAuthenticated) {
-    const fallback = roleHome()
-    const from = location.state?.from?.pathname
-    const target =
-      from && from !== '/login' && from !== '/register' ? from : fallback
-    return <Navigate to={target} replace />
+    // Trusted: user reached allowlisted /login; establish continuity then enter app.
+    markNavigationContinuity()
+    return <Navigate to={roleHome()} replace />
   }
 
   const finishLogin = () => {
-    const home = roleHome()
-    const from = location.state?.from?.pathname
-    if (from && from !== '/login' && from !== '/register') {
-      navigate(from, { replace: true })
-      return
-    }
-    navigate(home, { replace: true })
+    markNavigationContinuity()
+    navigate(roleHome(), { replace: true })
   }
 
   const onResendVerification = async () => {

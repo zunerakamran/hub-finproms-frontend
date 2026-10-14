@@ -5,6 +5,7 @@ import AuthFavicon from '../components/AuthFavicon'
 import AuthScreen from '../components/AuthScreen'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { markNavigationContinuity } from '../security/navigationContinuity'
 
 export default function VerifyEmail() {
   const { completeEmailVerification, isAuthenticated } = useAuth()
@@ -45,6 +46,7 @@ export default function VerifyEmail() {
   }, [email, token, completeEmailVerification, navigate, isAuthenticated])
 
   if (isAuthenticated && !message) {
+    markNavigationContinuity()
     return <Navigate to="/my-dashboard" replace />
   }
 

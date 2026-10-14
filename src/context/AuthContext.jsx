@@ -1,6 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, setToken } from '../api/client'
 import { authQueryKey, hubBootQueryKey, queryClient } from '../queryClient'
+import {
+  clearNavigationContinuity,
+  markNavigationContinuity,
+} from '../security/navigationContinuity'
 
 const AuthContext = createContext(null)
 
@@ -120,6 +124,7 @@ export function AuthProvider({ children }) {
       return data
     }
     setToken('1')
+    markNavigationContinuity()
     clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)
@@ -139,6 +144,7 @@ export function AuthProvider({ children }) {
   const verifyLoginOtp = useCallback(async (payload) => {
     const data = await api.verifyLoginOtp(payload)
     setToken('1')
+    markNavigationContinuity()
     clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)
@@ -160,6 +166,7 @@ export function AuthProvider({ children }) {
     // Self-registration requires email verification - no session token yet.
     if (data?.user || data?.token || data?.auth_mode === 'cookie') {
       setToken('1')
+      markNavigationContinuity()
       clearHubCaches()
       setUser(data.user)
       queryClient.setQueryData(authQueryKey, data)
@@ -171,6 +178,7 @@ export function AuthProvider({ children }) {
   const completeEmailVerification = useCallback(async (payload) => {
     const data = await api.verifyEmail(payload)
     setToken('1')
+    markNavigationContinuity()
     clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)
@@ -185,6 +193,7 @@ export function AuthProvider({ children }) {
       // ignore
     }
     setToken(null)
+    clearNavigationContinuity()
     setUser(null)
     setPowerCapabilities({})
     queryClient.clear()

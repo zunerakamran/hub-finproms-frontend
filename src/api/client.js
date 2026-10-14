@@ -145,7 +145,11 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    if (response.status === 401 && !String(path).includes('/auth/login')) {
+    if (
+      response.status === 401
+      && !String(path).includes('/auth/login')
+      && !String(path).includes('/security/external-navigation-blocked')
+    ) {
       setToken(null)
     }
     const error = new Error(data?.message || 'Request failed')
@@ -180,6 +184,12 @@ export const api = {
     request('/auth/resend-login-otp', { method: 'POST', body: JSON.stringify(payload) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
+  /** NFR-SEC-NAV: optional Security Monitoring beacon when SPA blocks external entry. */
+  reportExternalNavigationBlocked: (payload) =>
+    request('/security/external-navigation-blocked', {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    }),
   updateProfile: (payload) => {
     const body = payload instanceof FormData ? payload : JSON.stringify(payload)
     return request('/auth/profile', {

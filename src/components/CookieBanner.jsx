@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useHub } from '../context/HubContext'
+import { sanitizeRichText } from '../utils/richText'
 
 const STORAGE_KEY = 'hub_cookie_notice_v'
 
@@ -42,7 +43,7 @@ export default function CookieBanner() {
       <div className="cookie-banner__inner">
         <div
           className="cookie-banner__text"
-          dangerouslySetInnerHTML={{ __html: cookies.content || '' }}
+          dangerouslySetInnerHTML={{ __html: sanitizeRichText(cookies.content || '') }}
         />
         <button type="button" className="btn primary" onClick={onAccept}>
           OK

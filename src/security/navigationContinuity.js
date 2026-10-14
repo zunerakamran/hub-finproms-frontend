@@ -16,9 +16,13 @@ let continuityGrantedThisDocument = false
 /** User first landed on an allowlisted path this document (home / login / etc.). */
 let allowlistedEntryThisDocument = false
 
-/** Paths that MUST remain reachable from email / payment providers / auth. */
+/**
+ * Paths that MUST remain reachable from email / payment providers / auth.
+ * Home (`/`) is NOT allowlisted for logged-in users — paste/email of the main
+ * URL while authenticated is blocked (see shouldBlockExternalHomeEntry).
+ * Guests may still open `/` for public shared/central landing pages.
+ */
 const ALLOWLIST_EXACT = new Set([
-  '/',
   '/login',
   '/register',
   '/forgot-password',
@@ -129,12 +133,35 @@ export function shouldBlockExternalNavigation(pathname) {
   }
 
   if (isUntrustedExternalDocumentEntry()) {
-    // First landed on home/login/etc. this document → further SPA clicks are OK
-    // (guest may hit ProtectedRoute and be sent to login).
-    // Direct paste/email of a protected URL never sets allowlistedEntryThisDocument.
+    // First landed on login/home(guest)/etc. this document → further SPA clicks
+    // are OK. Direct paste/email of a protected URL never sets allowlistedEntry.
     return !allowlistedEntryThisDocument
   }
 
   // Reload / back-forward: require sessionStorage continuity (set at login).
+  return !hasNavigationContinuity()
+}
+
+/**
+ * Home (`/`) special-case:
+ * - Guests: allow external open (public catalog / marketing) and treat as a
+ *   trusted allowlisted entry so they can click through to login.
+ * - Authenticated: block paste / email / chat / other-app opens of the main URL
+ *   (same threat as deep links). In-app navigation and F5 with continuity OK.
+ */
+export function shouldBlockExternalHomeEntry(isAuthenticated) {
+  if (!isAuthenticated) {
+    noteAllowlistedDocumentEntry()
+    return false
+  }
+
+  if (continuityGrantedThisDocument) {
+    return false
+  }
+
+  if (isUntrustedExternalDocumentEntry()) {
+    return true
+  }
+
   return !hasNavigationContinuity()
 }

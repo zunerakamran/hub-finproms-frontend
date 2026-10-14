@@ -1,9 +1,13 @@
 import { Navigate } from 'react-router-dom'
 import PageLoader from './PageLoader'
+import ExternalNavigationBlocked from '../pages/ExternalNavigationBlocked'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import Home from '../pages/Home'
-import { markNavigationContinuity } from '../security/navigationContinuity'
+import {
+  markNavigationContinuity,
+  shouldBlockExternalHomeEntry,
+} from '../security/navigationContinuity'
 
 /**
  * Shared hubs: home is public catalog (no login required for landing).
@@ -11,6 +15,9 @@ import { markNavigationContinuity } from '../security/navigationContinuity'
  * when off, guests → login and users → dashboard.
  * White-labelled hubs: home requires authentication.
  * Roles without member_view_site_pages cannot open the website.
+ *
+ * NFR-SEC-NAV: authenticated users cannot open `/` via paste / email / external
+ * redirect; guests may still open the public home URL.
  */
 export default function HomeRoute() {
   const { isAuthenticated, loading: authLoading } = useAuth()
@@ -18,6 +25,10 @@ export default function HomeRoute() {
 
   if (authLoading || hubLoading) {
     return <PageLoader />
+  }
+
+  if (shouldBlockExternalHomeEntry(isAuthenticated)) {
+    return <ExternalNavigationBlocked />
   }
 
   const isShared = hub?.type === 'shared'
@@ -34,11 +45,6 @@ export default function HomeRoute() {
 
   if (!publicLanding && !isAuthenticated) {
     return <Navigate to="/login" replace />
-  }
-
-  // Public home is allowlisted; cookie sessions that land here may continue in-app.
-  if (isAuthenticated) {
-    markNavigationContinuity()
   }
 
   return <Home />

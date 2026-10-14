@@ -7784,6 +7784,112 @@ td.data-grid__actions {
   border-radius: 8px;
   background: #fff;
 }
+.attachment-preview__body--office {
+  align-items: stretch;
+  justify-content: flex-start;
+  background: #e2e8f0;
+  padding: 0;
+  overflow: auto;
+}
+.attachment-preview__body--fallback {
+  background: #f8fafc;
+  align-items: stretch;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+}
+.office-preview {
+  width: 100%;
+  min-height: min(70vh, 38rem);
+  display: flex;
+  flex-direction: column;
+  background: #e2e8f0;
+}
+.office-preview__sheets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.55rem 0.75rem;
+  background: #fff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  flex-shrink: 0;
+}
+.office-preview__sheet-tab {
+  padding: 0.2rem 0.65rem;
+  font-size: 0.8rem;
+}
+.office-preview__sheet-tab.is-active {
+  background: var(--brand-accent-soft, #eef2ff);
+  border-color: color-mix(in srgb, var(--brand-accent, #4f46e5) 35%, transparent);
+}
+.office-preview__status {
+  margin: 0.75rem 1rem 0;
+}
+.office-preview__error {
+  margin: 1.25rem auto;
+  max-width: 28rem;
+  text-align: center;
+  padding: 1rem;
+  color: #0f172a;
+}
+.office-preview__host {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.75rem;
+}
+.office-preview__host--word {
+  background: #525659;
+}
+.office-preview__host--word .docx-wrapper {
+  background: #525659;
+  padding: 1rem 0;
+}
+.office-preview__host--word .docx-wrapper > section.docx {
+  background: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.35);
+  margin: 0 auto 1rem;
+  padding: 1.5rem;
+}
+.office-preview__host--excel,
+.office-preview__host--powerpoint {
+  background: #fff;
+}
+.office-preview__sheet {
+  overflow: auto;
+}
+.office-preview__sheet table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 100%;
+}
+.office-preview__sheet td,
+.office-preview__sheet th {
+  border: 1px solid #cbd5e1;
+  padding: 0.25rem 0.45rem;
+  white-space: pre-wrap;
+  vertical-align: top;
+}
+.attachment-preview__unavailable {
+  max-width: 28rem;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.attachment-preview__unavailable-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.attachment-preview__unavailable-name {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  word-break: break-word;
+}
 
 /* ?? Firm documents library ?? */
 .firm-docs-page .page-head {

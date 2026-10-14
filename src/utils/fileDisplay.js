@@ -98,3 +98,65 @@ export function fileKind(nameOrPath, mimeType) {
 
   return 'file'
 }
+
+/**
+ * Native browser embed (img / video / PDF / text iframe).
+ * Do not put Office blobs in an iframe — the browser downloads them.
+ *
+ * @param {string|null|undefined} nameOrPath
+ * @param {string|null|undefined} mimeType
+ */
+export function browserCanPreviewFile(nameOrPath, mimeType) {
+  const kind = fileKind(nameOrPath, mimeType)
+  return kind === 'image' || kind === 'video' || kind === 'pdf' || kind === 'text'
+}
+
+/**
+ * Office Open XML kinds we render with client-side libraries (docx / xlsx / pptx).
+ *
+ * @param {string|null|undefined} nameOrPath
+ * @param {string|null|undefined} mimeType
+ */
+export function needsOfficeClientPreview(nameOrPath, mimeType) {
+  const kind = fileKind(nameOrPath, mimeType)
+  return kind === 'word' || kind === 'excel' || kind === 'powerpoint'
+}
+
+/**
+ * Fetch + show in the attachment preview modal (native embed or Office renderer).
+ *
+ * @param {string|null|undefined} nameOrPath
+ * @param {string|null|undefined} mimeType
+ */
+export function canAttemptInAppPreview(nameOrPath, mimeType) {
+  return browserCanPreviewFile(nameOrPath, mimeType)
+    || needsOfficeClientPreview(nameOrPath, mimeType)
+}
+
+/**
+ * Short label for non-previewable kinds (Word, Excel, …).
+ * @param {string|null|undefined} nameOrPath
+ * @param {string|null|undefined} mimeType
+ */
+export function fileKindLabel(nameOrPath, mimeType) {
+  switch (fileKind(nameOrPath, mimeType)) {
+    case 'image':
+      return 'Image'
+    case 'video':
+      return 'Video'
+    case 'pdf':
+      return 'PDF'
+    case 'word':
+      return 'Word document'
+    case 'excel':
+      return 'Spreadsheet'
+    case 'powerpoint':
+      return 'Presentation'
+    case 'archive':
+      return 'Archive'
+    case 'text':
+      return 'Text file'
+    default:
+      return 'File'
+  }
+}

@@ -6,6 +6,11 @@ import {
   resolveComplianceSupportingFiles,
   supportingFileRoleLabel,
 } from '../utils/complianceSupportingFiles'
+import {
+  browserCanPreviewFile,
+  canAttemptInAppPreview,
+  needsOfficeClientPreview,
+} from '../utils/fileDisplay'
 import { useHub } from '../context/HubContext'
 import AttachmentPreview from './AttachmentPreview'
 import { StatusWithDate } from './DataGrid'
@@ -72,7 +77,8 @@ export function GcAttachmentList({
   const [busyId, setBusyId] = useState(null)
   const [busyKind, setBusyKind] = useState('') // 'preview' | 'download'
   const [error, setError] = useState('')
-  const [preview, setPreview] = useState(null) // { file, url, mimeType, filename }
+  // { file, url?, blob?, mimeType, filename, mode: 'native'|'office'|'unavailable' }
+  const [preview, setPreview] = useState(null)
 
   const closePreview = useCallback(() => {
     setPreview((prev) => {
@@ -92,17 +98,67 @@ export function GcAttachmentList({
   async function previewFile(file) {
     if (!file?.id || busyId) return
     setError('')
-    setBusyId(file.id)
-    setBusyKind('preview')
-    try {
-      const result = await api.generalCompliancePreviewFile(file)
+
+    const filename = file.original_name || `gc-file-${file.id}`
+    const mimeType = file.mime_type || ''
+
+    // Zip / unknown binaries: no in-app renderer.
+    if (!canAttemptInAppPreview(filename, mimeType)) {
       setPreview((prev) => {
         if (prev?.url) URL.revokeObjectURL(prev.url)
         return {
           file,
-          url: result.url,
-          mimeType: result.mimeType || file.mime_type,
-          filename: result.filename || file.original_name,
+          url: null,
+          blob: null,
+          mimeType,
+          filename,
+          mode: 'unavailable',
+        }
+      })
+      return
+    }
+
+    setBusyId(file.id)
+    setBusyKind('preview')
+    try {
+      // Always fetch with credentials. Office kinds stay as Blob for client renderers;
+      // native kinds become blob: URLs for img / video / iframe.
+      const { blob, filename: savedName, mimeType: responseMime } =
+        await api.generalComplianceFetchFile(file, { download: false })
+      const resolvedName = savedName || filename
+      const resolvedMime = responseMime || mimeType
+      const office = needsOfficeClientPreview(resolvedName, resolvedMime)
+      const native = browserCanPreviewFile(resolvedName, resolvedMime)
+
+      setPreview((prev) => {
+        if (prev?.url) URL.revokeObjectURL(prev.url)
+        if (office) {
+          return {
+            file,
+            url: null,
+            blob,
+            mimeType: resolvedMime,
+            filename: resolvedName,
+            mode: 'office',
+          }
+        }
+        if (native) {
+          return {
+            file,
+            url: URL.createObjectURL(blob),
+            blob: null,
+            mimeType: resolvedMime,
+            filename: resolvedName,
+            mode: 'native',
+          }
+        }
+        return {
+          file,
+          url: null,
+          blob: null,
+          mimeType: resolvedMime,
+          filename: resolvedName,
+          mode: 'unavailable',
         }
       })
     } catch (err) {
@@ -193,12 +249,14 @@ export function GcAttachmentList({
       </ul>
 
       <AttachmentPreview
-        open={Boolean(preview?.url)}
+        open={Boolean(preview)}
         onClose={closePreview}
         url={preview?.url}
+        blob={preview?.blob}
         mime={preview?.mimeType}
         name={preview?.filename}
         title="Preview"
+        forceUnavailable={preview ? preview.mode === 'unavailable' : false}
         canDownload={previewAllowsDownload}
         onDownload={
           previewAllowsDownload && preview?.file

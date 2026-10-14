@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { gcStatusClass, formatGcFileSize } from '../utils/generalCompliance'
 import {
@@ -7,10 +7,18 @@ import {
   supportingFileRoleLabel,
 } from '../utils/complianceSupportingFiles'
 import { useHub } from '../context/HubContext'
+import AttachmentPreview from './AttachmentPreview'
 import { StatusWithDate } from './DataGrid'
 import ComplianceStatusText from './ComplianceStatusText'
 import FileNameLabel from './FileNameLabel'
 import RichTextDisplay from './RichTextDisplay'
+
+/** Whether Download is allowed for this attachment (API field + hub capability fallback). */
+function gcFileAllowsDownload(file, can) {
+  if (!file?.id) return false
+  if (typeof file.can_download === 'boolean') return file.can_download
+  return Boolean(can?.('gc_download_attachments'))
+}
 
 export default function GcStatusBadge({ status, at }) {
   const { complianceStatusLabel } = useHub()
@@ -60,63 +68,146 @@ export function GcAttachmentList({
   emptyLabel = 'No attachments',
   showUploader = false,
 }) {
+  const { can } = useHub()
   const [busyId, setBusyId] = useState(null)
+  const [busyKind, setBusyKind] = useState('') // 'preview' | 'download'
   const [error, setError] = useState('')
+  const [preview, setPreview] = useState(null) // { file, url, mimeType, filename }
+
+  const closePreview = useCallback(() => {
+    setPreview((prev) => {
+      if (prev?.url) URL.revokeObjectURL(prev.url)
+      return null
+    })
+  }, [])
+
+  useEffect(() => () => {
+    if (preview?.url) URL.revokeObjectURL(preview.url)
+  }, [preview?.url])
 
   if (!attachments.length) {
     return <p className="muted">{emptyLabel}</p>
   }
 
-  async function downloadFile(file) {
+  async function previewFile(file) {
     if (!file?.id || busyId) return
     setError('')
     setBusyId(file.id)
+    setBusyKind('preview')
+    try {
+      const result = await api.generalCompliancePreviewFile(file)
+      setPreview((prev) => {
+        if (prev?.url) URL.revokeObjectURL(prev.url)
+        return {
+          file,
+          url: result.url,
+          mimeType: result.mimeType || file.mime_type,
+          filename: result.filename || file.original_name,
+        }
+      })
+    } catch (err) {
+      setError(err?.message || 'Unable to preview file')
+    } finally {
+      setBusyId(null)
+      setBusyKind('')
+    }
+  }
+
+  async function downloadFile(file) {
+    if (!file?.id || busyId) return
+    if (!gcFileAllowsDownload(file, can)) {
+      setError('Downloading Generic Compliance files is not enabled for your role on this hub.')
+      return
+    }
+    setError('')
+    setBusyId(file.id)
+    setBusyKind('download')
     try {
       await api.generalComplianceDownloadFile(file)
     } catch (err) {
       setError(err?.message || 'Unable to download file')
     } finally {
       setBusyId(null)
+      setBusyKind('')
     }
   }
 
+  const previewAllowsDownload = preview?.file
+    ? gcFileAllowsDownload(preview.file, can)
+    : false
+
   return (
-    <ul className="gc-attach-list">
-      {error ? (
-        <li className="gc-attach-error" role="alert">
-          <p className="error">{error}</p>
-        </li>
-      ) : null}
-      {attachments.map((file) => {
-        const roleLabel = showUploader ? supportingFileRoleLabel(file) : null
-        const byName = showUploader ? file.uploaded_by_name : null
-        const canDownload = Boolean(file.id)
-        return (
-          <li key={file.id || `${file.original_name}-${file.file_path}`}>
-            <div className="gc-attach-row">
-              <FileNameLabel
-                name={file.original_name}
-                mimeType={file.mime_type}
-                onClick={canDownload ? () => downloadFile(file) : undefined}
-                disabled={busyId === file.id}
-                fallback={canDownload ? 'Download' : 'File'}
-              />
-              {file.size_bytes != null && (
-                <span className="muted"> ({formatGcFileSize(file.size_bytes)})</span>
-              )}
-              {busyId === file.id ? <span className="muted"> Downloading…</span> : null}
-            </div>
-            {(roleLabel || byName) && (
-              <p className="muted gc-attach-meta">
-                {roleLabel ? <span className="gc-attach-role">{roleLabel}</span> : null}
-                {roleLabel && byName ? ' · ' : null}
-                {byName ? <span>by {byName}</span> : null}
-              </p>
-            )}
+    <>
+      <ul className="gc-attach-list">
+        {error ? (
+          <li className="gc-attach-error" role="alert">
+            <p className="error">{error}</p>
           </li>
-        )
-      })}
-    </ul>
+        ) : null}
+        {attachments.map((file) => {
+          const roleLabel = showUploader ? supportingFileRoleLabel(file) : null
+          const byName = showUploader ? file.uploaded_by_name : null
+          const canOpen = Boolean(file.id)
+          const canDownload = gcFileAllowsDownload(file, can)
+          const isBusy = busyId === file.id
+          return (
+            <li key={file.id || `${file.original_name}-${file.file_path}`}>
+              <div className="gc-attach-row">
+                <FileNameLabel
+                  name={file.original_name}
+                  mimeType={file.mime_type}
+                  onClick={canOpen ? () => previewFile(file) : undefined}
+                  disabled={isBusy}
+                  fallback={canOpen ? 'Preview' : 'File'}
+                />
+                {file.size_bytes != null && (
+                  <span className="muted"> ({formatGcFileSize(file.size_bytes)})</span>
+                )}
+                {canDownload ? (
+                  <button
+                    type="button"
+                    className="btn ghost gc-attach-download"
+                    onClick={() => downloadFile(file)}
+                    disabled={isBusy}
+                  >
+                    Download
+                  </button>
+                ) : null}
+                {isBusy ? (
+                  <span className="muted">
+                    {' '}
+                    {busyKind === 'download' ? 'Downloading…' : 'Opening…'}
+                  </span>
+                ) : null}
+              </div>
+              {(roleLabel || byName) && (
+                <p className="muted gc-attach-meta">
+                  {roleLabel ? <span className="gc-attach-role">{roleLabel}</span> : null}
+                  {roleLabel && byName ? ' · ' : null}
+                  {byName ? <span>by {byName}</span> : null}
+                </p>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+
+      <AttachmentPreview
+        open={Boolean(preview?.url)}
+        onClose={closePreview}
+        url={preview?.url}
+        mime={preview?.mimeType}
+        name={preview?.filename}
+        title="Preview"
+        canDownload={previewAllowsDownload}
+        onDownload={
+          previewAllowsDownload && preview?.file
+            ? () => downloadFile(preview.file)
+            : undefined
+        }
+        downloading={busyKind === 'download' && busyId === preview?.file?.id}
+      />
+    </>
   )
 }
 

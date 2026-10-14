@@ -7751,6 +7751,14 @@ td.data-grid__actions {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+.attachment-preview__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 .attachment-preview__body {
   flex: 1;
@@ -8099,6 +8107,11 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem 0.35rem;
+}
+.gc-attach-download {
+  padding: 0.15rem 0.55rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
 }
 .file-dropzone-chip-icon {
   min-width: 1.85rem;

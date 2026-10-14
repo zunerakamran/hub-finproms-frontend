@@ -1296,18 +1296,20 @@ export const api = {
     )
   },
   /**
-   * Download a GC attachment / supporting file (decrypts server-side when encrypted).
+   * Fetch a GC attachment / supporting file (decrypts server-side when encrypted).
    * Always uses cookie session credentials — do not open file_url in a bare <a href>.
-   * Path is the member /gc/file/{id} route; the API enforces view permissions.
+   * Default is in-hub preview (inline). Pass download: true for ?download=1 (gated by
+   * gc_download_attachments on the server).
    */
-  generalComplianceDownloadFile: async (file) => {
+  generalComplianceFetchFile: async (file, { download = false } = {}) => {
     const id = Number(file?.id)
     if (!Number.isFinite(id) || id <= 0) {
       throw new Error('Missing attachment id')
     }
 
     await ensureCsrfCookie().catch(() => {})
-    const response = await fetch(`${API_URL}/gc/file/${id}`, {
+    const qs = download ? '?download=1' : ''
+    const response = await fetch(`${API_URL}/gc/file/${id}${qs}`, {
       method: 'GET',
       headers: buildHeaders({
         headers: { Accept: '*/*' },
@@ -1316,7 +1318,7 @@ export const api = {
     })
 
     if (!response.ok) {
-      let message = 'Unable to download file'
+      let message = download ? 'Unable to download file' : 'Unable to preview file'
       try {
         const contentType = response.headers.get('Content-Type') || ''
         if (contentType.includes('application/json')) {
@@ -1337,7 +1339,30 @@ export const api = {
     const disposition = response.headers.get('Content-Disposition') || ''
     const match = /filename="?([^";]+)"?/i.exec(disposition)
     const filename = match?.[1] || file?.original_name || `gc-file-${id}`
+    const mimeType =
+      response.headers.get('Content-Type') || file?.mime_type || 'application/octet-stream'
     const blob = await response.blob()
+    return { blob, filename, mimeType }
+  },
+  /**
+   * Open an authenticated GC file as a blob URL for in-app preview.
+   * Caller must revokeObjectURL when done.
+   */
+  generalCompliancePreviewFile: async (file) => {
+    const { blob, filename, mimeType } = await api.generalComplianceFetchFile(file, {
+      download: false,
+    })
+    return {
+      url: URL.createObjectURL(blob),
+      filename,
+      mimeType,
+    }
+  },
+  /**
+   * Force-download a GC attachment (requires gc_download_attachments).
+   */
+  generalComplianceDownloadFile: async (file) => {
+    const { blob, filename } = await api.generalComplianceFetchFile(file, { download: true })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

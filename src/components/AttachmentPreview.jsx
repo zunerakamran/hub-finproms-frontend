@@ -15,9 +15,23 @@ function isVideo(mime, url, post) {
 }
 
 /**
- * In-app preview for purchased attachments (replaces file download).
+ * In-app preview for purchased posts / GC encrypted files.
+ *
+ * Prefer explicit url / mime / name. Legacy callers may pass `post` with
+ * attachment_url / attachment_mime / attachment_name.
  */
-export default function AttachmentPreview({ open, onClose, post, title = 'Preview' }) {
+export default function AttachmentPreview({
+  open,
+  onClose,
+  post,
+  url,
+  mime,
+  name: nameProp,
+  title = 'Preview',
+  canDownload = false,
+  onDownload,
+  downloading = false,
+}) {
   useEffect(() => {
     if (!open) return undefined
     const onKey = (e) => {
@@ -32,14 +46,15 @@ export default function AttachmentPreview({ open, onClose, post, title = 'Previe
     }
   }, [open, onClose])
 
-  if (!open || !post?.attachment_url) return null
+  const resolvedUrl = url || post?.attachment_url
+  if (!open || !resolvedUrl) return null
 
-  const url = post.attachment_url
-  const mime = post.attachment_mime
-  const rawName = post.attachment_name || title
+  const mimeType = mime || post?.attachment_mime
+  const rawName = nameProp || post?.attachment_name || title
   const name = fileDisplayName(rawName) || rawName
-  const image = isImage(mime, url)
-  const video = !image && isVideo(mime, url, post)
+  const image = isImage(mimeType, resolvedUrl)
+  const video = !image && isVideo(mimeType, resolvedUrl, post)
+  const showDownload = Boolean(canDownload && typeof onDownload === 'function')
 
   return (
     <div className="attachment-preview" role="dialog" aria-modal="true" aria-label={title}>
@@ -52,23 +67,35 @@ export default function AttachmentPreview({ open, onClose, post, title = 'Previe
       <div className="attachment-preview__dialog">
         <div className="attachment-preview__head">
           <h2 title={rawName}>{name}</h2>
-          <button type="button" className="btn ghost" onClick={onClose}>
-            Close
-          </button>
+          <div className="attachment-preview__actions">
+            {showDownload ? (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={onDownload}
+                disabled={downloading}
+              >
+                {downloading ? 'Downloading…' : 'Download'}
+              </button>
+            ) : null}
+            <button type="button" className="btn ghost" onClick={onClose}>
+              Close
+            </button>
+          </div>
         </div>
         <div className="attachment-preview__body">
           {image ? (
-            <img src={url} alt={name} className="attachment-preview__media" />
+            <img src={resolvedUrl} alt={name} className="attachment-preview__media" />
           ) : video ? (
             <video
-              src={url}
+              src={resolvedUrl}
               className="attachment-preview__media"
               controls
               playsInline
               autoPlay
             />
           ) : (
-            <iframe title={name} src={url} className="attachment-preview__frame" />
+            <iframe title={name} src={resolvedUrl} className="attachment-preview__frame" />
           )}
         </div>
       </div>

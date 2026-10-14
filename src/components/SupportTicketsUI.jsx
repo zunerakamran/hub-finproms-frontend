@@ -1,6 +1,6 @@
 import { stStatusClass, formatStFileSize } from '../utils/supportTickets'
 import { StatusWithDate } from './DataGrid'
-import FileNameLabel from './FileNameLabel'
+import { SupportingFilesList } from './GeneralComplianceUI'
 import RichTextDisplay from './RichTextDisplay'
 
 export default function StStatusBadge({ status, at }) {
@@ -11,33 +11,15 @@ export default function StStatusBadge({ status, at }) {
 }
 
 export function StScreenshotList({ attachments = [], emptyLabel = 'No screenshots' }) {
-  if (!attachments.length) {
-    return <p className="muted">{emptyLabel}</p>
-  }
-
   return (
-    <ul className="gc-attach-list">
-      {attachments.map((file) => (
-        <li key={file.id || `${file.original_name}-${file.file_path}`}>
-          <div className="gc-attach-row">
-            <FileNameLabel
-              name={file.original_name}
-              mimeType={file.mime_type}
-              href={file.file_url || undefined}
-              fallback={file.file_url ? 'Download' : 'File'}
-            />
-            {file.size_bytes != null && (
-              <span className="muted"> ({formatStFileSize(file.size_bytes)})</span>
-            )}
-          </div>
-          {file.uploaded_by_name && (
-            <div className="muted" style={{ fontSize: '0.85em' }}>
-              Uploaded by {file.uploaded_by_name}
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
+    <SupportingFilesList
+      files={attachments}
+      emptyLabel={emptyLabel}
+      showUploader={false}
+      accessMode="public"
+      downloadMode="always"
+      formatSize={formatStFileSize}
+    />
   )
 }
 

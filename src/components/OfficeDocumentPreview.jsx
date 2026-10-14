@@ -52,7 +52,8 @@ export default function OfficeDocumentPreview({ blob, kind, name }) {
           await docx.renderAsync(blob, host, undefined, {
             className: 'docx',
             inWrapper: true,
-            ignoreWidth: false,
+            // Fit the dialog width — fixed page widths cause a horizontal scrollbar.
+            ignoreWidth: true,
             breakPages: true,
             renderHeaders: true,
             renderFooters: true,
@@ -74,7 +75,8 @@ export default function OfficeDocumentPreview({ blob, kind, name }) {
           }
           const { init } = await import('pptx-preview')
           if (cancelled) return
-          const width = Math.max(480, Math.min(960, host.clientWidth || 800))
+          // Use the host width so slides don't force a horizontal scrollbar.
+          const width = Math.max(320, host.clientWidth || 720)
           const height = Math.round((width * 9) / 16)
           const viewer = init(host, { width, height })
           pptxRef.current = viewer

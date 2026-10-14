@@ -134,7 +134,7 @@ export default function AttachmentPreview({
               <p className="muted">
                 {showDownload
                   ? 'Use Download to save the file and open it in the desktop app.'
-                  : 'Downloading is disabled for your role on this hub. Ask a hub admin to enable “Download general compliance attachments” if you need the file.'}
+                  : 'Downloading is disabled for your role on this hub.'}
               </p>
               {rawName ? (
                 <p className="attachment-preview__unavailable-name" title={rawName}>

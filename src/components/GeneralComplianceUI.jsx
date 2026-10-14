@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '../api/client'
 import { gcStatusClass, formatGcFileSize } from '../utils/generalCompliance'
 import {
   resolveComplianceAttachments,
@@ -7,10 +6,10 @@ import {
   supportingFileRoleLabel,
 } from '../utils/complianceSupportingFiles'
 import {
-  browserCanPreviewFile,
-  canAttemptInAppPreview,
-  needsOfficeClientPreview,
-} from '../utils/fileDisplay'
+  downloadComplianceFile,
+  fileRowKey,
+  loadFileForPreview,
+} from '../utils/filePreviewActions'
 import { useHub } from '../context/HubContext'
 import AttachmentPreview from './AttachmentPreview'
 import { StatusWithDate } from './DataGrid'
@@ -18,11 +17,26 @@ import ComplianceStatusText from './ComplianceStatusText'
 import FileNameLabel from './FileNameLabel'
 import RichTextDisplay from './RichTextDisplay'
 
-/** Whether Download is allowed for this attachment (API field + hub capability fallback). */
+/** GC-only download gate (API field + hub capability fallback). */
 function gcFileAllowsDownload(file, can) {
   if (!file?.id) return false
   if (typeof file.can_download === 'boolean') return file.can_download
   return Boolean(can?.('gc_download_attachments'))
+}
+
+function fileAllowsDownload(file, can, downloadMode) {
+  if (downloadMode === 'always') {
+    return Boolean(file?.id || file?.file_url || file?.image_url || file?.url)
+  }
+  if (downloadMode === 'never') return false
+  return gcFileAllowsDownload(file, can)
+}
+
+function fileCanOpen(file, accessMode) {
+  if (accessMode === 'public') {
+    return Boolean(file?.file_url || file?.image_url || file?.url)
+  }
+  return Boolean(file?.id)
 }
 
 export default function GcStatusBadge({ status, at }) {
@@ -68,16 +82,25 @@ export function GcBarChart({ labels = [], data = [], title }) {
   )
 }
 
+/**
+ * Shared attachment / supporting-file list with in-app preview.
+ *
+ * @param {'gc'|'public'} accessMode — GC encrypted auth API vs public file_url
+ * @param {'capability'|'always'|'never'} downloadMode — GC capability gate vs always show Download
+ */
 export function GcAttachmentList({
   attachments = [],
   emptyLabel = 'No attachments',
   showUploader = false,
+  accessMode = 'gc',
+  downloadMode = 'capability',
+  formatSize = formatGcFileSize,
 }) {
   const { can } = useHub()
-  const [busyId, setBusyId] = useState(null)
+  const [busyKey, setBusyKey] = useState(null)
   const [busyKind, setBusyKind] = useState('') // 'preview' | 'download'
   const [error, setError] = useState('')
-  // { file, url?, blob?, mimeType, filename, mode: 'native'|'office'|'unavailable' }
+  // { file, url?, blob?, mimeType, filename, mode }
   const [preview, setPreview] = useState(null)
 
   const closePreview = useCallback(() => {
@@ -96,100 +119,51 @@ export function GcAttachmentList({
   }
 
   async function previewFile(file) {
-    if (!file?.id || busyId) return
+    const key = fileRowKey(file)
+    if (!fileCanOpen(file, accessMode) || busyKey) return
     setError('')
-
-    const filename = file.original_name || `gc-file-${file.id}`
-    const mimeType = file.mime_type || ''
-
-    // Zip / unknown binaries: no in-app renderer.
-    if (!canAttemptInAppPreview(filename, mimeType)) {
-      setPreview((prev) => {
-        if (prev?.url) URL.revokeObjectURL(prev.url)
-        return {
-          file,
-          url: null,
-          blob: null,
-          mimeType,
-          filename,
-          mode: 'unavailable',
-        }
-      })
-      return
-    }
-
-    setBusyId(file.id)
+    setBusyKey(key)
     setBusyKind('preview')
     try {
-      // Always fetch with credentials. Office kinds stay as Blob for client renderers;
-      // native kinds become blob: URLs for img / video / iframe.
-      const { blob, filename: savedName, mimeType: responseMime } =
-        await api.generalComplianceFetchFile(file, { download: false })
-      const resolvedName = savedName || filename
-      const resolvedMime = responseMime || mimeType
-      const office = needsOfficeClientPreview(resolvedName, resolvedMime)
-      const native = browserCanPreviewFile(resolvedName, resolvedMime)
-
+      const next = await loadFileForPreview(file, accessMode)
       setPreview((prev) => {
         if (prev?.url) URL.revokeObjectURL(prev.url)
-        if (office) {
-          return {
-            file,
-            url: null,
-            blob,
-            mimeType: resolvedMime,
-            filename: resolvedName,
-            mode: 'office',
-          }
-        }
-        if (native) {
-          return {
-            file,
-            url: URL.createObjectURL(blob),
-            blob: null,
-            mimeType: resolvedMime,
-            filename: resolvedName,
-            mode: 'native',
-          }
-        }
-        return {
-          file,
-          url: null,
-          blob: null,
-          mimeType: resolvedMime,
-          filename: resolvedName,
-          mode: 'unavailable',
-        }
+        return next
       })
     } catch (err) {
       setError(err?.message || 'Unable to preview file')
     } finally {
-      setBusyId(null)
+      setBusyKey(null)
       setBusyKind('')
     }
   }
 
   async function downloadFile(file) {
-    if (!file?.id || busyId) return
-    if (!gcFileAllowsDownload(file, can)) {
-      setError('Downloading Generic Compliance files is not enabled for your role on this hub.')
+    const key = fileRowKey(file)
+    if (busyKey) return
+    if (!fileAllowsDownload(file, can, downloadMode)) {
+      setError(
+        accessMode === 'gc'
+          ? 'Downloading Generic Compliance files is not enabled for your role on this hub.'
+          : 'Download is not available for this file.'
+      )
       return
     }
     setError('')
-    setBusyId(file.id)
+    setBusyKey(key)
     setBusyKind('download')
     try {
-      await api.generalComplianceDownloadFile(file)
+      await downloadComplianceFile(file, accessMode)
     } catch (err) {
       setError(err?.message || 'Unable to download file')
     } finally {
-      setBusyId(null)
+      setBusyKey(null)
       setBusyKind('')
     }
   }
 
   const previewAllowsDownload = preview?.file
-    ? gcFileAllowsDownload(preview.file, can)
+    ? fileAllowsDownload(preview.file, can, downloadMode)
     : false
 
   return (
@@ -201,23 +175,24 @@ export function GcAttachmentList({
           </li>
         ) : null}
         {attachments.map((file) => {
+          const key = fileRowKey(file)
           const roleLabel = showUploader ? supportingFileRoleLabel(file) : null
           const byName = showUploader ? file.uploaded_by_name : null
-          const canOpen = Boolean(file.id)
-          const canDownload = gcFileAllowsDownload(file, can)
-          const isBusy = busyId === file.id
+          const canOpen = fileCanOpen(file, accessMode)
+          const canDownload = fileAllowsDownload(file, can, downloadMode)
+          const isBusy = busyKey === key
           return (
-            <li key={file.id || `${file.original_name}-${file.file_path}`}>
+            <li key={key}>
               <div className="gc-attach-row">
                 <FileNameLabel
-                  name={file.original_name}
+                  name={file.original_name || file.name}
                   mimeType={file.mime_type}
                   onClick={canOpen ? () => previewFile(file) : undefined}
                   disabled={isBusy}
                   fallback={canOpen ? 'Preview' : 'File'}
                 />
-                {file.size_bytes != null && (
-                  <span className="muted"> ({formatGcFileSize(file.size_bytes)})</span>
+                {file.size_bytes != null && typeof formatSize === 'function' && (
+                  <span className="muted"> ({formatSize(file.size_bytes)})</span>
                 )}
                 {canDownload ? (
                   <button
@@ -263,7 +238,11 @@ export function GcAttachmentList({
             ? () => downloadFile(preview.file)
             : undefined
         }
-        downloading={busyKind === 'download' && busyId === preview?.file?.id}
+        downloading={
+          busyKind === 'download' && preview?.file
+            ? busyKey === fileRowKey(preview.file)
+            : false
+        }
       />
     </>
   )
@@ -273,12 +252,18 @@ export function SupportingFilesList({
   files = [],
   emptyLabel = 'No supporting files',
   showUploader = true,
+  accessMode = 'gc',
+  downloadMode = 'capability',
+  formatSize = formatGcFileSize,
 }) {
   return (
     <GcAttachmentList
       attachments={files}
       emptyLabel={emptyLabel}
       showUploader={showUploader}
+      accessMode={accessMode}
+      downloadMode={downloadMode}
+      formatSize={formatSize}
     />
   )
 }

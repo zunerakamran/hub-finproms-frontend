@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import FileNameLabel from '../components/FileNameLabel'
+import { SupportingFilesList } from '../components/GeneralComplianceUI'
 import PageLoader from '../components/PageLoader'
 import { useHub } from '../context/HubContext'
 
@@ -151,25 +151,14 @@ export default function FirmDocumentDetail() {
         </dl>
 
         <h2 className="firm-docs-detail__files-title">Attachments</h2>
-        {attachments.length === 0 ? (
-          <p className="muted">No files attached.</p>
-        ) : (
-          <ul className="firm-docs-detail__files">
-            {attachments.map((file) => (
-              <li key={file.id}>
-                <FileNameLabel
-                  name={file.original_name}
-                  mimeType={file.mime_type}
-                  href={file.file_url}
-                  fallback="Download"
-                />
-                <span className="muted firm-docs-detail__meta">
-                  {file.mime_type || 'file'} · {formatBytes(file.size_bytes)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <SupportingFilesList
+          files={attachments}
+          emptyLabel="No files attached."
+          showUploader={false}
+          accessMode="public"
+          downloadMode="always"
+          formatSize={formatBytes}
+        />
       </div>
     </section>
   )

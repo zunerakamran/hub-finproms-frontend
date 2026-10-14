@@ -1,5 +1,11 @@
+import { useCallback, useEffect, useState } from 'react'
 import { smcStatusClass } from '../utils/socialMediaCompliance'
+import {
+  downloadComplianceFile,
+  loadFileForPreview,
+} from '../utils/filePreviewActions'
 import { useHub } from '../context/HubContext'
+import AttachmentPreview from './AttachmentPreview'
 import { StatusWithDate } from './DataGrid'
 import ComplianceStatusText from './ComplianceStatusText'
 import RichTextDisplay from './RichTextDisplay'
@@ -50,12 +56,80 @@ export function SmcBarChart({ labels = [], data = [], title }) {
 }
 
 export function SmcSupportingFilesBlock({ files = [] }) {
-  return <SupportingFilesList files={files} />
+  return (
+    <SupportingFilesList
+      files={files}
+      accessMode="public"
+      downloadMode="always"
+    />
+  )
+}
+
+function smcMediaAsFile(version, mediaUrl, isVideo) {
+  const ext = isVideo ? 'mp4' : 'jpg'
+  return {
+    id: `smc-media-${version.id || version.version_number}`,
+    original_name: `version-${version.version_number || 'attachment'}.${ext}`,
+    mime_type: isVideo ? 'video/mp4' : 'image/jpeg',
+    file_url: mediaUrl,
+    image_url: mediaUrl,
+  }
 }
 
 export function SmcVersionCard({ version, isLatest }) {
   const mediaUrl = version.image_url
   const isVideo = mediaUrl && /\.(mp4|mov|webm)(\?|$)/i.test(mediaUrl)
+  const [busy, setBusy] = useState(false)
+  const [busyKind, setBusyKind] = useState('')
+  const [error, setError] = useState('')
+  const [preview, setPreview] = useState(null)
+
+  const closePreview = useCallback(() => {
+    setPreview((prev) => {
+      if (prev?.url) URL.revokeObjectURL(prev.url)
+      return null
+    })
+  }, [])
+
+  useEffect(() => () => {
+    if (preview?.url) URL.revokeObjectURL(preview.url)
+  }, [preview?.url])
+
+  async function openMediaPreview() {
+    if (!mediaUrl || busy) return
+    const file = smcMediaAsFile(version, mediaUrl, isVideo)
+    setError('')
+    setBusy(true)
+    setBusyKind('preview')
+    try {
+      const next = await loadFileForPreview(file, 'public')
+      setPreview((prev) => {
+        if (prev?.url) URL.revokeObjectURL(prev.url)
+        return next
+      })
+    } catch (err) {
+      setError(err?.message || 'Unable to preview attachment')
+    } finally {
+      setBusy(false)
+      setBusyKind('')
+    }
+  }
+
+  async function downloadMedia() {
+    if (!mediaUrl || busy) return
+    const file = smcMediaAsFile(version, mediaUrl, isVideo)
+    setError('')
+    setBusy(true)
+    setBusyKind('download')
+    try {
+      await downloadComplianceFile(file, 'public')
+    } catch (err) {
+      setError(err?.message || 'Unable to download attachment')
+    } finally {
+      setBusy(false)
+      setBusyKind('')
+    }
+  }
 
   return (
     <article className={`smc-version ${isLatest ? 'is-latest' : ''}`}>
@@ -74,29 +148,47 @@ export function SmcVersionCard({ version, isLatest }) {
         <div>
           <p className="muted label">Attachment</p>
           {mediaUrl ? (
-            <a
-              href={mediaUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="smc-thumb-link"
-              title="Open full size in new tab"
-            >
-              {isVideo ? (
-                <video
-                  src={mediaUrl}
-                  className="smc-thumb"
-                  muted
-                  playsInline
-                  preload="metadata"
-                />
-              ) : (
-                <img
-                  src={mediaUrl}
-                  alt={`Version ${version.version_number}`}
-                  className="smc-thumb"
-                />
-              )}
-            </a>
+            <div className="smc-attach-preview">
+              <button
+                type="button"
+                className="smc-thumb-link"
+                title="Preview attachment"
+                onClick={openMediaPreview}
+                disabled={busy}
+              >
+                {isVideo ? (
+                  <video
+                    src={mediaUrl}
+                    className="smc-thumb"
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : (
+                  <img
+                    src={mediaUrl}
+                    alt={`Version ${version.version_number}`}
+                    className="smc-thumb"
+                  />
+                )}
+              </button>
+              <div className="gc-attach-row" style={{ marginTop: '0.35rem' }}>
+                <button
+                  type="button"
+                  className="btn ghost gc-attach-download"
+                  onClick={downloadMedia}
+                  disabled={busy}
+                >
+                  Download
+                </button>
+                {busy ? (
+                  <span className="muted">
+                    {busyKind === 'download' ? 'Downloading…' : 'Opening…'}
+                  </span>
+                ) : null}
+              </div>
+              {error ? <p className="error">{error}</p> : null}
+            </div>
           ) : (
             <p className="muted">No attachment</p>
           )}
@@ -119,6 +211,20 @@ export function SmcVersionCard({ version, isLatest }) {
           ) : null}
         </footer>
       )}
+
+      <AttachmentPreview
+        open={Boolean(preview)}
+        onClose={closePreview}
+        url={preview?.url}
+        blob={preview?.blob}
+        mime={preview?.mimeType}
+        name={preview?.filename}
+        title="Preview"
+        forceUnavailable={preview ? preview.mode === 'unavailable' : false}
+        canDownload
+        onDownload={downloadMedia}
+        downloading={busy && busyKind === 'download'}
+      />
     </article>
   )
 }

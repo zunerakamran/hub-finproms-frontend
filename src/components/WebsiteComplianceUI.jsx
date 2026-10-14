@@ -51,7 +51,11 @@ export function WcVersionCard({ version, isLatest, requestId = null, request = n
         {resolveComplianceSupportingFiles(version).length ? (
           <div>
             <p className="muted label">Supporting files</p>
-            <SupportingFilesList files={resolveComplianceSupportingFiles(version)} />
+            <SupportingFilesList
+              files={resolveComplianceSupportingFiles(version)}
+              accessMode="public"
+              downloadMode="always"
+            />
           </div>
         ) : null}
       </div>

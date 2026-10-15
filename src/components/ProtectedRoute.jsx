@@ -24,7 +24,13 @@ export function ProtectedRoute({
     return <PageLoader />
   }
 
-  // NFR-SEC-NAV: block external entry before rendering the target (even if cookies exist).
+  // Guests never see the external-entry error — send them to sign-in first.
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  // NFR-SEC-NAV: logged-in users cannot open protected pages via paste / email /
+  // chat / other-app redirect (even when session cookies are still valid).
   if (shouldBlockExternalNavigation(location.pathname)) {
     return <ExternalNavigationBlocked />
   }
@@ -32,11 +38,6 @@ export function ProtectedRoute({
   // Payment / bank-transfer return URLs: establish continuity so in-app nav works after.
   if (isAllowlistedExternalPath(location.pathname)) {
     markNavigationContinuity()
-  }
-
-  if (!isAuthenticated) {
-    // Do not deep-link back to a blocked external URL after login.
-    return <Navigate to="/login" replace />
   }
   if (powerAdminOnly && !isPowerAdmin) return <Navigate to="/my-dashboard" replace />
   if ((adminOnly || clientAdminOnly) && !hasHubDashboardAccess) {

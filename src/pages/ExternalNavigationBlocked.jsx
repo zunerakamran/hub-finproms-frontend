@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import AuthFavicon from '../components/AuthFavicon'
 import AuthScreen from '../components/AuthScreen'
 import { api } from '../api/client'
@@ -24,7 +24,7 @@ function ShieldIcon() {
 }
 
 export default function ExternalNavigationBlocked() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const { hub, branding } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
@@ -38,17 +38,23 @@ export default function ExternalNavigationBlocked() {
   }, [location.pathname, location.search])
 
   useEffect(() => {
-    if (reported.current) return
+    // Only record for authenticated sessions — guests are sent to login instead.
+    if (!isAuthenticated || reported.current) return
     reported.current = true
     api.reportExternalNavigationBlocked({
       path: `${location.pathname}${location.search || ''}`,
       referrer: typeof document !== 'undefined' ? document.referrer || '' : '',
     }).catch(() => {})
-  }, [location.pathname, location.search])
+  }, [isAuthenticated, location.pathname, location.search])
 
   const goSafe = (path) => {
     markNavigationContinuity()
     navigate(path, { replace: true })
+  }
+
+  // Guests must not see this error — send them to sign-in.
+  if (!authLoading && !isAuthenticated) {
+    return <Navigate to="/login" replace />
   }
 
   return (
@@ -96,16 +102,7 @@ export default function ExternalNavigationBlocked() {
         </ul>
 
         <div className="nav-blocked__actions">
-          {isAuthenticated ? (
-            <button type="button" className="btn primary full" onClick={() => goSafe('/my-dashboard')}>
-              Continue to dashboard
-            </button>
-          ) : (
-            <button type="button" className="btn primary full" onClick={() => goSafe('/login')}>
-              Go to sign in
-            </button>
-          )}
-          <button type="button" className="btn ghost full" onClick={() => goSafe('/')}>
+          <button type="button" className="btn primary full" onClick={() => goSafe('/')}>
             Back to home
           </button>
         </div>

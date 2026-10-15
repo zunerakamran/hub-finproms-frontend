@@ -120,7 +120,8 @@ export function isUntrustedExternalDocumentEntry() {
 
 /**
  * Whether a protected route should show the external-navigation error instead
- * of the target page.
+ * of the target page. Callers must only apply this for authenticated users —
+ * guests should be redirected to `/login` (see ProtectedRoute).
  */
 export function shouldBlockExternalNavigation(pathname) {
   if (isAllowlistedExternalPath(pathname)) {

@@ -946,8 +946,8 @@ export default function SecurityMonitoring() {
               </p>
 
               <div className="secmon-access-rules">
-                <section className="secmon-access-rule">
-                  <label className="secmon-check">
+                <div className="secmon-access-rule">
+                  <label className="checkbox-row secmon-access-check">
                     <input
                       type="checkbox"
                       checked={!!accessSettings.uk_only}
@@ -958,10 +958,10 @@ export default function SecurityMonitoring() {
                       <span className="muted"> — allow requests only from the United Kingdom</span>
                     </span>
                   </label>
-                </section>
+                </div>
 
-                <section className="secmon-access-rule">
-                  <label className="secmon-check">
+                <div className="secmon-access-rule">
+                  <label className="checkbox-row secmon-access-check">
                     <input
                       type="checkbox"
                       checked={!!accessSettings.uk_cities_enabled}
@@ -974,7 +974,7 @@ export default function SecurityMonitoring() {
                   </label>
                   {accessSettings.uk_cities_enabled ? (
                     <div className="secmon-access-rule__body">
-                      <div className="secmon-chip-row" style={{ marginBottom: '0.5rem' }}>
+                      <div className="secmon-chip-row">
                         {(accessOptions.suggested_uk_cities || []).map((city) => {
                           const selected = parseListInput(accessSettings.uk_cities).includes(city)
                           return (
@@ -997,10 +997,10 @@ export default function SecurityMonitoring() {
                       />
                     </div>
                   ) : null}
-                </section>
+                </div>
 
-                <section className="secmon-access-rule">
-                  <label className="secmon-check">
+                <div className="secmon-access-rule">
+                  <label className="checkbox-row secmon-access-check">
                     <input
                       type="checkbox"
                       checked={!!accessSettings.restrict_countries_enabled}
@@ -1024,10 +1024,10 @@ export default function SecurityMonitoring() {
                       <span className="muted">ISO 2-letter codes, comma or newline separated.</span>
                     </div>
                   ) : null}
-                </section>
+                </div>
 
-                <section className="secmon-access-rule">
-                  <label className="secmon-check">
+                <div className="secmon-access-rule">
+                  <label className="checkbox-row secmon-access-check">
                     <input
                       type="checkbox"
                       checked={!!accessSettings.allow_countries_enabled}
@@ -1049,10 +1049,10 @@ export default function SecurityMonitoring() {
                       <span className="muted">ISO 2-letter codes, comma or newline separated.</span>
                     </div>
                   ) : null}
-                </section>
+                </div>
 
-                <section className="secmon-access-rule">
-                  <label className="secmon-check">
+                <div className="secmon-access-rule">
+                  <label className="checkbox-row secmon-access-check">
                     <input
                       type="checkbox"
                       checked={!!accessSettings.restrict_ips_enabled}
@@ -1073,10 +1073,10 @@ export default function SecurityMonitoring() {
                       />
                     </div>
                   ) : null}
-                </section>
+                </div>
 
-                <section className="secmon-access-rule">
-                  <label className="secmon-check">
+                <div className="secmon-access-rule">
+                  <label className="checkbox-row secmon-access-check">
                     <input
                       type="checkbox"
                       checked={!!accessSettings.allow_ips_enabled}
@@ -1097,7 +1097,7 @@ export default function SecurityMonitoring() {
                       />
                     </div>
                   ) : null}
-                </section>
+                </div>
               </div>
 
               <div className="filters-row__actions" style={{ marginTop: '1rem' }}>
@@ -1329,25 +1329,47 @@ export default function SecurityMonitoring() {
         .secmon-access-rules {
           display: flex;
           flex-direction: column;
-          gap: 0.85rem;
-          margin-top: 0.75rem;
+          gap: 0.75rem;
+          margin-top: 0.85rem;
         }
         .secmon-access-rule {
-          border: 1px solid var(--line, rgba(15, 23, 42, 0.1));
-          border-radius: 10px;
-          padding: 0.75rem 0.9rem;
-          background: rgba(15, 23, 42, 0.02);
-        }
-        .secmon-access-rule__body {
-          margin-top: 0.65rem;
           display: flex;
           flex-direction: column;
-          gap: 0.35rem;
+          gap: 0.55rem;
+        }
+        /* Beat global label { display:grid } so checkbox sits left of the title. */
+        .secmon-page label.checkbox-row.secmon-access-check {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.65rem;
+          margin: 0;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .secmon-page label.checkbox-row.secmon-access-check input[type='checkbox'] {
+          flex: 0 0 auto;
+          width: 1rem;
+          height: 1rem;
+          margin: 0.2rem 0 0;
+          align-self: flex-start;
+        }
+        .secmon-page label.checkbox-row.secmon-access-check > span {
+          flex: 1 1 auto;
+          min-width: 0;
+          line-height: 1.35;
+          font-weight: 500;
+        }
+        .secmon-access-rule__body {
+          margin-left: 1.65rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.45rem;
         }
         .secmon-access-rule__body textarea {
           width: 100%;
           min-height: 4.5rem;
           resize: vertical;
+          font-weight: 400;
         }
         .secmon-stat-grid {
           display: grid;

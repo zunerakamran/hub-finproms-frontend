@@ -1109,6 +1109,17 @@ export const api = {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/active-sessions/${userId}/force-logout`, { method: 'POST' })
   },
+  sessionSettings: (options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/session-settings`)
+  },
+  updateSessionSettings: (payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/session-settings`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
   hubUsers: (params = {}, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const query = new URLSearchParams(

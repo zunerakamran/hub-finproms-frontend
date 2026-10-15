@@ -1943,17 +1943,17 @@ a.site-footer__powered:hover {
 }
 
 .auth-screen--has-bg .auth-screen__panel {
-  /* Very light brand tint — image must read clearly through the box */
+  /* Brand colour gradient on the box — translucent so the photo still shows through */
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--brand-dark) 12%, transparent) 0%,
-    color-mix(in srgb, var(--brand) 8%, transparent) 48%,
-    color-mix(in srgb, #0b1220 10%, transparent) 100%
+    color-mix(in srgb, var(--brand-dark) 58%, transparent) 0%,
+    color-mix(in srgb, var(--brand) 45%, transparent) 48%,
+    color-mix(in srgb, #0b1220 52%, transparent) 100%
   ) !important;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border: 1px solid color-mix(in srgb, #fff 35%, transparent);
-  box-shadow: 0 12px 36px rgba(16, 24, 40, 0.18);
+  border: 1px solid color-mix(in srgb, #fff 40%, transparent);
+  box-shadow: 0 16px 42px rgba(16, 24, 40, 0.24);
   color: #fff;
 }
 

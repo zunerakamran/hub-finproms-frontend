@@ -1055,6 +1055,36 @@ export const api = {
     ).toString()
     return request(`${base}/activity-logs/report${query ? `?${query}` : ''}`)
   },
+  activityAnomalies: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/activity-logs/anomalies${query ? `?${query}` : ''}`)
+  },
+  activityAnomaly: (id, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/activity-logs/anomalies/${id}`)
+  },
+  updateActivityAnomaly: (id, body, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/activity-logs/anomalies/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    })
+  },
+  escalateActivityAnomaly: (id, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/activity-logs/anomalies/${id}/escalate`, {
+      method: 'POST',
+    })
+  },
+  detectActivityAnomaliesNow: (options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/activity-logs/anomalies/detect-now`, {
+      method: 'POST',
+    })
+  },
 
   // -- Security Monitoring --
   securityMonitoringOptions: (options = {}) =>

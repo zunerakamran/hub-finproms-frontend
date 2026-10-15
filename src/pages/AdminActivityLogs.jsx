@@ -5,14 +5,18 @@ import {
   FaCalendarDay,
   FaChartBar,
   FaClipboardList,
+  FaExclamationTriangle,
   FaFilter,
   FaHistory,
   FaSearch,
+  FaShieldAlt,
+  FaSync,
+  FaTimes,
   FaUser,
   FaUsers,
 } from 'react-icons/fa'
 import { api } from '../api/client'
-import DataGrid from '../components/DataGrid'
+import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { formatDate, formatDateTime } from '../utils/dateFormat'
 import { SmcBarChart } from '../components/SocialMediaComplianceUI'
 import { useAuth } from '../context/AuthContext'
@@ -198,6 +202,84 @@ function StatCard({ icon: Icon, label, value, hint, accent }) {
   )
 }
 
+function severityClass(severity) {
+  const s = String(severity || '').toLowerCase()
+  if (s === 'high' || s === 'critical') return 'gc-status gc-status--bad'
+  if (s === 'medium') return 'gc-status gc-status--awf'
+  if (s === 'low') return 'gc-status gc-status--pending'
+  return 'gc-status'
+}
+
+function anomalyStatusClass(status) {
+  const s = String(status || '').toLowerCase()
+  if (s === 'reviewed' || s === 'dismissed') return 'gc-status gc-status--ok'
+  if (s === 'escalated') return 'gc-status gc-status--awf'
+  return 'gc-status gc-status--pending'
+}
+
+function AnomalyDetailDrawer({ anomaly, onClose, onReviewed, onDismissed, onEscalate, canEscalate, busy }) {
+  if (!anomaly) return null
+
+  return (
+    <aside className="activity-anomaly-drawer" role="dialog" aria-label={anomaly.title || 'Anomaly detail'}>
+      <div className="activity-anomaly-drawer__head">
+        <h2>{anomaly.title || 'Anomaly'}</h2>
+        <DataGridIconBtn icon={FaTimes} label="Close" onClick={onClose} />
+      </div>
+      <div className="activity-anomaly-drawer__body">
+        <p className="muted">{formatWhen(anomaly.detected_at)}</p>
+        <p>
+          <span className={severityClass(anomaly.severity)}>{anomaly.severity}</span>{' '}
+          <span className={anomalyStatusClass(anomaly.status)}>{anomaly.status}</span>
+        </p>
+        <p>
+          <strong>Type:</strong> {anomaly.anomaly_type_label || anomaly.anomaly_type}
+        </p>
+        <p>{anomaly.description}</p>
+        <p>
+          <strong>Actor:</strong>{' '}
+          {anomaly.actor?.name || anomaly.actor?.email || 'Unknown'}
+          {anomaly.actor?.role ? ` · ${anomaly.actor.role}` : ''}
+        </p>
+        {anomaly.source_ip ? (
+          <p>
+            <strong>IP:</strong> {anomaly.source_ip}
+          </p>
+        ) : null}
+        {anomaly.related_activity_log_ids?.length ? (
+          <p>
+            <strong>Related activity log IDs:</strong>{' '}
+            {anomaly.related_activity_log_ids.join(', ')}
+          </p>
+        ) : null}
+        {anomaly.security_event_id ? (
+          <p>
+            <strong>Security event:</strong> #{anomaly.security_event_id}
+            {anomaly.security_incident_id ? ` · incident #${anomaly.security_incident_id}` : ''}
+          </p>
+        ) : null}
+        <div className="activity-anomaly-drawer__actions">
+          {anomaly.status === 'open' ? (
+            <>
+              <button type="button" className="btn" disabled={busy} onClick={() => onReviewed(anomaly)}>
+                Mark reviewed
+              </button>
+              <button type="button" className="btn ghost" disabled={busy} onClick={() => onDismissed(anomaly)}>
+                Dismiss
+              </button>
+            </>
+          ) : null}
+          {canEscalate && anomaly.status !== 'escalated' && !anomaly.security_event_id ? (
+            <button type="button" className="btn primary" disabled={busy} onClick={() => onEscalate(anomaly)}>
+              <FaShieldAlt aria-hidden /> Escalate to Security Monitoring
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </aside>
+  )
+}
+
 const initialRange = presetRange('30d')
 
 export default function AdminActivityLogs({ shell = 'client-admin' }) {
@@ -210,11 +292,23 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
   const [report, setReport] = useState(null)
   const [logs, setLogs] = useState([])
   const [meta, setMeta] = useState(null)
+  const [anomalies, setAnomalies] = useState([])
+  const [anomalyMeta, setAnomalyMeta] = useState(null)
+  const [anomalyOptions, setAnomalyOptions] = useState(null)
+  const [anomalyFilters, setAnomalyFilters] = useState({
+    severity: '',
+    status: '',
+    anomaly_type: '',
+  })
+  const [selectedAnomaly, setSelectedAnomaly] = useState(null)
+  const [anomalyBusy, setAnomalyBusy] = useState(false)
+  const [detectMessage, setDetectMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('dashboard_view_activity_logs')
+  const canEscalate = can('security_monitoring')
   const apiOpts = { asPowerAdmin }
 
   const queryParams = useCallback(
@@ -245,6 +339,23 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
         if (tab === 'report') {
           const data = await api.activityLogReport(queryParams(), apiOpts)
           if (!cancelled) setReport(data.report || null)
+        } else if (tab === 'anomalies') {
+          const data = await api.activityAnomalies(
+            {
+              ...queryParams(),
+              severity: anomalyFilters.severity || undefined,
+              status: anomalyFilters.status || undefined,
+              anomaly_type: anomalyFilters.anomaly_type || undefined,
+              per_page: 50,
+              page: 1,
+            },
+            apiOpts
+          )
+          if (!cancelled) {
+            setAnomalies(data.data || [])
+            setAnomalyMeta(data.meta || null)
+            setAnomalyOptions(data.options || null)
+          }
         } else {
           const data = await api.activityLogs({ ...queryParams(), per_page: 50, page: 1 }, apiOpts)
           if (!cancelled) {
@@ -263,7 +374,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, enabled, tab, queryParams, asPowerAdmin])
+  }, [hubLoading, enabled, tab, queryParams, asPowerAdmin, anomalyFilters])
 
   const applyFilters = (event) => {
     event.preventDefault()
@@ -341,6 +452,140 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     if (applied.to) return `until ${formatDayLabel(applied.to)}`
     return 'for all recorded time'
   }, [applied])
+
+  const reloadAnomalies = useCallback(async () => {
+    const data = await api.activityAnomalies(
+      {
+        ...queryParams(),
+        severity: anomalyFilters.severity || undefined,
+        status: anomalyFilters.status || undefined,
+        anomaly_type: anomalyFilters.anomaly_type || undefined,
+        per_page: 50,
+        page: 1,
+      },
+      apiOpts
+    )
+    setAnomalies(data.data || [])
+    setAnomalyMeta(data.meta || null)
+    setAnomalyOptions(data.options || null)
+  }, [queryParams, anomalyFilters, asPowerAdmin])
+
+  const openAnomaly = async (row) => {
+    try {
+      setAnomalyBusy(true)
+      const data = await api.activityAnomaly(row.id, apiOpts)
+      setSelectedAnomaly(data.data || row)
+    } catch (err) {
+      setError(err.message || 'Failed to load anomaly detail.')
+    } finally {
+      setAnomalyBusy(false)
+    }
+  }
+
+  const markAnomaly = async (row, status) => {
+    try {
+      setAnomalyBusy(true)
+      setError('')
+      const data = await api.updateActivityAnomaly(row.id, { status }, apiOpts)
+      setSelectedAnomaly(data.data || null)
+      await reloadAnomalies()
+    } catch (err) {
+      setError(err.message || 'Failed to update anomaly.')
+    } finally {
+      setAnomalyBusy(false)
+    }
+  }
+
+  const escalateAnomaly = async (row) => {
+    try {
+      setAnomalyBusy(true)
+      setError('')
+      const data = await api.escalateActivityAnomaly(row.id, apiOpts)
+      setSelectedAnomaly(data.data || null)
+      await reloadAnomalies()
+    } catch (err) {
+      setError(err.message || 'Failed to escalate anomaly.')
+    } finally {
+      setAnomalyBusy(false)
+    }
+  }
+
+  const runDetectNow = async () => {
+    try {
+      setAnomalyBusy(true)
+      setDetectMessage('')
+      setError('')
+      const data = await api.detectActivityAnomaliesNow(apiOpts)
+      const created = data.data?.created ?? 0
+      setDetectMessage(
+        created > 0
+          ? `Detection finished — ${created} new anomal${created === 1 ? 'y' : 'ies'} recorded.`
+          : 'Detection finished — no new anomalies.'
+      )
+      await reloadAnomalies()
+    } catch (err) {
+      setError(err.message || 'Detection failed.')
+    } finally {
+      setAnomalyBusy(false)
+    }
+  }
+
+  const anomalyColumns = useMemo(
+    () => [
+      {
+        key: 'detected_at',
+        label: 'Detected',
+        filterValue: (row) => formatWhen(row.detected_at),
+        render: (row) => formatWhen(row.detected_at),
+      },
+      {
+        key: 'severity',
+        label: 'Severity',
+        filterValue: (row) => row.severity || '',
+        render: (row) => <span className={severityClass(row.severity)}>{row.severity}</span>,
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        filterValue: (row) => row.status || '',
+        render: (row) => <span className={anomalyStatusClass(row.status)}>{row.status}</span>,
+      },
+      {
+        key: 'title',
+        label: 'Anomaly',
+        filterValue: (row) => `${row.title || ''} ${row.anomaly_type || ''}`,
+        render: (row) => (
+          <div>
+            <strong>{row.title}</strong>
+            <div className="muted">{row.anomaly_type_label || row.anomaly_type}</div>
+          </div>
+        ),
+      },
+      {
+        key: 'actor',
+        label: 'Actor',
+        filterValue: (row) =>
+          [row.actor?.name, row.actor?.email, row.source_ip].filter(Boolean).join(' '),
+        render: (row) => (
+          <div>
+            <div>{row.actor?.name || row.actor?.email || 'Unknown'}</div>
+            {row.source_ip ? <span className="muted">{row.source_ip}</span> : null}
+          </div>
+        ),
+      },
+      {
+        key: 'actions',
+        label: '',
+        sortable: false,
+        render: (row) => (
+          <button type="button" className="btn ghost" onClick={() => openAnomaly(row)}>
+            View
+          </button>
+        ),
+      },
+    ],
+    []
+  )
 
   const logColumns = useMemo(
     () => [
@@ -437,8 +682,8 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           <h1>Activity logs</h1>
           <p className="muted">
             See what people are doing in this hub - sign-ins, reviews, updates, and more. Use the
-            summary cards for a quick overview, then dig into the detailed timeline when you need
-            specifics.
+            summary cards for a quick overview, dig into the timeline for detail, and check Anomaly
+            detection for unusual activity patterns (separate from Security Monitoring).
           </p>
         </div>
       </div>
@@ -457,6 +702,13 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           onClick={() => setTab('logs')}
         >
           <FaHistory aria-hidden /> Activity timeline
+        </button>
+        <button
+          type="button"
+          className={`btn ghost ${tab === 'anomalies' ? 'active' : ''}`}
+          onClick={() => setTab('anomalies')}
+        >
+          <FaExclamationTriangle aria-hidden /> Anomaly detection
         </button>
       </div>
 
@@ -490,39 +742,98 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
               <FaSearch aria-hidden />
               <input
                 type="search"
-                placeholder="Name, email, description, or page path..."
+                placeholder={
+                  tab === 'anomalies'
+                    ? 'Title, actor, IP, or type...'
+                    : 'Name, email, description, or page path...'
+                }
                 value={filters.q}
                 onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
               />
             </div>
           </label>
-          <label className="activity-field">
-            <span>Action type</span>
-            <input
-              type="text"
-              placeholder="e.g. auth.login"
-              value={filters.action}
-              onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
-              list="activity-action-suggestions"
-            />
-            <datalist id="activity-action-suggestions">
-              {Object.keys(ACTION_LABELS).map((key) => (
-                <option key={key} value={key}>
-                  {ACTION_LABELS[key]}
-                </option>
-              ))}
-            </datalist>
-          </label>
-          <label className="activity-field">
-            <span>User ID</span>
-            <input
-              type="number"
-              min="0"
-              placeholder="0 = guests"
-              value={filters.user_id}
-              onChange={(e) => setFilters((f) => ({ ...f, user_id: e.target.value }))}
-            />
-          </label>
+          {tab === 'anomalies' ? (
+            <>
+              <label className="activity-field">
+                <span>Severity</span>
+                <select
+                  value={anomalyFilters.severity}
+                  onChange={(e) =>
+                    setAnomalyFilters((f) => ({ ...f, severity: e.target.value }))
+                  }
+                >
+                  <option value="">Any</option>
+                  {(anomalyOptions?.severities || ['info', 'low', 'medium', 'high']).map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="activity-field">
+                <span>Status</span>
+                <select
+                  value={anomalyFilters.status}
+                  onChange={(e) => setAnomalyFilters((f) => ({ ...f, status: e.target.value }))}
+                >
+                  <option value="">Any</option>
+                  {(anomalyOptions?.statuses || ['open', 'reviewed', 'dismissed', 'escalated']).map(
+                    (s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+              <label className="activity-field">
+                <span>Type</span>
+                <select
+                  value={anomalyFilters.anomaly_type}
+                  onChange={(e) =>
+                    setAnomalyFilters((f) => ({ ...f, anomaly_type: e.target.value }))
+                  }
+                >
+                  <option value="">Any</option>
+                  {(anomalyOptions?.anomaly_types || []).map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
+          ) : (
+            <>
+              <label className="activity-field">
+                <span>Action type</span>
+                <input
+                  type="text"
+                  placeholder="e.g. auth.login"
+                  value={filters.action}
+                  onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
+                  list="activity-action-suggestions"
+                />
+                <datalist id="activity-action-suggestions">
+                  {Object.keys(ACTION_LABELS).map((key) => (
+                    <option key={key} value={key}>
+                      {ACTION_LABELS[key]}
+                    </option>
+                  ))}
+                </datalist>
+              </label>
+              <label className="activity-field">
+                <span>User ID</span>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0 = guests"
+                  value={filters.user_id}
+                  onChange={(e) => setFilters((f) => ({ ...f, user_id: e.target.value }))}
+                />
+              </label>
+            </>
+          )}
           <label className="activity-field">
             <span>From</span>
             <input
@@ -561,9 +872,66 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
       </div>
 
       {error && <div className="alert">{error}</div>}
+      {detectMessage && tab === 'anomalies' ? (
+        <div className="alert success">{detectMessage}</div>
+      ) : null}
 
       {loading ? (
         <div className="state">Loading activity...</div>
+      ) : tab === 'anomalies' ? (
+        <div className="activity-anomalies">
+          <div className="activity-feed-meta">
+            <p>
+              Unusual patterns found from activity logs {periodLabel}
+              {anomalyMeta?.total != null ? (
+                <>
+                  {' '}
+                  (<strong>{anomalies.length}</strong> of <strong>{anomalyMeta.total}</strong>)
+                </>
+              ) : null}
+              . This is not Security Monitoring — escalate security-relevant items when that module
+              is enabled.
+            </p>
+            <button
+              type="button"
+              className="btn"
+              disabled={anomalyBusy}
+              onClick={runDetectNow}
+            >
+              <FaSync aria-hidden /> Detect now
+            </button>
+          </div>
+
+          {!anomalies.length ? (
+            <div className="empty-state activity-empty">
+              <FaExclamationTriangle aria-hidden />
+              <h2>No open anomalies</h2>
+              <p className="muted">
+                Run &quot;Detect now&quot; or wait for the scheduled scan. Healthy hubs often show an
+                empty list.
+              </p>
+            </div>
+          ) : (
+            <DataGrid
+              columns={anomalyColumns}
+              rows={anomalies}
+              loading={false}
+              emptyMessage="No matching anomalies."
+              pageSize={10}
+              getRowKey={(row) => row.id}
+            />
+          )}
+
+          <AnomalyDetailDrawer
+            anomaly={selectedAnomaly}
+            onClose={() => setSelectedAnomaly(null)}
+            onReviewed={(row) => markAnomaly(row, 'reviewed')}
+            onDismissed={(row) => markAnomaly(row, 'dismissed')}
+            onEscalate={escalateAnomaly}
+            canEscalate={canEscalate}
+            busy={anomalyBusy}
+          />
+        </div>
       ) : tab === 'report' ? (
         !report ? (
           <div className="empty-state activity-empty">
@@ -1273,6 +1641,54 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           gap: 0.75rem;
           margin-top: 1rem;
           align-items: center;
+        }
+
+        .activity-anomaly-drawer {
+          position: fixed;
+          top: 0;
+          right: 0;
+          width: min(420px, 100vw);
+          height: 100vh;
+          z-index: 40;
+          background: var(--panel, #fff);
+          border-left: 1px solid var(--line);
+          box-shadow: var(--shadow);
+          display: flex;
+          flex-direction: column;
+        }
+
+        .activity-anomaly-drawer__head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 0.75rem;
+          padding: 1rem 1.1rem;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .activity-anomaly-drawer__head h2 {
+          margin: 0;
+          font-size: 1.05rem;
+        }
+
+        .activity-anomaly-drawer__body {
+          padding: 1rem 1.1rem;
+          overflow: auto;
+          display: grid;
+          gap: 0.65rem;
+        }
+
+        .activity-anomaly-drawer__actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
+        }
+
+        .activity-anomaly-drawer__actions .btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
         }
 
         @media (max-width: 900px) {

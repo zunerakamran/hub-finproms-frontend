@@ -1380,6 +1380,7 @@ export default function SecurityMonitoring() {
           .secmon-form-grid {
             grid-template-columns: 1fr;
           }
+            
           .secmon-span-2 {
             grid-column: auto;
           }

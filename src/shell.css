@@ -1932,12 +1932,11 @@ a.site-footer__powered:hover {
   position: absolute;
   inset: 0;
   z-index: 0;
-  /* Soft brand tint — keeps the photo clearly visible */
   background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--brand-dark) 32%, transparent) 0%,
-    color-mix(in srgb, var(--brand) 18%, transparent) 45%,
-    color-mix(in srgb, #0b1220 28%, transparent) 100%
+    145deg,
+    color-mix(in srgb, var(--brand-dark) 78%, transparent) 0%,
+    color-mix(in srgb, var(--brand) 55%, transparent) 48%,
+    color-mix(in srgb, #0b1220 62%, transparent) 100%
   );
   pointer-events: none;
 }

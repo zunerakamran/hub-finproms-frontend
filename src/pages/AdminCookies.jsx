@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import RichTextEditor from '../components/RichTextEditor'
 import RichTextDisplay from '../components/RichTextDisplay'
-import { isRichTextEmpty } from '../utils/richText'
+import { isRichTextEmpty, sanitizeRichTextForSubmit } from '../utils/richText'
 
 export default function AdminCookies() {
   const [content, setContent] = useState('')
@@ -46,8 +46,9 @@ export default function AdminCookies() {
     }
     setSaving(true)
     try {
-      const data = await api.updateAdminCookies({ content })
-      setContent(data?.cookies?.content || content)
+      const safeContent = sanitizeRichTextForSubmit(content)
+      const data = await api.updateAdminCookies({ content: safeContent })
+      setContent(data?.cookies?.content || safeContent)
       setVersion(data?.cookies?.version || version)
       setUpdatedAt(data?.cookies?.updated_at || null)
       setMessage(data.message || 'Saved.')

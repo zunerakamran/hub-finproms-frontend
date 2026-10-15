@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import RichTextEditor from '../components/RichTextEditor'
 import RichTextDisplay from '../components/RichTextDisplay'
-import { isRichTextEmpty } from '../utils/richText'
+import { isRichTextEmpty, sanitizeRichTextForSubmit } from '../utils/richText'
 
 export default function AdminTerms() {
   const [content, setContent] = useState('')
@@ -46,8 +46,9 @@ export default function AdminTerms() {
     }
     setSaving(true)
     try {
-      const data = await api.updateAdminTerms({ content })
-      setContent(data?.terms?.content || content)
+      const safeContent = sanitizeRichTextForSubmit(content)
+      const data = await api.updateAdminTerms({ content: safeContent })
+      setContent(data?.terms?.content || safeContent)
       setVersion(data?.terms?.version || version)
       setUpdatedAt(data?.terms?.updated_at || null)
       setMessage(data.message || 'Saved.')

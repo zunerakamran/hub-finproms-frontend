@@ -1,7 +1,11 @@
 /**
  * Hub public-site copy helpers.
  * Markup: *italic* and **bold**. Placeholders: {credits}, {date}, {count}, {brand}.
+ *
+ * NFR-SEC-VAL: escape user-editable copy, then allow only bold/italic markers.
  */
+
+import DOMPurify from 'dompurify'
 
 export function pageText(pageContent, section, key, fallback = '') {
   const value = pageContent?.[section]?.[key]
@@ -23,9 +27,15 @@ export function formatPageHtml(text, vars = {}) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-  return escaped
+  const marked = escaped
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
+  // Defence in depth — allow only the markers we just introduced (no <p> wrap).
+  return DOMPurify.sanitize(marked, {
+    ALLOWED_TAGS: ['strong', 'em'],
+    ALLOWED_ATTR: [],
+    ALLOW_DATA_ATTR: false,
+  })
 }
 
 /** Field definitions for the Settings editor (label + hint). */

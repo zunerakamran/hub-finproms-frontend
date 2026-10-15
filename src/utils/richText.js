@@ -46,6 +46,9 @@ const ALLOWED_ATTR = [
 /**
  * Sanitize rich-text HTML for safe rendering.
  * Plain legacy text (no tags) is escaped and wrapped in a paragraph.
+ *
+ * NFR-SEC-VAL / NFR-SEC-APP: complementary to server-side InputSanitizer::richHtml.
+ * Always sanitize before dangerouslySetInnerHTML and before API submit.
  */
 export function sanitizeRichText(html) {
   if (html == null || html === '') return ''
@@ -65,6 +68,15 @@ export function sanitizeRichText(html) {
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
   })
+}
+
+/**
+ * Sanitize Quill/HTML before sending to the API (NFR-SEC-VAL client gate).
+ * Keeps empty string empty so required-field checks still work.
+ */
+export function sanitizeRichTextForSubmit(html) {
+  if (html == null || html === '') return ''
+  return sanitizeRichText(html)
 }
 
 /** True when Quill/HTML content has no visible text. */

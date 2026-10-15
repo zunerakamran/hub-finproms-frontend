@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import RichTextEditor from '../components/RichTextEditor'
 import RichTextDisplay from '../components/RichTextDisplay'
-import { isRichTextEmpty } from '../utils/richText'
+import { isRichTextEmpty, sanitizeRichTextForSubmit } from '../utils/richText'
 
 export default function AdminPrivacy() {
   const [content, setContent] = useState('')
@@ -46,8 +46,9 @@ export default function AdminPrivacy() {
     }
     setSaving(true)
     try {
-      const data = await api.updateAdminPrivacy({ content })
-      setContent(data?.privacy?.content || content)
+      const safeContent = sanitizeRichTextForSubmit(content)
+      const data = await api.updateAdminPrivacy({ content: safeContent })
+      setContent(data?.privacy?.content || safeContent)
       setVersion(data?.privacy?.version || version)
       setUpdatedAt(data?.privacy?.updated_at || null)
       setMessage(data.message || 'Saved.')

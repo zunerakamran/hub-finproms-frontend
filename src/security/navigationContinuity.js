@@ -118,22 +118,6 @@ export function isUntrustedExternalDocumentEntry() {
 }
 
 /**
- * True when the document referrer is present and from another origin
- * (webmail, chat web UI, third-party site). Empty referrer is NOT cross-origin —
- * that covers address-bar / tab search autocomplete as well as paste.
- */
-export function hasCrossOriginReferrer() {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return false
-  const referrer = document.referrer || ''
-  if (!referrer) return false
-  try {
-    return new URL(referrer).origin !== window.location.origin
-  } catch {
-    return true
-  }
-}
-
-/**
  * Whether a protected route should show the external-navigation error instead
  * of the target page. Callers must only apply this for authenticated users —
  * guests should be redirected to `/login` (see ProtectedRoute).

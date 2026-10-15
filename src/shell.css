@@ -1963,8 +1963,8 @@ a.site-footer__powered:hover {
 .auth-screen--has-bg .auth-screen__panel .muted,
 .auth-screen--has-bg .auth-screen__panel a,
 .auth-screen--has-bg .auth-screen__panel .linkish {
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  color: #fff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
 }
 
 .auth-screen--has-bg .auth-screen__panel .muted {

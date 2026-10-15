@@ -25,11 +25,15 @@ function ShieldIcon() {
 
 export default function ExternalNavigationBlocked() {
   const { isAuthenticated, loading: authLoading } = useAuth()
-  const { hub, branding } = useHub()
+  const { hub, branding, canViewSitePages } = useHub()
   const navigate = useNavigate()
   const location = useLocation()
   const reported = useRef(false)
   const brandName = branding?.application_name || hub?.name || 'Hub Finproms'
+  // Central (and others) may disable the public home via capabilities —
+  // then `/` is not a usable destination; send them to the dashboard instead.
+  const safePath = canViewSitePages ? '/' : '/my-dashboard'
+  const safeLabel = canViewSitePages ? 'Back to home' : 'Go to dashboard'
 
   const blockedPath = useMemo(() => {
     const full = `${location.pathname}${location.search || ''}`
@@ -102,8 +106,8 @@ export default function ExternalNavigationBlocked() {
         </ul>
 
         <div className="nav-blocked__actions">
-          <button type="button" className="btn primary full" onClick={() => goSafe('/')}>
-            Back to home
+          <button type="button" className="btn primary full" onClick={() => goSafe(safePath)}>
+            {safeLabel}
           </button>
         </div>
       </div>

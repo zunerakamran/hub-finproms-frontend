@@ -1,12 +1,11 @@
 import { Navigate } from 'react-router-dom'
 import PageLoader from './PageLoader'
-import ExternalNavigationBlocked from '../pages/ExternalNavigationBlocked'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import Home from '../pages/Home'
 import {
+  acceptHomeDocumentEntry,
   markNavigationContinuity,
-  shouldBlockExternalHomeEntry,
 } from '../security/navigationContinuity'
 
 /**
@@ -16,8 +15,8 @@ import {
  * White-labelled hubs: home requires authentication.
  * Roles without member_view_site_pages cannot open the website.
  *
- * NFR-SEC-NAV: authenticated users cannot open `/` via paste / email / external
- * redirect; guests may still open the public home URL.
+ * NFR-SEC-NAV: `/` is always reachable (tab search / address-bar autocomplete
+ * of the site URL must work). Deep protected routes remain guarded.
  */
 export default function HomeRoute() {
   const { isAuthenticated, loading: authLoading } = useAuth()
@@ -27,9 +26,8 @@ export default function HomeRoute() {
     return <PageLoader />
   }
 
-  if (shouldBlockExternalHomeEntry(isAuthenticated)) {
-    return <ExternalNavigationBlocked />
-  }
+  // Tab search / address-bar autocomplete of the site URL must not be blocked.
+  acceptHomeDocumentEntry(isAuthenticated)
 
   const isShared = hub?.type === 'shared'
   const isCentral = hub?.type === 'central' || hub?.is_central

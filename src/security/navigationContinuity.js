@@ -18,9 +18,8 @@ let allowlistedEntryThisDocument = false
 
 /**
  * Paths that MUST remain reachable from email / payment providers / auth.
- * Home (`/`) is NOT allowlisted for logged-in users — paste/email of the main
- * URL while authenticated is blocked (see shouldBlockExternalHomeEntry).
- * Guests may still open `/` for public shared/central landing pages.
+ * Home (`/`) is handled separately (always allowed — browser tab search /
+ * address-bar autocomplete of the site URL must work while logged in).
  */
 const ALLOWLIST_EXACT = new Set([
   '/login',
@@ -107,10 +106,26 @@ export function isUntrustedExternalDocumentEntry() {
 
   const referrer = typeof document !== 'undefined' ? document.referrer || '' : ''
   if (!referrer) {
-    // Paste, typed URL, many email/chat clients → no referrer.
+    // Paste, typed URL, tab/address-bar autocomplete, many email/chat clients.
     return true
   }
 
+  try {
+    return new URL(referrer).origin !== window.location.origin
+  } catch {
+    return true
+  }
+}
+
+/**
+ * True when the document referrer is present and from another origin
+ * (webmail, chat web UI, third-party site). Empty referrer is NOT cross-origin —
+ * that covers address-bar / tab search autocomplete as well as paste.
+ */
+export function hasCrossOriginReferrer() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return false
+  const referrer = document.referrer || ''
+  if (!referrer) return false
   try {
     return new URL(referrer).origin !== window.location.origin
   } catch {
@@ -144,25 +159,22 @@ export function shouldBlockExternalNavigation(pathname) {
 }
 
 /**
- * Home (`/`) special-case:
- * - Guests: allow external open (public catalog / marketing) and treat as a
- *   trusted allowlisted entry so they can click through to login.
- * - Authenticated: block paste / email / chat / other-app opens of the main URL
- *   (same threat as deep links). In-app navigation and F5 with continuity OK.
+ * Home (`/`) is always allowed from outside (tab search autocomplete, address
+ * bar, paste, email). Guests get the public landing; authenticated users enter
+ * the app and establish continuity so further in-app navigation works.
+ * Deep protected routes still use shouldBlockExternalNavigation.
+ *
+ * @returns {false} Always — kept for call-site clarity / backwards compat.
  */
 export function shouldBlockExternalHomeEntry(isAuthenticated) {
-  if (!isAuthenticated) {
-    noteAllowlistedDocumentEntry()
-    return false
-  }
+  acceptHomeDocumentEntry(isAuthenticated)
+  return false
+}
 
-  if (continuityGrantedThisDocument) {
-    return false
+/** Mark `/` as a trusted entry point for this document. */
+export function acceptHomeDocumentEntry(isAuthenticated) {
+  noteAllowlistedDocumentEntry()
+  if (isAuthenticated) {
+    markNavigationContinuity()
   }
-
-  if (isUntrustedExternalDocumentEntry()) {
-    return true
-  }
-
-  return !hasNavigationContinuity()
 }

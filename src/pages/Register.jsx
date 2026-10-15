@@ -127,7 +127,6 @@ export default function Register() {
             <h1>Create your account</h1>
           </div>
         </div>
-        <p className="muted">Buy credits and unlock social media posts. We’ll email you a verification link.</p>
         {error && <div className="alert">{error}</div>}
         <label>
           Name

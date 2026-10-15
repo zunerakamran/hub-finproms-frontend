@@ -13,7 +13,7 @@ function roleHome() {
 
 export default function Login() {
   const { login, verifyLoginOtp, isAuthenticated } = useAuth()
-  const { hub, branding, registrationEnabled, inviteOnly } = useHub()
+  const { hub, branding, registrationEnabled } = useHub()
   const navigate = useNavigate()
   const [form, setForm] = useState({ email: '', password: '' })
   const [otpCode, setOtpCode] = useState('')
@@ -188,11 +188,6 @@ export default function Login() {
             <h1>Sign in</h1>
           </div>
         </div>
-        <p className="muted">
-          {inviteOnly
-            ? 'Invite-only hub - sign in with your invited advisor account, or as an admin.'
-            : 'One login for members, Client Admin, and Power Admin.'}
-        </p>
         {error && <div className="alert">{error}</div>}
         {info && <div className="alert success">{info}</div>}
         <form className="auth-screen__form" onSubmit={onSubmitPassword}>

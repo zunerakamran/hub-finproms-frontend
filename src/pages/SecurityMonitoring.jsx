@@ -22,10 +22,17 @@ const TABS = [
 ]
 
 const ACCESS_DEFAULT = {
-  mode: 'off',
-  countries: [],
-  cities: [],
-  ips: [],
+  uk_only: false,
+  uk_cities_enabled: false,
+  uk_cities: [],
+  restrict_countries_enabled: false,
+  restricted_countries: [],
+  allow_countries_enabled: false,
+  allowed_countries: [],
+  restrict_ips_enabled: false,
+  restricted_ips: [],
+  allow_ips_enabled: false,
+  allowed_ips: [],
 }
 
 /** Split comma / newline / semicolon lists into trimmed unique values. */
@@ -137,7 +144,7 @@ export default function SecurityMonitoring() {
   const [report, setReport] = useState(null)
   const [settings, setSettings] = useState(null)
   const [accessSettings, setAccessSettings] = useState(null)
-  const [accessOptions, setAccessOptions] = useState({ modes: [], suggested_uk_cities: [] })
+  const [accessOptions, setAccessOptions] = useState({ rules: [], suggested_uk_cities: [] })
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [selectedIncident, setSelectedIncident] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -230,9 +237,9 @@ export default function SecurityMonitoring() {
 
       if (tab === 'access' && canManageAccess) {
         const data = await api.securityMonitoringAccessSettings({ asPowerAdmin })
-        setAccessSettings(data.data || { ...ACCESS_DEFAULT })
+        setAccessSettings({ ...ACCESS_DEFAULT, ...(data.data || {}) })
         setAccessOptions({
-          modes: data.options?.modes || [],
+          rules: data.options?.rules || [],
           suggested_uk_cities: data.options?.suggested_uk_cities || [],
         })
       }
@@ -380,16 +387,26 @@ export default function SecurityMonitoring() {
     setError('')
     setScanMessage('')
     try {
-      const mode = accessSettings.mode || 'off'
-      const countries = parseListInput(accessSettings.countries).map((c) => c.toUpperCase())
-      const cities = parseListInput(accessSettings.cities)
-      const ips = parseListInput(accessSettings.ips)
+      const payload = {
+        uk_only: !!accessSettings.uk_only,
+        uk_cities_enabled: !!accessSettings.uk_cities_enabled,
+        uk_cities: parseListInput(accessSettings.uk_cities),
+        restrict_countries_enabled: !!accessSettings.restrict_countries_enabled,
+        restricted_countries: parseListInput(accessSettings.restricted_countries).map((c) =>
+          c.toUpperCase()
+        ),
+        allow_countries_enabled: !!accessSettings.allow_countries_enabled,
+        allowed_countries: parseListInput(accessSettings.allowed_countries).map((c) =>
+          c.toUpperCase()
+        ),
+        restrict_ips_enabled: !!accessSettings.restrict_ips_enabled,
+        restricted_ips: parseListInput(accessSettings.restricted_ips),
+        allow_ips_enabled: !!accessSettings.allow_ips_enabled,
+        allowed_ips: parseListInput(accessSettings.allowed_ips),
+      }
 
-      const data = await api.securityMonitoringUpdateAccessSettings(
-        { mode, countries, cities, ips },
-        { asPowerAdmin }
-      )
-      setAccessSettings(data.data || { mode, countries, cities, ips })
+      const data = await api.securityMonitoringUpdateAccessSettings(payload, { asPowerAdmin })
+      setAccessSettings({ ...ACCESS_DEFAULT, ...(data.data || payload) })
       setScanStatus('pass')
       setScanMessage('Access restrictions saved.')
     } catch (err) {
@@ -402,22 +419,17 @@ export default function SecurityMonitoring() {
   const toggleSuggestedCity = (city) => {
     setAccessSettings((s) => {
       if (!s) return s
-      const current = parseListInput(s.cities)
+      const current = parseListInput(s.uk_cities)
       const next = current.includes(city)
         ? current.filter((c) => c !== city)
         : [...current, city]
-      return { ...s, cities: next }
+      return { ...s, uk_cities: next, uk_cities_enabled: true }
     })
   }
 
-  const accessMode = accessSettings?.mode || 'off'
-  const accessModeMeta =
-    (accessOptions.modes || []).find((m) => m.key === accessMode) ||
-    (options?.access_restriction_modes || []).find((m) => m.key === accessMode)
-  const showCities = accessMode === 'uk_cities'
-  const showCountries =
-    accessMode === 'restrict_countries' || accessMode === 'allow_countries'
-  const showIps = accessMode === 'restrict_ips' || accessMode === 'allow_ips'
+  const setAccessFlag = (key, value) => {
+    setAccessSettings((s) => (s ? { ...s, [key]: value } : s))
+  }
 
   const applyFilters = (e) => {
     e.preventDefault()
@@ -929,112 +941,166 @@ export default function SecurityMonitoring() {
             <form className="secmon-card" onSubmit={saveAccessSettings}>
               <h2>Access restrictions</h2>
               <p className="muted">
-                Control where this application can be accessed from. Choose one mode. Env deny-list
-                and temporary firewall blocks still apply.
+                Enable any combination of rules below. A request must pass every enabled rule.
+                Env deny-list and temporary firewall blocks still apply.
               </p>
-              <div className="secmon-form-grid">
-                <label className="filters-row__field secmon-span-2">
-                  <span className="filters-row__label">Restriction mode</span>
-                  <select
-                    value={accessMode}
-                    onChange={(e) =>
-                      setAccessSettings((s) => ({ ...s, mode: e.target.value }))
-                    }
-                  >
-                    {(accessOptions.modes?.length
-                      ? accessOptions.modes
-                      : options?.access_restriction_modes || [
-                          { key: 'off', label: 'No restriction' },
-                          { key: 'uk_only', label: 'UK only' },
-                          { key: 'uk_cities', label: 'Specific UK cities' },
-                          { key: 'restrict_countries', label: 'Restrict countries' },
-                          { key: 'allow_countries', label: 'Allow countries' },
-                          { key: 'restrict_ips', label: 'Restrict IPs' },
-                          { key: 'allow_ips', label: 'Allow IPs' },
-                        ]
-                    ).map((m) => (
-                      <option key={m.key} value={m.key}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                  {accessModeMeta?.description ? (
-                    <span className="muted" style={{ display: 'block', marginTop: '0.35rem' }}>
-                      {accessModeMeta.description}
-                    </span>
-                  ) : null}
-                </label>
 
-                {showCities ? (
-                  <div className="filters-row__field secmon-span-2">
-                    <span className="filters-row__label">UK cities</span>
-                    <div className="secmon-chip-row" style={{ marginBottom: '0.5rem' }}>
-                      {(accessOptions.suggested_uk_cities || []).map((city) => {
-                        const selected = parseListInput(accessSettings.cities).includes(city)
-                        return (
-                          <button
-                            key={city}
-                            type="button"
-                            className={`btn ghost ${selected ? 'active' : ''}`}
-                            onClick={() => toggleSuggestedCity(city)}
-                          >
-                            {city}
-                          </button>
-                        )
-                      })}
+              <div className="secmon-access-rules">
+                <section className="secmon-access-rule">
+                  <label className="secmon-check">
+                    <input
+                      type="checkbox"
+                      checked={!!accessSettings.uk_only}
+                      onChange={(e) => setAccessFlag('uk_only', e.target.checked)}
+                    />
+                    <span>
+                      <strong>UK only</strong>
+                      <span className="muted"> — allow requests only from the United Kingdom</span>
+                    </span>
+                  </label>
+                </section>
+
+                <section className="secmon-access-rule">
+                  <label className="secmon-check">
+                    <input
+                      type="checkbox"
+                      checked={!!accessSettings.uk_cities_enabled}
+                      onChange={(e) => setAccessFlag('uk_cities_enabled', e.target.checked)}
+                    />
+                    <span>
+                      <strong>Specific UK cities</strong>
+                      <span className="muted"> — allow only selected UK cities (must resolve as GB)</span>
+                    </span>
+                  </label>
+                  {accessSettings.uk_cities_enabled ? (
+                    <div className="secmon-access-rule__body">
+                      <div className="secmon-chip-row" style={{ marginBottom: '0.5rem' }}>
+                        {(accessOptions.suggested_uk_cities || []).map((city) => {
+                          const selected = parseListInput(accessSettings.uk_cities).includes(city)
+                          return (
+                            <button
+                              key={city}
+                              type="button"
+                              className={`btn ghost ${selected ? 'active' : ''}`}
+                              onClick={() => toggleSuggestedCity(city)}
+                            >
+                              {city}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={listToInput(accessSettings.uk_cities)}
+                        onChange={(e) => setAccessFlag('uk_cities', e.target.value)}
+                        placeholder="London, Manchester, Birmingham"
+                      />
                     </div>
-                    <textarea
-                      rows={3}
-                      value={listToInput(accessSettings.cities)}
-                      onChange={(e) =>
-                        setAccessSettings((s) => ({ ...s, cities: e.target.value }))
-                      }
-                      placeholder="London, Manchester, Birmingham"
-                    />
-                    <span className="muted" style={{ display: 'block', marginTop: '0.35rem' }}>
-                      Select suggestions and/or type city names (comma or newline separated).
-                      Requests must also resolve as United Kingdom (GB).
-                    </span>
-                  </div>
-                ) : null}
+                  ) : null}
+                </section>
 
-                {showCountries ? (
-                  <label className="filters-row__field secmon-span-2">
-                    <span className="filters-row__label">
-                      Countries (ISO 2-letter codes)
-                    </span>
-                    <textarea
-                      rows={3}
-                      value={listToInput(accessSettings.countries)}
+                <section className="secmon-access-rule">
+                  <label className="secmon-check">
+                    <input
+                      type="checkbox"
+                      checked={!!accessSettings.restrict_countries_enabled}
                       onChange={(e) =>
-                        setAccessSettings((s) => ({ ...s, countries: e.target.value }))
+                        setAccessFlag('restrict_countries_enabled', e.target.checked)
                       }
-                      placeholder="US, CN, RU"
                     />
-                    <span className="muted" style={{ display: 'block', marginTop: '0.35rem' }}>
-                      Use ISO 3166-1 alpha-2 codes (e.g. GB, US, IE). Comma or newline separated.
+                    <span>
+                      <strong>Restrict countries</strong>
+                      <span className="muted"> — block selected countries</span>
                     </span>
                   </label>
-                ) : null}
+                  {accessSettings.restrict_countries_enabled ? (
+                    <div className="secmon-access-rule__body">
+                      <textarea
+                        rows={3}
+                        value={listToInput(accessSettings.restricted_countries)}
+                        onChange={(e) => setAccessFlag('restricted_countries', e.target.value)}
+                        placeholder="RU, CN, KP"
+                      />
+                      <span className="muted">ISO 2-letter codes, comma or newline separated.</span>
+                    </div>
+                  ) : null}
+                </section>
 
-                {showIps ? (
-                  <label className="filters-row__field secmon-span-2">
-                    <span className="filters-row__label">IP addresses / CIDR ranges</span>
-                    <textarea
-                      rows={4}
-                      value={listToInput(accessSettings.ips)}
-                      onChange={(e) =>
-                        setAccessSettings((s) => ({ ...s, ips: e.target.value }))
-                      }
-                      placeholder={'203.0.113.10\n198.51.100.0/24'}
+                <section className="secmon-access-rule">
+                  <label className="secmon-check">
+                    <input
+                      type="checkbox"
+                      checked={!!accessSettings.allow_countries_enabled}
+                      onChange={(e) => setAccessFlag('allow_countries_enabled', e.target.checked)}
                     />
-                    <span className="muted" style={{ display: 'block', marginTop: '0.35rem' }}>
-                      One IP or CIDR per line (or comma-separated).
+                    <span>
+                      <strong>Allow countries</strong>
+                      <span className="muted"> — allow only selected countries</span>
                     </span>
                   </label>
-                ) : null}
+                  {accessSettings.allow_countries_enabled ? (
+                    <div className="secmon-access-rule__body">
+                      <textarea
+                        rows={3}
+                        value={listToInput(accessSettings.allowed_countries)}
+                        onChange={(e) => setAccessFlag('allowed_countries', e.target.value)}
+                        placeholder="GB, IE"
+                      />
+                      <span className="muted">ISO 2-letter codes, comma or newline separated.</span>
+                    </div>
+                  ) : null}
+                </section>
+
+                <section className="secmon-access-rule">
+                  <label className="secmon-check">
+                    <input
+                      type="checkbox"
+                      checked={!!accessSettings.restrict_ips_enabled}
+                      onChange={(e) => setAccessFlag('restrict_ips_enabled', e.target.checked)}
+                    />
+                    <span>
+                      <strong>Restrict IPs</strong>
+                      <span className="muted"> — block listed IPs / CIDR ranges</span>
+                    </span>
+                  </label>
+                  {accessSettings.restrict_ips_enabled ? (
+                    <div className="secmon-access-rule__body">
+                      <textarea
+                        rows={3}
+                        value={listToInput(accessSettings.restricted_ips)}
+                        onChange={(e) => setAccessFlag('restricted_ips', e.target.value)}
+                        placeholder={'203.0.113.10\n198.51.100.0/24'}
+                      />
+                    </div>
+                  ) : null}
+                </section>
+
+                <section className="secmon-access-rule">
+                  <label className="secmon-check">
+                    <input
+                      type="checkbox"
+                      checked={!!accessSettings.allow_ips_enabled}
+                      onChange={(e) => setAccessFlag('allow_ips_enabled', e.target.checked)}
+                    />
+                    <span>
+                      <strong>Allow IPs</strong>
+                      <span className="muted"> — allow only listed IPs / CIDR ranges</span>
+                    </span>
+                  </label>
+                  {accessSettings.allow_ips_enabled ? (
+                    <div className="secmon-access-rule__body">
+                      <textarea
+                        rows={3}
+                        value={listToInput(accessSettings.allowed_ips)}
+                        onChange={(e) => setAccessFlag('allowed_ips', e.target.value)}
+                        placeholder={'203.0.113.80\n198.51.100.0/24'}
+                      />
+                    </div>
+                  ) : null}
+                </section>
               </div>
-              <div className="filters-row__actions">
+
+              <div className="filters-row__actions" style={{ marginTop: '1rem' }}>
                 <button type="submit" className="btn primary" disabled={saving}>
                   {saving ? 'Saving…' : 'Save access restrictions'}
                 </button>
@@ -1259,6 +1325,29 @@ export default function SecurityMonitoring() {
         .secmon-chip-row .btn.ghost {
           font-size: 0.82rem;
           padding: 0.25rem 0.65rem;
+        }
+        .secmon-access-rules {
+          display: flex;
+          flex-direction: column;
+          gap: 0.85rem;
+          margin-top: 0.75rem;
+        }
+        .secmon-access-rule {
+          border: 1px solid var(--line, rgba(15, 23, 42, 0.1));
+          border-radius: 10px;
+          padding: 0.75rem 0.9rem;
+          background: rgba(15, 23, 42, 0.02);
+        }
+        .secmon-access-rule__body {
+          margin-top: 0.65rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+        .secmon-access-rule__body textarea {
+          width: 100%;
+          min-height: 4.5rem;
+          resize: vertical;
         }
         .secmon-stat-grid {
           display: grid;

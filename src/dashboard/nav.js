@@ -67,6 +67,7 @@ const SECMON_NAV_ANY = [
   'secmon_view_report',
   'secmon_manage_incidents',
   'secmon_manage_alerts',
+  'secmon_manage_access',
 ]
 
 const WTL_NAV_ANY = [

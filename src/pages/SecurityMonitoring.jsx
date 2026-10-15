@@ -18,7 +18,35 @@ const TABS = [
   { id: 'incidents', label: 'Incidents', cap: 'secmon_view_events' },
   { id: 'report', label: 'Report', cap: 'secmon_view_report' },
   { id: 'settings', label: 'Alert settings', cap: 'secmon_manage_alerts' },
+  { id: 'access', label: 'Access restrictions', cap: 'secmon_manage_access' },
 ]
+
+const ACCESS_DEFAULT = {
+  mode: 'off',
+  countries: [],
+  cities: [],
+  ips: [],
+}
+
+/** Split comma / newline / semicolon lists into trimmed unique values. */
+function parseListInput(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((s) => String(s).trim()).filter(Boolean))]
+  }
+  return [
+    ...new Set(
+      String(value || '')
+        .split(/[\n,;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    ),
+  ]
+}
+
+function listToInput(value) {
+  if (Array.isArray(value)) return value.join(', ')
+  return value || ''
+}
 
 function severityClass(severity) {
   const s = String(severity || '').toLowerCase()
@@ -85,7 +113,9 @@ export default function SecurityMonitoring() {
   const canViewReport = can('secmon_view_report')
   const canManageIncidents = can('secmon_manage_incidents')
   const canManageAlerts = can('secmon_manage_alerts')
-  const enabled = moduleOn && (canViewEvents || canViewReport || canManageAlerts)
+  const canManageAccess = can('secmon_manage_access')
+  const enabled =
+    moduleOn && (canViewEvents || canViewReport || canManageAlerts || canManageAccess)
 
   const availableTabs = useMemo(
     () =>
@@ -94,9 +124,10 @@ export default function SecurityMonitoring() {
         if (tab.id === 'events' || tab.id === 'incidents') return canViewEvents
         if (tab.id === 'report') return canViewReport
         if (tab.id === 'settings') return canManageAlerts
+        if (tab.id === 'access') return canManageAccess
         return false
       }),
-    [moduleOn, canViewEvents, canViewReport, canManageAlerts]
+    [moduleOn, canViewEvents, canViewReport, canManageAlerts, canManageAccess]
   )
 
   const [tab, setTab] = useState('events')
@@ -105,6 +136,8 @@ export default function SecurityMonitoring() {
   const [incidents, setIncidents] = useState([])
   const [report, setReport] = useState(null)
   const [settings, setSettings] = useState(null)
+  const [accessSettings, setAccessSettings] = useState(null)
+  const [accessOptions, setAccessOptions] = useState({ modes: [], suggested_uk_cities: [] })
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [selectedIncident, setSelectedIncident] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -152,8 +185,15 @@ export default function SecurityMonitoring() {
     setLoading(true)
     setError('')
     try {
-      const opts = await api.securityMonitoringOptions({ asPowerAdmin })
-      setOptions(opts)
+      // Options require secmon_view_events — skip when the user only has manage caps.
+      if (canViewEvents || canViewReport) {
+        try {
+          const opts = await api.securityMonitoringOptions({ asPowerAdmin })
+          setOptions(opts)
+        } catch {
+          // Access-only users may still use the access tab without options.
+        }
+      }
 
       const filterParams = {
         per_page: 50,
@@ -187,6 +227,15 @@ export default function SecurityMonitoring() {
         const data = await api.securityMonitoringAlertSettings({ asPowerAdmin })
         setSettings(data.data || null)
       }
+
+      if (tab === 'access' && canManageAccess) {
+        const data = await api.securityMonitoringAccessSettings({ asPowerAdmin })
+        setAccessSettings(data.data || { ...ACCESS_DEFAULT })
+        setAccessOptions({
+          modes: data.options?.modes || [],
+          suggested_uk_cities: data.options?.suggested_uk_cities || [],
+        })
+      }
     } catch (err) {
       setError(err.message || 'Failed to load security monitoring.')
     } finally {
@@ -201,6 +250,7 @@ export default function SecurityMonitoring() {
     canViewEvents,
     canViewReport,
     canManageAlerts,
+    canManageAccess,
     actingHubId,
   ])
 
@@ -322,6 +372,52 @@ export default function SecurityMonitoring() {
       setSaving(false)
     }
   }
+
+  const saveAccessSettings = async (e) => {
+    e.preventDefault()
+    if (!canManageAccess || !accessSettings) return
+    setSaving(true)
+    setError('')
+    setScanMessage('')
+    try {
+      const mode = accessSettings.mode || 'off'
+      const countries = parseListInput(accessSettings.countries).map((c) => c.toUpperCase())
+      const cities = parseListInput(accessSettings.cities)
+      const ips = parseListInput(accessSettings.ips)
+
+      const data = await api.securityMonitoringUpdateAccessSettings(
+        { mode, countries, cities, ips },
+        { asPowerAdmin }
+      )
+      setAccessSettings(data.data || { mode, countries, cities, ips })
+      setScanStatus('pass')
+      setScanMessage('Access restrictions saved.')
+    } catch (err) {
+      setError(err.message || 'Failed to save access restrictions.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleSuggestedCity = (city) => {
+    setAccessSettings((s) => {
+      if (!s) return s
+      const current = parseListInput(s.cities)
+      const next = current.includes(city)
+        ? current.filter((c) => c !== city)
+        : [...current, city]
+      return { ...s, cities: next }
+    })
+  }
+
+  const accessMode = accessSettings?.mode || 'off'
+  const accessModeMeta =
+    (accessOptions.modes || []).find((m) => m.key === accessMode) ||
+    (options?.access_restriction_modes || []).find((m) => m.key === accessMode)
+  const showCities = accessMode === 'uk_cities'
+  const showCountries =
+    accessMode === 'restrict_countries' || accessMode === 'allow_countries'
+  const showIps = accessMode === 'restrict_ips' || accessMode === 'allow_ips'
 
   const applyFilters = (e) => {
     e.preventDefault()
@@ -825,6 +921,129 @@ export default function SecurityMonitoring() {
         </div>
       )}
 
+      {tab === 'access' && (
+        <div className="secmon-settings">
+          {loading || !accessSettings ? (
+            <p className="muted">Loading access restrictions…</p>
+          ) : (
+            <form className="secmon-card" onSubmit={saveAccessSettings}>
+              <h2>Access restrictions</h2>
+              <p className="muted">
+                Control where this application can be accessed from. Choose one mode. Env deny-list
+                and temporary firewall blocks still apply.
+              </p>
+              <div className="secmon-form-grid">
+                <label className="filters-row__field secmon-span-2">
+                  <span className="filters-row__label">Restriction mode</span>
+                  <select
+                    value={accessMode}
+                    onChange={(e) =>
+                      setAccessSettings((s) => ({ ...s, mode: e.target.value }))
+                    }
+                  >
+                    {(accessOptions.modes?.length
+                      ? accessOptions.modes
+                      : options?.access_restriction_modes || [
+                          { key: 'off', label: 'No restriction' },
+                          { key: 'uk_only', label: 'UK only' },
+                          { key: 'uk_cities', label: 'Specific UK cities' },
+                          { key: 'restrict_countries', label: 'Restrict countries' },
+                          { key: 'allow_countries', label: 'Allow countries' },
+                          { key: 'restrict_ips', label: 'Restrict IPs' },
+                          { key: 'allow_ips', label: 'Allow IPs' },
+                        ]
+                    ).map((m) => (
+                      <option key={m.key} value={m.key}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                  {accessModeMeta?.description ? (
+                    <span className="muted" style={{ display: 'block', marginTop: '0.35rem' }}>
+                      {accessModeMeta.description}
+                    </span>
+                  ) : null}
+                </label>
+
+                {showCities ? (
+                  <div className="filters-row__field secmon-span-2">
+                    <span className="filters-row__label">UK cities</span>
+                    <div className="secmon-chip-row" style={{ marginBottom: '0.5rem' }}>
+                      {(accessOptions.suggested_uk_cities || []).map((city) => {
+                        const selected = parseListInput(accessSettings.cities).includes(city)
+                        return (
+                          <button
+                            key={city}
+                            type="button"
+                            className={`btn ghost ${selected ? 'active' : ''}`}
+                            onClick={() => toggleSuggestedCity(city)}
+                          >
+                            {city}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={listToInput(accessSettings.cities)}
+                      onChange={(e) =>
+                        setAccessSettings((s) => ({ ...s, cities: e.target.value }))
+                      }
+                      placeholder="London, Manchester, Birmingham"
+                    />
+                    <span className="muted" style={{ display: 'block', marginTop: '0.35rem' }}>
+                      Select suggestions and/or type city names (comma or newline separated).
+                      Requests must also resolve as United Kingdom (GB).
+                    </span>
+                  </div>
+                ) : null}
+
+                {showCountries ? (
+                  <label className="filters-row__field secmon-span-2">
+                    <span className="filters-row__label">
+                      Countries (ISO 2-letter codes)
+                    </span>
+                    <textarea
+                      rows={3}
+                      value={listToInput(accessSettings.countries)}
+                      onChange={(e) =>
+                        setAccessSettings((s) => ({ ...s, countries: e.target.value }))
+                      }
+                      placeholder="US, CN, RU"
+                    />
+                    <span className="muted" style={{ display: 'block', marginTop: '0.35rem' }}>
+                      Use ISO 3166-1 alpha-2 codes (e.g. GB, US, IE). Comma or newline separated.
+                    </span>
+                  </label>
+                ) : null}
+
+                {showIps ? (
+                  <label className="filters-row__field secmon-span-2">
+                    <span className="filters-row__label">IP addresses / CIDR ranges</span>
+                    <textarea
+                      rows={4}
+                      value={listToInput(accessSettings.ips)}
+                      onChange={(e) =>
+                        setAccessSettings((s) => ({ ...s, ips: e.target.value }))
+                      }
+                      placeholder={'203.0.113.10\n198.51.100.0/24'}
+                    />
+                    <span className="muted" style={{ display: 'block', marginTop: '0.35rem' }}>
+                      One IP or CIDR per line (or comma-separated).
+                    </span>
+                  </label>
+                ) : null}
+              </div>
+              <div className="filters-row__actions">
+                <button type="submit" className="btn primary" disabled={saving}>
+                  {saving ? 'Saving…' : 'Save access restrictions'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
       {selectedEvent && (
         <DetailDrawer title="Event detail" onClose={() => setSelectedEvent(null)}>
           <div className="secmon-badges">
@@ -1031,6 +1250,15 @@ export default function SecurityMonitoring() {
         .secmon-check input {
           width: auto;
           min-height: auto;
+        }
+        .secmon-chip-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+        }
+        .secmon-chip-row .btn.ghost {
+          font-size: 0.82rem;
+          padding: 0.25rem 0.65rem;
         }
         .secmon-stat-grid {
           display: grid;

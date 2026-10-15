@@ -1100,6 +1100,13 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
+  securityMonitoringAccessSettings: (options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/access-settings`),
+  securityMonitoringUpdateAccessSettings: (payload, options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/access-settings`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
 
   activeSessions: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN

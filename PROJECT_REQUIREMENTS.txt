@@ -1,7 +1,7 @@
 ================================================================================
 HUB FINPROMS — PROJECT REQUIREMENTS
 ================================================================================
-Last updated: 2026-10-16 (6B.1 Disaster recovery & rollback procedures — requirements + UI)
+Last updated: 2026-10-16 (6B.1 Module disaster recovery via Security Monitoring — implemented)
 Location: PROJECT_REQUIREMENTS.txt (project root)
 IMPORTANT: Refer to this document before and after every code change.
 IMPORTANT: Backend and frontend are SEPARATE repos — update BOTH when a
@@ -161,9 +161,9 @@ Apply:
   applied_at, apply_error; then refresh reported version.
 
 UI (Central Hubs page): upload zips with publish, multi-select hubs, Apply to
-selected (choose latest or a prior ready_to_apply release for rollback —
-section 6B.1); Update history table (filter by hub). Hub detail:
-code_frontend_path.
+selected (choose latest or a prior ready_to_apply release for deploy package
+rollback — distinct from module disaster recovery §6B.1); Update history
+table (filter by hub). Hub detail: code_frontend_path.
 
 Update history (append-only on Central):
 - Table hub_code_update_events: hub, release, version, action (apply|
@@ -1218,6 +1218,8 @@ Notes:
       security incidents; add investigation notes
     - `secmon_manage_alerts` — configure alert thresholds / notification
       recipients (hub-admin style roles only by default)
+    - `secmon_manage_disaster_recovery` — recognize module disasters; snapshot
+      / roll back the affected product module only (section 6B.1)
   - Manage active sessions — see currently logged-in users, force-logout any
     user (ends all of their API sessions on this hub), and set the hub idle
     session timeout — same roles
@@ -1337,8 +1339,8 @@ Notes:
   6) Remote hub switcher — act on Shared / White-label DBs when wired
   7) Hub backups — per-hub schedule (time/timezone/frequency), Backup now,
      list/download Central copies, restore hub from Central
-  8) Disaster recovery & rollback — documented procedures in Hub backups UI
-     (data restore) + Hubs / Code Updates UI (code rollback to a prior release)
+  8) Module disaster recovery — via Security Monitoring (recognize → snapshot →
+     roll back the affected product module only). Distinct from hub backups.
 - Functionalities and Capabilities must NOT duplicate each other in the UI.
 - This is the central control plane for ALL tenant behaviour and UI capabilities.
 - Power Admin does NOT replace FinProms admin day-to-day content work on Shared
@@ -1378,77 +1380,77 @@ Notes:
   plaintext files until rotated by retention).
 
 --------------------------------------------------------------------------------
-6B.1 DISASTER RECOVERY AND ROLLBACK PROCEDURES
+6B.1 MODULE DISASTER RECOVERY AND ROLLBACK (VIA SECURITY MONITORING)
 --------------------------------------------------------------------------------
-Status: IMPLEMENTED (2026-10-16) — builds on §6B hub backup/restore and §1C
-code-update apply. Cross-refs: NFR-AVAIL (section 9.9), NFR-BACKUP-ENC (9.7),
-§1B/§1C Code Updates.
+Status: IMPLEMENTED (2026-10-16) — backend + frontend.
+Cross-refs: section 6F (Security Monitoring — detection), NFR-AVAIL (9.9),
+§6B (whole-hub backup — DIFFERENT tool), §1C (code release apply — DIFFERENT).
 
-Purpose
-- Give Power Admin a clear, in-product runbook for two recovery paths:
-  A) Data disaster recovery — restore a hub’s database + media from a Central
-     backup archive (lossy for activity after that backup’s timestamp).
-  B) Code rollback — re-apply a previous release package (backend and/or
-     frontend zip) to selected hubs when a bad deploy must be undone.
-- These are operational procedures, not a separate product module. They use
-  existing capabilities: pa_manage_hub_backups (data) and pa_manage_hubs (code).
+Purpose (NOT the same as Security Monitoring alone, NOT whole-hub restore)
+- Security Monitoring (6F) RECOGNIZES / detects the disaster (events → incident).
+- Module disaster recovery then recovers by rolling back ONLY the affected
+  product module’s data to a prior module snapshot.
+- Does NOT restore the whole hub database/code (§6B Restore).
+- Does NOT re-apply full release zips (§1C) — that is deploy rollback, not
+  module disaster recovery.
 
-A) Data disaster recovery (hub DB / files)
-Prerequisites
-  - At least one completed Central-stored backup for the hub (§6B).
-  - Hub api_url + backup_token wired for remote content hubs.
-  - Shared HUB_BACKUP_ENCRYPTION_KEY when archives are encrypted (NFR-BACKUP-ENC).
-  - Operator has pa_manage_hub_backups.
-Procedure (Power Admin → Hub backups, or hub detail → Backups)
-  1) Prefer “Backup now” before a risky change (optional but recommended).
-  2) Identify the Central archive to restore (by completed_at / filename).
-  3) Confirm restore — overwrites that hub’s DB dump contents and restored
-     storage trees; sessions / in-flight work after the backup are lost.
-  4) After restore: smoke-check login, catalog, and critical admin tools;
-     refresh hub version status if code was also changed.
-  5) Download a copy off-server when longer-term DR retention is required
-     (Central disk is not a substitute for true off-site storage).
-Out of scope (v1)
-  - Point-in-time / continuous WAL recovery
-  - Cross-hub restore (backup of hub A onto hub B)
-  - Automatic DR failover / multi-region hosting
+Lifecycle
+  1) Detect — automated or manual security incident (6F).
+  2) Recognize disaster — attach `affected_module` (product module key) and
+     set `disaster_recognized`. High/critical auto-incidents infer module from
+     route/event when possible and auto-recognize.
+  3) Snapshot — module-scoped JSON snapshot of that module’s tables (+ checklist
+     flag). Operators can create snapshots anytime; recognition creates a
+     baseline if none exists.
+  4) Roll back — restore ONLY that module’s tables from a chosen snapshot.
+     A pre-rollback safety snapshot of current module state is taken first.
 
-B) Code rollback (release packages)
-Prerequisites
-  - Prior release still has backend_zip and/or frontend_zip artifacts on Central
-    (ready_to_apply). Publishing a new release without keeping old zips prevents
-    one-click rollback to that version.
-  - Target hubs have api_url (content hubs) and code_update_token / backup_token.
-  - Operator has pa_manage_hubs.
-Procedure (Power Admin → Hubs / Code Updates)
-  1) Choose the prior release from the release list (not only “latest”).
-  2) Select affected hubs → Apply that release (UI labels this Rollback when
-     the chosen version is older than the hub’s reported version / latest).
-  3) Apply extracts zips, runs migrate --force, clears caches (§1C). Rollback
-     does NOT automatically reverse irreversible migrations — prefer forward
-     fixes, or restore data from backup (§6B.1 A) if schema/data broke.
-  4) Refresh versions; confirm Update history shows success/failure.
-  5) If apply fails mid-way: do not leave hubs half-updated; retry or restore
-     from the pre-change backup taken in A.1.
-Recommended pairing
-  - Before Apply of a risky release: Backup now on each target hub.
-  - After a bad release: code rollback first if only code is wrong; data
-    restore if DB/media are corrupt or migrations cannot be undone safely.
+Recoverable modules (v1)
+  - module_general_compliance
+  - module_social_media_compliance
+  - module_website_compliance
+  - module_website_template_library
+  - module_social_media_template_library
 
-UI requirements (frontend)
-  - Hub backups page: Disaster recovery procedures panel (steps A) + link to
-    Hubs for code rollback.
-  - Hub backup Restore action: clear confirmation that this is a destructive
-    data recovery step.
-  - Hubs page: release selector including prior ready_to_apply releases;
-    Apply / Rollback wording; brief rollback note about migrations + backups.
+Capability
+  - `secmon_manage_disaster_recovery` (Security Monitoring group; blurred while
+    Functionalities → security_monitoring is off). Defaults ON for hub-admin
+    roles like other secmon_* manage caps.
+
+APIs (hub_can; also under /power-admin/* when acting)
+  - GET  …/security-monitoring/disaster-recovery/modules
+  - GET  …/security-monitoring/disaster-recovery/snapshots?module=
+  - POST …/security-monitoring/disaster-recovery/snapshots
+        { module_key, label?, security_incident_id? }
+  - POST …/security-monitoring/incidents/{id}/recognize-disaster
+        { affected_module }
+  - POST …/security-monitoring/incidents/{id}/rollback
+        { snapshot_id }
+  - Declare incident accepts optional affected_module + recognize_disaster.
+
+UI (Security Monitoring → Incidents)
+  - Declare: optional affected module + “Recognize as module disaster”.
+  - Incident detail: Disaster recovery panel — recognize, create snapshot,
+    select snapshot, Roll back module.
+  - Incident list shows affected module + Disaster badge when recognized.
+
+Storage
+  - Table `module_disaster_snapshots` + payload files under
+    storage/app/module-disaster-snapshots/{hub_id}/{module}/…
+  - Incident columns: affected_module, disaster_recognized,
+    disaster_recognized_at, recovery_status, last_snapshot_id,
+    last_rollback_snapshot_id, last_rollback_at.
+
+Explicit non-goals (v1)
+  - Whole-hub restore (use §6B)
+  - Full codebase rollback (use §1C release apply of a prior package)
+  - Multi-region failover / PITR beyond module snapshots
 
 Acceptance criteria
-  [x] Documented in this subsection + NFR-AVAIL (9.9) + §8 checklist
-  [x] Data restore path usable via existing §6B APIs/UI
-  [x] Code rollback path = apply prior release_id (existing apply API)
-  [x] Frontend: DR runbook on Hub backups; release picker + rollback copy on Hubs
-  [ ] Ops: prefer off-server download of critical backups (process, not code)
+  [x] Documented here + NFR-AVAIL 9.9 + §8 checklist; distinct from 6F detect-only
+  [x] Capability + APIs + Security Monitoring UI
+  [x] Snapshot + rollback restores only the chosen module’s tables
+  [x] Feature tests for recognize/rollback (GC) + capability gate
 
 
 --------------------------------------------------------------------------------
@@ -1877,6 +1879,9 @@ Who can see what (Capabilities — Hub operations group)
 - `secmon_manage_incidents` — acknowledge / investigate / resolve / close;
   add investigation notes; link related activity-log rows
 - `secmon_manage_alerts` — configure thresholds, channels, recipients
+- `secmon_manage_disaster_recovery` — recognize disasters for an affected
+  product module; create module snapshots; roll back that module only
+  (section 6B.1 — NOT whole-hub restore; NOT the same as closing an incident)
 - Defaults: ON for hub-admin style roles (power_admin when acting, 
   finproms_admin, client_admin, manager); OFF for approver / advisor /
   admin-staff / user until Power Admin enables them.
@@ -2329,9 +2334,10 @@ SECURITY HARDENING (phase 2 — 2026-10-04)
 [x] NFR-BACKUP-ENC (section 6B / 9.7): encrypt backup ZIPs at rest (AES-256-GCM
     HBENC1); shared HUB_BACKUP_ENCRYPTION_KEY; decrypt on download/restore;
     legacy plaintext still works; hub_backups.is_encrypted
-[x] Disaster recovery & rollback procedures (section 6B.1 / NFR-AVAIL 9.9):
-    data restore runbook on Hub backups UI; code rollback via prior release
-    apply on Hubs UI; documented pairing of Backup now before risky Apply
+[x] Module disaster recovery (section 6B.1 / NFR-AVAIL 9.9): Security Monitoring
+    recognizes disaster for an affected product module; module snapshots;
+    roll back that module only (secmon_manage_disaster_recovery); UI on
+    Incidents; distinct from §6B whole-hub restore
 [ ] Future: TOTP authenticator 2FA for Power Admin (in addition to email OTP)
 [x] NFR-SEC-FW (section 9.5): application-layer IP deny + dangerous upload
     rejection (incl. SVG block) + optional ClamAV; see §8 NFR-SEC-FW + §9.5
@@ -2458,8 +2464,8 @@ Related but distinct
 --------------------------------------------------------------------------------
 - NFR-PERF — Concurrent performance / responsiveness under multi-user load
   (phases already tracked under section 8 Concurrent performance [x]).
-- NFR-AVAIL — Disaster recovery & rollback / backup & restore resilience
-  (sections 6B / 6B.1 / 9.9) — IMPLEMENTED (procedures + existing restore/apply).
+- NFR-AVAIL — Module disaster recovery (via 6F monitoring) + hub backup
+  resilience (sections 6B / 6B.1 / 9.9) — IMPLEMENTED.
 - NFR-BACKUP-ENC — Hub backup archives encrypted at rest (section 9.7) —
   IMPLEMENTED (AES-256-GCM; shared HUB_BACKUP_ENCRYPTION_KEY).
 - NFR-PRIV — UK GDPR / data protection (section 6E).
@@ -2939,42 +2945,38 @@ Related but distinct
 - NFR-SEC (9.1) — monitoring & reporting (not the validation gate)
 
 --------------------------------------------------------------------------------
-9.9 NFR-AVAIL — Disaster recovery, rollback, and deploy resilience
+9.9 NFR-AVAIL — Module disaster recovery and hub availability
 --------------------------------------------------------------------------------
-Status: IMPLEMENTED (2026-10-16). Functional detail in sections 6B and 6B.1;
-this NFR is the availability statement.
+Status: IMPLEMENTED (2026-10-16). Functional detail in sections 6B.1 and 6F;
+whole-hub backups remain §6B.
 
 Statement
-- The platform SHALL provide Power Admin with operable disaster recovery for
-  hub data (restore from Central-stored encrypted backups) and code rollback
-  (re-apply a prior release package to selected hubs), with in-product
-  procedures that document prerequisites, steps, and limits.
+- When Security Monitoring recognizes a disaster affecting a product module,
+  the platform SHALL allow capable operators to roll back THAT MODULE’s data
+  from a module snapshot — without restoring the entire hub or all code.
 
 Product fulfilment
-  A) Data availability — §6B dual-store / Central backups, schedule, retention,
-     Backup now, download, restore; NFR-BACKUP-ENC at rest.
-  B) Code resilience — §1C apply of any ready_to_apply release_id (including
-     older versions as rollback); Update history for audit.
-  C) Procedures — §6B.1 runbook in Hub backups + Hubs UIs; recommend Backup now
-     before risky Apply; call out irreversible migrations.
+  A) Detection — Security Monitoring events / incidents (6F).
+  B) Recognition + module rollback — §6B.1 (secmon_manage_disaster_recovery).
+  C) Whole-hub last resort — §6B hub backup restore (separate).
+  D) Deploy package rollback — §1C prior release apply (separate).
 
 Explicit non-goals (v1)
   - Automated multi-region failover / hot standby
-  - Point-in-time database recovery beyond stored backup archives
-  - Guaranteed migration down-scripts on code rollback
+  - Treating Security Monitoring resolve/close as data recovery
+  - Whole-code restore as part of module DR
 
 Acceptance criteria
   [x] Documented in §6B.1 + this subsection + §8 checklist
-  [x] Operators can restore hub data from Central via UI/API
-  [x] Operators can roll code back by applying a prior release with artifacts
-  [x] Frontend surfaces DR/rollback procedures and release selection
-  [ ] Off-site backup copies remain an ops process (download / external store)
+  [x] Module snapshot + rollback APIs and Security Monitoring UI
+  [x] Distinct from hub backup restore and from incident status-only workflow
+  [ ] Off-site copies of hub backups remain an ops process
 
 Related but distinct
-- NFR-BACKUP-ENC (9.7) — archive encryption
-- NFR-PERF — load/responsiveness (not DR)
-- §1B/§1C — version tracking and apply mechanics
-- NFR-PRIV — backups may retain personal data until retention prune
+- NFR-BACKUP-ENC (9.7) — hub backup archive encryption
+- NFR-SEC (9.1) / §6F — monitoring & incidents (detect, not module restore)
+- §1B/§1C — code version apply
+- NFR-PRIV — backups / snapshots may retain personal data until retention
 
 ================================================================================
 END OF REQUIREMENTS

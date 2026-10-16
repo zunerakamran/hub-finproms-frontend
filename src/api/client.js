@@ -1115,6 +1115,31 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(payload),
     }),
+  securityMonitoringDisasterModules: (options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/disaster-recovery/modules`),
+  securityMonitoringDisasterSnapshots: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+    ).toString()
+    return request(
+      `${adminBase(options)}/security-monitoring/disaster-recovery/snapshots${query ? `?${query}` : ''}`
+    )
+  },
+  securityMonitoringCreateDisasterSnapshot: (payload, options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/disaster-recovery/snapshots`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  securityMonitoringRecognizeDisaster: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/incidents/${id}/recognize-disaster`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  securityMonitoringRollbackDisaster: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/security-monitoring/incidents/${id}/rollback`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   securityMonitoringReport: (params = {}, options = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')

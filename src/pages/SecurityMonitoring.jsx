@@ -121,8 +121,10 @@ export default function SecurityMonitoring() {
   const canManageIncidents = can('secmon_manage_incidents')
   const canManageAlerts = can('secmon_manage_alerts')
   const canManageAccess = can('secmon_manage_access')
+  const canManageDisasterRecovery = can('secmon_manage_disaster_recovery')
   const enabled =
-    moduleOn && (canViewEvents || canViewReport || canManageAlerts || canManageAccess)
+    moduleOn &&
+    (canViewEvents || canViewReport || canManageAlerts || canManageAccess || canManageDisasterRecovery)
 
   const availableTabs = useMemo(
     () =>
@@ -147,8 +149,12 @@ export default function SecurityMonitoring() {
   const [accessOptions, setAccessOptions] = useState({ rules: [], suggested_uk_cities: [] })
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [selectedIncident, setSelectedIncident] = useState(null)
+  const [disasterSnapshots, setDisasterSnapshots] = useState([])
+  const [rollbackSnapshotId, setRollbackSnapshotId] = useState('')
+  const [recognizeModule, setRecognizeModule] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [drMessage, setDrMessage] = useState('')
   const [filters, setFilters] = useState({
     q: '',
     severity: '',
@@ -170,6 +176,8 @@ export default function SecurityMonitoring() {
     description: '',
     severity: 'medium',
     category: 'manual',
+    affected_module: '',
+    recognize_disaster: false,
   })
   const [incidentNote, setIncidentNote] = useState('')
   const [incidentStatus, setIncidentStatus] = useState('')
@@ -275,13 +283,35 @@ export default function SecurityMonitoring() {
     }
   }
 
+  const loadDisasterSnapshots = async (moduleKey) => {
+    if (!canManageDisasterRecovery || !moduleKey) {
+      setDisasterSnapshots([])
+      return
+    }
+    try {
+      const data = await api.securityMonitoringDisasterSnapshots(
+        { module: moduleKey, limit: 40 },
+        { asPowerAdmin }
+      )
+      const rows = Array.isArray(data.data) ? data.data : []
+      setDisasterSnapshots(rows)
+      const preferred = rows.find((s) => s.trigger !== 'pre_rollback') || rows[0]
+      setRollbackSnapshotId(preferred ? String(preferred.id) : '')
+    } catch {
+      setDisasterSnapshots([])
+    }
+  }
+
   const openIncident = async (id) => {
     try {
       const data = await api.securityMonitoringIncident(id, { asPowerAdmin })
       setSelectedIncident(data.data)
       setIncidentStatus(data.data?.status || '')
       setIncidentNote('')
+      setRecognizeModule(data.data?.affected_module || '')
+      setDrMessage('')
       setSelectedEvent(null)
+      await loadDisasterSnapshots(data.data?.affected_module)
     } catch (err) {
       setError(err.message || 'Failed to load incident.')
     }
@@ -293,13 +323,104 @@ export default function SecurityMonitoring() {
     setSaving(true)
     setError('')
     try {
-      const data = await api.securityMonitoringDeclareIncident(declareForm, { asPowerAdmin })
-      setDeclareForm({ title: '', description: '', severity: 'medium', category: 'manual' })
+      const payload = {
+        title: declareForm.title,
+        description: declareForm.description || undefined,
+        severity: declareForm.severity,
+        category: declareForm.category,
+      }
+      if (declareForm.affected_module) {
+        payload.affected_module = declareForm.affected_module
+        payload.recognize_disaster = !!declareForm.recognize_disaster
+      }
+      const data = await api.securityMonitoringDeclareIncident(payload, { asPowerAdmin })
+      setDeclareForm({
+        title: '',
+        description: '',
+        severity: 'medium',
+        category: 'manual',
+        affected_module: '',
+        recognize_disaster: false,
+      })
       setTab('incidents')
       await openIncident(data.data.id)
       await load()
     } catch (err) {
       setError(err.message || 'Failed to declare incident.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const recognizeDisaster = async () => {
+    if (!canManageDisasterRecovery || !selectedIncident || !recognizeModule) return
+    setSaving(true)
+    setError('')
+    setDrMessage('')
+    try {
+      const data = await api.securityMonitoringRecognizeDisaster(
+        selectedIncident.id,
+        { affected_module: recognizeModule },
+        { asPowerAdmin }
+      )
+      setSelectedIncident(data.data)
+      setDisasterSnapshots(Array.isArray(data.snapshots) ? data.snapshots : [])
+      setDrMessage(data.message || 'Disaster recognized.')
+      await load()
+    } catch (err) {
+      setError(err.message || 'Failed to recognize disaster.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const createModuleSnapshot = async () => {
+    if (!canManageDisasterRecovery || !selectedIncident?.affected_module) return
+    setSaving(true)
+    setError('')
+    setDrMessage('')
+    try {
+      const data = await api.securityMonitoringCreateDisasterSnapshot(
+        {
+          module_key: selectedIncident.affected_module,
+          security_incident_id: selectedIncident.id,
+          label: `Manual snapshot for incident #${selectedIncident.id}`,
+        },
+        { asPowerAdmin }
+      )
+      if (data.incident) setSelectedIncident(data.incident)
+      setDrMessage(data.message || 'Snapshot created.')
+      await loadDisasterSnapshots(selectedIncident.affected_module)
+    } catch (err) {
+      setError(err.message || 'Failed to create snapshot.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const rollbackDisaster = async () => {
+    if (!canManageDisasterRecovery || !selectedIncident || !rollbackSnapshotId) return
+    const ok = window.confirm(
+      `Roll back only ${selectedIncident.affected_module_label || selectedIncident.affected_module} ` +
+        `to snapshot #${rollbackSnapshotId}?\n\n` +
+        "This overwrites that module's data only — not the whole hub. A safety snapshot of the current module state is taken first."
+    )
+    if (!ok) return
+    setSaving(true)
+    setError('')
+    setDrMessage('')
+    try {
+      const data = await api.securityMonitoringRollbackDisaster(
+        selectedIncident.id,
+        { snapshot_id: Number(rollbackSnapshotId) },
+        { asPowerAdmin }
+      )
+      setSelectedIncident(data.data)
+      setDrMessage(data.message || 'Module rolled back.')
+      await loadDisasterSnapshots(data.data?.affected_module)
+      await load()
+    } catch (err) {
+      setError(err.message || 'Rollback failed.')
     } finally {
       setSaving(false)
     }
@@ -525,6 +646,20 @@ export default function SecurityMonitoring() {
       filterValue: (row) => row.status || '',
     },
     {
+      key: 'module',
+      label: 'Module',
+      render: (row) =>
+        row.disaster_recognized ? (
+          <span>
+            <Badge className="gc-status gc-status--bad">Disaster</Badge>{' '}
+            {row.affected_module_label || row.affected_module || '—'}
+          </span>
+        ) : (
+          row.affected_module_label || row.affected_module || '—'
+        ),
+      filterValue: (row) => row.affected_module_label || row.affected_module || '',
+    },
+    {
       key: 'events',
       label: 'Events',
       narrow: true,
@@ -741,6 +876,37 @@ export default function SecurityMonitoring() {
                     placeholder="Describe the security issue…"
                   />
                 </label>
+                <label className="filters-row__field secmon-span-2">
+                  <span className="filters-row__label">Affected module (for disaster recovery)</span>
+                  <select
+                    value={declareForm.affected_module}
+                    onChange={(e) =>
+                      setDeclareForm((f) => ({ ...f, affected_module: e.target.value }))
+                    }
+                  >
+                    <option value="">None / unknown</option>
+                    {(options?.recoverable_modules || []).map((m) => (
+                      <option key={m.key} value={m.key}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {declareForm.affected_module ? (
+                  <label className="filters-row__field secmon-span-2 secmon-check">
+                    <input
+                      type="checkbox"
+                      checked={!!declareForm.recognize_disaster}
+                      onChange={(e) =>
+                        setDeclareForm((f) => ({ ...f, recognize_disaster: e.target.checked }))
+                      }
+                    />
+                    <span>
+                      Recognize as module disaster now (enables snapshot / rollback for this module
+                      only)
+                    </span>
+                  </label>
+                ) : null}
               </div>
               <div className="filters-row__actions">
                 <button type="submit" className="btn primary" disabled={saving}>
@@ -1175,7 +1341,98 @@ export default function SecurityMonitoring() {
               <dt>What happened</dt>
               <dd>{selectedIncident.description || selectedIncident.title}</dd>
             </div>
+            <div>
+              <dt>Affected module</dt>
+              <dd>
+                {selectedIncident.affected_module_label || selectedIncident.affected_module || '—'}
+                {selectedIncident.disaster_recognized ? (
+                  <>
+                    {' '}
+                    <Badge className="gc-status gc-status--bad">Disaster recognized</Badge>
+                  </>
+                ) : null}
+              </dd>
+            </div>
+            <div>
+              <dt>Recovery</dt>
+              <dd>{selectedIncident.recovery_status || 'none'}</dd>
+            </div>
           </dl>
+
+          {canManageDisasterRecovery && (
+            <div className="secmon-card secmon-dr-panel">
+              <h3>Module disaster recovery</h3>
+              <p className="muted">
+                Monitoring recognizes the incident; recovery rolls back{' '}
+                <strong>only the affected module</strong> — not the whole hub or all code.
+              </p>
+              {drMessage ? <div className="alert success">{drMessage}</div> : null}
+
+              {!selectedIncident.disaster_recognized ? (
+                <div className="secmon-dr-actions">
+                  <label className="filters-row__field">
+                    <span className="filters-row__label">Module where disaster happened</span>
+                    <select
+                      value={recognizeModule}
+                      onChange={(e) => setRecognizeModule(e.target.value)}
+                    >
+                      <option value="">Select module…</option>
+                      {(options?.recoverable_modules || []).map((m) => (
+                        <option key={m.key} value={m.key}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={saving || !recognizeModule}
+                    onClick={recognizeDisaster}
+                  >
+                    Recognize disaster
+                  </button>
+                </div>
+              ) : (
+                <div className="secmon-dr-actions">
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    disabled={saving}
+                    onClick={createModuleSnapshot}
+                  >
+                    Create module snapshot now
+                  </button>
+                  <label className="filters-row__field">
+                    <span className="filters-row__label">Roll back to snapshot</span>
+                    <select
+                      value={rollbackSnapshotId}
+                      onChange={(e) => setRollbackSnapshotId(e.target.value)}
+                    >
+                      {disasterSnapshots.length === 0 ? (
+                        <option value="">No snapshots yet</option>
+                      ) : (
+                        disasterSnapshots.map((s) => (
+                          <option key={s.id} value={String(s.id)}>
+                            #{s.id} · {s.label || s.trigger} ·{' '}
+                            {formatDateTime(s.created_at)}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={saving || !rollbackSnapshotId}
+                    onClick={rollbackDisaster}
+                  >
+                    Roll back module
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {(selectedIncident.investigation_notes || []).length > 0 && (
             <div className="secmon-notes">
@@ -1266,6 +1523,14 @@ export default function SecurityMonitoring() {
         .secmon-card h3 {
           margin: 0 0 0.35rem;
           font-size: 1.05rem;
+        }
+        .secmon-dr-panel {
+          margin: 1rem 0;
+        }
+        .secmon-dr-actions {
+          display: grid;
+          gap: 0.75rem;
+          margin-top: 0.75rem;
         }
         .secmon-card--warn,
         .secmon-card--ok,

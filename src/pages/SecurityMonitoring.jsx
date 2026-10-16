@@ -941,9 +941,28 @@ export default function SecurityMonitoring() {
             <form className="secmon-card" onSubmit={saveAccessSettings}>
               <h2>Access restrictions</h2>
               <p className="muted">
-                Enable any combination of rules below. A request must pass every enabled rule.
+                Rules combine with overrides (most specific wins):
+                {' '}
+                <strong>Restrict IPs</strong> always block those addresses (even inside an allowed
+                country/UK).
+                {' '}
+                <strong>Allow IPs</strong> always let those addresses through (even from a
+                restricted country).
+                {' '}
+                <strong>Allow countries</strong> can reopen a restricted country or extend UK-only.
                 Env deny-list and temporary firewall blocks still apply.
               </p>
+              <ul className="muted secmon-access-examples">
+                <li>
+                  Restrict country Pakistan + Allow IP X → only X from Pakistan is allowed
+                </li>
+                <li>
+                  Allow country Pakistan + Restrict IP X → Pakistan is allowed except X
+                </li>
+                <li>
+                  UK only + Restrict IP X → UK is allowed except X
+                </li>
+              </ul>
 
               <div className="secmon-access-rules">
                 <div className="secmon-access-rule">
@@ -1010,7 +1029,7 @@ export default function SecurityMonitoring() {
                     />
                     <span>
                       <strong>Restrict countries</strong>
-                      <span className="muted"> — block selected countries</span>
+                      <span className="muted"> — block selected countries (Allow IPs can override)</span>
                     </span>
                   </label>
                   {accessSettings.restrict_countries_enabled ? (
@@ -1035,7 +1054,7 @@ export default function SecurityMonitoring() {
                     />
                     <span>
                       <strong>Allow countries</strong>
-                      <span className="muted"> — allow only selected countries</span>
+                      <span className="muted"> — allow these countries; also overrides Restrict countries / UK rules for them</span>
                     </span>
                   </label>
                   {accessSettings.allow_countries_enabled ? (
@@ -1060,7 +1079,7 @@ export default function SecurityMonitoring() {
                     />
                     <span>
                       <strong>Restrict IPs</strong>
-                      <span className="muted"> — block listed IPs / CIDR ranges</span>
+                      <span className="muted"> — always block these IPs, even inside an allowed country/UK</span>
                     </span>
                   </label>
                   {accessSettings.restrict_ips_enabled ? (
@@ -1084,7 +1103,7 @@ export default function SecurityMonitoring() {
                     />
                     <span>
                       <strong>Allow IPs</strong>
-                      <span className="muted"> — allow only listed IPs / CIDR ranges</span>
+                      <span className="muted"> — these IPs always allowed; override country / UK / city blocks</span>
                     </span>
                   </label>
                   {accessSettings.allow_ips_enabled ? (
@@ -1325,6 +1344,15 @@ export default function SecurityMonitoring() {
         .secmon-chip-row .btn.ghost {
           font-size: 0.82rem;
           padding: 0.25rem 0.65rem;
+        }
+        .secmon-access-examples {
+          margin: 0.5rem 0 0;
+          padding-left: 1.2rem;
+          font-size: 0.9rem;
+          line-height: 1.45;
+        }
+        .secmon-access-examples li {
+          margin: 0.15rem 0;
         }
         .secmon-access-rules {
           display: flex;

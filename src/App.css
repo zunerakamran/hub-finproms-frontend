@@ -8285,6 +8285,80 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
 }
 
 /* —— Hub backups & restore —— */
+.hub-dr-runbook {
+  margin-bottom: 1.25rem;
+}
+
+.hub-dr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.15rem;
+}
+
+.hub-dr-path h4 {
+  margin: 0 0 0.55rem;
+  font-size: 1rem;
+}
+
+.hub-dr-path ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.4rem;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.hub-dr-footnote {
+  margin: 1rem 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+}
+
+.hubs-release-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-right: 0.35rem;
+}
+
+.hubs-release-pick select {
+  min-width: 11rem;
+  max-width: 18rem;
+}
+
+.hubs-rollback-btn {
+  background: color-mix(in srgb, var(--warn, #b45309) 88%, var(--ink));
+  border-color: transparent;
+}
+
+.hubs-apply-banner--rollback {
+  border-color: color-mix(in srgb, var(--warn, #b45309) 45%, var(--line));
+  background: color-mix(in srgb, var(--warn, #b45309) 12%, var(--panel));
+}
+
+.hubs-rollback-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .hub-dr-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hubs-release-pick {
+    width: 100%;
+    margin: 0 0 0.5rem;
+  }
+
+  .hubs-release-pick select {
+    flex: 1;
+    max-width: none;
+  }
+}
+
 .hub-backups-page .hub-backups-summary {
   margin-bottom: 1.25rem;
   padding: 1rem 1.15rem;

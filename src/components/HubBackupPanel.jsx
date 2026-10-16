@@ -188,8 +188,12 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
   }
 
   const onRestore = async (backup) => {
+    const label = fileDisplayName(backup.filename) || backup.filename || backup.id
     const ok = window.confirm(
-      `Restore ${hubName || 'this hub'} from backup ${fileDisplayName(backup.filename) || backup.filename || backup.id}?\n\nThis overwrites the hub database and media files. Continue only if you are sure.`
+      `Disaster recovery restore for ${hubName || 'this hub'}?\n\n` +
+        `Archive: ${label}\n\n` +
+        'This overwrites the hub database and restored media files. ' +
+        "Any changes after this backup's timestamp will be lost. Continue only if you are sure."
     )
     if (!ok) return
     setError('')
@@ -197,7 +201,7 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
     setBusyId(backup.id)
     try {
       const data = await api.restorePowerAdminHubBackup(hubId, backup.id)
-      setMessage(data.message || 'Restore completed.')
+      setMessage(data.message || 'Disaster recovery restore completed.')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -415,8 +419,8 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
                 <h3>Archives</h3>
                 <p className="muted">
                   {singleStore
-                    ? 'Completed archives on this Central server can be downloaded or restored.'
-                    : 'Restore is only available from completed Central copies (safe source of truth).'}
+                    ? 'Completed archives on this Central server can be downloaded or used for disaster recovery restore.'
+                    : 'Disaster recovery restore is only available from completed Central copies (safe source of truth).'}
                 </p>
               </div>
             </div>
@@ -500,6 +504,7 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
                                   className="btn ghost hub-backup-restore"
                                   disabled={busy}
                                   onClick={() => onRestore(b)}
+                                  title="Disaster recovery: overwrite hub DB and media from this Central archive"
                                 >
                                   Restore
                                 </button>

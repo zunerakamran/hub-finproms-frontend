@@ -1,0 +1,2981 @@
+================================================================================
+HUB FINPROMS — PROJECT REQUIREMENTS
+================================================================================
+Last updated: 2026-10-16 (6B.1 Disaster recovery & rollback procedures — requirements + UI)
+Location: PROJECT_REQUIREMENTS.txt (project root)
+IMPORTANT: Refer to this document before and after every code change.
+IMPORTANT: Backend and frontend are SEPARATE repos — update BOTH when a
+           feature needs UI and API changes.
+================================================================================
+
+--------------------------------------------------------------------------------
+0. REPOSITORIES / PROJECT LOCATIONS
+--------------------------------------------------------------------------------
+- Backend:  Desktop/hub-finproms-backend  (this repo)
+- Frontend: Desktop/hub-finproms-frontend
+- Whenever implementing or changing a feature, apply related changes in the
+  frontend as well (UI, API calls, roles, branding, permissions, etc.).
+- Do not treat backend-only work as complete if the feature also requires
+  frontend updates.
+
+
+--------------------------------------------------------------------------------
+1. PRODUCT OVERVIEW
+--------------------------------------------------------------------------------
+- FinProms content platform: social media posts, reels, etc.
+- Users subscribe, receive credits, spend credits on posts/reels, then download.
+- Branding (colours, logo, etc.) must come from the database so each hub
+  can look different without code changes.
+
+THREE HUB TYPES (same codebase, separate deploys / databases):
+
+  A) CENTRAL HUB CONTROLLER ("Central Hub")
+     - Platform control plane ONLY — not a member content catalog for end users.
+     - Where Power Admin remotely controls ALL hubs (Shared + White-labelled).
+     - Where new Shared hubs and White-labelled hubs are registered, wired, and
+       spawned (copy same codebase onto another cPanel / hosting instance).
+     - Owns the hub registry, remote DB credentials, Functionalities / Modules /
+       Capabilities for every hub, platform payment methods, and Power Admin tools.
+     - Does NOT replace day-to-day content work on Shared or White-label hubs.
+
+  B) SHARED HUB
+     - A normal content hub for FinProms public/shared catalog (posts, reels,
+       plans, subscriptions, purchases).
+     - Operated day-to-day by FinProms admin (and staff roles as enabled).
+     - Is NOT the control plane. It is controlled remotely by Central Hub
+       (same remote-control pattern as white-labelled hubs).
+     - May still receive content / configuration push FROM Central Hub when
+       those features are enabled.
+     - Additional Shared hubs can be created the same way as white-labels:
+       copy codebase to another cPanel, own DB + .env, register on Central Hub.
+
+  C) WHITE-LABELLED HUB
+     - Private client hub (advisor Excel import, restricted options).
+     - Same codebase; own database; branding from DB.
+     - Controlled remotely by Central Hub (hub switcher / acting hub / remote DB).
+
+Deploy rule:
+- ONE codebase for Central Hub Controller + Shared Hub(s) + all White-labelled hubs.
+- Each instance has its OWN database and .env (HUB_SLUG, DB_*, FRONTEND_URL / APP_URL).
+- Central Hub is the master registry and remote-control source — not Shared Hub.
+
+
+--------------------------------------------------------------------------------
+1A. CENTRAL HUB CONTROLLER (CONTROL PLANE)
+--------------------------------------------------------------------------------
+- Purpose: separate remote control from content hubs so Shared Hub no longer
+  controls itself and other hubs from the same place.
+- Power Admin logs into Central Hub and from there:
+  1) Hub registry — create / list / edit Shared hubs AND White-labelled hubs
+  2) Deploy wiring per hub — frontend_url, api_url, db_* (encrypted password),
+     deploy_notes, copyable env snippet / checklist
+  3) Hub Functionalities + Modules checklists per hub (section 5.1 / 5.1A)
+  4) User capabilities matrix per hub (section 5.2)
+  5) Power Admin's OWN capabilities checklist (section 5.3)
+  6) Platform payment methods and other platform settings
+  7) Remote control / hub switcher — act on a Shared or White-label hub's own
+     database (content, types, categories, tags, bundles, settings, etc.) when
+     wiring + receive_content / remote-control flags allow
+  8) Code updates — publish release (+ optional zips), refresh versions, select
+     hubs and apply packages (Phase 1 tracking + Phase 2 apply)
+- Spawning a new hub (Shared or White-label):
+  - Ops copies the SAME codebase to another cPanel (or hosting).
+  - New instance gets its OWN DB + .env (HUB_SLUG, DB_*, URLs).
+  - Power Admin registers that hub on Central Hub and stores deploy wiring /
+    remote DB credentials so Central can reach it.
+  - Hub type is set in registry (shared | white_label); packaging modules and
+    default Functionalities follow that type.
+- Central Hub DB stores the hub registry for EVERY Shared and White-label hub.
+  Content catalogs for those hubs live in EACH hub's own database — Central
+  does NOT share those databases.
+- Registry "ready" = active + frontend_url + remote DB credentials set.
+  Hub list badges: Wiring ready / Needs wiring; also code version badges
+  (Up to date / Behind latest / Unknown / Check failed).
+- Central Hub itself is NOT a substitute Shared catalog; member browse/buy
+  flows belong on Shared / White-label instances.
+
+
+--------------------------------------------------------------------------------
+1B. CODE UPDATES ACROSS HUBS (PHASE 1 — TRACKING)
+--------------------------------------------------------------------------------
+Purpose: update the product once, then from Central see which existing Shared /
+White-label hubs are on that release. This is NOT new-hub spawn (copy code to a
+new cPanel). Spawn stays manual; Phase 1 only tracks versions after you deploy
+via Git (backend) and Git/FTP build (frontend).
+
+Version identity (every deploy — Central, Shared, WL):
+- Root file VERSION (default) and/or .env APP_VERSION / FRONTEND_VERSION.
+- Public GET /api/version → { version, backend_version, frontend_version, slug,
+  type, is_control_plane }. Also exposed on GET /api/hub as hub.code.
+- After each ship: bump VERSION (or set APP_VERSION on that hub's .env) and set
+  FRONTEND_VERSION to match the frontend build you FTPed.
+
+Central registry:
+- hub_releases table: publish version + optional backend/frontend versions + notes;
+  one row marked is_latest.
+- Per hub row: code_version*, code_version_status (up_to_date|behind|ahead|
+  unknown|error), source (local|remote_api|manual), checked_at, error.
+- Power Admin (pa_manage_hubs):
+  - GET/POST /api/power-admin/releases — list / publish latest
+  - POST /api/power-admin/hubs/refresh-versions — poll all hubs
+  - POST /api/power-admin/hubs/{hub}/refresh-version — poll one
+    (Central = local config; content hub = GET {api_url}/version)
+  - POST /api/power-admin/hubs/{hub}/mark-version — manual record when API
+    unreachable
+- Hub admin payloads include code_update { reported_version, status,
+  status_label, latest_version, … }.
+
+Ops workflow (Phase 1 — track only):
+  1) Ship code (git pull backend; build + FTP frontend) on chosen hubs.
+  2) Ensure APP_VERSION / FRONTEND_VERSION (or VERSION file) matches the release.
+  3) On Central: Publish release (e.g. 1.2.0) → Refresh versions → see badges.
+
+--------------------------------------------------------------------------------
+1C. CODE UPDATES ACROSS HUBS (PHASE 2 — APPLY TO SELECTED HUBS)
+--------------------------------------------------------------------------------
+Purpose: from Central, choose which existing hubs receive a release package
+(backend zip and/or frontend dist zip). Still not new-hub spawn.
+
+Release artifacts (stored on Central disk: storage/app/private/releases/{ver}/):
+- On publish (multipart) or POST /api/power-admin/releases/{id}/artifacts:
+  backend_zip, frontend_zip (optional each; at least one required to apply).
+- backend zip = Laravel app tree (prefer include vendor/). Never overwrites
+  .env, storage/app|framework|logs, bootstrap/cache, .git.
+- frontend zip = Vite dist (dist / dist-shared / … root stripped). Extracted to
+  hub.code_frontend_path (Central registry) or CODE_UPDATE_FRONTEND_PATH on that
+  server.
+
+Apply:
+- POST /api/power-admin/releases/apply { release_id?, hub_ids: [] }
+- Central marks hub code_apply_status=updating, ensures code_update_token
+  (reuses backup_token when present), pushes token + code_frontend_path via
+  white-label DB sync when remote DB wired.
+- Content hub: POST {api_url}/internal/code-updates/apply with
+  X-Hub-Code-Update-Key; hub downloads artifacts from Central
+  GET /api/internal/code-updates/artifacts/{release}/{backend|frontend},
+  extracts, writes VERSION + storage marker, runs migrate --force, clears caches.
+- Central self-apply uses local artifact files (no HTTP loopback).
+- Auth: code_update_token OR backup_token OR HUB_CODE_UPDATE_SECRET /
+  HUB_BACKUP_SECRET.
+- Per hub: apply_status (idle|updating|applied|failed), target_version,
+  applied_at, apply_error; then refresh reported version.
+
+UI (Central Hubs page): upload zips with publish, multi-select hubs, Apply to
+selected (choose latest or a prior ready_to_apply release for rollback —
+section 6B.1); Update history table (filter by hub). Hub detail:
+code_frontend_path.
+
+Update history (append-only on Central):
+- Table hub_code_update_events: hub, release, version, action (apply|
+  mark_manual), status (success|failed), message, backend/frontend/migrated
+  flags, triggered_by, finished_at.
+- Written on every Apply and manual “mark version”.
+- GET /api/power-admin/releases/history?hub_id=&limit=
+- Also included as overview.history on GET /api/power-admin/releases.
+
+Packaging tips:
+- Backend: zip the backend repo (exclude .env / storage contents); include vendor
+  if target cPanel has no composer.
+- Frontend: zip the contents of dist-* after npm run build:shared / build:myhub.
+
+
+--------------------------------------------------------------------------------
+2. SHARED HUB — STEP 1 CORE FEATURES
+--------------------------------------------------------------------------------
+(Shared Hub = content hub. Platform control lives on Central Hub Controller.)
+
+2.1 Content classification (THREE separate fields)
+- TYPE — what the item is: post, reel, etc. (managed list; drives reel play button).
+- CATEGORY — topical/grouping category (separate from type; e.g. product themes).
+  Categories support an optional icon: curated Font Awesome key (`icon`) and/or
+  uploaded image (`icon_path` → public `icon_url` via /api/media). Upload wins
+  over font icon when both would apply. Central Categories admin lists icons to
+  pick from and accepts an image upload; home “Browse by Categories” renders
+  upload → font icon → name initial. Icons sync to content hubs on distribute.
+- TAGS — free labels for filtering (separate from type and category).
+- Every content item has type + category + tags. Do NOT treat category as type.
+
+2.2 Content browsing & listing UX
+- Hub catalog / main member pages require login. Unauthenticated visitors are
+  sent to the login screen and must not see the hub main/catalog UI.
+- Users browse posts, reels, and other types.
+- Listing page uses a 3-column grid (2 columns on tablet, 1 on mobile).
+- For REELS: admin can upload a video when type is Reel.
+- Reel video autoplays (muted, looping) on listing and detail pages.
+- A play/pause “Reel” control sits at the top of the video to mark it as a reel
+  and let the viewer pause/resume.
+- Reels without a video still show the legacy centered play indicator on listing.
+- "NEW" banner on new posts/reels:
+  - Shown when the item is still within the "new" window.
+  - Duration (e.g. number of days) is taken from the DATABASE (configurable
+    setting), not hard-coded.
+
+2.2a Shared Hub self-registration email verification
+- When public self-registration is enabled (`public_subscribe` / not invite-only),
+  new members must verify their email before they can sign in.
+- Register creates the account with `email_verified_at` null, does NOT issue a
+  Sanctum token, and sends a hub-branded verification link
+  (`{frontend}/verify-email?token=…&email=…`). Link expires in 60 minutes.
+- Verify endpoint marks the email verified, sends the welcome email, and returns
+  an auth token so the member is signed in.
+- Unverified members are blocked at login with `email_verification_required` and
+  may request a resend (throttled).
+- Admin-created and Excel-imported users are marked verified immediately.
+- Existing accounts are backfilled as verified by migration so they are not locked out.
+- Email template catalog event: `email_verification` (editable like other templates).
+- APIs: POST /api/auth/verify-email, POST /api/auth/resend-verification.
+- Frontend: Register shows “check your email”; VerifyEmail page; Login offers resend.
+
+2.2b Two-factor authentication (login OTP) — per user (all hub types)
+- NOT a hub Functionalities checkbox. Each user opts in from Update profile
+  (`users.two_factor_enabled`, default OFF). Only that user gets email OTP
+  after a successful password check on every sign-in.
+- Enabling / disabling 2FA (and changing email) requires `current_password`.
+- Login returns `otp_required` + `otp_challenge` (no Sanctum token yet)
+  only when that user has 2FA enabled.
+  A 6-digit code is emailed (hub From address / MAIL_FROM fallback).
+  Code expires in 10 minutes; max 5 failed attempts; resend throttled 60s.
+- APIs: POST /api/auth/verify-login-otp, POST /api/auth/resend-login-otp.
+- Public GET /hub exposes `auth.login_otp_per_user` (true) and
+  `auth.login_otp_required` (always false; legacy clients).
+- Email template catalog event: `login_otp` (always available to edit).
+- Frontend Login shows a second step when the login response has otp_required.
+- Profile page (all authenticated users): Update profile — name, email,
+  avatar (profile picture), and two-factor toggle.
+  API: PUT/PATCH/POST /api/auth/profile (POST for multipart avatar).
+  Changing email clears verification and sends a new verification link.
+  Avatar stored on public disk (`avatars/{user_id}/…`); URL via /api/media/.
+
+2.2c Terms & Conditions (all hub types)
+- Capability matrix key: `dashboard_manage_terms` (“Manage terms & conditions”)
+  in Hub operations. Defaults ON for hub-admin style roles on Shared and
+  White-label (and available on Central). Who may edit content is controlled
+  per role on the Capabilities matrix.
+- Hub stores rich HTML Terms & Conditions (`hubs.terms_and_conditions` JSON:
+  content, version, updated_at). Each hub type seeds relevant default copy
+  (Shared catalogue / White-label private firm / Central control plane) which
+  capable users can edit via a rich-text editor.
+- On first login (and when the version changes after an edit), authenticated
+  users must view and accept the current terms before using the app.
+  Acceptance is stored on the user: `terms_accepted_at`, `terms_accepted_version`.
+- APIs: GET/PUT /api/client-admin/terms, POST /api/client-admin/terms/reset
+  (hub_can:dashboard_manage_terms); POST /api/auth/accept-terms (auth).
+- Public GET /hub includes `auth.terms` { required, version, content }.
+- Frontend: /my-dashboard/terms admin page; TermsGate modal after login.
+
+2.2d Privacy Policy (all hub types) — UK GDPR Phase 1
+- Separate from Terms & Conditions (section 2.2c). Terms remain contractual;
+  Privacy Policy is the transparency notice under UK GDPR + DPA 2018.
+- Capability matrix key: `dashboard_manage_privacy` (“Manage privacy policy”)
+  in Hub operations. Defaults ON for hub-admin style roles (same pattern as
+  `dashboard_manage_terms`); Power Admin toggles per hub / role on Central.
+- Hub stores rich HTML Privacy Policy (`hubs.privacy_policy` JSON: content,
+  version, updated_at). Seed sensible default copy per hub type (Shared /
+  White-label / Central) covering: who the controller is, what personal data
+  is processed, purposes, lawful bases, retention summary, recipients /
+  processors (e.g. Stripe, email, hosting), international transfers if any,
+  individual rights, and how to contact the hub / raise a complaint with the
+  ICO. Capable users can edit via rich-text editor.
+- On first login (and when the version changes after an edit), authenticated
+  users must view and acknowledge the current privacy policy before using the
+  app (same gate pattern as Terms). Acceptance stored on the user:
+  `privacy_accepted_at`, `privacy_accepted_version`.
+- Public GET /hub includes `auth.privacy` { required, version, content }.
+- APIs: GET/PUT /api/client-admin/privacy, POST /api/client-admin/privacy/reset
+  (hub_can:dashboard_manage_privacy); POST /api/auth/accept-privacy (auth).
+- Frontend: /my-dashboard/privacy admin page; PrivacyGate (or combined
+  legal-gate after Terms) after login.
+- Remove or shorten the generic “Privacy” subsection inside default Terms so
+  it points to the Privacy Policy instead of duplicating it.
+- See section 6E for the full UK GDPR roadmap (DSAR, erasure, retention, etc.).
+
+2.2e Cookie Notice (all hub types) — UK GDPR / PECR Phase 5
+- Separate from Terms and Privacy. Banner informs visitors about essential
+  cookies (session + CSRF); not a full consent preference centre while no
+  non-essential cookies exist.
+- Capability matrix key: `dashboard_manage_cookies` (“Manage cookie notice”)
+  in Hub operations. Same default pattern as Terms / Privacy.
+- Hub stores rich HTML Cookie Notice (`hubs.cookie_notice` JSON: content,
+  version, updated_at). Defaults per hub type (Shared / White-label / Central).
+  Capable users edit via rich-text editor; Save/Reset bumps version.
+- Public GET /hub includes `auth.cookies`
+  { essential_only, required, version, content, updated_at }.
+- APIs: GET/PUT /api/client-admin/cookies, POST /api/client-admin/cookies/reset
+  (hub_can:dashboard_manage_cookies).
+- Frontend: /my-dashboard/cookies admin page; CookieBanner shows when
+  localStorage version ≠ current hub version (OK dismisses until next bump).
+- No authenticated accept-gate (unlike Terms/Privacy) — PECR transparency
+  banner is sufficient for essential-only cookies.
+
+2.3 Content metrics
+- Each post/reel tracks:
+  - reach — unique impression when a user scrolls the listing and the post
+    enters their viewport (POST /api/posts/reach with post_ids)
+  - views — when a user opens the post detail page (GET /api/posts/{id})
+  - buy count — when a user purchases the post
+- Metrics are stored and shown on listing/detail for members according to their
+  active subscription plan’s visibility flags (Power Admin / hub-admin can
+  configure these on each plan):
+  - Basic (default): reach only
+  - Standard (default): reach + views
+  - Premium (default): reach + views + buys
+- Hub admins, Power Admin (when acting on that hub), and unlimited-credit
+  advisors see all three metrics.
+- Non-subscribers do not see metric counts.
+- Plan fields: show_reach, show_views, show_buys (editable via subscription plan
+  CRUD under Power Admin and hub-admin when dashboard_manage_plans is enabled).
+- API responses include visible_metrics so the frontend knows what to render.
+
+2.4 Subscriptions & Credits
+- Users subscribe and receive credits.
+- Credits are spent when buying posts/reels or post bundles.
+- After purchase, users can preview the content in-app (no file download).
+
+2.4a Post bundles
+- Capability-gated (Capabilities matrix: dashboard_manage_bundles) — roles that
+  Power Admin enables can create/edit bundles in the hub-admin dashboard.
+- Website visibility is gated separately by `member_browse_bundles` (Member
+  catalog group on the Capabilities matrix). When off for a role, Bundles nav
+  and /bundles pages are hidden for that role; turn off for every role to hide
+  bundles for the whole hub. Defaults ON for Shared / White-label, OFF on Central.
+- A bundle has a title, description, and total credits_cost (bundle price).
+- Creators can include existing posts/reels and/or create new posts/reels and
+  attach them in the same flow.
+- Members browse bundles when `member_browse_bundles` is on; purchasing a
+  bundle spends the bundle’s total credits and unlocks every post in the bundle.
+- Invoices are generated for bundle purchases (type bundle_purchase).
+
+2.5 One-off / Non-subscriber Purchases
+- Users who are NOT subscribed can still buy individual posts/reels.
+- Pricing rule: content is priced in credits (no pound display in catalog copy).
+
+2.6 Invoices
+- Invoices are generated for:
+  a) Subscriptions
+  b) Individual post/reel purchases
+
+2.7 Roles & separate dashboards
+There is ONE universal dashboard shell at /my-dashboard for every role.
+What each user sees (sidebar + home cards) is driven by the Capabilities
+matrix (and Power Admin’s own pa_* checklist for platform tools on Central Hub).
+
+The member catalog (posts / bundles / plans) stays on the main website of
+Shared / White-label hubs by default. Central may optionally expose a public
+site shell when Power Admin enables member_* caps on Central’s own matrix.
+Staff and members open Dashboard from the main site nav; login lands on
+/my-dashboard. Legacy /client-admin and /power-admin URLs redirect into
+/my-dashboard. Members never see tools that are not enabled for their role.
+
+ROLES (canonical list):
+
+  1) POWER ADMIN (power_admin) — platform developers / us
+     - Logs into CENTRAL HUB CONTROLLER (control plane).
+     - Manages hubs (Shared + White-label), hub Functionalities + Modules
+       checklist (section 5.1 / 5.1A), user capabilities matrix (section 5.2),
+       payment methods, and Power Admin's OWN capability checklist (section 5.3).
+     - Remotely controls Shared and White-labelled hubs (hub switcher / acting
+       hub) when those capabilities and wiring allow.
+     - What a power_admin can do on that control plane is gated by the separate
+       Power Admin capabilities checklist (not the per-hub member/dashboard lists).
+
+  2) FINPROMS ADMIN (finproms_admin) — Shared hub admin
+     - Day-to-day operator of a SHARED hub (content hub).
+     - Manages that Shared hub’s content, types, categories, tags, plans,
+       settings, etc.
+     - Can generate AI posts (when built) and may control white-labelled hubs
+       via Central Hub remote tools ONLY if Power Admin enables that capability
+       for their role — Preferred path is Power Admin on Central Hub for
+       cross-hub control; FinProms admin focus is Shared hub day-to-day ops.
+     - Uses the hub-admin shell; capabilities come from THAT Shared hub's
+       dashboard checklist (section 5.2), managed on Central Hub.
+
+  3) CLIENT ADMIN (client_admin) — white-labelled hub admin
+     - Operator of ONE white-labelled hub.
+     - Restricted vs FinProms admin; only tools Power Admin enables for that hub.
+     - Uses the same hub-admin shell; capabilities from THAT hub's dashboard checklist.
+
+  4) MANAGER (manager) — hub staff (Shared or White-label)
+     - Mid-level operational role (e.g. content/ops management without full
+       client_admin rights). Exact screens TBD; gated by hub dashboard checklist
+       and/or future manager-specific flags.
+
+  5) APPROVER (approver) — compliance / review
+     - Reviews/approves content (ties to compliance check flow, section 3.3).
+     - Not a full hub admin by default; approval UI to be built later.
+
+  6) ADVISOR (advisor) — reserved role label in the capabilities matrix
+     - Not assigned automatically on plan subscribe or Excel import.
+     - White-label invited advisors keep role=user; Excel import sets
+       is_advisor and has_unlimited_credits when hub behaviour allows.
+     - Uses member UI (same as user).
+
+  7) USER (user) — general user / subscriber
+     - Browse / subscribe / buy / download as user capability checklist allows.
+     - Role stays user after a paid public-hub plan subscription (credits only).
+     - Private-hub Excel-imported advisors also keep role=user (flags distinguish them).
+     - Label in the Capabilities matrix is "User" (not "Member").
+
+Notes:
+- Former "admin" → client_admin. Shared hub operator should use finproms_admin
+  going forward (existing client_admin on shared may be migrated).
+- Seeded shared-hub FinProms admin: finproms@hubfinproms.com (role=finproms_admin).
+- Advisor import keeps role=user and sets is_advisor / unlimited flags.
+- Public plan subscribe does NOT change role (stays user; credits only).
+- Role alone does not unlock every screen — Power Admin checklists (on Central
+  Hub) still gate member UI, hub-admin UI, and power_admin UI.
+- LEGACY NOTE: Older builds treated Shared Hub as the control plane. Target
+  architecture moves the control plane to Central Hub Controller; Shared Hub
+  becomes a controllable content hub only.
+
+
+--------------------------------------------------------------------------------
+3. SHARED HUB — FUTURE FEATURES
+--------------------------------------------------------------------------------
+
+3.1 AI Content Generation (later)
+- Posts/reels added to the hub will also be generated by AI.
+- FinProms admin (on Shared hub) generates AI content for white-labelled hubs
+  (and/or via Central Hub remote tools when enabled).
+- AI will be trained / configured for:
+  - Types of posts and reels to generate
+  - What text/copy should be added
+
+3.2 In-app Post Editing (later)
+- Users who buy a post can edit that post within the application.
+
+3.3 Social Media Compliance
+- After purchase (and later editing), posts can go through a compliance check.
+- Power Admin (on Central Hub) enables the **Social Media Pre Approval Workflow**
+  module per hub (Modules checklist). Website features are separate modules —
+  see 3.3d (Website Template Library + Website Content Pre Approval Workflow).
+- While the module is off, all Social Media Compliance capabilities appear
+  blurred / inactive on the Capabilities matrix (same pattern as private/public).
+- Who can submit, assign, review, view queues, or open reports is controlled
+  only by the Capabilities matrix — not hard-coded to Approver / buyer roles.
+- Buyers submit a purchased post (description + image); managers assign to
+  reviewers; reviewers set Pending / Approved / Rejected / Approved with
+  Feedback; version history supports reject-resubmit and approve-with-feedback
+  confirm/reupload. Emails notify admins, assignees, and submitters.
+- Optional **supporting files** (PDF, Office, images, ZIP; max 10 × 10 MB) may
+  be attached on submit (advisor), review/approve-reject (approver), and
+  change-status (manager), in addition to the required media attachment.
+  Field: `supporting_files[]`. Copied across versions on resubmit /
+  change-status when no new files are uploaded.
+- **UI:** show supporting files inside each entry of **version history**
+  (`versions[].supporting_files`) when any exist — never as a separate
+  request-level supporting-files box. Each file includes `source`,
+  `uploaded_by_name`, and `uploaded_by_role` (`advisor` | `approver` |
+  `manager`) so the UI can label who attached it.
+- All Social Media Compliance mutations and report/chart views are written to
+  activity_logs (actions: smc.submit / assign / unassign / review / resubmit /
+  confirm_feedback / change_status / reports.* / charts.*).
+- Each request also gets a dedicated **compliance audit trail**
+  (`compliance_audit_events`): submit / assign / unassign / review / resubmit /
+  confirm_feedback / change_status, with actor **name, email, role**, optional
+  related user (e.g. assignee), from→to status, version, and description.
+  Detail (`includeVersions`) and reports expose `audit_trail[]` plus
+  `audit_trail_summary` on CSV export; rows also include assigner name/email/role.
+
+3.3b General Compliance
+- Same review flow as Social Media Compliance (submit → assign → review →
+  versions / reports), but submissions are free-form: required description
+  textarea + optional multiple **attachments** (primary content files) and
+  optional **supporting files** (evidence; PDF, Office, images, ZIP, etc.;
+  max 10 × 10 MB each field).
+- Attachments and supporting files are distinct: multipart fields
+  `attachments[]` and `supporting_files[]` are stored and returned separately
+  (`kind` on each file row). Do not alias one into the other.
+- Supporting files may be attached by the advisor on submit/resubmit/confirm,
+  by the approver on review, and by the manager on change-status (appended to
+  the current/new version).
+- **UI:** render supporting files only inside **version history**
+  (`versions[].supporting_files`); primary `attachments` may still show with
+  the request content. Do not show a separate supporting-files panel.
+- Power Admin enables the **General Compliance** module per hub. Capabilities
+  (`gc_*`) are blurred while the module is off.
+- Activity logs use `gc.*` actions.
+- Same **compliance audit trail** as SMC (`module=gc`) on every lifecycle event;
+  reports and request detail include full history with actor name/email/role.
+- **Encryption at rest (NFR-GC-ENC):** version text — `description`,
+  `feedback`, `future_feedback` — via `SafeEncrypted` (APP_KEY). List search
+  (`q`) matches name / content type / reviewer only. Audit metadata stores
+  feedback presence flags only. Backfill:
+  `php artisan security:encrypt-general-compliance [--dry-run]`.
+- **Attachment files:** remain on the **public** disk with public `file_url`
+  (original working behaviour). File-byte encryption was attempted then
+  **reverted** — it broke downloads on cPanel/LiteSpeed shared hosting.
+  Authenticated `/api/gc/file/{id}` remains only as a fallback for any rows
+  left from that experiment (`is_encrypted=true`).
+
+3.3e Support Tickets (error / bug reporting)
+- Power Admin enables **Support Tickets** as a hub Functionalities flag
+  (`support_tickets`) — NOT a Modules-page product module (the 6 product
+  modules stay unchanged). Available on Shared, White-label, and Central Hub.
+- Users with `st_submit_ticket` can report system errors:
+  - Required: subject, module area (dropdown of product areas), description
+  - Optional: category (bug / UI / performance / data / access / feature / other),
+    priority (low / medium / high / critical), page URL, browser info,
+    screenshots (`screenshots[]` — images or PDF, max 8 × 5 MB)
+- Statuses: Open → In Progress → Waiting on User → Resolved → Closed
+- Capabilities (`st_*`, blurred while Functionalities → Support Tickets is off):
+  - `st_submit_ticket` — submit tickets
+  - `st_view_own_tickets` — own ticket history & detail
+  - `st_view_all_tickets` — full hub queue (developer inbox)
+  - `st_change_ticket_status` — change status + resolution note
+  - `st_comment_on_tickets` — add follow-up comments / screenshots
+- APIs (also under `/api/client-admin/*` and `/api/power-admin/*` for queue):
+  - GET /api/support-tickets/options
+  - POST /api/support-tickets
+  - GET /api/support-tickets/mine
+  - GET /api/support-tickets/{id}
+  - POST /api/support-tickets/{id}/comments
+  - GET …/support-tickets (admin list)
+  - POST …/support-tickets/{id}/change-status
+- Activity logs: `st.submit` / `st.change_status` / `st.comment`
+- Frontend: `/my-dashboard/support-tickets` (my / new / queue / detail)
+
+3.3f Security Monitoring (regular security monitoring & incident reports)
+- Power Admin enables **Security Monitoring** as a hub Functionalities flag
+  (`security_monitoring`) — a SEPARATE product module/feature, NOT one of the
+  6 Modules-page billable packaging modules (those stay unchanged). Available
+  on Shared, White-label, and Central Hub. Full spec: section 6F + NFR-SEC
+  (section 9.1).
+- Purpose: continuous security monitoring with a detailed in-app report so
+  capable users can see, for each event: **when** it happened, **what**
+  happened, severity, source (IP / user / route), and remediation status.
+- Distinct from:
+  - Activity logging + anomaly detection (6A) — general audit of user/API
+    actions (6A.1) plus activity-pattern anomalies under Activity Logs (6A.2);
+    Security Monitoring owns security incidents / threat events, not the
+    Activity Logs UI
+  - Compliance audit trail (6C) — SMC/GC/WC workflow lifecycle
+  - Support Tickets (3.3e) — human-reported bugs / access issues
+  - GDPR breach ICO runbook (6E.3) — legal/ops notification process (may
+    reference Security Monitoring incidents for evidence)
+- Capabilities (`secmon_*`, blurred while Functionalities → Security Monitoring
+  is off) — see section 6F.
+- Frontend: `/my-dashboard/security-monitoring` (events feed + detail + report)
+
+3.3c Website Content Pre Approval supporting files
+- Change requests accept optional supporting files on submit (advisor/editor),
+  approve / reject / approve-with-feedback / schedule (approver), and
+  change-status (manager) via `supporting_files[]` (same limits as other
+  compliance modules). Stored per change-request version with uploader
+  attribution (`source`, `uploaded_by_*`, `uploaded_by_role`).
+- **UI:** show supporting files inside each version in version history only —
+  never as a separate request-level supporting-files box.
+- Change requests record a **compliance audit trail** (`module=wc`) for submit /
+  assign / review / reject / schedule / publish / resubmit / confirm_feedback /
+  change_status, with actor name/email/role. Detail responses include
+  `audit_trail[]`. Platform report also has
+  `GET .../website-compliance/reports/change-requests` for full history rows.
+
+3.3d Website Template Library vs Website Content Pre Approval Workflow
+- Formerly one combined “Website Compliance” product. They are now TWO Modules
+  checklist items. Content Pre Approval depends on Template Library.
+- API namespace remains `/api/website-compliance/*` (shared tables); module and
+  capability gates decide which half is available.
+- Frontend dashboard shows TWO nav sections (not one “Website Compliance”
+  umbrella): Website Template Library and Website Content Pre Approval.
+
+  A) Website Template Library (`module_website_template_library`)
+     - Showcase website templates only — no content pre-approval queue here.
+     - Power Admin (if `wc_manage_templates`) adds / edits / deletes templates.
+       When registering / editing a template, Power Admin can attach one or more
+       colour schemes (name + primary + secondary) that suit that template;
+       stored on `wc_templates.color_schemes` (JSON).
+       Power Admin also defines the **available pages** for that template
+       (name + slug + optional description) on `wc_templates.available_pages`
+       (JSON). Requesters later select which of those pages to include.
+     - Capable users browse the template catalogue.
+     - Capable users request a template by filling the deployment form
+       (`wc_request_deployments`) — domain, branding, colours, etc.
+       On the request form they pick one of the template’s colour schemes, or
+       enter an optional custom primary / secondary if none of the offered
+       schemes fit. Chosen colours are saved on the template request as usual
+       (`primary_color` / `secondary_color`).
+       The request form also collects optional website content extras stored on
+       `wc_template_requests`:
+         • `services` — name + attached document (PDF/Office) list
+         • `images` — uploaded image URL + optional label list
+         • `contact_details` — phone, email, address, website
+         • `policies` — name + attached document (PDF/Office) list
+         • `selected_pages` — slugs chosen from the template’s `available_pages`
+         • `page_contents` — document attachment (`url` + `name`) keyed by selected page slug
+           (typed textareas are not used; attach a file for each page/service/policy)
+     - Optional staff path: request on behalf of / assign to an advisor
+       (`wc_assign_website_templates`).
+     - Power Admin (if `wc_deploy_websites`) manually deploys the pending
+       request onto the respective cPanel (credentials + domain on deploy).
+       Deploy is never automatic from the request form.
+     - Related caps: `wc_view_all_deployments` (list), `wc_deploy_websites`
+       (deploy / reject).
+     - Capabilities in group “Website Template Library” are blurred while
+       this module is off.
+
+  B) Website Content Pre Approval Workflow (`module_website_compliance`)
+     - Requires Website Template Library enabled (module dependency).
+     - Full compliance flow on a deployed site’s sections.
+     - Advisor / editor (if capable) locks/edits sections and submits change
+       requests (`wc_edit_sections`, `wc_submit_change_requests`).
+     - Approver / manager sees the whole flow: assign → review →
+       approve & publish (status → published, immediate) OR approve only
+       (status → approved, then schedule → scheduled → published) /
+       reject / approve-with-feedback.
+       Status overrides are blocked once published or scheduled.
+       (`wc_assign_change_requests`, `wc_review_change_requests`,
+       `wc_change_request_status`, `wc_view_all_change_requests`, …).
+     - Optional bypass: publish live without review (`wc_publish_live_content`).
+     - Supporting files: section 3.3c.
+     - Capabilities in group “Website Content Pre Approval” are blurred while
+       this module is off.
+
+3.4 Firm Head of Firm & Firm Documents
+- Firms already exist on hub databases (`firms` + `users.firm_id`; capability
+  `dashboard_manage_firms`). This section adds Head of Firm allocation and a
+  firm-scoped Documents library (attachments) with per-member rights.
+- Applies on Shared and White-labelled hubs (each hub’s own firms / members).
+  Backend and frontend both required.
+
+3.4.0 Functionality gate (hub-wide matrix only)
+- Hub Functionalities checklist flag: `firm_documents` (“Firm documents”).
+  Default OFF. Power Admin enables it per hub on Functionalities (often from
+  Central Hub Controller → Hub Functionalities for that hub).
+- While OFF, firm-document Capabilities (view / add / delete / archive for ALL
+  firms) are blurred / inactive on the Capabilities matrix.
+- Head of Firm does NOT need this flag — appointing a Head unlocks Firm
+  documents for that user on their firm immediately.
+- Assign Head of Firm (`dashboard_assign_firm_head`) is NOT gated by this flag.
+- Central control: toggling this flag on Central MUST sync to the content hub’s
+  own database (remote DB wiring). The Head logs into the content hub site
+  (Shared / White-label), not Central — that hub’s API must have the same
+  Firm Documents / Head code deployed.
+
+3.4.1 Who can appoint a Head of Firm
+- Capability (Capabilities matrix): `dashboard_assign_firm_head`
+  (“Assign Head of Firm”) — typically Power Admin / FinProms admin.
+- Not part of the document rights model; only designates the head.
+- ONE Head of Firm per firm; must already be a member of that firm.
+- Head may be ANY role (manager, advisor, approver, client_admin, …).
+
+3.4.2 Head of Firm rights (own firm only)
+- Head of Firm can be ANY role (manager, advisor, approver, client_admin,
+  admin-staff, user, …). Appointment is membership-based, not role-based.
+- As soon as a user is appointed Head of Firm, they unlock “Firm documents”
+  in the dashboard and have ALL document rights for THEIR firm: add, view,
+  delete, archive, and granting those rights to firm members — no matrix tick
+  and no Functionalities flag required.
+- Documents are scoped to the firm.
+- Frontend unlocks “Firm documents” via `firm_document_rights.is_firm_head` /
+  merged `firm_documents_*` effective capabilities (any role).
+
+3.4.3 Head grants rights to firm members (per document)
+- Member rights are PER DOCUMENT (not firm-wide for view/delete/archive).
+- The Head opens access rights from a key icon on each document row; popup
+  grants / revokes any combination of add / view / delete / archive for that
+  document to members of THEIR firm. Members only receive what the head grants.
+- Granting `can_add` on a document also unlocks firm-level upload for that member.
+- Cleared when a user leaves the firm or is discontinued.
+
+3.4.3a Folders / subfolders
+- Documents may sit in a folder tree (folders + nested subfolders) scoped to
+  the firm. On upload, choose an existing folder or create a new folder /
+  subfolder. Library UI is a nested expand/collapse table of folders with
+  documents inside; unfiled documents are listed separately.
+- Upload new document control sits directly above the library table.
+
+3.4.3b Categories (taxonomy, like GC content types)
+- Hub-scoped document categories (`firm_document_categories`) with name/slug.
+- Capability `firm_documents_manage_categories` (“Manage firm document
+  categories”) — blurred while Functionalities → Firm documents is off.
+  Same admin CRUD pattern as General Compliance content types.
+- Upload form category dropdown lists these options (optional).
+- Users without Manage can request a new category via `taxonomy_request_add`
+  (see 3.4.3c); users with `taxonomy_request_manage` see the queue and
+  approve/reject.
+
+3.4.3c Taxonomy add requests
+- Capability `taxonomy_request_add` (“Request new category / tag / type”) in
+  Content catalog capabilities. One request capability covers:
+  - SM Templates Library category or tag
+  - Generic Compliance content type (GC module must be on)
+  - Firm document category (Firm documents functionality must be on)
+- Capability `taxonomy_request_manage` (“Manage taxonomy requests”) — see the
+  queue. Reviewers create the option manually on the existing Manage
+  categories / tags / GC content types / firm document categories pages,
+  then mark the request Approved — or reject with a review note.
+- Submit: proposed name + remarks. Statuses: Pending / Approved / Rejected.
+- Dashboard nav: separate “Taxonomy requests” separator (Taxonomy requests /
+  Request taxonomy / Taxonomy queue) — not under SM Template.
+- APIs: `POST/GET /api/taxonomy-add-requests` (+ `/mine`, `/options`);
+  admin `GET .../taxonomy-add-requests` + `POST .../approve|reject`
+  under client-admin / power-admin / admin (gated by taxonomy_request_manage).
+
+3.4.4 Capabilities matrix — hub-wide (all firms)
+- When Firm documents functionality is ON, these Capabilities are editable:
+  - `firm_documents_view` — view documents for ANY firm on the hub
+  - `firm_documents_add` — upload documents for ANY firm on the hub
+    (Head always has add for their own firm; not grantable via key icon)
+  - `firm_documents_delete` — delete documents for ANY firm on the hub
+  - `firm_documents_archive` — archive documents for ANY firm on the hub
+  - `firm_documents_manage_access_rights` — key-icon access rights on
+    documents for ANY firm (members + allowlisted firms). Head always has
+    this for their own firm.
+  - `firm_documents_manage_categories` — add/edit/delete category options
+  - `firm_documents_manage_firm_access` — decide which firms may see a
+    firm’s documents (allowlist). Blurred while Firm documents is off.
+- These are hub-wide admin tools, distinct from Head / member per-document grants.
+
+3.4.4a Visible firms + mixed access rights (every firm)
+- Two-step model for ANY firm’s documents:
+  1) Visible firms allowlist — Head of that firm, OR any role with
+     `firm_documents_manage_firm_access`, chooses which other firms may see
+     that firm’s documents (`GET/PUT /api/firm-documents/visible-firms`).
+  2) Per-document access rights (key icon) — lists OWN-firm users (3.4.3)
+     PLUS only the allowlisted firms. Mode is `mixed`. Firm grants apply to
+     every current member of the grantee firm.
+- Recipient firm members see shared docs in their library under
+  “Shared from other firms”.
+- Removing a firm from the allowlist also clears its per-document firm grants.
+
+3.4.5 Activity logs (required for the whole flow)
+- Every mutation in this flow is written to `activity_logs` (same hub audit
+  trail as section 6A). Suggested action keys:
+  - `firm.head.assign` — Head of Firm appointed
+  - `firm.head.replace` — Head of Firm replaced
+  - `firm.head.clear` — Head of Firm cleared
+  - `firm.documents.member_rights.grant` — member document rights granted/updated
+  - `firm.documents.member_rights.revoke` — member document rights revoked
+  - `firm.documents.visible_firms.sync` — Central visible-firms allowlist updated
+  - `firm.documents.firm_rights.grant` — firm-level Central doc access granted/updated
+  - `firm.documents.firm_rights.revoke` — firm-level Central doc access revoked
+  - `firm.documents.add` — document uploaded / created
+  - `firm.documents.folder.create` — folder created
+  - `firm.documents.view` — optional: record sensitive downloads if product
+    requires audit of views (otherwise omit high-volume view noise)
+  - `firm.documents.delete` — document permanently deleted
+  - `firm.documents.archive` / `firm.documents.unarchive` — archive toggles
+- Log payloads should identify firm id/name, actor, target user (for head /
+  rights changes), grantee firm (for firm-level access), document id/name
+  (for document actions), and granted rights flags — never store file binary
+  contents; redact secrets.
+
+3.5 Other Features (later)
+- Additional features to be added over time; keep architecture flexible.
+
+
+--------------------------------------------------------------------------------
+4. WHITE-LABELLED HUBS (AND ADDITIONAL SHARED HUBS)
+--------------------------------------------------------------------------------
+
+4.1 Multi-instance / Same Codebase + Separate Databases
+- Central Hub Controller is the registry and remote-control source.
+- New Shared hubs and White-labelled hubs are created by copying/reusing the
+  SAME codebase onto another cPanel (or hosting) — the same operational model
+  previously described for Shared → White-label, now owned by Central Hub.
+- There will be MANY white-labelled hubs (and optionally more than one Shared).
+- Code must remain the SAME for Central Hub, Shared hub(s), and all
+  White-labelled hubs.
+- Each hub instance (Central, each Shared, every White-label) has its OWN
+  database — not a shared multi-tenant DB. Content, users, and settings for a
+  content hub live in that hub's database only.
+- Everything that differs per hub (especially branding) must be driven by DB:
+  - Application name
+  - Colour scheme (primary / secondary / accent)
+  - Logo
+  - Public page content (Home / Posts·Reels catalog / post detail copy)
+  - Dashboard menu labels (sidebar separators + menu item names)
+  - Other tenant-specific settings as needed
+- Hub settings are split into three capability-gated dashboard pages (same
+  pattern as Privacy / Cookies):
+  1) General settings — `dashboard_manage_settings`
+     (`/my-dashboard/settings`, API GET/PUT `/client-admin/settings`):
+     application name, from-email, NEW banner days, logos, favicon, auth
+     background, colour scheme.
+  2) Website content — `dashboard_manage_page_content`
+     (`/my-dashboard/page-content`, API GET/PUT `/client-admin/page-content`):
+     public Home / Posts·Reels catalog / post detail copy + footer powered-by
+     logo upload. Import from another hub: GET
+     `/client-admin/page-content/import-sources` + POST
+     `/client-admin/page-content/import` `{ source_hub_id }` copies that hub’s
+     page copy onto the current (acting) hub.
+  3) Dashboard menu — `dashboard_manage_dashboard_nav`
+     (`/my-dashboard/dashboard-menu`, API GET/PUT `/client-admin/dashboard-nav`):
+     sidebar separators, menu item names, order, and grouping.
+     Import from another hub: GET `/client-admin/dashboard-nav/import-sources`
+     + POST `/client-admin/dashboard-nav/import` `{ source_hub_id }` copies that
+     hub’s menu onto the current (acting) hub — useful when configuring many
+     white-labelled hubs the same way.
+  Values are returned on public GET /hub under branding / page_content /
+  dashboard_nav and applied in the UI. Who may open each page is controlled
+  independently on the Capabilities matrix.
+- Page content is stored on `hubs.page_content` (JSON). Defaults live in
+  `App\Support\PageContentDefaults`. Posts and Reels share one catalog page
+  (`/posts?type=post|reel`) so catalog copy is shared, with separate
+  title/lead/search strings where the type differs. Placeholders such as
+  `{credits}`, `{date}`, `{count}`, `{year}`, and `{brand}` are substituted
+  on the frontend.
+- Public Home page (`/`) sections (all hubs; copy editable under Settings →
+  Page content → Home):
+  1) Hero — existing brand + title/lead/CTAs + post marquee (unchanged)
+  2) Browse by Categories — top 8 hub categories by post count (hidden empty /
+     catalog-off states); “View all” still opens the full catalog
+  3) Website templates — always 3 showcase cards (left-aligned 3-column grid).
+     Uses up to 3 distinct active hub templates; if fewer exist, the available
+     template(s) are repeated to fill 3 boxes. Section omitted when none /
+     WC module off (`GET /api/website-compliance/public/templates`)
+  4) Support tickets — three tabs (Tickets / My tickets / Raise a ticket);
+     wired to Support Tickets module + member ticket APIs when enabled
+  5) Documents — promo layout with Read more → firm documents (or login);
+     optional stacked image URLs from page_content
+  6) Features — 4 cards (SM Templates / Canva / Website Compliance /
+     Generic Compliance) with page_content copy + links
+  Footer shows hub copyright (`footer_copyright` with `{year}`/`{brand}`)
+  plus Powered by (`footer_powered_by_name`, optional `footer_powered_by_logo`
+  image URL, optional `footer_powered_by_url` opening in a new tab).
+  Public header shows hub brand plus editable `nav_tagline` (page_content home;
+  blank hides the line) and site links (Home / Posts / Reels / Bundles / …).
+  Categories use a left-aligned 4-column grid (max 8 cards); website templates
+  always show 3 cards with the same hover-to-scroll preview as the dashboard
+  template cards;
+  documents section matches a two-column promo layout (category counts +
+  carousel previews), ordering latest uploads first then most-used
+  (category usage / attachment count).
+- Dashboard menu labels are stored on `hubs.dashboard_nav` (JSON). Defaults live
+  in `App\Support\DashboardNavDefaults`. Separators include context-specific
+  Hub labels (Central / Shared / White-labelled). Menu items are keyed by path.
+  Settings also control separator order (`section_order`), which separator each
+  item sits under (`item_groups`), item order (`item_order`), and custom
+  separators (`custom_*` keys in `sections` / `section_order`).
+- Power Admin on CENTRAL HUB CONTROLLER is the control plane. The Central Hub
+  DB stores a hub registry for every Shared and White-label hub, including
+  deploy wiring so Central can reach that hub for management / content push:
+  - hub_type — shared | white_label (and optionally central for the controller)
+  - frontend_url — public site URL for that hub's deploy
+  - api_url — optional backend API base URL
+  - db_* — that hub's database connection (host, port, database, username,
+    encrypted password, driver) so Central can push content / sync / act remotely
+  - deploy_notes — free-text ops notes
+  - Deploy contract: each content-hub deploy uses the SAME codebase with its OWN
+    .env (its own DB_* + FRONTEND_URL / APP_URL). HUB_SLUG identifies the hub
+    on that deploy. Central does NOT share the content hub's database.
+  - When frontend_url is set, emails / Stripe return URLs prefer that hub URL
+    over the global FRONTEND_URL env (on that hub's own deploy).
+  - Power Admin hub detail shows a deploy checklist + copyable env snippet.
+  - Hub detail is registry / deploy wiring only — Functionalities, Modules,
+    Capabilities, and Subscriber credits are managed after selecting the hub
+    in the Control hub switcher (not via boxes on hub detail).
+  - When Central acts on a Shared/White-label hub, relative post/bundle media
+    paths are resolved against that hub’s api_url / frontend_url media base
+    (not Central’s APP_URL), so Shared catalog images load in the dashboard.
+    Registry "ready" = active + frontend_url + remote DB credentials set.
+  - Hub list badges: Wiring ready / Needs wiring.
+- Content push / remote acting (Central → Shared or White-label): Power Admin
+  (and other roles with capability, if enabled) select target hub(s); Central
+  uses the stored remote DB connection (or API) to publish into / act on that
+  hub's own database.
+
+4.2 Private Access (White-labelled)
+- White-labelled hubs are PRIVATE.
+- Public users cannot subscribe.
+- Client provides an Excel sheet of advisors.
+- Advisors from that sheet are added into the application.
+- Power Admin (on Central Hub) sets subscriber credits for the hub
+  (dashboard + Capabilities):
+  - Capability: `dashboard_manage_subscriber_credits` (private-hub dashboard tool)
+  - Unlimited (default for white-label), OR
+  - A fixed number of credits per subscriber per billing period.
+- On Excel import, each new / reactivated advisor receives that allotment
+  (unlimited flag, or balance set to the hub credit number).
+- If Power Admin changes the credit number (or switches unlimited ↔ fixed)
+  after advisors are already subscribed, existing balances are NOT changed
+  mid-period; the new allotment is applied on the next monthly autorenew
+  to all active advisors.
+- Client admin (or Power Admin with import capability) can Discontinue an
+  individual advisor: permanent end of access (WP FPSUB end equivalent).
+  Discontinued advisors cannot log in, drop out of billing counts, and are
+  not restored when the hub flips private again. Re-importing the same email
+  restores them. Gated by Capabilities matrix key `advisor_discontinue`.
+  Discontinue is shown on Hub → Users (`/my-dashboard/hub-users`), not on
+  Import Users.
+- Import Users page (`/my-dashboard/advisors`):
+  - Users with `advisor_excel_template` (or Import / Submit) can download the blank
+    Excel template, fill it offline.
+  - Users with `advisor_excel_submit` upload the filled sheet; it is stored as
+    Pending in import history with the user count, waiting for an importer.
+  - Users with `advisor_excel_import` can import immediately or process a Pending
+    submission from history.
+  - History lists prior imports and pending submissions (who sent, when, file,
+    user count / created / updated / skipped).
+- When Power Admin switches a hub from private → public (Functionalities):
+  - All Excel-imported advisors are SUSPENDED (not deleted): cannot log in,
+    lose unlimited/subscription access, excluded from advisor billing counts.
+  - Advisor Stripe auto-renew is canceled; pending advisor billings are canceled.
+  - Private-related functionalities are turned off and public ones turned on
+    (paid credits, one-off purchase, public subscribe; unlimited credits and
+    advisor subscriber billing off).
+- When the hub is switched back public → private:
+  - Previously suspended imported advisors are REACTIVATED with the hub’s
+    current subscriber-credit allotment and advisor_import subscriptions restored.
+  - Auto-renew is NOT restarted automatically; client admin pays again after
+    import / billing flow if needed.
+
+4.3 Module recurring pricing for White-labelled (replaces advisor rate tiers)
+- Advisor pricing tiers are RETIRED. Recurring charges use module catalogue +
+  slot tables (editable under Modules → Module prices).
+- Functionality: `charge_recurring_per_module` (default ON white-label / OFF shared).
+- Slot tables (#1 SMTL, #2 SMC, #3 GC) by active user headcount bands
+  (0–100 / 101–250 / 251–500 / 501+). Rate + network margin per band.
+- Import Option B: rate from TOTAL active users with that module (not suspended,
+  not discontinued); invoice charges RATE × THIS IMPORT BATCH only; due today.
+- Same batch renews monthly on the import anniversary day (active users only).
+- Renew day (`/my-dashboard/advisor-renewal`): charge hub payment card for ALL
+  due unpaid invoices (one-time + recurring). Grace day (≥ renew day): after
+  grace, unpaid recurring seat invoices suspend those users; unpaid one-time
+  module invoices disable those modules.
+- Discontinue (`advisor_discontinue`) applies to ANY hub user (not only advisors);
+  discontinued users are excluded from future recurring seat counts.
+
+4.4 Remote control of content hubs (from Central Hub Controller)
+- Capability: `dashboard_control_white_label_hubs` — “Control hubs remotely”
+  (name may be generalized to cover Shared + White-label; replaces the old
+  per-form Hub dropdown / `dashboard_push_content`).
+- Users with this capability on CENTRAL HUB (typically Power Admin) get a hub
+  switcher at the top of the Central Hub dashboard.
+- Selecting Central Hub context → platform tools only (registry, checklists, etc.).
+- Selecting a Shared or White-label hub → dashboard menus/tools follow THAT
+  hub’s Capabilities matrix for the user’s role (e.g. View posts). Authenticated
+  GET /hub also overlays that hub’s `dashboard_nav` (sidebar separators + menu
+  item names from Settings) so Central’s menu labels match the selected hub.
+  Creating posts / types / categories / tags is Central-only (Central content
+  library); while a content hub is selected those pages are list-only. Bundles
+  and other hub tools still write to THAT hub’s own database when enabled.
+- Dashboard “Website” / “Back to website” always opens THIS deploy’s public
+  site (`/`), gated by `member_view_site_pages` on the control-plane (Central)
+  matrix for that user. It must NOT open the selected Shared / White-label
+  `frontend_url` (cross-origin login caused flicker → blank screen).
+  Power Admin / FinProms Admin cells for `member_view_site_pages` always
+  read/save on Central (even while the hub switcher is on a content hub), so
+  enabling the capability turns on the Central Website button.
+- APIs: `GET/PUT /client-admin/acting-hub` (and power-admin / admin aliases).
+  Authenticated `GET /hub` includes `hub_switcher` + acting effective caps when
+  on Central Hub with remote-control capability.
+- Target hub for the switcher must be active with remote DB credentials
+  configured on the Central Hub registry (deploy wiring). Selecting a hub for
+  remote control does NOT require “Receive content from Central Hub”.
+- “Receive content from Central Hub” (`receive_content_from_shared`) only gates
+  Central content library distribute / content push — not the hub switcher.
+- Central content library (capability `dashboard_central_content_library`,
+  Central Hub only):
+  - Create manual posts one-by-one or bulk Excel (template download like
+    advisor import). Posts remain in the Central DB.
+  - AI posts tab is under development (empty stub).
+  - Distribute non-archived (ready) library posts to Shared / White-labelled
+    hubs. Copies are inserted into the target hub DB. Re-distributing a post
+    to a hub that already has it (tracked via content_pushes + remote row)
+    skips the insert — no duplicate. Archive is optional:
+    it retires a post from the distribute pool with required remarks but does
+    not delete or hide it from the Central library list. Unarchive clears
+    remarks and restores the post to the distribute pool.
+  - Central posts list lives on `/my-dashboard/posts` (ready + archived, with
+    search/filters and “published on” hubs). Editing a Central post also
+    updates the copies on hubs it was successfully distributed to.
+  - Central library page tabs: Create / AI posts / Distribute / Archive
+    (archive / unarchive is its own tab, not nested under Distribute).
+  - Distribution checks: non-archived posts only; AI posts only to hubs with
+    `ai_posts`; manual posts only to hubs with `manual_posts`.
+  - Target hubs list includes every active Shared and White-labelled registry
+    hub. Selectable (eligible) hubs need Receive content from Central, remote
+    DB wiring, Social Media Template Library, and Manual or AI posts. Ineligible
+    hubs stay visible but disabled with a reason. White-label hubs default to
+    receive + manual posts (same as Shared).
+  - Types / categories / tags with Central library:
+    - Central keeps its own taxonomy tables (`content_types`, `categories`,
+      `tags`) plus type/categories/tags names stored on each Central post.
+    - On create (one-by-one or Excel), Central upserts any new type /
+      category / tag names into Central’s own taxonomy tables so the library
+      form and Manage types/categories/tags stay in sync.
+    - The Central library create form accepts existing names or new free-text
+      names; Manage types / categories / tags pages on Central remain the
+      full CRUD admin for Central taxonomy.
+    - On distribute, the push upserts by **name** into the target hub’s own
+      DB: any type, category, and tag used on the Central post is created on
+      the target if missing (or refreshed if a matching name already exists),
+      then the post copy is inserted with the same type/categories/tags values.
+    - Central Manage categories create/update/delete also syncs immediately to
+      every eligible content hub (Receive content from Central + remote DB
+      wired): name/slug/icons upsert; renames rewrite remote post category
+      lists; deletes remove unused remote rows. Soft-fails per hub so Central
+      CRUD always succeeds; response includes `hub_sync` summary.
+    - This is a copy/upsert, not a live link back to Central. Each Shared /
+      White-label hub keeps its own taxonomy tables; local-only types/
+      categories/tags on a hub are left alone unless a distributed post
+      carries that name (or Central category sync upserts that name).
+    - While the hub switcher is on a Shared / White-label hub, Manage types /
+      categories / tags writes only to THAT hub’s DB (for local catalog work),
+      not Central’s.
+    - Public member catalog taxonomy GETs (`/types`, `/categories`, `/tags`)
+      require `member_browse_catalog` OR (when authenticated) Central library /
+      manage-types/categories/tags capabilities — Central keeps member catalog
+      off, so Power Admin still loads taxonomy for the Central library form
+      via the dashboard capability OR.
+- Media for remote posts is stored as a public URL reachable from Central /
+  source storage (file uploaded via controlling instance, path saved on the
+  target hub DB).
+- While a target hub is selected, list/create/update/delete that hub’s content
+  via the normal dashboard endpoints (`/posts`, `/types`, `/categories`, `/tags`,
+  `/bundles`) or `/hub-content/...` — both use the acting hub (no `hub_id`).
+  IDs in those requests are remote hub database IDs.
+- Shared Hub no longer hosts this cross-hub control plane for itself + others;
+  that responsibility moves to Central Hub Controller.
+
+4.5 Code Updates
+- Updates made in the master codebase are reflected on Central Hub, Shared
+  hub(s), and White-labelled hubs (same codebase / deploy model). Deploy each
+  instance when releasing.
+
+
+--------------------------------------------------------------------------------
+5. RIGHTS / PERMISSIONS CHECKLISTS (CRITICAL)
+--------------------------------------------------------------------------------
+- Because Central, Shared, and White-labelled use the SAME code, behaviour
+  differences must be gated by checklists (feature flags / rights), not
+  hard-coded forks.
+- Power Admin manages these checklists from the CENTRAL HUB CONTROLLER
+  Power Admin dashboard, for EACH Shared hub AND EACH White-labelled hub.
+- Opposite options (e.g. public vs private, paid vs unlimited credits, manual posts
+  vs AI posts) must be mutually exclusive: checking one auto-unchecks the other.
+
+5.1 Hub Functionalities checklist (Power Admin → Functionalities)
+- Formerly "hub behaviour". Controls how the hub works for that tenant, e.g.:
+  - Public subscribe / self-registration vs private invite-only
+  - Paid credits vs unlimited credits
+  - One-off purchase for non-subscribers
+  - Receive content from Central Hub (legacy name may still say "from shared")
+  - Manual posts vs AI posts (opposites — checking one unchecks the other).
+    Controls which Central library posts this hub may receive on distribute
+    (manual → Manual posts hubs; AI → AI posts hubs). Default: Manual on.
+  - Advisor subscriber billing (rate × advisors)
+  - Charge amount per module (one time) — `charge_amount_per_module`
+    - Default ON for white-labelled hubs; OFF for Shared hub(s); N/A or OFF
+      for Central Hub Controller itself
+    - When ON, enabling a billable product module generates a one-time invoice
+      at the configured catalogue price (see 5.1B)
+  - Support Tickets — `support_tickets` (default OFF). When on, Support Tickets
+    capabilities (`st_*`) become available on the matrix (section 3.3e). Not a
+    Modules-page product module.
+  - Security Monitoring — `security_monitoring` (default OFF). When on, Security
+    Monitoring capabilities (`secmon_*`) become available on the matrix
+    (sections 3.3f / 6F). Separate feature module for regular security
+    monitoring + incident reports; NOT a Modules-page billable packaging module.
+- Each content hub (each Shared + each White-label) has its own configuration.
+- Edited ONLY from Hub Functionalities / hub checklist screens on Central Hub
+  — not from the Capabilities matrix (no duplication).
+- After Functionalities / Modules / Capabilities are saved for a hub, the
+  frontend must refresh hub context (with a dashboard loader) so the navbar
+  updates to match the new checklist and effective capabilities.
+
+5.1A Modules checklist (Power Admin → Modules, same hub checklist screen)
+- Per-hub module toggles (functionality group `modules`):
+  - Shared Hub / White Label Hub — locked base packaging module for hub type
+  - Social Media Template Library — posts / reels catalog
+  - Social Media Pre Approval Workflow — activates SMC capability section
+    (capabilities blurred while this module is off)
+  - Website Template Library — templates catalogue, request form, manual
+    cPanel deploy (section 3.3d-A); activates WTL capability section
+  - Website Content Pre Approval Workflow — section edit + change-request
+    approval flow (section 3.3d-B); requires WTL; activates WC capability section
+    (capabilities blurred while this module is off)
+  - Generic Content Pre Approval Workflow — activates GC capability section
+    (capabilities blurred while this module is off)
+- Managed via `dashboard_manage_modules` / Modules API on Central Hub.
+- When `charge_amount_per_module` is ON, newly enabling a module (including
+  uncheck → check again) creates a one-time invoice. Previous enable invoices
+  for that module are deleted so only the new enable invoice remains. £0
+  catalogue prices still create a paid/complimentary invoice. Website Template
+  Library creates ONE invoice for all catalogue templates in `wc_templates`
+  (unit rate × template count) — not template requests / deployments. Deploying
+  a website no longer creates a separate one-time invoice. Recurring WTL still
+  uses deployed website count. Invoices-page backfill does not duplicate enable
+  invoices.
+
+5.1B Module catalogue pricing (Modules pricing)
+- Official default catalogue (editable via capability / database):
+  One-time:
+  1) Shared Hub / White Label Hub — £14,500 (one time)
+  2) Social Media Template Library — £0 (one time / included; invoice still created, auto-paid)
+  3) Social Media Pre Approval Workflow — £5,000 (one time)
+  4) Website Template Library — £300 × catalogue templates (wc_templates) on enable
+  5) Website Content Pre Approval Workflow — £10,000 (one time)
+  6) Generic Content Pre Approval Workflow — £3,500 (one time)
+  Recurring (functionality `charge_recurring_per_module`):
+  1) Shared / White Label Hub — £4,500 per network / month
+  2) Social Media Template Library — slot #1 per adviser / month
+  3) Social Media Pre Approval — slot #2 per user / month
+  4) Website Template Library — £125 per website / month
+  5) Website Content Pre Approval — £1,500 per firm / month
+  6) Generic Content Pre Approval — slot #3 per user / month
+- Stored in `module_pricing` (+ recurring_* columns) and `module_recurring_tiers`.
+- Capabilities group “Modules pricing” (blurred while BOTH charge flags off):
+  - `dashboard_manage_module_pricing` — Set one-time + recurring catalogue / slots
+  - `dashboard_view_module_invoices` — Who can see module invoices
+  - `dashboard_mark_module_invoices_paid` — Manually mark unpaid module invoices paid
+- APIs: GET/PUT module-pricing; PUT module-recurring-tiers/{id}; module-invoices…
+- Invoice types: `module_billing` (one_time), `module_recurring` (recurring)
+- Scheduler: `billing:process-module-cycles` daily — anniversary invoices, renew-day
+  card collection, grace penalties
+- Frontend: Module prices shows one-time + recurring + slots; advisor-pricing page
+  removed from nav (tiers retired); Billing renew + grace page under Advisors
+
+5.2 User capabilities matrix (REQUIRED — Power Admin → Capabilities)
+- Power Admin manages what users can do from their dashboards / member UI,
+  for BOTH Shared hubs and White-labelled hubs — by ROLE (matrix).
+- Distinct from Functionalities (5.1). Do NOT repeat Functionalities here.
+- This is a role × capability matrix per hub, managed only from the
+  CENTRAL HUB CONTROLLER Power Admin dashboard.
+- Matrix COLUMNS = roles currently present on that hub (users with that role
+  exist on the hub’s user store / remote DB) UNION roles Power Admin has
+  explicitly added for THAT hub UNION must roles (power_admin, finproms_admin)
+  which are always present on every hub. Do NOT always show every other system role.
+- “Manage roles” page (`/my-dashboard/role-display-names`, capability
+  `dashboard_manage_role_display_names` labeled Manage roles):
+  - List roles on the CURRENT hub with total users per role
+  - Add a dormant system role or create a custom role for the CURRENT hub
+  - Delete a role from this hub’s matrix when it has 0 users (blocked while users
+    still hold the role; power_admin and finproms_admin are must roles and can
+    never be deleted on any hub — display names may still be renamed)
+  - Rename role display titles for that hub
+  - Same capability gates add, delete, and rename
+  - Does NOT automatically add/remove the role on other hubs — switch hub and act again
+  - Custom role definitions are shared platform-wide; enabling a column is per hub
+- Capability checkboxes remain on the Capabilities matrix (section 5.2 body).
+
+  Member-facing (end users / advisors / staff columns):
+  - Browse catalog / posts / reels — available for ALL roles in the matrix
+    (Power Admin, FinProms admin, client admin, manager, approver, advisor, user)
+  - Browse bundles — show/hide Bundles on the public website (nav + pages);
+    turn off for every role to hide bundles for the whole hub
+  - View plans / self-serve subscribe
+  - One-off purchase / spend credits
+  - Preview purchased content (in-app Preview / Canva only after a real purchase —
+    hub-admin roles are not treated as already owning catalog items)
+  - In-app post editing (when built)
+  - Other member features as they are added
+
+  General options (dashboard) — member personal dashboard sections, ALL roles:
+  - Show subscription (active plan + recent subscriptions)
+  - Show remaining credits
+  - Show invoices (personal receipts at `/my-dashboard/my-invoices` —
+    subscriptions / post / bundle purchases only; module & advisor bills stay
+    on their own pages)
+  - Show purchases (summary on /my-dashboard)
+  - Members with any of these enabled see Dashboard in the member nav and can
+    open /my-dashboard (role=user lands here after login when enabled)
+
+  Hub-admin dashboard (FinProms admin on Shared; client_admin on White-label):
+  - View posts/reels — list what exists on this hub (including distributed
+    Central content); enableable for ALL roles; defaults ON for hub-admin roles.
+    Not gated by Social Media Template Library (list-only admin tool).
+    Also allows deleting posts on that hub. Edit remains Central-only.
+  - Manage posts/reels — create forms; DISABLED on Shared / White-label
+    (Central content library owns create). Remains inactive on Central too.
+    Central can still edit existing local posts via View posts.
+  - Manage post bundles (group posts/reels; description + total credits) — same roles
+  - View types / categories / tags — list-only on content hubs; defaults ON;
+    not gated by Social Media Template Library
+  - Manage types / categories / tags — Central only (library taxonomy); DISABLED
+    on Shared / White-labelled hubs
+  - Request new category / tag / type (`taxonomy_request_add`) — submit a
+    request (proposed name + remarks) to add: SM Templates Library category or
+    tag; Generic Compliance content type; or firm document category.
+  - Manage taxonomy requests (`taxonomy_request_manage`) — see the queue;
+    create the option manually, then mark Approved — or reject (review note
+    required).
+  - Manage subscription plans — same roles
+  - Manage general settings (`dashboard_manage_settings`) — NEW banner, logos,
+    colour scheme, application name — same roles
+  - Manage website content (`dashboard_manage_page_content`) — Home / Posts /
+    detail page copy — same roles
+  - Manage dashboard menu (`dashboard_manage_dashboard_nav`) — sidebar
+    separators + menu item names / order — same roles
+  - Confirm bank transfers — same roles
+  - Import advisors (Excel/CSV) — same roles
+  - Download import Excel template (`advisor_excel_template`) — download the
+    blank sheet (role / firm / modules dropdowns) so staff can fill it
+  - Submit filled Excel for import (`advisor_excel_submit`) — upload a filled
+    sheet to queue it as Pending for an importer (does not create users)
+  - Discontinue users — separate capability; permanently end a hub user’s
+    access — action lives on Hub → Users (`/my-dashboard/hub-users`), not on
+    Import Users
+  - View activity logs / report — who can open the audit trail, activity
+    report, and (when 6A.2 ships) Activity Logs anomaly feed for the hub —
+    same roles; distinct from Security Monitoring `secmon_*`
+  - Security Monitoring (blurred while Functionalities → Security Monitoring
+    is off — section 6F):
+    - `secmon_view_events` — view security event feed & event detail
+    - `secmon_view_report` — open aggregated security monitoring report
+    - `secmon_manage_incidents` — acknowledge / investigate / resolve / close
+      security incidents; add investigation notes
+    - `secmon_manage_alerts` — configure alert thresholds / notification
+      recipients (hub-admin style roles only by default)
+  - Manage active sessions — see currently logged-in users, force-logout any
+    user (ends all of their API sessions on this hub), and set the hub idle
+    session timeout — same roles
+  - View hub users (`dashboard_view_hub_users`) — list all users on the current
+    hub with full details (role, firm, credits, modules, status, timestamps);
+    sidebar label “Users” at `/my-dashboard/hub-users` (distinct from Platform
+    “Users & roles”) — same roles
+  - View compliance audit trail (`dashboard_view_compliance_audit_trail`) —
+    hub-wide compliance lifecycle history with top tabs for Social Media
+    Compliance (SMC), General Compliance (GC), and Website Content Pre
+    Approval (WC); sidebar “Audit trail” at `/my-dashboard/compliance-audit-trail`
+    (distinct from Activity logs) — same roles
+  - View one-time invoices (`dashboard_view_one_time_invoices`) — list all
+    one-time invoices for the current hub (content purchases + one-time module
+    charges); sidebar “One-time invoices” at `/my-dashboard/one-time-invoices`
+    (distinct from My invoices / Module invoices / Advisor invoices) — same roles
+  - Manage firms — create/edit firms, assign users’ firm membership context,
+    and set compliance visibility between firms — same roles
+  - Assign Head of Firm (`dashboard_assign_firm_head`) — appoint / replace /
+    clear the single Head of Firm for each firm (must be a member of that firm);
+    not gated by Firm documents functionality
+  - Firm Documents (hub-wide matrix caps, blurred while Functionalities →
+    Firm documents is off): view / add / delete / archive for ALL firms.
+    Head of Firm has full rights for their own firm and may grant those rights
+    to firm members (section 3.4)
+  - AI content generation / control hubs remotely — same roles
+    (typically Power Admin on Central Hub; Shared-only where appropriate)
+  - Any other admin dashboard screens/actions
+  - Approver / advisor / user only see the hub-admin shell when at least one
+    dashboard OR Social Media Compliance capability is enabled for their role
+
+  Social Media Compliance (blurred while module_social_media_compliance is off):
+  - smc_submit_request — submit / resubmit / confirm-feedback for purchased posts
+  - smc_view_own_requests — own request history & detail
+  - smc_assign_requests — assign / unassign reviewers
+  - smc_review_requests — set status + feedback
+  - smc_view_all_requests — full hub queue
+  - smc_view_reports — reports, CSV export, approver workload & advisor charts
+  - All roles available in the matrix; defaults OFF until Power Admin enables
+
+  General Compliance (blurred while module_general_compliance is off):
+  - gc_submit_request — submit / resubmit / confirm-feedback (description + files)
+  - gc_view_own_requests — own request history & detail
+  - gc_assign_requests — assign / unassign reviewers
+  - gc_review_requests — set status + Remedial Feedback/notes + Future Feedback/notes
+  - gc_view_all_requests — full hub queue
+  - gc_view_reports — reports, CSV export, approver workload & advisor charts
+  - All roles available in the matrix; defaults OFF until Power Admin enables
+
+  Support Tickets (blurred while Functionalities → support_tickets is off):
+  - st_submit_ticket — submit error reports (module + description + screenshots)
+  - st_view_own_tickets — own ticket history & detail
+  - st_view_all_tickets — full hub queue (developer inbox)
+  - st_change_ticket_status — update status + resolution note
+  - st_comment_on_tickets — follow-up comments on tickets the user can view
+  - All roles available in the matrix; defaults OFF until Power Admin enables
+    (managers default ON for view-all + change-status)
+
+  Hub-admin dashboard also includes:
+  - Manage hub modules (`dashboard_manage_modules`) — who may enable/disable
+    Social Media / Website / General Compliance modules for that hub
+
+  Modules pricing (blurred while charge_amount_per_module is off):
+  - `dashboard_manage_module_pricing` — set catalogue amounts / billing unit
+  - `dashboard_view_module_invoices` — view one-time module enablement invoices
+  - `dashboard_mark_module_invoices_paid` — mark unpaid module invoices paid with
+    required settlement info + optional attachment; details remain viewable later
+
+- White-label client_admin sees ONLY the dashboard items Power Admin enables
+  for that hub (restricted options).
+- FinProms admin on Shared hub sees the Shared-hub set of capabilities Power
+  Admin enables (typically broader day-to-day content tools; cross-hub remote
+  control preferred on Central Hub).
+- Central Hub Controller also has its OWN §5.2 matrix row. Checked cells for
+  that hub (member site shell, general options, hub-admin dashboard tools)
+  must be enforced in APIs and the /my-dashboard nav the same way Shared and
+  White-labelled hubs enforce theirs — do NOT hard-code “Central = platform
+  tools only” and ignore the matrix.
+- Do NOT hard-code "if shared show X else hide Y" in many places — use the
+  checklist so Power Admin can change it without code deploys.
+- Do NOT hard-code "control plane is on Shared Hub" — hub_type / Central Hub
+  instance flags must drive where Power Admin platform tools appear.
+
+5.3 Power Admin capabilities checklist (SEPARATE — platform level)
+- Distinct from per-hub Functionalities (5.1) and user capabilities (5.2).
+- Controls what power_admin users can do on the Power Admin control plane
+  (CENTRAL HUB CONTROLLER /power-admin tools), for example:
+  - View platform dashboard
+  - Manage hubs (create/list/edit Shared and White-label hubs)
+  - Manage hub Functionalities and Modules checklists
+  - Manage payment methods
+  - Manage Power Admin / user capabilities matrix (this list + 5.2)
+  - Manage users / roles (create, update, delete, assign roles)
+  - Manage hub backups (schedules, run/download/restore from Central)
+  - Remotely control content hubs (hub switcher / acting hub)
+- Stored as platform settings on Central Hub (not per content hub).
+- Edited from Power Admin → Capabilities (Power Admin column).
+- Power Admin nav/actions and APIs must respect these flags.
+
+
+--------------------------------------------------------------------------------
+6. POWER ADMIN (CENTRAL HUB CONTROLLER)
+--------------------------------------------------------------------------------
+- Role: power_admin (platform developers / us).
+- Dashboard is SEPARATE from the member app, FinProms admin, and white-label
+  client_admin (own tools inside universal /my-dashboard via pa_* checklist).
+  Legacy /client-admin and /power-admin routes redirect to /my-dashboard.
+- Power Admin logs into the CENTRAL HUB CONTROLLER and from there manages:
+  1) Hub registry (create/list Shared + White-labelled hubs, branding basics,
+     hub_type, deploy wiring)
+  2) Hub Functionalities checklist per hub (section 5.1) — how the hub works
+  3) User capabilities matrix per hub (section 5.2) — what members and hub
+     admins can do on each Shared AND each White-labelled hub (by role)
+  4) Power Admin's OWN capabilities (section 5.3) — same Capabilities screen
+  5) Platform payment methods (Stripe / bank transfer), and other platform
+     settings as needed
+  6) Remote hub switcher — act on Shared / White-label DBs when wired
+  7) Hub backups — per-hub schedule (time/timezone/frequency), Backup now,
+     list/download Central copies, restore hub from Central
+  8) Disaster recovery & rollback — documented procedures in Hub backups UI
+     (data restore) + Hubs / Code Updates UI (code rollback to a prior release)
+- Functionalities and Capabilities must NOT duplicate each other in the UI.
+- This is the central control plane for ALL tenant behaviour and UI capabilities.
+- Power Admin does NOT replace FinProms admin day-to-day content work on Shared
+  hubs, or client_admin work on White-labels; they configure rights and can
+  remotely assist within bounds.
+- Shared Hub is no longer the Power Admin control plane.
+
+
+--------------------------------------------------------------------------------
+6B. HUB BACKUP & RESTORE
+--------------------------------------------------------------------------------
+- Dual storage (content hubs): each scheduled/manual backup is saved on the hub's
+  own server (storage/app/backups/{slug}/) AND a copy is stored on Central
+  (storage/app/backups/central/{slug}/).
+- Central Hub backs itself up once on the same server
+  (storage/app/backups/central/{slug}/ only — no local+central duplicate).
+  Power Admin can download / restore. Prefer a true off-server copy for DR.
+- Schedule is per hub, set from Central (Power Admin + pa_manage_hub_backups):
+  enabled, time (HH:MM), timezone, daily|weekly (+ weekday), retention local /
+  Central. Settings sync to content hubs via remote DB push when wired.
+- Scheduler: `hubs:run-due-backups` every minute (requires schedule:run cron on
+  each deploy). Central also triggers due remotes via hub api_url when set.
+- Restore from Central uses the Central-stored zip; content hubs receive the
+  archive on POST /api/internal/hub-backups/restore (X-Hub-Backup-Key).
+- Env (optional): CENTRAL_API_URL on content hubs for independent upload;
+  HUB_BACKUP_SECRET shared fallback; per-hub backup_token auto-generated.
+- Capability: pa_manage_hub_backups (Power Admin platform checklist).
+- **Encryption at rest (NFR-BACKUP-ENC):** completed ZIP archives are encrypted
+  on disk with streaming AES-256-GCM (`HBENC1` header) when
+  `HUB_BACKUP_ENCRYPT_AT_REST=true` (default). Prefer a shared
+  `HUB_BACKUP_ENCRYPTION_KEY` (base64 32-byte) on Central **and** every content
+  hub so dual-store upload / Central download / remote restore can decrypt.
+  Without that key, a key derived from local `APP_KEY` is used (single-server
+  only). Legacy plaintext archives still restore/download. Download API decrypts
+  to a normal ZIP for the admin. `hub_backups.is_encrypted` records status.
+  Does not rewrite historical dumps per GDPR erasure (still residual for old
+  plaintext files until rotated by retention).
+
+--------------------------------------------------------------------------------
+6B.1 DISASTER RECOVERY AND ROLLBACK PROCEDURES
+--------------------------------------------------------------------------------
+Status: IMPLEMENTED (2026-10-16) — builds on §6B hub backup/restore and §1C
+code-update apply. Cross-refs: NFR-AVAIL (section 9.9), NFR-BACKUP-ENC (9.7),
+§1B/§1C Code Updates.
+
+Purpose
+- Give Power Admin a clear, in-product runbook for two recovery paths:
+  A) Data disaster recovery — restore a hub’s database + media from a Central
+     backup archive (lossy for activity after that backup’s timestamp).
+  B) Code rollback — re-apply a previous release package (backend and/or
+     frontend zip) to selected hubs when a bad deploy must be undone.
+- These are operational procedures, not a separate product module. They use
+  existing capabilities: pa_manage_hub_backups (data) and pa_manage_hubs (code).
+
+A) Data disaster recovery (hub DB / files)
+Prerequisites
+  - At least one completed Central-stored backup for the hub (§6B).
+  - Hub api_url + backup_token wired for remote content hubs.
+  - Shared HUB_BACKUP_ENCRYPTION_KEY when archives are encrypted (NFR-BACKUP-ENC).
+  - Operator has pa_manage_hub_backups.
+Procedure (Power Admin → Hub backups, or hub detail → Backups)
+  1) Prefer “Backup now” before a risky change (optional but recommended).
+  2) Identify the Central archive to restore (by completed_at / filename).
+  3) Confirm restore — overwrites that hub’s DB dump contents and restored
+     storage trees; sessions / in-flight work after the backup are lost.
+  4) After restore: smoke-check login, catalog, and critical admin tools;
+     refresh hub version status if code was also changed.
+  5) Download a copy off-server when longer-term DR retention is required
+     (Central disk is not a substitute for true off-site storage).
+Out of scope (v1)
+  - Point-in-time / continuous WAL recovery
+  - Cross-hub restore (backup of hub A onto hub B)
+  - Automatic DR failover / multi-region hosting
+
+B) Code rollback (release packages)
+Prerequisites
+  - Prior release still has backend_zip and/or frontend_zip artifacts on Central
+    (ready_to_apply). Publishing a new release without keeping old zips prevents
+    one-click rollback to that version.
+  - Target hubs have api_url (content hubs) and code_update_token / backup_token.
+  - Operator has pa_manage_hubs.
+Procedure (Power Admin → Hubs / Code Updates)
+  1) Choose the prior release from the release list (not only “latest”).
+  2) Select affected hubs → Apply that release (UI labels this Rollback when
+     the chosen version is older than the hub’s reported version / latest).
+  3) Apply extracts zips, runs migrate --force, clears caches (§1C). Rollback
+     does NOT automatically reverse irreversible migrations — prefer forward
+     fixes, or restore data from backup (§6B.1 A) if schema/data broke.
+  4) Refresh versions; confirm Update history shows success/failure.
+  5) If apply fails mid-way: do not leave hubs half-updated; retry or restore
+     from the pre-change backup taken in A.1.
+Recommended pairing
+  - Before Apply of a risky release: Backup now on each target hub.
+  - After a bad release: code rollback first if only code is wrong; data
+    restore if DB/media are corrupt or migrations cannot be undone safely.
+
+UI requirements (frontend)
+  - Hub backups page: Disaster recovery procedures panel (steps A) + link to
+    Hubs for code rollback.
+  - Hub backup Restore action: clear confirmation that this is a destructive
+    data recovery step.
+  - Hubs page: release selector including prior ready_to_apply releases;
+    Apply / Rollback wording; brief rollback note about migrations + backups.
+
+Acceptance criteria
+  [x] Documented in this subsection + NFR-AVAIL (9.9) + §8 checklist
+  [x] Data restore path usable via existing §6B APIs/UI
+  [x] Code rollback path = apply prior release_id (existing apply API)
+  [x] Frontend: DR runbook on Hub backups; release picker + rollback copy on Hubs
+  [ ] Ops: prefer off-server download of critical backups (process, not code)
+
+
+--------------------------------------------------------------------------------
+6A. ACTIVITY LOGGING AND ANOMALY DETECTION
+--------------------------------------------------------------------------------
+Status:
+  - Activity logging + activity report: IMPLEMENTED (backend + frontend)
+  - Anomaly detection (Activity Logs module / 6A.2): IMPLEMENTED (backend + frontend)
+Cross-refs: section 6F (Security Monitoring — related but NOT the same),
+NFR-AUDIT (section 9.2), NFR-SEC (section 9.1).
+
+Purpose of this section (combined product requirement)
+- “Activity logging and anomaly detection” is ONE product area with TWO parts:
+  1) Activity logging — record and report what users/APIs did (audit trail)
+  2) Anomaly detection — flag unusual patterns derived from that trail
+- Part 1 is already live. Part 2 is a new submodule under Activity Logs
+  (same nav area / capability family), not a replacement for Security
+  Monitoring (6F).
+
+How this relates to Security Monitoring (6F) — READ THIS
+- Activity Logs (6A) and Security Monitoring (6F) are NOT the same module.
+- Activity Logs = general audit of product usage and mutations (“who did what”).
+- Security Monitoring = dedicated security-threat / incident module (events,
+  incidents, thresholds, “Monitor now”, secmon_* caps, `security_monitoring`
+  Functionality flag). It already detects some security anomalies (e.g.
+  repeated failed logins, rate-limit trips) into `security_events`.
+- Anomaly detection under 6A focuses on unusual *activity-log* behaviour
+  (usage / access patterns) and MAY hand off or link to a Security Monitoring
+  event/incident when the anomaly is security-relevant. Do NOT rebuild 6F
+  inside Activity Logs; do NOT hide 6F behind activity-log UI.
+- Distinct also from Compliance audit trail (6C) and Support Tickets (3.3e).
+
+--------------------------------------------------------------------------------
+6A.1 Activity logging & activity report (IMPLEMENTED)
+--------------------------------------------------------------------------------
+- Every meaningful user activity is recorded in an activity_logs audit trail
+  (per hub), including:
+  - Auth: register, email verified, login OTP sent/verified, terms accepted,
+    login, logout, failed login, blocked login (suspended / discontinued /
+    invite-only / email unverified)
+  - Successful mutating API actions (POST / PUT / PATCH / DELETE): content,
+    plans, settings, advisor import/discontinue, billing, capabilities, hubs,
+    purchases, subscriptions, etc.
+  - Firm Head & Firm Documents (section 3.4): appoint/replace/clear head,
+    grant/revoke member document rights, and document add / delete / archive
+    (and view/download if audited) — action keys `firm.head.*` and
+    `firm.documents.*`
+- Sensitive fields (passwords, secrets, card data) are NEVER stored; payloads
+  are redacted / truncated.
+- Activity report (aggregates): totals, unique users/actions, counts by action,
+  by user, and by day — filterable by user, action, date range, and text search.
+- WHO CAN SEE the logs and report is gated by Capabilities matrix key
+  `dashboard_view_activity_logs` (hub-admin dashboard group). Applicable roles:
+  finproms_admin, client_admin, manager, and power_admin (when enabled for that
+  hub / when acting remotely). Power Admin toggles this per hub / role on the
+  Capabilities screen (Central Hub).
+- APIs (hub_can:dashboard_view_activity_logs):
+  - GET /api/client-admin/activity-logs (+ /power-admin/…) — paginated feed
+  - GET /api/client-admin/activity-logs/report (+ /power-admin/…) — aggregates
+- Frontend: Activity logs page under hub-admin and Power Admin shells, shown
+  only when the viewer’s role has the capability.
+
+--------------------------------------------------------------------------------
+6A.2 Anomaly detection (Activity Logs submodule)
+--------------------------------------------------------------------------------
+Status: IMPLEMENTED (backend + frontend) — Activity Logs → Anomaly detection tab;
+APIs under /activity-logs/anomalies*; artisan `activity:detect-anomalies`
+every 15 minutes + near-real-time hooks after selected activity_log writes.
+
+Goal
+- Add an **Anomaly detection** module/surface under Activity Logs that reviews
+  `activity_logs` (and related signals) and surfaces unusual patterns so
+  capable users can see: when it looked abnormal, what pattern matched, who /
+  what was involved, and current review status.
+- This is the missing half of “Activity logging and anomaly detection”.
+  Logging alone does not equal anomaly detection.
+
+Scope (v1 — activity-pattern anomalies)
+  Minimum detector set (configurable thresholds where noted):
+  A) Auth / access patterns from activity_logs
+     - Unusual login volume for a user or IP vs recent baseline
+     - Logins from a new / rare IP or user-agent for an established user
+     - Burst of failed / blocked login actions in a short window
+       (complement 6F failed-login threshold; may link to existing secmon event)
+  B) Privilege / admin actions
+     - Spike in high-impact actions (capabilities change, user suspend /
+       discontinue, force-logout, GDPR export/erase, secrets/settings mutate)
+     - Same actor performing many distinct admin actions in a short window
+  C) Data / export volume
+     - Unusual download / export / report-view volume from one user
+  D) API / mutation volume
+     - User or IP far above their own recent action-rate baseline
+  Out of scope for 6A.2 v1 (already owned by 6F / NFR-SEC-*):
+     - Dependency vulnerability scans (“Monitor now”)
+     - Malware / upload firewall gates (NFR-SEC-FW)
+     - Full incident lifecycle UI (acknowledge → investigate → resolve) —
+       prefer linking to Security Monitoring incidents when security-relevant
+     - Network IDS / SIEM replacement
+
+Enablement & permissions
+- Lives under the existing Activity Logs product area (same nav parent).
+- Default gate: same capability `dashboard_view_activity_logs` for viewing
+  anomaly feed / summary (keeps one permission for “see audit + anomalies”).
+- Optional later matrix keys (only if product wants split control):
+  - `dashboard_manage_activity_anomalies` — configure thresholds / dismiss /
+    mark reviewed (if not added in v1, Power Admin / hub-admin style roles
+    that already have view may dismiss via a simple “reviewed” action).
+- Does NOT require the `security_monitoring` Functionality flag to view
+  activity anomalies. When an anomaly is escalated into 6F, that path still
+  requires Security Monitoring ON + relevant `secmon_*` caps.
+
+Data model (suggested)
+- Table e.g. `activity_anomalies` (per hub), or reuse a typed row with:
+  - `id`, `hub_id`, `detected_at`, `window_start`, `window_end`
+  - `anomaly_type` (machine key, e.g. `auth.new_ip_login`, `admin.action_burst`)
+  - `severity` (info | low | medium | high)
+  - `title`, `description` (plain language)
+  - `status` (open | reviewed | dismissed | escalated)
+  - `actor_user_id` / denormalised name/email/role when known
+  - `source_ip`, sample `activity_log` ids in `related_activity_log_ids` (JSON)
+  - `baseline` / `observed` metrics in `properties` (JSON)
+  - Optional `security_event_id` / `security_incident_id` when escalated to 6F
+- Sensitive payloads follow the same redaction rules as activity_logs.
+- GDPR: scrub actor PII on erasure; retention via GDPR_RETENTION_* or a
+  dedicated activity-anomaly retention key (align with activity_logs days).
+
+UI (frontend — both repos)
+- Activity Logs page gains a tab or sibling view **Anomalies** (or a clear
+  “Anomaly detection” section) in addition to the existing feed + report.
+- Anomaly list: newest-first; filters by type, severity, status, date, user/IP.
+- Detail: when detected, pattern explanation, related activity-log rows
+  (deep-link into existing feed), mark reviewed / dismiss; optional
+  “Escalate to Security Monitoring” when 6F is enabled.
+- Empty/healthy state: last detection run time + “No open anomalies”.
+
+APIs (hub_can:dashboard_view_activity_logs unless manage key added)
+  - GET  /api/…/activity-logs/anomalies
+  - GET  /api/…/activity-logs/anomalies/{id}
+  - PATCH /api/…/activity-logs/anomalies/{id}   (status reviewed/dismissed)
+  - POST /api/…/activity-logs/anomalies/{id}/escalate  (optional; creates /
+    links 6F security event when Security Monitoring is ON)
+  - GET  /api/…/activity-logs/anomaly-settings   (optional v1)
+  - PUT  /api/…/activity-logs/anomaly-settings   (optional v1)
+  (+ /power-admin/… mirrors when acting)
+- Activity log mutations for settings / escalate:
+  `activity.anomaly_settings_update`, `activity.anomaly_escalate`,
+  `activity.anomaly_reviewed` (as applicable).
+
+Detection cadence
+- Prefer near-real-time hooks after activity_log writes for threshold rules,
+  plus an optional scheduled artisan e.g. `activity:detect-anomalies` for
+  baseline / window-window scans.
+- Do not invent a second “Monitor now” dependency scanner here — that stays
+  in Security Monitoring (6F).
+
+Acceptance criteria (for 6A.2 “done”)
+  [x] Anomaly feed + detail API and UI under Activity Logs
+  [x] At least auth-pattern + admin-burst + volume detectors write anomalies
+  [x] Related activity_log ids shown; capable user can mark reviewed/dismissed
+  [x] Clear UI/docs distinction from Security Monitoring; optional escalate
+      to 6F when that functionality is enabled
+  [x] Secrets never stored; GDPR scrub / retention aligned with activity logs
+  [x] Feature tests covering detection + permission gating
+
+
+--------------------------------------------------------------------------------
+6B. ACTIVE SESSIONS / FORCE LOGOUT / SESSION TIMEOUT
+--------------------------------------------------------------------------------
+- Capability: `dashboard_manage_active_sessions` (Hub operations group on the
+  Capabilities matrix). Applicable roles: all matrix roles; defaults ON for
+  hub-admin style roles, OFF for approver / advisor / admin-staff / user until
+  Power Admin enables them.
+- Users with this capability can:
+  - See which users currently have active login sessions (Sanctum tokens) on
+    the current hub (or acting remote hub’s own database).
+  - Force-logout any listed user, which deletes all of that user’s tokens so
+    they must sign in again.
+  - Set this hub’s idle session timeout (minutes). Controls SPA cookie idle
+    lifetime (`session.lifetime`) and Sanctum PAT expiry on that hub deploy.
+    Stored on `hubs.session_lifetime_minutes` (null = fall back to
+    SESSION_LIFETIME / config default, normally 7 days). Allowed range:
+    15 minutes – 30 days. When set from Central for a wired content hub, the
+    value is pushed to that hub’s own database (WhiteLabelHubSyncService).
+    Saving the timeout immediately revokes all Sanctum tokens and cookie
+    sessions on that hub (including the actor when not acting remotely) so
+    everyone must sign in again under the new policy.
+- Force-logout of the viewer’s own account ends their session immediately.
+- Mutations are written to activity_logs (`auth.force_logout`,
+  `auth.session_timeout_updated`).
+- APIs (hub_can:dashboard_manage_active_sessions):
+  - GET /api/client-admin/active-sessions (+ /power-admin/…) — logged-in users
+  - POST /api/client-admin/active-sessions/{userId}/force-logout (+ /power-admin/…)
+  - GET /api/client-admin/session-settings (+ /power-admin/…) — current timeout
+  - PUT /api/client-admin/session-settings `{ session_lifetime_minutes }` —
+    update timeout
+- Frontend: Active sessions page under /my-dashboard (nav + Capabilities gate)
+  includes the session timeout control for capable roles.
+
+
+--------------------------------------------------------------------------------
+6C. COMPLIANCE AUDIT TRAIL (UNIFIED)
+--------------------------------------------------------------------------------
+- Capability: `dashboard_view_compliance_audit_trail` (Hub operations group on
+  the Capabilities matrix). Applicable roles: all matrix roles; defaults follow
+  hub checklist (`default_shared` / `default_white_label` ON for hub-admin style
+  roles; OFF for approver / advisor / admin-staff / user until Power Admin
+  enables them).
+- Users with this capability can open `/my-dashboard/compliance-audit-trail` and
+  switch top tabs between:
+  - SMC — Social Media Compliance (`module_social_media_compliance`)
+  - GC — General Compliance (`module_general_compliance`)
+  - WC — Website Content Pre Approval (`module_website_compliance`)
+- Tabs for modules that are off on the hub are hidden. Events come from
+  `compliance_audit_events` (same trail as per-module Reports → Audit trail).
+- Distinct from Activity logs (`dashboard_view_activity_logs` / generic
+  `activity_logs` feed).
+- APIs (hub_can:dashboard_view_compliance_audit_trail + acting_wl_wc_db):
+  - GET /api/client-admin/compliance-audit-events?module=smc|gc|wc
+    (+ /power-admin/…) — paginated newest-first feed with optional q / from / to
+- Frontend: Audit trail page under Hub nav, Capabilities-gated.
+
+
+--------------------------------------------------------------------------------
+6D. ONE-TIME INVOICES (HUB-WIDE)
+--------------------------------------------------------------------------------
+- Capability: `dashboard_view_one_time_invoices` (Hub operations group).
+- Lists all invoices with Types = One time for the current hub: post purchases,
+  bundle purchases, and one-time module charges (`module_billing`).
+- Distinct from:
+  - My invoices (`general_show_invoices` / personal receipts only)
+  - Module invoices (`dashboard_view_module_invoices` — one-time + recurring modules)
+  - Advisor invoices (`dashboard_view_advisor_invoices`)
+- APIs (hub_can:dashboard_view_one_time_invoices):
+  - GET /api/client-admin/one-time-invoices (+ /power-admin/…)
+  - GET /api/client-admin/one-time-invoices/{id} (+ /power-admin/…)
+- Frontend: `/my-dashboard/one-time-invoices` (+ detail).
+
+
+--------------------------------------------------------------------------------
+6E. UK GDPR / DATA PROTECTION (ALL HUB TYPES)
+--------------------------------------------------------------------------------
+Regulator / law: UK GDPR + Data Protection Act 2018 (ICO). This section is
+product + process requirements for FinProms hubs. Legal copy must be reviewed
+by the customer’s counsel before go-live; engineering ships the tooling.
+
+Existing foundations that ALREADY help (do not rebuild):
+- Auth: Sanctum SPA cookies, email verification, optional login OTP (2FA)
+- Access control: role × Capabilities matrix
+- Audit: activity_logs + compliance_audit_events (FCA-style workflow trail)
+- Secret encryption at rest (Stripe, hub DB, cPanel); SecurityHeaders
+- Generic Compliance sensitive files + text encrypted at rest (attachments /
+  supporting files on private disk; description / feedback / future_feedback —
+  NFR-GC-ENC / section 9.3)
+- Terms accept gate (section 2.2c) — contractual, not a privacy notice
+- Admin hard-delete of users (Power Admin / white-label remote) — not erasure
+
+Personal-data inventory (controllers must keep this accurate):
+  users — name, email, password hash, avatar, terms/privacy acceptance,
+    Stripe customer/PM ids, role/firm flags, suspend/discontinue
+  sessions / tokens — user_id, ip_address, user_agent; OTP/reset by email
+  activity_logs — denormalised user_name, user_email, user_role, ip, ua
+  compliance_audit_events — denormalised actor / related user identity
+  invoices / billing — billing_name, billing_email, payment refs
+  wc_template_requests.contact_details — phone, email, address, website
+  firm_documents + SMC/GC/WC/support attachments — files + uploader identity
+  advisor_import_batches — Excel + JSON lists of name/email
+  hub_backups — full DB dumps (encrypted at rest via NFR-BACKUP-ENC; residual
+    risk remains for pre-encryption plaintext files until retention prunes them)
+  support_tickets — free text, browser_info, attachments
+
+Lawful bases (document in Privacy Policy; typical for this product):
+  - Contract / steps to enter contract — account, subscriptions, billing
+  - Legitimate interests — security logs, fraud prevention, product analytics
+    that are strictly necessary (document LIA where used)
+  - Legal obligation — tax/invoice retention, FCA-related records where
+    applicable to the operator’s regulated activities
+  - Consent — only where relied on (e.g. non-essential cookies / marketing
+    if added later). Prefer not to invent marketing consent until needed.
+
+FCA audit vs erasure tension (MUST follow):
+  Compliance audit trails often must retain “who approved what”. Erasure must
+  ANONYMISE the person (e.g. display name “Deleted user”, clear email/IP)
+  while keeping event rows and foreign-key-safe placeholders. Do not wipe the
+  whole compliance trail when fulfilling a right-to-erasure request.
+
+--------------------------------------------------------------------------------
+6E.1 Implementation phases (build in this order)
+--------------------------------------------------------------------------------
+
+Phase 1 — Transparency (START HERE)  [see also section 2.2d]
+  [x] Privacy Policy content + capability + accept gate (mirror Terms) — backend
+  [x] Defaults per hub type; Terms §Privacy points to Privacy Policy
+  [x] Frontend admin editor + post-login PrivacyGate (after TermsGate)
+  [x] Document processor list in policy defaults (Stripe, email provider,
+      hosting/S3 if used, cPanel sync, Central backup store)
+
+Phase 2 — Subject access / portability (DSAR)
+  [x] Capability: `dashboard_manage_gdpr` (“Manage GDPR / data requests”)
+      Hub operations group; defaults ON for hub-admin style roles
+      (approver/advisor/admin-staff/user off by matrix defaults)
+  [x] Admin “Export personal data” JSON package: profile, firm, invoices,
+      support tickets, WC template-request contact_details, activity logs,
+      compliance audit events, firm-doc upload metadata, advisor-import
+      batch mentions (no passwords / payment-method secrets / file bytes)
+  [x] APIs (hub_can:dashboard_manage_gdpr):
+      - GET …/gdpr/users (search)
+      - GET …/gdpr/users/{user}/export (JSON download; works when acting remotely)
+  [ ] Optional later: GET …/gdpr/requests request log table
+  [x] Frontend: /my-dashboard/gdpr — search users + download export
+  [x] Activity log action: `gdpr.export` (erase/rectify reserved for Phase 3)
+  [x] Ops note in UI: aim to fulfil SARs within 30 days
+
+Phase 3 — Rectification + erasure / anonymisation
+  [x] Rectify via existing profile update (admin can correct before erase);
+      WC contact_details cleared on erase for that advisor’s requests
+  [x] Erasure service (NOT hard-delete) — `GdprErasureService`:
+      - Anonymise user row (`Deleted user #id`, erased-*@erased.invalid),
+        set suspended+discontinued, `gdpr_erased_at`, wipe avatar/tokens/
+        sessions/OTP/reset tokens, clear Stripe IDs locally
+      - Scrub denormalised name/email/IP on activity_logs +
+        compliance_audit_events (keep event rows)
+      - Scrub invoice billing name/email; support ticket/comment text;
+        uploader display names; advisor-import batch mentions
+      - Clear WC template-request contact_details
+      - Keep anonymised audit events for FCA integrity
+  [x] Hub backups: documented residual risk (UI + erase notes); no per-user
+      backup rewrite in v1
+  [x] API: POST …/gdpr/users/{user}/erase (confirm required;
+      hub_can:dashboard_manage_gdpr; remote acting supported)
+  [x] Frontend: erase action on /my-dashboard/gdpr (type ERASE to confirm)
+  [x] Activity log: `gdpr.erase`
+  [ ] Optional later: self-service “delete my account” (Shared Hub) with
+      confirmation + cool-off
+  [ ] Optional later: live Stripe customer delete via API when configured
+
+Phase 4 — Retention & minimisation
+  [x] Configurable retention via `config/gdpr.php` + `.env` keys
+      (GDPR_RETENTION_*); set 0 to disable a category. Categories:
+      activity_logs, login OTP, email verification, password reset,
+      sessions, advisor-import stored files, closed/resolved support tickets
+  [x] Artisan `gdpr:prune-retention` (+ `--dry-run`); scheduled daily 02:30
+  [x] Does NOT prune compliance_audit_events or hub_backups (6B separate)
+  [x] GET …/gdpr/retention — policy visibility for GDPR admin page
+  [x] Frontend GDPR page shows current retention policy summary
+  [x] Passwords/secrets already redacted in activity logs / excluded from export
+
+Phase 5 — Cookies / marketing (only if product needs them)
+  [x] Essential-cookies notice only (session + CSRF) — no analytics/marketing
+      cookies in the current product (PECR / UK GDPR)
+  [x] Editable Cookie Notice (hubs.cookie_notice) + dashboard_manage_cookies
+      + defaults per hub type + GET/PUT/reset APIs (same pattern as Terms/Privacy)
+  [x] GET /hub `auth.cookies` from hub storage (fallback to type default) +
+      frontend CookieBanner (dismissible; localStorage version key) +
+      /my-dashboard/cookies editor
+  [x] Privacy Policy defaults include Cookies section
+  [ ] Full cookie preference centre — only when non-essential cookies/analytics
+      are added later
+  [ ] Marketing opt-in/out fields — only if FinProms adds marketing email
+
+Phase 6 — Breach & accountability (mostly ops; light product)
+  [ ] Security Monitoring module (section 6F / NFR-SEC) records security
+      events and incidents in-app for capable users (detect / evidence).
+      Personal-data breach *legal* tracking may still use Support Tickets or
+      an external ops tracker; do NOT duplicate a second GDPR-only ticket queue.
+  [x] SAR/erasure owners = dashboard_manage_gdpr; DPAs/DPO remain legal/ops
+  [ ] Formal processor DPAs (Stripe, email, host) — legal/commercial, not code
+  [ ] DPO appointment decision — legal counsel
+
+--------------------------------------------------------------------------------
+6E.3 Breach runbook (ops checklist — not a product feature)
+--------------------------------------------------------------------------------
+1. Detect & contain the incident (revoke access, rotate secrets, isolate).
+   Prefer Security Monitoring (6F) for detection evidence when enabled.
+2. Assess personal-data risk (what data, how many people, harm likelihood).
+3. If notification required, report to the ICO without undue delay and within
+   72 hours of becoming aware: https://ico.org.uk/for-organisations/report-a-breach/
+4. If high risk to individuals, inform them without undue delay.
+5. Record the technical security event/incident in Security Monitoring (6F)
+   when the functionality is on. Track legal/ops GDPR follow-up in Support
+   Tickets (or your ops tracker) — do not invent a second GDPR-only queue.
+6. Handle related SARs / erasure via GDPR / data requests.
+7. Review lessons learned; confirm processor DPAs remain current.
+
+--------------------------------------------------------------------------------
+6E.2 Out of scope for v1 (explicit)
+--------------------------------------------------------------------------------
+- Field-level encryption of user name/email (hashed passwords + secret
+  encryption already exist; GC files + submission body/feedback ARE encrypted —
+  see NFR-GC-ENC / section 9.3)
+- Rewriting historical hub_backup SQL dumps per erasure request
+- Full RoPA UI inside the product (keep RoPA as an ops spreadsheet/doc)
+- AI / analytics processors not currently integrated
+
+
+--------------------------------------------------------------------------------
+6F. SECURITY MONITORING MODULE (REGULAR MONITORING + INCIDENT REPORTS)
+--------------------------------------------------------------------------------
+Status: IMPLEMENTED (backend + frontend) — see section 8 + NFR-SEC.
+Cross-refs: section 3.3f (overview), 5.1 (Functionality flag), 5.2 (capabilities),
+section 9.1 (NFR-SEC).
+
+Purpose
+- Provide **regular, detailed security monitoring** on each hub so capable
+  users can open a dedicated report and see security events / breaches such as:
+  “At 2026-10-13 14:22 UTC a security event was detected: repeated failed
+  logins from IP x.x.x.x against user Y — status Investigating.”
+- This is a **separate module/feature** from Activity logging / Activity Logs
+  anomaly detection (6A), Compliance audit trail (6C), and Support Tickets.
+  It answers security questions (threats, security incidents, dependency
+  scan status), not general product usage. Activity-pattern anomalies that
+  are not (yet) security incidents belong in 6A.2; escalate into this module
+  when security-relevant and `security_monitoring` is ON.
+
+Enablement
+- Hub Functionalities flag: `security_monitoring` (default OFF).
+- NOT a Modules-page billable packaging module (the 6 product modules stay
+  unchanged). Optional future catalogue pricing is out of scope unless
+  explicitly added later.
+- Available on Central Hub, Shared hubs, and White-label hubs (per-hub flag).
+- While off: `secmon_*` capabilities are blurred / unavailable; nav hidden;
+  APIs return 403 / feature-disabled.
+
+Who can see what (Capabilities — Hub operations group)
+- `secmon_view_events` — open Security Monitoring → Events feed + detail
+- `secmon_view_report` — open Security Monitoring → Report (aggregates)
+- `secmon_manage_incidents` — acknowledge / investigate / resolve / close;
+  add investigation notes; link related activity-log rows
+- `secmon_manage_alerts` — configure thresholds, channels, recipients
+- Defaults: ON for hub-admin style roles (power_admin when acting, 
+  finproms_admin, client_admin, manager); OFF for approver / advisor /
+  admin-staff / user until Power Admin enables them.
+- Power Admin toggles these per hub / role on the Capabilities matrix
+  (Central Hub). Only users with the relevant capability see the UI.
+
+What is monitored (detailed event catalogue)
+Each recorded item is a **security event**. Related events may be rolled into
+a **security incident** for investigation. Minimum event types:
+
+  A) Authentication & access
+     - Failed login (wrong password / OTP)
+     - Blocked login (suspended / discontinued / invite-only / unverified)
+     - Brute-force / repeated failures threshold crossed (same IP or user)
+     - Force-logout by admin; mass session revocation
+     - Password reset requested abnormally often
+     - Privilege / role change on a user (especially elevation)
+
+  B) Authorization & API abuse
+     - HTTP 401 / 403 spikes on protected routes
+     - Rate-limit trips (`auth`, `imports`, `wc-publish`, others)
+     - Access denied to Security Monitoring / GDPR / Capabilities / secrets
+
+  C) Data & secrets
+     - Attempts to read or mutate encrypted secrets (Stripe, hub DB, cPanel)
+       when rejected or suspicious
+     - Unusual export volume (GDPR export, hub backup download, advisor Excel)
+     - Upload of disallowed / suspicious file types (NFR-SEC-FW upload scan)
+     - Malware detected in upload / malware scan failure (when ClamAV enabled)
+     - Application firewall IP denied / temporary auto-block (NFR-SEC-FW)
+
+  D) Platform / dependency health (ops-facing, still shown in the module)
+     - Last successful dependency vulnerability scan result (composer audit /
+       npm audit / CI) — pass / fail / overdue
+     - Security hardening check reminders (e.g. SESSION_ENCRYPT, HTTPS,
+       TLS verify) when detectable from config
+     - Scheduler / monitoring heartbeat missed (optional)
+
+  E) Manual / declared incidents
+     - Capable user declares “Security incident” (title, description, severity)
+       when something was found outside automated detectors
+
+Event / incident record fields (report detail — REQUIRED)
+  - `id`, `hub_id` / hub slug
+  - `occurred_at` (precise timestamp, timezone displayed in UI)
+  - `detected_at` (when the system recorded it)
+  - `category` (auth | authorization | data | dependency | manual | other)
+  - `event_type` (machine key, e.g. `auth.failed_login_threshold`)
+  - `severity` (info | low | medium | high | critical)
+  - `title` (human short summary)
+  - `description` (what happened — detailed, plain language)
+  - `status` (open | acknowledged | investigating | resolved | closed |
+    false_positive)
+  - `actor` (user id/name/email/role when known; else “anonymous / unknown”)
+  - `source_ip`, `user_agent` (when available; redacted per GDPR retention)
+  - `route` / `action` / request id (when API-related)
+  - `related_refs` (activity_log ids, support_ticket id, user id, etc.)
+  - `investigation_notes[]` (author, timestamp, note) — manage_incidents only
+  - `resolved_at`, `resolved_by`, `resolution_summary`
+- Sensitive values (passwords, tokens, raw secrets, card data) are NEVER stored
+  in security event payloads — redact / truncate like activity_logs.
+
+Report UI (what capable users see)
+- Page: `/my-dashboard/security-monitoring`
+  - Tab **Events** — newest-first feed; filters: severity, category, status,
+    date range, user, IP, free-text search
+  - Tab **Incidents** — rolled-up investigations with linked events
+  - Tab **Report** — aggregates: counts by day / severity / category / status;
+    top source IPs; top targeted users; open critical/high count; last scan
+    status. Export CSV/JSON for capable roles (`secmon_view_report`)
+  - **Detail drawer/page** — full field set above so a reviewer can answer:
+    when did it happen, what happened, who/what was involved, current status
+- Nav label: “Security monitoring” under Hub operations; visible only when
+  `security_monitoring` is ON and the viewer has at least one `secmon_*` cap.
+- Empty / healthy state: show last check time and “No open high/critical
+  incidents” rather than a blank page.
+
+APIs (hub_can matching capability; also under /power-admin/* when acting)
+  - GET  /api/…/security-monitoring/events
+  - GET  /api/…/security-monitoring/events/{id}
+  - GET  /api/…/security-monitoring/incidents
+  - GET  /api/…/security-monitoring/incidents/{id}
+  - POST /api/…/security-monitoring/incidents          (manual declare)
+  - PATCH /api/…/security-monitoring/incidents/{id}    (status / notes)
+  - GET  /api/…/security-monitoring/report
+  - GET  /api/…/security-monitoring/alert-settings
+  - PUT  /api/…/security-monitoring/alert-settings
+- Activity logs for mutations: `secmon.incident_declare` /
+  `secmon.incident_update` / `secmon.alert_settings_update`
+
+Detection & cadence (regular monitoring)
+- Automated detectors write events as they happen (middleware / auth hooks /
+  rate-limiter listeners / artisan commands).
+- No daily scheduler for Security Monitoring — auth / rate-limit / force-logout
+  events are recorded continuously in real time.
+- Capable users run an on-demand check via POST …/security-monitoring/scan-now
+  (“Monitor now” in the UI) or optionally `php artisan security:monitor`.
+  That refreshes the dependency-scan summary on the Report tab.
+- Optional alerts (email / existing notification channel) when severity ≥ high
+  or when an incident is declared — gated by `secmon_manage_alerts`.
+
+Retention & GDPR
+- Security events support legitimate interests / security (see 6E).
+- Configurable retention in `config/gdpr.php` (or `config/security_monitoring.php`)
+  with prune job; anonymise actor PII on GDPR erasure while keeping event
+  rows needed for security accountability (same pattern as compliance trail).
+- Do not use this module as a substitute for ICO notification — see 6E.3.
+
+Out of scope for v1 of this module
+- Full SIEM / IDS / WAF product replacement
+  (application-layer IP deny + upload scanning is NFR-SEC-FW / section 9.5 —
+   complementary, not a network WAF)
+- Network packet capture
+- Automatic exploit patching without human review
+- Customer-facing public status page
+
+
+--------------------------------------------------------------------------------
+7. ARCHITECTURE PRINCIPLES (DERIVED FROM REQUIREMENTS)
+--------------------------------------------------------------------------------
+- Single codebase for Central Hub Controller + Shared hub(s) + all White-labels.
+- Three instance roles: central (control plane), shared (public/content hub),
+  white_label (private client hub).
+- Roles: power_admin, finproms_admin, client_admin, manager, approver, advisor, user.
+- Separate frontend shells: member catalog app (on Shared / White-label), and
+  one universal Dashboard shell at /my-dashboard (tools from Capabilities +
+  Power Admin pa_* checklist on Central Hub).
+  Legacy /client-admin and /power-admin routes redirect to /my-dashboard.
+- Tenant/hub configuration stored in database (branding, flags, rights).
+- Feature flags / rights checklists must drive behaviour AND dashboard menus,
+  not hard-coded forks. Power Admin has its own platform capability checklist
+  (separate from per-hub checklists), stored/managed on Central Hub.
+- Central Hub Controller is the configuration + remote-control source of truth
+  (registry + remote DB credentials on Central; each content hub has its own DB).
+- Shared Hub is a content hub only — not the control plane.
+- New Shared and White-label instances are spawned by copying code to another
+  cPanel and registering them on Central Hub.
+- Design for future: AI generation (FinProms admin), in-app edit, compliance,
+  firm head + firm documents, more features.
+- UK GDPR tooling (section 6E): privacy notice separate from Terms; DSAR
+  export; anonymising erasure that preserves FCA-style audit integrity;
+  retention prune jobs. Build in the phased order in 6E.1.
+- Security Monitoring (section 6F / NFR-SEC): separate functionality module for
+  regular security event detection and capable-user reports — distinct from
+  activity logging + activity-pattern anomaly detection (6A) and the
+  compliance audit trail (6C).
+- Settings that vary (e.g. NEW-banner duration) come from the database.
+
+
+--------------------------------------------------------------------------------
+8. IMPLEMENTATION STATUS NOTES
+--------------------------------------------------------------------------------
+(Update this section as features are built.)
+
+ARCHITECTURE — Central Hub Controller separation
+[x] Separate Central Hub Controller instance from Shared Hub (control plane
+    no longer on Shared Hub) — code support added; cut over via HUB_SLUG=central
+    (legacy Shared-as-controller kept with HUB_IS_CONTROL_PLANE until migrated)
+[x] Hub registry hub_type: central | shared | white_label
+[x] Power Admin platform tools only on Central Hub (frontend controlPlaneOnly gate;
+    backend ActingHubService / content push require isControlPlane)
+[x] Hub registry + remote DB wiring stored on Central Hub DB (same registry model;
+    Shared content hubs now also need remote DB when controlled from Central)
+[x] Remote hub switcher on Central Hub controls Shared + White-label hubs
+[x] Shared Hub behaves as a controllable content hub (no platform hub-management
+    when HUB_IS_CONTROL_PLANE=false / type is not control plane)
+[x] Spawn Shared / White-label by copy-to-cPanel + register on Central Hub
+    (Power Admin create accepts type=shared|white_label)
+[x] Rename / clarify receive_content_from_shared → from Central (label/description;
+    key name kept for compatibility; default ON for Shared and White-label)
+[x] Frontend: hide Power Admin control plane on Shared / White-label deploys
+[ ] Migrate existing Shared-as-controller data/config to Central Hub
+    (ops: deploy Central with HUB_SLUG=central; register Shared hubs;
+    on each Shared run php artisan hub:strip-control-plane --force;
+    set HUB_IS_CONTROL_PLANE=false + HUB_TYPE=shared)
+[x] Multiple Shared hubs supported (unique slug + HUB_TYPE=shared; registry on Central)
+[x] Shared + White-label content hubs: control-plane caps off by default;
+    receive_content on (WL healed for Central distribute targets)
+[x] EnsureControlPlane middleware on /power-admin routes
+[x] Artisan: hub:strip-control-plane for Shared/WL content DBs
+[x] Frontend build:central + .env.central
+[x] DEPLOYMENT_NOTES: Central Hub Controller section
+
+STEP 1 — Shared hub core (content hub)
+[x] Shared hub content browsing (posts) — basic exists
+[x] Content type (post, reel, etc.) — separate from category
+[x] Category — separate from type and tags
+[x] Category icons (font-icon picker + image upload; shown on home categories)
+[x] Central category create/update/delete syncs to eligible content hubs
+[x] Tags — separate from type and category
+[x] Reel play button on listing page
+[x] Reel video upload (when type is Reel) + video_url / is_video API
+[x] Reel autoplay + top play/pause “Reel” control on listing & detail
+[x] Posts listing 3-column grid
+[x] NEW banner (duration from database)
+[x] Views, reach, buy count on content
+[x] Reach vs view separated (listing scroll reach vs detail view)
+[x] Plan-gated metric visibility (Basic=reach, Standard=+views, Premium=+buys)
+[x] Power Admin / hub-admin can toggle show_reach / show_views / show_buys on plans
+[x] Role rename: admin → client_admin
+[x] Separate client_admin dashboard (manage everything)
+[x] Universal /my-dashboard shell for all roles (Capabilities-driven menus)
+[x] Legacy /client-admin and /power-admin URLs redirect to /my-dashboard
+[x] client_admin / power_admin / my-dashboard tools live under one dashboard app
+[x] Subscriptions + credits (basic exists)
+[x] Plan subscribe / private Excel import keep role=user (advisor via is_advisor flag only)
+[x] Seeded finproms_admin user (finproms@hubfinproms.com)
+[x] Credit spend + download (basic exists)
+[x] Non-subscriber one-off purchase (credits)
+[x] Post bundles — create with existing/new posts, description + total credits
+[x] Capability: dashboard_manage_bundles — who can create/manage bundles
+[x] Capability: member_browse_bundles — show/hide Bundles on the public website
+    (nav + pages + public API); defaults on for Shared / White-label
+[x] Bundle browse + purchase (unlocks all posts in the bundle; invoice)
+[x] power_admin can manage payment methods (Stripe / bank transfer)
+[x] Hub model + rights/permissions checklist (DB-driven)
+[x] power_admin can list/create hubs and edit checklist per hub
+    (LEGACY: currently on Shared Hub control plane — move to Central Hub)
+[x] Power Admin hub registry stores deploy wiring (frontend_url, api_url, deploy_notes)
+    (LEGACY location: Shared Hub — target: Central Hub)
+[x] Power Admin stores each white-label's own DB credentials (encrypted password)
+    (LEGACY location: Shared Hub — target: Central Hub; also wire Shared hubs)
+[x] Hub frontend_url preferred for emails / Stripe redirects when set
+[x] Deploy checklist + copyable HUB_SLUG env snippet on hub detail
+[x] Hub list shows Wiring ready / Needs wiring status
+[x] Control white labelled hubs via dashboard hub switcher (dashboard_control_white_label_hubs)
+    (LEGACY host: Shared Hub — target: Central Hub; include Shared hubs as targets)
+[x] Acting-hub content create/list on white-label DB (posts, types, categories, tags, bundles)
+[x] Public GET /hub returns current hub branding + checklist
+[x] Settings split into General / Website content / Dashboard menu pages
+    with dashboard_manage_settings, dashboard_manage_page_content,
+    dashboard_manage_dashboard_nav capabilities + client-admin APIs
+[x] Checklist gates: public register, self-serve subscribe, one-off purchase, unlimited credits
+[x] Shared Hub self-registration requires email verification before login
+    (verify-email + resend; welcome mail after verify; admin/import users auto-verified)
+[x] Per-user two-factor (login OTP) via Update profile — not hub Functionalities
+    (users.two_factor_enabled; verify-login-otp + resend-login-otp; Login UI second step)
+[x] Update profile (all users): name, email, avatar, two-factor toggle
+    (POST/PUT /api/auth/profile; frontend /my-dashboard/profile)
+[x] Capability: dashboard_manage_terms — who can edit Terms & Conditions (all hubs)
+[x] Terms & Conditions rich content + first-login accept gate (saved on user;
+    versioned; type-specific defaults for Shared / White-label / Central)
+[x] Checklist opposite pairs auto-uncheck (public/private, paid/unlimited)
+[x] Frontend: power_admin hubs + checklist UI
+[x] White-labelled private advisor import (Excel/CSV)
+[x] Unlimited credits for white-labelled advisors (role/flag per user; checklist wired)
+[x] Power Admin can set hub subscriber credits (unlimited OR fixed number per period)
+[x] Capability: dashboard_manage_subscriber_credits — who can set private-hub subscriber credits
+[x] Power Admin / hub-admin Subscriber credits dashboard page (gated by Capabilities)
+[x] Fixed/unlimited allotment applied on Excel import; changed amount applies on autorenew
+[x] Subscriber-count pricing tiers (rate × advisors; managed by Power Admin)
+[x] Default advisor tiers copied from WP FP Subscriptions (£25/£22/£20/£15)
+[x] Post-import advisor billing + Stripe auto-renew / bank transfer + invoices
+[x] Capability: dashboard_view_advisor_invoices (role matrix)
+[x] Capability: dashboard_manage_advisor_pricing — who can set billing rates/quotas
+[x] Capability: dashboard_manage_advisor_renewal — auto-renew day (Power Admin / FinProms admin)
+[x] Client admin saved card + charge on each advisor import + invoice + Stripe auto-renew
+[x] Client admin Payment card dashboard (card entrance; not a capabilities-matrix flag)
+[x] Stripe import checkout charges card on file when client admin already saved a card
+[x] Private↔public hub transition: suspend/reactivate Excel advisors + stop auto-renew
+[x] Discontinue individual advisor (client/power admin; permanent end until re-import)
+[x] Capability: advisor_discontinue — who can end imported advisors (Capabilities matrix)
+[x] Discontinue action on Hub → Users (not Import Users); gated by advisor_discontinue
+[x] Capability: advisor_excel_template — download blank import Excel without upload rights
+[x] Capability: advisor_excel_submit — send filled Excel for import (Pending + user count in history)
+[x] Import Users page: template download, submit-for-import form, import history of past batches
+[x] Activity logs — audit trail of user changes/activity (auth + mutating API)
+[x] Activity logs report — aggregates by action / user / day; filterable
+[x] Capability: dashboard_view_activity_logs — who can view logs & report
+[x] Activity Logs anomaly detection (section 6A.2) — pattern detectors +
+    Anomalies UI/API under Activity Logs; optional escalate to Security
+    Monitoring (6F); NOT a duplicate of secmon events/incidents
+[x] Active sessions — list logged-in users + force-logout (Sanctum tokens)
+[x] Capability: dashboard_manage_active_sessions — who can manage sessions
+[x] Frontend: Active sessions page under /my-dashboard (Capabilities-gated)
+[x] Hub session timeout — capable role sets hubs.session_lifetime_minutes
+    (GET/PUT session-settings; applied to SPA idle + Sanctum on that deploy)
+[x] Compliance audit trail — unified SMC / GC / WC history with top tabs
+[x] Capability: dashboard_view_compliance_audit_trail — who can open Audit trail
+[x] Frontend: Audit trail page at /my-dashboard/compliance-audit-trail
+[x] One-time invoices — hub-wide list of Types = One time
+[x] Capability: dashboard_view_one_time_invoices — who can open One-time invoices
+[x] Frontend: One-time invoices page at /my-dashboard/one-time-invoices
+[x] Private-only capabilities blurred/inactive on Capabilities matrix when hub is public
+    (incl. dashboard_manage_subscriber_credits)
+[x] Public-only capabilities blurred/inactive on Capabilities matrix when hub is private
+[x] Power Admin can manage subscription plans when dashboard_manage_plans is enabled
+[x] Hub Functionalities checklist (section 5.1) — Power Admin Functionalities screen only
+[x] User capabilities matrix (section 5.2) — roles × member/dashboard caps (no Functionalities duplication)
+[x] Wire hub-admin dashboard menus/actions to capability checklist (per-role; no hub-wide OR leak)
+[x] Wire member nav/actions to member capability checklist
+[x] Roles documented: power_admin, finproms_admin, client_admin, manager,
+    approver, advisor, user
+[x] Power Admin capabilities checklist (section 5.3) — separate from hub Functionalities
+[x] Wire Power Admin nav/APIs to Power Admin capabilities
+[x] Capabilities matrix UI — roles × user capabilities (incl. Power Admin) per hub
+[x] Member capabilities (incl. browse catalog) apply to all role columns in the matrix
+[x] Hub-admin dashboard capabilities apply to all role columns (remaining roles
+    approver / advisor / user default off; shell access when any dashboard cap is on)
+[x] Capabilities matrix role label: user column shown as "User" (not "Member")
+[x] Split UI: Functionalities vs Capabilities (no overlapping checklist items)
+[x] Member hub catalog requires login (guests see login screen only)
+[x] General options (dashboard) capabilities — show subscription / credits /
+    invoices / purchases on universal /my-dashboard
+[x] Universal Dashboard at /my-dashboard — hub tools + Power Admin platform
+    tools appear only when enabled in Capabilities / Power Admin checklist
+[x] Central Hub §5.2 matrix enforced like Shared / White-label (nav + APIs;
+    no hard-coded “platform tools only” ignore of checked cells)
+[x] Capabilities matrix columns = roles present on hub ∪ roles added for that hub
+[x] Manage roles page — list roles + user counts, add/delete role on this hub, rename display names (same capability); power_admin + finproms_admin are must roles on every hub (never deletable, names editable)
+[x] Modules checklist — Social Media / Website / General Compliance toggles per hub
+[x] Functionality: charge_amount_per_module — Charge amount per module (one time)
+    (default ON white-label / OFF shared)
+[x] Module catalogue pricing (£14,500 hub / £0 SMTL / £5,000 SMC / £300 per website WTL /
+    £10,000 WC / £3,500 GC) — editable via dashboard_manage_module_pricing
+[x] Capabilities group Modules pricing — set prices + view module invoices +
+    mark module invoices as paid
+[x] One-time module invoices on enable (skip £0 and per-website until websites billed)
+[x] Website Template Library — £300 × count of wc_templates on module enable;
+    £125/month × count of status=deployed template requests (hub DB / remote WL)
+[x] All module invoices (incl. Shared / White Label hub packaging) created as unpaid
+    until payment is recorded
+[x] Functionality: charge_recurring_per_module + slot tables + Option B import invoices
+[x] Billing renew day + grace day; charge all due unpaid invoices; post-grace
+    suspend users / disable modules
+[x] Discontinue any hub user (not only advisors); active-only seat counts
+[x] Advisor pricing tiers retired from nav (replaced by module recurring slots)
+[x] Flat recurring per_firm counts firms on hub DB; anniversary/grace use remote hub users
+[x] Manual mark module invoice paid (method + notes required; optional reference /
+    attachment) with persistent payment details on invoice view
+[x] Frontend: Module prices + Module invoices pages
+[x] Social Media Compliance capability section (blurred while module off)
+[x] Social Media Compliance API — submit / assign / review / versions / reports / charts
+[x] Social Media Compliance activity logging (smc.* actions in activity_logs)
+[x] Compliance audit trail (SMC / GC / WC) — per-request history with actor name/email/role, assigner, status transitions; exposed on detail + reports (+ WC reports/change-requests)
+[x] compliance:backfill-audit-trail — reconstruct prior request history from activity_logs + versions
+[x] Optional compliance supporting files (SMC / GC / WC) on submit, review/approve-reject, and change-status — shown in version history with uploader role (advisor / approver / manager), not as a separate request-level box
+[x] Approver / manager dedicated front-end UIs (SMC & ops flows)
+[x] Power Admin user management UI (pa_manage_users_roles — create/update/delete/roles)
+[x] Control white labelled hubs via dashboard hub switcher (dashboard_control_white_label_hubs)
+[x] Acting-hub content create/list on white-label DB (posts, types, categories, tags, bundles)
+[x] Central content library (manual create + Excel bulk, distribute live posts;
+    archive retires from distribute; AI stub)
+[x] Central library taxonomy: Central-owned types/categories/tags; distribute
+    upserts names into target hub DB with the post copy
+[x] Content hubs list-only for posts/types/categories/tags (view_*); manage_*
+    create/edit removed from Shared / White-label (Central library owns create)
+[x] Shared/WL Manual posts ↔ AI posts functionality opposites for receive/distribute
+[x] After Functionalities / Modules / Capabilities save: refresh hub context with
+    dashboard loader so navbar updates for the selected hub
+[ ] AI post/reel generation by FinProms admin (later)
+[ ] In-app post editing for buyers (later)
+[x] Social Media Compliance check flow (module + APIs)
+[x] General Compliance module + APIs (description + optional attachments and
+    separate supporting files); sensitive files + text encrypted at rest
+    (NFR-GC-ENC)
+[x] Website Template Library module + APIs (templates, request form, manual cPanel deploy)
+[x] Website templates: Power Admin colour schemes on register/edit; request form
+    scheme picker + optional custom colours (`wc_templates.color_schemes`)
+[x] Website templates: Power Admin available pages on register/edit
+    (`wc_templates.available_pages`); request form collects services, images,
+    contact details, policies, selected pages + page content **document
+    attachments** (no textareas for services / policies / page content)
+    (`wc_template_requests` JSON fields)
+[x] Website Content Pre Approval Workflow module + APIs (sections, change requests, supporting files; depends on WTL)
+[x] Frontend: separate nav sections for Website Template Library vs Content Pre Approval
+[x] Firm Head of Firm — capability `dashboard_assign_firm_head`; one head per
+    firm appointed from that firm’s members (section 3.4.1)
+[x] Firm Documents library — head can add attachments (images, Word, PDF, etc.)
+    and has all add/view/delete/archive rights (section 3.4.2–3.4.4)
+[x] Folders / subfolders + nested expand/collapse library; upload above table
+[x] Document categories (`firm_documents_manage_categories`, GC-style admin CRUD)
+[x] Taxonomy add requests (`taxonomy_request_add` + `taxonomy_request_manage`) —
+    request SM Templates Library category/tag, GC content type, or firm document
+    category; reviewers create manually then mark Approved, or reject
+[x] Frontend: Taxonomy requests nav + pages (my / new / queue / detail) under
+    dedicated Taxonomy requests separator; gated by taxonomy_request_add /
+    taxonomy_request_manage
+[x] Head grants per-document member rights via key icon / access popup
+[x] Per-firm visible-firms allowlist + mixed access rights (`firm_documents_manage_firm_access`; own users + allowlisted firms; firm grants apply to all members)
+[x] Firm Head & Firm Documents activity logs (`firm.head.*`, `firm.documents.*`)
+[x] Frontend: Assign Head of Firm + Firm Documents UI (rights-gated; mixed
+    access rights + which-firms-can-see-documents for every firm)
+[x] Support Tickets functionality (`support_tickets`) + APIs (submit with
+    module/screenshots, queue, change status, comments) + `st_*` capabilities
+[x] Frontend: Support Tickets nav (My tickets / New ticket / All tickets) + pages
+[x] Concurrent performance (phase 1): hub cache TTL 5m; Redis recommended for
+    CACHE_STORE/QUEUE_CONNECTION in production; queue cPanel sync + template
+    preview capture; SMC/GC report withCount (no N+1); posts list indexes;
+    frontend React.lazy routes + Vite manualChunks; list fetches per_page 50
+[x] Concurrent performance (phase 2): paginate WC change/template-request lists
+    ({ data, meta }); queue advisor Excel import + status poll; throttle auth /
+    imports / WC publish routes
+[x] Concurrent performance (phase 3): queue Central content distribute + post
+    sync-to-hubs; TanStack Query cache for /auth/me + /hub; WC review/history
+    server page controls (history_only / mine_as_approver)
+[x] Concurrent performance (phase 4): queue Central library Excel import; parallel
+    boot prefetch (/auth/me + /hub); activity logs afterResponse; compliance
+    report row cap (500)
+[x] Concurrent performance (phase 5): remote DB connection leasing (no nested
+    reconnect); Quill + WC CSS deferred from critical path; firm-document rights
+    merge after hub boot; production Redis/queue/schedule notes in .env.example
+
+--------------------------------------------------------------------------------
+SECURITY HARDENING (phase 1 — 2026-10-04)
+--------------------------------------------------------------------------------
+[x] Encrypt WC cPanel secrets at rest (cpanel_db_password, cpanel_api_key via
+    SafeEncrypted); hide from API JSON; expose cpanel_*_set flags only
+[x] Encrypt platform Stripe secrets in settings (Setting::getSecret/setSecret)
+[x] Stripe webhooks fail closed when no webhook secret / missing signature
+[x] SecurityHeaders middleware (HSTS, nosniff, CSP for JSON APIs; embed exempt)
+[x] Sanctum token expiry default 7d (SANCTUM_EXPIRATION); session idle 7d (SESSION_LIFETIME);
+    per-hub override via hubs.session_lifetime_minutes (Active sessions / capable role)
+[x] Outbound TLS verify on by default (HTTP_TLS_VERIFY); cPanel + embed proxy
+[x] Scheduler auth: X-Scheduler-Key header + hash_equals (query key still works)
+[x] Activity log redacts api_key / cpanel_* / hub stripe secrets
+[x] CORS: localhost origins only outside production; CORS_ALLOWED_ORIGINS extra
+[x] Bank-transfer auto-grant defaults OFF in config / .env.example
+[x] Force HTTPS URL scheme in production; SESSION_ENCRYPT=true in .env.example
+[x] Artisan: php artisan security:encrypt-stored-secrets [--dry-run]
+[x] Frontend: do not echo/prefill cPanel secrets; leave blank to keep; 401 clears
+    session; referrer / nosniff meta on index.html
+
+--------------------------------------------------------------------------------
+NFR-GC-ENC — Generic Compliance data encryption at rest (2026-10-13)
+--------------------------------------------------------------------------------
+[x] Encrypt GC version `description`, `feedback`, `future_feedback` via
+    SafeEncrypted (APP_KEY); legacy plaintext still readable until backfill
+[x] Do not persist feedback plaintext in compliance_audit_events metadata
+    (flags only: has_feedback / has_future_feedback)
+[x] List search `q` uses name / content_type / reviewed_by (not encrypted body)
+[x] Artisan: php artisan security:encrypt-general-compliance [--dry-run] (text)
+[x] Attachment files restored to public-disk + public URL (file-byte encryption
+    reverted — broke cPanel/LiteSpeed downloads)
+[x] Feature tests: text ciphertext + public-disk attachments
+
+--------------------------------------------------------------------------------
+SECURITY HARDENING (phase 2 — 2026-10-04)
+--------------------------------------------------------------------------------
+[x] Sanctum SPA httpOnly cookie auth (statefulApi + Auth::login session)
+    — frontend credentials:include + CSRF (/sanctum/csrf-cookie); no Bearer in
+      localStorage; Vite proxies /api+/sanctum for local same-origin cookies
+[x] Logout invalidates web session + Sanctum PAT; force-logout also clears
+    sessions.user_id rows
+[x] CORS supports_credentials=true with explicit FRONTEND_URL allowlist
+[x] Hub remote DB TLS wiring: db_ssl_mode + db_ssl_ca (Power Admin UI +
+    WhiteLabelDatabaseService PDO/pgsql ssl options)
+[x] Hub backup & restore (section 6B): per-hub schedule from Central, dual store
+    (hub local + Central), Backup now / download / restore, pa_manage_hub_backups
+[x] NFR-BACKUP-ENC (section 6B / 9.7): encrypt backup ZIPs at rest (AES-256-GCM
+    HBENC1); shared HUB_BACKUP_ENCRYPTION_KEY; decrypt on download/restore;
+    legacy plaintext still works; hub_backups.is_encrypted
+[x] Disaster recovery & rollback procedures (section 6B.1 / NFR-AVAIL 9.9):
+    data restore runbook on Hub backups UI; code rollback via prior release
+    apply on Hubs UI; documented pairing of Backup now before risky Apply
+[ ] Future: TOTP authenticator 2FA for Power Admin (in addition to email OTP)
+[x] NFR-SEC-FW (section 9.5): application-layer IP deny + dangerous upload
+    rejection (incl. SVG block) + optional ClamAV; see §8 NFR-SEC-FW + §9.5
+    (per-endpoint mime allowlists already exist on major upload routes)
+
+--------------------------------------------------------------------------------
+UK GDPR / DATA PROTECTION (section 2.2d + 6E) — Phase 1 backend done
+--------------------------------------------------------------------------------
+[x] Phase 1 (backend): Privacy Policy (hubs.privacy_policy) +
+    dashboard_manage_privacy + accept gate (privacy_accepted_*) + defaults per
+    hub type + APIs (GET/PUT/reset privacy, POST accept-privacy) + GET /hub
+    auth.privacy + Terms defaults point to Privacy Policy + nav label key
+[x] Phase 1 (frontend): /my-dashboard/privacy editor + PrivacyGate after
+    TermsGate; API helpers; nav + capability dashboard_manage_privacy;
+    auth.privacy_accepted compare; activity log label auth.privacy_accepted
+[x] Phase 2: DSAR export (dashboard_manage_gdpr) — GET gdpr/users +
+    gdpr/users/{id}/export JSON; GdprDataExportService; frontend
+    /my-dashboard/gdpr; activity log gdpr.export
+[x] Phase 3: Erasure / anonymise (GdprErasureService + gdpr_erased_at;
+    scrub logs/invoices/tickets/WC/import rows; keep audit events);
+    POST …/gdpr/users/{user}/erase; frontend erase + gdpr.erase log
+[x] Phase 4: Retention prune (`gdpr:prune-retention`, config/gdpr.php,
+    daily 02:30); GET gdpr/retention + frontend policy panel
+[x] Phase 5: Editable Cookie Notice (dashboard_manage_cookies +
+    hubs.cookie_notice + /my-dashboard/cookies + CookieBanner); no
+    marketing/analytics cookies; preference centre deferred until needed
+[x] Phase 6 (partial): SAR/erasure owners + ops DPAs/DPO outside code;
+    Security Monitoring module ships technical incident evidence (6F)
+[x] Security Monitoring module (section 6F): Functionalities flag
+    `security_monitoring`; `secmon_*` capabilities; events / incidents /
+    report APIs + `/my-dashboard/security-monitoring` UI; detectors
+    (failed/blocked login, force-logout, rate-limit, threshold escalation)
+    + on-demand “Monitor now” / scan-now (no daily schedule); GDPR scrub on erase
+[ ] NFR-SEC operational pipeline: Dependabot/Renovate + CI `composer audit`
+    / `npm audit` in GitHub Actions; documented patch SLA (scan status is
+    surfaced in Security Monitoring report via on-demand Monitor now)
+[x] NFR-SEC-NAV (section 9.4): external link / copied-URL / cross-site entry
+    hardening — in-app nav OK; home `/` always allowed (tab search /
+    address-bar of the site URL); paste / email / chat into protected routes
+    shows ERROR when logged in; guests → `/login` (no ERROR); email verify,
+    password reset, Stripe return allowlisted; frontend navigationContinuity
+    + ProtectedRoute guard; backend config/security_navigation.php +
+    SafeFrontendRedirect + POST /api/security/external-navigation-blocked
+    (optional secmon)
+[x] NFR-SEC-FW (section 9.5): application firewall + malware / upload
+    protection — DenyBlockedIps + ScanUploadedFiles on API group;
+    config/security_firewall.php; dangerous extension + SVG rejection;
+    optional ClamAV (MALWARE_SCAN_*); optional auto-block after failed-login
+    threshold; secmon events fw.ip_denied / fw.ip_auto_blocked /
+    data.upload_rejected / data.malware_detected; host/cPanel firewall remains
+    ops (not a full WAF product)
+[x] NFR-SEC-APP (section 9.6): protection against SQL injection, XSS, CSRF,
+    brute-force, malware, and app-layer DDoS/abuse — Eloquent/bindings;
+    SafeHtml on Terms/Privacy/Cookies + SPA DOMPurify; Sanctum CSRF;
+    auth+API rate limiters; NFR-SEC-FW malware; volumetric DDoS = ops/CDN
+[x] NFR-SEC-VAL (section 9.8): server-side validation and sanitization of all
+    user inputs — every mutating API uses Laravel validate(); API middleware
+    SanitizeRequestInput scrubs null bytes / control chars; InputSanitizer
+    plain()/richHtml() on stored fields (Terms/Privacy/Cookies, GC/SMC,
+    support tickets, WC section/change-request content, post/bundle
+    descriptions, email template copy); SPA sanitizeRichText on submit +
+    render; tests cover wire scrub + rich HTML strip
+
+================================================================================
+9. NON-FUNCTIONAL REQUIREMENTS (NFRs)
+================================================================================
+This section collects NFRs separately from functional product specs.
+Update checkboxes in section 8 as each NFR is evidenced in code / ops.
+
+--------------------------------------------------------------------------------
+9.1 NFR-SEC — Regular security monitoring and updates accordingly
+--------------------------------------------------------------------------------
+Statement
+- The platform SHALL perform regular security monitoring and apply updates
+  accordingly. Capable users SHALL be able to view a detailed security
+  monitoring report showing when a security event/breach-related incident
+  occurred and what happened.
+
+Product fulfilment (in-app module)
+- Delivered by the **Security Monitoring** module (sections 3.3f and 6F):
+  event feed, incident lifecycle, and aggregate report for roles with
+  `secmon_*` capabilities when Functionalities → `security_monitoring` is ON.
+- Report detail MUST include at least: timestamp, severity, category,
+  human-readable description of what happened, actor/source where known,
+  and current status.
+
+Operational fulfilment (updates accordingly)
+- Dependencies (Composer + npm) SHALL be monitored for known vulnerabilities
+  on a regular cadence (CI audit and/or Dependabot/Renovate).
+- Critical/high findings SHALL be triaged and patched within an agreed SLA
+  (document in ops runbook; default target: critical within 7 days, high
+  within 14 days, unless risk-accepted in writing).
+- Last scan result / overdue status SHALL appear on the Security Monitoring
+  Report tab when the module is enabled.
+- Application security hardening already shipped (SECURITY HARDENING phases)
+  remains in force; this NFR adds continuous monitoring + update cadence,
+  not a replacement for hardening.
+
+Acceptance criteria (for “done”)
+  [x] `security_monitoring` flag + `secmon_*` matrix keys exist and gate UI/API
+  [x] Automated detectors record failed-auth / rate-limit / blocked-login
+      (minimum set) with occurred_at + description
+  [x] Capable user can open report and answer: when / what / status
+  [x] Incident acknowledge → investigate → resolve flow works
+  [x] On-demand `scan-now` / “Monitor now” (composer audit); no daily schedule
+  [x] Scan status visible in Security Monitoring report after Monitor now
+  [ ] CI Dependabot still optional
+  [x] GDPR anonymisation on erase for security_events / incident notes
+      (dedicated retention prune env keys optional later)
+
+Related but distinct
+- Activity logging + anomaly detection (6A) — general audit (6A.1) and
+  activity-pattern anomalies under Activity Logs (6A.2); not the Security
+  Monitoring incident module
+- Compliance audit trail (6C) — FCA-style workflow; not threat monitoring
+- Support Tickets (3.3e) — human bug reports
+- GDPR ICO breach notification (6E.3) — legal duty; uses Security Monitoring
+  for evidence when enabled
+- NFR-SEC-FW (section 9.5) — application firewall + upload malware gates that
+  feed events into this module
+
+--------------------------------------------------------------------------------
+9.2 Other NFRs (placeholders — expand as product owners add them)
+--------------------------------------------------------------------------------
+- NFR-PERF — Concurrent performance / responsiveness under multi-user load
+  (phases already tracked under section 8 Concurrent performance [x]).
+- NFR-AVAIL — Disaster recovery & rollback / backup & restore resilience
+  (sections 6B / 6B.1 / 9.9) — IMPLEMENTED (procedures + existing restore/apply).
+- NFR-BACKUP-ENC — Hub backup archives encrypted at rest (section 9.7) —
+  IMPLEMENTED (AES-256-GCM; shared HUB_BACKUP_ENCRYPTION_KEY).
+- NFR-PRIV — UK GDPR / data protection (section 6E).
+- NFR-AUDIT — Activity logging + anomaly detection + compliance audit trail
+  (sections 6A / 6A.2 / 6C). Logging + 6A.2 anomalies implemented.
+- NFR-SEC-NAV — External link / copied-URL / cross-site entry hardening
+  (section 9.4) — IMPLEMENTED; product choice = show ERROR page.
+- NFR-SEC-FW — Application-layer firewall + upload malware protection
+  (section 9.5) — IMPLEMENTED (optional ClamAV off by default).
+- NFR-SEC-APP — SQLi / XSS / CSRF / brute-force / malware / DDoS baseline
+  (section 9.6) — IMPLEMENTED (network DDoS remains ops/CDN).
+- NFR-SEC-VAL — Server-side validation and sanitization of all user inputs
+  (section 9.8) — IMPLEMENTED (validate + wire scrub + field-type sanitize).
+(Add new NFR-xxx subsections here when working on further non-functional
+ requirements; keep functional module detail in sections 3–6.)
+
+--------------------------------------------------------------------------------
+9.3 NFR-GC-ENC — Encryption of Generic Compliance data at rest
+--------------------------------------------------------------------------------
+Statement
+- Generic Compliance free-text (description / reviewer feedback) SHALL be
+  encrypted at rest so a database dump does not expose plaintext.
+
+Scope — text columns
+- `general_compliance_request_versions.description`
+- `general_compliance_request_versions.feedback` (remedial feedback / notes)
+- `general_compliance_request_versions.future_feedback`
+
+Out of scope / deferred
+- Encrypting attachment / supporting-file **bytes** on disk — attempted then
+  **reverted** (broke downloads on cPanel/LiteSpeed). Files stay on public
+  disk with public URLs as before. Revisit with object-storage SSE later.
+- content_type, status, reviewer display name, request `name`
+
+Mechanism
+- Text: `SafeEncrypted` cast (legacy plaintext readable until backfill).
+- Audit trail MUST NOT duplicate feedback plaintext in `metadata` (flags only).
+- Text search across encrypted body is not supported; `q` uses non-encrypted
+  fields only.
+
+Ops
+- After deploy: `php artisan security:encrypt-general-compliance`
+  (optional `--dry-run` first). Text rows only.
+- Protect and back up `APP_KEY`.
+
+Acceptance criteria (for “done”)
+  [x] New / updated GC versions store description & feedback as ciphertext
+  [x] Eloquent / API still return readable plaintext to authorised users
+  [x] Attachment upload/open works via public disk + public URL (restored)
+  [x] Audit metadata does not store feedback plaintext
+  [x] Documented in section 3.3b + section 8 checklist
+
+Related but distinct
+- Secret encryption (Stripe / hub DB / cPanel) — SECURITY HARDENING phase 1
+- NFR-SEC / Security Monitoring (section 9.1) — threat detection, not field crypto
+- NFR-PRIV / UK GDPR (section 6E) — broader personal-data programme
+- NFR-SEC-NAV (section 9.4) — how the user *enters* authenticated pages
+  (external link / copied URL), not field encryption
+
+--------------------------------------------------------------------------------
+9.4 NFR-SEC-NAV — External link / copied-URL / cross-site entry hardening
+--------------------------------------------------------------------------------
+Status: IMPLEMENTED (2026-10-14) — frontend guard + error page; backend
+allowlist config, SafeFrontendRedirect helper, optional secmon report API.
+Product choice: SHOW ERROR — do not open the target page when entry is from
+paste / email / chat / redirect from another (non-hub) app.
+Cross-refs: SECURITY HARDENING phase 2 (Sanctum SPA cookies + CSRF), session
+SameSite, section 6F (optional security events).
+
+Problem statement (product ask)
+- Each authenticated page has a shareable / bookmarkable URL.
+- If a user is already logged in and then:
+    (a) copies a hub URL from somewhere else and pastes it into the browser, or
+    (b) clicks a link to our application from an email / chat / third-party site
+        (including phishing emails that use a *real* hub URL), or
+    (c) arrives via a redirected URL that lands on our application from
+        somewhere else,
+  the browser may open that page while the existing session is still active.
+- Product goal: **in-app navigation** (living inside the application and moving
+  page-to-page via menus / in-app links / SPA router) SHALL continue to work
+  normally; **external entry** via pasted URL, email link, or cross-site
+  redirect SHALL NOT silently open the target authenticated page with the
+  existing session.
+
+When this IS a security risk (threat model)
+  R1) Cross-site request forgery (CSRF) — attacker site or email-triggered
+      navigation causes a *state-changing* action while the user is logged in
+      (especially unsafe if any sensitive action is a GET without CSRF).
+      Mitigated today for API mutations by Sanctum SPA CSRF + same-origin
+      cookie auth (SECURITY HARDENING phase 2). Residual risk if any
+      privileged GET endpoints mutate state.
+  R2) Session riding / forced navigation — user is logged in; attacker tricks
+      them into opening a real hub URL (phishing email with legitimate link).
+      Page content may be visible without a fresh login; attacker may combine
+      this with social engineering (“confirm this approval”).
+  R3) Open redirect abuse — our app redirects to an attacker URL after login
+      or after a flow (credential phishing). Separate control: allowlist
+      redirect targets; never trust raw `?redirect=` / `?next=` from outside.
+  R4) Tab / shared-device exposure — pasted deep links reopen sensitive screens
+      on a shared browser that still has a live session.
+  R5) NOT the same as classic phishing of a *fake* login page on another
+      domain — that is user education + brand URL clarity + optional 2FA.
+      NFR-SEC-NAV does not stop fake sites; it hardens entry into *our* app.
+
+When this is NOT (by itself) a high risk
+  - Opening a read-only page via a real URL while cookies are valid is normal
+    browser behaviour if mutations require POST + CSRF and authorisation.
+  - Password-reset, email-verification, Stripe return, and invite links MUST
+    remain reachable from email without being blocked by this NFR (allowlist).
+
+Product rule (desired behaviour)
+  - ALLOW: authenticated user already inside the hub SPA; clicks in-app nav /
+    router links / breadcrumbs; relative same-origin transitions.
+  - ALLOW: home `/` from outside for everyone (tab search / address-bar
+    of the site URL, paste, email). Authenticated users get navigation
+    continuity so they can continue inside the app.
+  - GUESTS on protected routes via external entry: redirect to `/login`
+    (do NOT show the security ERROR — they are not authenticated yet).
+  - BLOCK (authenticated): first entry into a protected route when the
+    navigation context is external, including paste into a new tab,
+    address-bar of a deep URL, email / chat / other-app redirect.
+    Show security ERROR (do not open the target; do not silently redirect
+    to home/dashboard).
+  - On BLOCK (authenticated only): do NOT render the sensitive target page.
+    CHOSEN UX = ERROR:
+      D) Error page (SELECTED) — show a clear security error, e.g.
+         “This page cannot be opened from an external link, email, chat,
+         or another application. Please open the Hub from the official
+         login / dashboard and navigate inside the application.”
+         Do not mount the requested protected view. Provide a safe button
+         to go home (or dashboard when the hub has no home page). Optional:
+         auto-log the attempt when Security Monitoring is ON.
+      (Alternatives kept for reference only — not selected:)
+      A) Soft gate — “Continue into Hub?” interstitial then allow deep link.
+      B) Re-auth — require password and/or login OTP again, then continue.
+      C) Strip deep link — ignore path; send user to `/my-dashboard` silently.
+
+Recommended technical approach (implement in BOTH repos when approved)
+  Backend (hub-finproms-backend)
+  1) Keep / strengthen cookie posture:
+     - Prefer `SESSION_SAME_SITE=strict` (or Sanctum-equivalent) so browsers
+       do NOT send session cookies on cross-site top-level navigations from
+       email/other sites. Same-site in-app use still works.
+     - Keep `httpOnly`, `secure` (HTTPS), Sanctum CSRF for state-changing APIs.
+  2) Never rely on Referer alone (browsers strip it); treat missing Referer
+     as untrusted for *entry policy*, not as proof of legitimacy.
+  3) Allowlist external-entry paths that MUST work from email / payment
+     providers: email verify, password reset, Stripe success/cancel, invite
+     accept, public marketing pages (if any). Document the allowlist in
+     config (e.g. `config/security_navigation.php`).
+  4) Optional: record Security Monitoring events when external entry is
+     blocked / stepped-up (`nav.external_entry_blocked`) when `security_monitoring`
+     is ON (section 6F).
+  5) Open-redirect hardening: validate post-login / return URLs against hub
+     `frontend_url` allowlist only.
+
+  Frontend (hub-finproms-frontend)
+  1) Maintain an in-app “navigation continuity” marker (e.g. sessionStorage
+     flag set after successful login / OTP and refreshed on in-app router
+     transitions). Cleared when the tab/session ends.
+  2) Router guard on protected routes: if the user is not authenticated →
+     redirect to `/login` (never show the security ERROR to guests). If
+     authenticated and continuity marker is absent OR entry looks external
+     (referrer from email/chat/other app, paste into address bar / new tab,
+     redirect from non-hub origin) → show the NFR-SEC-NAV error page
+     (mode D); do not mount the target view.
+  3) In-app `<Link>` / router.push always sets continuity; hard refresh may
+     keep marker (sessionStorage) so F5 inside the app still works — product
+     may optionally treat hard refresh as step-up (stricter).
+  4) Do not store auth tokens in localStorage (already: Sanctum cookies).
+
+Acceptance criteria (for “done” — when implementation is approved)
+  [x] Documented product choice: mode D — show ERROR page (2026-10-14)
+  [x] In-app menu / SPA navigation between authenticated pages works unchanged
+      (continuity marked at login / OTP / verify; F5 keeps sessionStorage)
+  [x] Tab search / address-bar of the site home URL works while logged in
+  [x] Paste of a protected deep URL while logged in shows the security ERROR
+      (target not opened); guests → `/login`
+  [x] Click from email / chat / other origin into a protected route shows the
+      same ERROR when logged in; guests → login; allowlisted flows still work
+  [x] Error copy explains that pages must be opened by navigating inside the Hub
+  [x] Error page offers one safe same-origin action: home when the hub has
+      a website home (`member_view_site_pages`), otherwise dashboard;
+      guests never see the error page (login redirect)
+  [x] Password reset, email verification, Stripe return still work (allowlist)
+  [x] Session cookies: SameSite strategy documented in .env.example; CSRF still
+      required for mutations
+  [x] Open redirects to non-allowlisted hosts rejected (SafeFrontendRedirect)
+  [x] Section 8 checklist updated; optional secmon event
+      `nav.external_entry_blocked` via report API when module enabled
+  [x] Backend + frontend both updated (separate repos)
+
+Out of scope / explicit non-goals
+  - Making URLs “unshareable” forever (impossible against a determined user
+    who is already inside the app and copies from the address bar after gate).
+  - Stopping phishing sites on *other* domains.
+  - Replacing Capabilities / role checks — authorisation remains mandatory.
+  - Breaking public unauthenticated pages.
+
+Related but distinct
+  - CSRF / Sanctum SPA cookies — SECURITY HARDENING phase 2 (already shipped)
+  - Login OTP / future TOTP — authentication step-up, complementary
+  - Active sessions / force-logout — section 6B
+  - Security Monitoring — section 6F / NFR-SEC (detection, not the gate itself)
+  - NFR-SEC-FW (section 9.5) — IP deny + malware/upload gates (not navigation)
+
+--------------------------------------------------------------------------------
+9.5 NFR-SEC-FW — Firewall and malware protection
+--------------------------------------------------------------------------------
+Status: IMPLEMENTED (2026-10-14) — application-layer controls in this backend.
+Optional ClamAV malware scanning is OFF by default (enable when clamscan is
+installed on the host). Host / cPanel / cloud firewall remains an ops duty.
+Cross-refs: section 6F (Security Monitoring events), NFR-SEC (section 9.1),
+SECURITY HARDENING phase 2 (headers / cookies), deferred mime/SVG item closed.
+
+Statement
+- The platform SHALL protect itself with firewall-style access controls and
+  malware / dangerous-upload protections appropriate to a multi-tenant hub
+  on shared hosting (cPanel), without requiring a commercial WAF appliance
+  inside the application repo.
+
+Product fulfilment (in-app / API)
+  A) Application firewall
+     - Deny list of client IPs (and optional CIDR) configured via
+       SECURITY_FIREWALL_DENIED_IPS / config/security_firewall.php.
+     - Middleware DenyBlockedIps on the API group returns HTTP 403 for denied
+       clients before controllers run.
+     - Optional temporary auto-block of an IP when Security Monitoring’s
+       failed-login threshold is crossed (SECURITY_FIREWALL_AUTO_BLOCK=true).
+     - Denied / auto-blocked attempts MAY record Security Monitoring events
+       (`fw.ip_denied`, `fw.ip_auto_blocked`) when the module is ON.
+  B) Malware / upload protection
+     - Middleware ScanUploadedFiles inspects every multipart upload on the API.
+     - Reject dangerous extensions (PHP webshells, executables, scripts, etc.)
+       and filenames that embed those extensions (e.g. invoice.php.jpg).
+     - Reject SVG uploads by default (scriptable); favicon validation no longer
+       allows svg.
+     - Optional ClamAV: when MALWARE_SCAN_ENABLED=true and `clamscan` (or
+       MALWARE_SCAN_BINARY) is available, scan file bytes; infected → reject
+       and record `data.malware_detected` (incident). If scanner missing:
+       refuse only when MALWARE_SCAN_REQUIRED=true; otherwise log and allow
+       (cPanel-friendly default).
+     - Rejected uploads record `data.upload_rejected` (or scan-failure types)
+       when Security Monitoring is enabled.
+  C) Existing complementary controls remain in force
+     - HTTP security headers (SecurityHeaders middleware)
+     - Rate limiters (auth / imports / wc-publish) + secmon rate-limit events
+     - Per-route mime allowlists on major upload endpoints
+
+Operational fulfilment (infra — outside Laravel code)
+- Operators SHALL keep the host firewall / fail2ban / provider WAF (if any)
+  enabled for the public IP and SSH; document in ops runbook.
+- Where ClamAV is required by policy, install and update virus definitions on
+  the server, then set MALWARE_SCAN_ENABLED=true (and REQUIRED if fail-closed
+  is mandated).
+
+Out of scope / explicit non-goals
+- Replacing a full network WAF / IDS / SIEM product (already out of scope in 6F)
+- Guaranteeing zero malware without host AV + patched OS
+- Scanning files already stored on disk from before this NFR (no retroactive
+  bulk re-scan job in v1)
+- Frontend-only changes (backend enforces uploads; SPA needs no gate)
+
+Acceptance criteria (for “done”)
+  [x] Documented in section 9.5 + section 8 checklist
+  [x] config/security_firewall.php + .env.example keys
+  [x] Denied IP receives 403 on API
+  [x] Dangerous extension / SVG / embedded dangerous extension uploads rejected
+  [x] Optional ClamAV wiring present (disabled by default)
+  [x] Optional auto-block after failed-login threshold (disabled by default)
+  [x] Security Monitoring event types documented in section 6F catalogue
+  [x] Feature tests: SecurityFirewallTest
+  [x] Favicon no longer accepts SVG
+
+Related but distinct
+- NFR-SEC / Security Monitoring (9.1) — detection & reporting; this NFR is the gate
+- NFR-SEC-NAV (9.4) — how users enter authenticated SPA pages
+- NFR-GC-ENC (9.3) — field encryption, not malware scanning
+- NFR-SEC-APP (9.6) — broader attack-surface baseline (includes malware cross-ref)
+- Host / cPanel firewall — ops, not application code
+
+--------------------------------------------------------------------------------
+9.6 NFR-SEC-APP — Protection against SQLi, XSS, CSRF, brute-force, malware, DDoS
+--------------------------------------------------------------------------------
+Status: IMPLEMENTED (2026-10-14) — formalises existing hardening + closes gaps
+(SafeHtml on save, global API throttle, stronger auth throttle keys).
+Volumetric / network DDoS remains an ops / CDN / host-firewall duty — Laravel
+rate limits are application-layer abuse mitigation only.
+
+Statement
+- The platform SHALL protect against SQL injection, cross-site scripting (XSS),
+  cross-site request forgery (CSRF), brute-force authentication attacks, and
+  malware in uploads, and SHALL apply application-layer throttling against
+  abusive / flood traffic. Network-layer DDoS absorption (CDN, provider WAF,
+  host firewall) SHALL be maintained operationally outside this codebase.
+
+Product fulfilment
+
+  A) SQL injection
+     - All user-influenced queries use Eloquent / query builder parameter
+       binding. Raw SQL (`whereRaw` / `orderByRaw` / `selectRaw`) MUST use
+       placeholders or static fragments only — no string concatenation of
+       request input into SQL.
+     - Validation of inputs before persistence remains mandatory.
+
+  B) XSS (cross-site scripting)
+     - API JSON responses carry restrictive CSP via SecurityHeaders
+       (`default-src 'none'` for non-document APIs).
+     - Stored rich HTML (Terms / Privacy / Cookie notice) is sanitized on
+       save with `App\Support\SafeHtml` (allowlist; strips script / handlers /
+       javascript: URLs) when SECURITY_SANITIZE_RICH_HTML=true.
+     - SPA uses DOMPurify (`sanitizeRichText`) before `dangerouslySetInnerHTML`
+       (CookieBanner + RichTextDisplay). Frontend remains the primary render
+       gate for HTML pages.
+     - Scriptable uploads (SVG, PHP, etc.) blocked by NFR-SEC-FW.
+
+  C) CSRF
+     - Sanctum SPA stateful cookies + CSRF (`statefulApi`, ValidateCsrfToken)
+       for mutating API calls from the first-party frontend (SECURITY
+       HARDENING phase 2). CORS credentials allowlist FRONTEND_URL.
+     - Bearer personal-access tokens (if used) are not CSRF-vulnerable the
+       same way; cookie SPA is the primary browser auth mode.
+     - NFR-SEC-NAV reduces session-riding via external deep links.
+
+  D) Brute-force
+     - Named limiter `auth` (SECURITY_AUTH_RATE_PER_MINUTE, default 20/min)
+       keyed by IP and email when present; applied to login / register /
+       password reset / OTP routes.
+     - Login OTP attempt caps + resend throttle; password-reset broker throttle.
+     - Security Monitoring records failed logins and escalates on threshold;
+       optional SECURITY_FIREWALL_AUTO_BLOCK temporary IP deny (NFR-SEC-FW).
+
+  E) Malware
+     - Delivered by NFR-SEC-FW (section 9.5): upload scan middleware, dangerous
+       extension / SVG rejection, optional ClamAV.
+
+  F) DDoS / flood abuse (application layer)
+     - Global named limiter `api` (SECURITY_API_RATE_PER_MINUTE, default 120/min
+       per user or IP) via `throttleApi('api')`.
+     - Additional tighter limiters: `imports`, `wc-publish`, `auth`.
+     - Stripe webhook excluded from global throttle (burst deliveries).
+     - Rate-limit trips may record `api.rate_limited` in Security Monitoring.
+     - NOT a substitute for CDN / cloud DDoS protection or host firewall.
+
+Operational fulfilment (out of app code)
+- Keep cPanel / host firewall, fail2ban (or equivalent), TLS, and optional
+  CDN/WAF in front of public hosts.
+- Patch OS and run dependency audits (NFR-SEC CI still optional).
+- Install ClamAV on the server if malware fail-closed policy is required.
+
+Acceptance criteria (for “done”)
+  [x] Documented in section 9.6 + section 8 checklist
+  [x] Eloquent / bound-query convention documented (no unbound request SQL)
+  [x] SafeHtml on Terms / Privacy / Cookie updates + unit tests
+  [x] SPA CookieBanner uses DOMPurify sanitizeRichText
+  [x] Sanctum CSRF / stateful API remains enabled (phase 2)
+  [x] Auth throttle keyed by IP (+ email); feature test asserts 429
+  [x] Global API rate limiter + env keys in .env.example
+  [x] Malware covered by cross-ref to NFR-SEC-FW
+  [x] Explicit: volumetric DDoS = ops/CDN, not Laravel alone
+  [x] Security headers present on API responses (feature test)
+
+Related but distinct
+- NFR-SEC (9.1) — monitoring & dependency scan reporting
+- NFR-SEC-NAV (9.4) — external navigation entry hardening
+- NFR-SEC-FW (9.5) — IP deny + upload malware gates
+- NFR-SEC-VAL (9.8) — validate + sanitize all user inputs (complements XSS)
+- NFR-BACKUP-ENC (9.7) — backup archive encryption at rest
+- SECURITY HARDENING phase 1–2 — headers, cookies, secrets
+
+--------------------------------------------------------------------------------
+9.7 NFR-BACKUP-ENC — Hub backup encryption at rest
+--------------------------------------------------------------------------------
+Status: IMPLEMENTED (2026-10-14). Detail lives with section 6B; this NFR is the
+security statement for encrypted archives.
+
+Statement
+- Hub backup ZIP archives SHALL be encrypted at rest on disk so a filesystem
+  copy / hosting compromise does not expose plaintext SQL dumps and uploaded
+  files. Download and restore SHALL decrypt transparently for authorised
+  operators when the correct key is configured.
+
+Mechanism
+- Streaming AES-256-GCM with magic header `HBENC1` (`HubBackupEncryptedArchive`).
+- Config: `HUB_BACKUP_ENCRYPT_AT_REST`, `HUB_BACKUP_ENCRYPTION_KEY` (shared).
+- Create → zip → encrypt in place; receive/mirror preserve ciphertext;
+  restore/download decrypt to temp ZIP.
+- Column `hub_backups.is_encrypted`; legacy plaintext still supported.
+
+Ops
+- Generate one key; set identically on Central + all content hubs.
+- Rotate by setting a new key only after old archives are pruned/expired, or
+  keep the old key available until retention clears ciphertext encrypted with it
+  (v1 has no multi-key ring — rotate carefully).
+- Protect the key like APP_KEY; never commit it.
+
+Acceptance criteria
+  [x] New backups encrypted when encrypt_at_rest enabled + key available
+  [x] Download streams plaintext ZIP to Power Admin
+  [x] Restore works for encrypted and legacy plaintext archives
+  [x] Dual-store upload passes is_encrypted; Central does not double-encrypt
+  [x] Documented in §6B + §8 + this subsection; tests cover round-trip
+
+Related but distinct
+- NFR-GC-ENC — Generic Compliance field/file crypto (not backups)
+- NFR-AVAIL / §6B / §6B.1 / §9.9 — schedule, dual store, retention, DR/rollback
+- NFR-PRIV — erasure does not rewrite historical backup dumps
+- NFR-SEC-VAL (9.8) — request validation/sanitization (not archive crypto)
+
+--------------------------------------------------------------------------------
+9.8 NFR-SEC-VAL — Server-side validation and sanitization of all user inputs
+--------------------------------------------------------------------------------
+Status: IMPLEMENTED (2026-10-15) — formalises mandatory Laravel validation on
+mutating APIs + global wire scrub + field-type sanitization for stored content.
+Complements NFR-SEC-APP (XSS) and NFR-SEC-FW (upload malware); does not replace
+them.
+
+Statement
+- The platform SHALL validate all user-supplied inputs on the server before
+  business logic persists or acts on them, and SHALL sanitize those inputs to
+  remove dangerous control characters and, for rich-text fields, disallowed
+  HTML. Client-side checks MAY improve UX but MUST NOT be trusted as the only
+  gate.
+
+Product fulfilment
+
+  A) Validation (every mutating API)
+     - POST / PUT / PATCH (and body-bearing DELETE) endpoints SHALL call
+       `$request->validate([...])` (or an equivalent private helper that does)
+       and return HTTP 422 with structured errors on failure.
+     - Rules MUST enforce type, length/max, allowlists (`Rule::in` / `exists`),
+       and file `mimes`/`max` where applicable.
+     - Machine/internal endpoints (hub backup bridge, Stripe webhook) SHALL
+       still authenticate (shared secret / signature) and validate file or
+       payload shape before use.
+     - Query filters on list endpoints SHOULD be validated or cast to safe
+       types (`integer()`, allowlisted enums) — never concatenated into SQL.
+
+  B) Sanitization (defence in depth)
+     - Global API middleware `SanitizeRequestInput` (config
+       `SECURITY_SANITIZE_REQUEST_INPUT`, default true) strips null bytes and
+       C0 control characters (except tab/LF/CR) from every request string
+       before controllers run. Laravel’s built-in TrimStrings /
+       ConvertEmptyStringsToNull remain enabled.
+     - Plain-text fields (names, subjects, email template copy, etc.) use
+       `InputSanitizer::plain()` — strip tags + trim.
+     - Stored rich HTML (Terms / Privacy / Cookie notice, GC/SMC description
+       & feedback, support ticket description/comments, WC section /
+       change-request content, post/bundle descriptions) use
+       `InputSanitizer::richHtml()` → `SafeHtml` allowlist when
+       `SECURITY_SANITIZE_RICH_HTML=true`.
+     - Structured settings payloads continue to use key allowlists
+       (e.g. `PageContentDefaults::sanitize`).
+     - Paths / redirects use `SafeFrontendRedirect` (NFR-SEC-NAV).
+     - Uploads remain gated by NFR-SEC-FW (`ScanUploadedFiles`).
+
+  C) Frontend (complementary, not sufficient alone)
+     - SPA uses `sanitizeRichText` (DOMPurify) before `dangerouslySetInnerHTML`
+       and SHOULD sanitize rich-text payloads on submit before calling the API.
+     - Form-level required/format checks remain for UX; server returns 422.
+
+Acceptance criteria (for “done”)
+  [x] Documented in section 9.8 + section 8 checklist
+  [x] `SanitizeRequestInput` on API middleware group + env key in .env.example
+  [x] `InputSanitizer` (wire / plain / richHtml) + unit tests
+  [x] Rich HTML sanitization extended beyond Terms/Privacy/Cookies to GC, SMC,
+      support tickets, WC content, posts/bundles
+  [x] Upload / internal GC file store use `$request->validate()` for file shape
+  [x] Feature tests: control-char scrub + script strip on a rich-text update
+  [x] Frontend: sanitizeRichText on submit for legal-page editors + page copy
+      HTML helper remains escaped
+
+Related but distinct
+- NFR-SEC-APP (9.6) — broader attack-surface (SQLi/XSS/CSRF/brute-force/…)
+- NFR-SEC-FW (9.5) — IP deny + malware/upload gates
+- NFR-SEC-NAV (9.4) — navigation entry hardening
+- NFR-SEC (9.1) — monitoring & reporting (not the validation gate)
+
+--------------------------------------------------------------------------------
+9.9 NFR-AVAIL — Disaster recovery, rollback, and deploy resilience
+--------------------------------------------------------------------------------
+Status: IMPLEMENTED (2026-10-16). Functional detail in sections 6B and 6B.1;
+this NFR is the availability statement.
+
+Statement
+- The platform SHALL provide Power Admin with operable disaster recovery for
+  hub data (restore from Central-stored encrypted backups) and code rollback
+  (re-apply a prior release package to selected hubs), with in-product
+  procedures that document prerequisites, steps, and limits.
+
+Product fulfilment
+  A) Data availability — §6B dual-store / Central backups, schedule, retention,
+     Backup now, download, restore; NFR-BACKUP-ENC at rest.
+  B) Code resilience — §1C apply of any ready_to_apply release_id (including
+     older versions as rollback); Update history for audit.
+  C) Procedures — §6B.1 runbook in Hub backups + Hubs UIs; recommend Backup now
+     before risky Apply; call out irreversible migrations.
+
+Explicit non-goals (v1)
+  - Automated multi-region failover / hot standby
+  - Point-in-time database recovery beyond stored backup archives
+  - Guaranteed migration down-scripts on code rollback
+
+Acceptance criteria
+  [x] Documented in §6B.1 + this subsection + §8 checklist
+  [x] Operators can restore hub data from Central via UI/API
+  [x] Operators can roll code back by applying a prior release with artifacts
+  [x] Frontend surfaces DR/rollback procedures and release selection
+  [ ] Off-site backup copies remain an ops process (download / external store)
+
+Related but distinct
+- NFR-BACKUP-ENC (9.7) — archive encryption
+- NFR-PERF — load/responsiveness (not DR)
+- §1B/§1C — version tracking and apply mechanics
+- NFR-PRIV — backups may retain personal data until retention prune
+
+================================================================================
+END OF REQUIREMENTS
+================================================================================

@@ -53,13 +53,29 @@ export default function PowerAdminHubs() {
   const [refreshing, setRefreshing] = useState(false)
   const [applying, setApplying] = useState(false)
   const [selectedHubIds, setSelectedHubIds] = useState([])
+  const [selectedReleaseId, setSelectedReleaseId] = useState('')
   const [applyResults, setApplyResults] = useState(null)
   const [historyFilterHubId, setHistoryFilterHubId] = useState('')
   const createFormRef = useRef(null)
   const nameInputRef = useRef(null)
 
   const latest = overview?.latest_release
-  const readyToApply = Boolean(latest?.ready_to_apply)
+  const releases = overview?.releases || []
+  const applyableReleases = useMemo(
+    () => releases.filter((r) => r.ready_to_apply),
+    [releases],
+  )
+  const selectedRelease = useMemo(() => {
+    if (selectedReleaseId) {
+      return applyableReleases.find((r) => String(r.id) === String(selectedReleaseId)) || null
+    }
+    return applyableReleases.find((r) => r.is_latest) || applyableReleases[0] || latest || null
+  }, [selectedReleaseId, applyableReleases, latest])
+  const readyToApply = Boolean(selectedRelease?.ready_to_apply)
+  const isRollback =
+    Boolean(selectedRelease) &&
+    Boolean(latest) &&
+    String(selectedRelease.id) !== String(latest.id)
   const counts = overview?.counts || {}
   const history = overview?.history || []
 
@@ -93,7 +109,16 @@ export default function PowerAdminHubs() {
         api.powerAdminReleases().catch(() => null),
       ])
       setHubs(hubsData.hubs || [])
-      if (releasesData) setOverview(releasesData)
+      if (releasesData) {
+        setOverview(releasesData)
+        const list = (releasesData.releases || []).filter((r) => r.ready_to_apply)
+        const preferred =
+          list.find((r) => r.is_latest) || releasesData.latest_release || list[0] || null
+        setSelectedReleaseId((prev) => {
+          if (prev && list.some((r) => String(r.id) === String(prev))) return prev
+          return preferred?.id ? String(preferred.id) : ''
+        })
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -167,19 +192,27 @@ export default function PowerAdminHubs() {
       setError('Select at least one hub (include Central if you want Central updated too).')
       return
     }
-    if (!readyToApply) {
-      setError('Publish a release with at least one zip before applying.')
+    if (!readyToApply || !selectedRelease?.id) {
+      setError('Publish a release with at least one zip before applying, or pick a prior release that still has artifacts.')
       return
     }
+    const actionLabel = isRollback ? 'Roll back' : 'Apply'
+    const ok = window.confirm(
+      `${actionLabel} version ${selectedRelease.version} on ${selectedHubIds.length} hub(s)?\n\n` +
+        (isRollback
+          ? 'Code rollback re-applies that release package. It does not reverse irreversible migrations — restore from a Central backup if schema/data broke.\n\n'
+          : 'Recommended: run Backup now on each target hub before a risky apply.\n\n') +
+        'Continue?'
+    )
+    if (!ok) return
     setApplying(true)
     setError('')
     setMessage('')
     setApplyResults(null)
     try {
-      const payload = { hub_ids: selectedHubIds }
-      if (latest?.id) payload.release_id = latest.id
+      const payload = { hub_ids: selectedHubIds, release_id: selectedRelease.id }
       const data = await api.applyPowerAdminRelease(payload)
-      setMessage(data.message || 'Apply finished.')
+      setMessage(data.message || (isRollback ? 'Rollback finished.' : 'Apply finished.'))
       setOverview(data.overview || overview)
       setApplyResults(data.results || [])
       await load()
@@ -525,7 +558,7 @@ export default function PowerAdminHubs() {
         <div className="hubs-update-panel__head">
           <div>
             <p className="eyebrow">Step 2 &amp; 3</p>
-            <h2>Select hubs, then apply</h2>
+            <h2>Select hubs, then apply or roll back</h2>
             <p className="muted" style={{ margin: '0.35rem 0 0' }}>
               {selectedHubIds.length === 0
                 ? 'No hubs selected yet.'
@@ -533,6 +566,33 @@ export default function PowerAdminHubs() {
             </p>
           </div>
           <div className="hubs-apply-actions">
+            <label className="hubs-release-pick">
+              <span className="muted">Release</span>
+              <select
+                value={selectedRelease ? String(selectedRelease.id) : ''}
+                onChange={(e) => setSelectedReleaseId(e.target.value)}
+                disabled={applyableReleases.length === 0}
+              >
+                {applyableReleases.length === 0 ? (
+                  <option value="">No applyable release</option>
+                ) : (
+                  applyableReleases.map((r) => (
+                    <option key={r.id} value={String(r.id)}>
+                      {r.version}
+                      {r.is_latest ? ' (latest)' : ''}
+                      {r.backend_artifact || r.frontend_artifact
+                        ? ` — ${[
+                            r.backend_artifact ? 'backend' : null,
+                            r.frontend_artifact ? 'frontend' : null,
+                          ]
+                            .filter(Boolean)
+                            .join('+')}`
+                        : ''}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
             <button type="button" className="btn ghost" onClick={selectAllHubs} disabled={!hubs.length}>
               Select all
             </button>
@@ -544,21 +604,41 @@ export default function PowerAdminHubs() {
             </button>
             <button
               type="button"
-              className="btn primary"
+              className={`btn primary${isRollback ? ' hubs-rollback-btn' : ''}`}
               onClick={onApplyRelease}
               disabled={applying || selectedHubIds.length === 0 || !readyToApply}
             >
               {applying
-                ? 'Applying…'
-                : `Apply ${latest?.version || 'release'} (${selectedHubIds.length})`}
+                ? isRollback
+                  ? 'Rolling back…'
+                  : 'Applying…'
+                : isRollback
+                  ? `Roll back to ${selectedRelease?.version || 'release'} (${selectedHubIds.length})`
+                  : `Apply ${selectedRelease?.version || latest?.version || 'release'} (${selectedHubIds.length})`}
             </button>
           </div>
         </div>
         {!readyToApply && (
           <p className="hubs-apply-banner">
-            Publish a release with at least one zip in Step 1 before you can apply.
+            Publish a release with at least one zip in Step 1 before you can apply. Keep prior
+            release zips if you may need to roll back.
           </p>
         )}
+        {readyToApply && isRollback ? (
+          <p className="hubs-apply-banner hubs-apply-banner--rollback">
+            Rollback selected: re-applies {selectedRelease?.version}. Does not reverse irreversible
+            migrations — use{' '}
+            <Link to="/my-dashboard/hub-backups">Hub backups</Link> data restore if schema/data
+            broke. Prefer Backup now before risky applies.
+          </p>
+        ) : null}
+        {readyToApply && !isRollback ? (
+          <p className="muted hubs-rollback-hint">
+            To roll back a bad deploy, choose a prior release above (artifacts must still exist),
+            then Apply — the button becomes Roll back. See{' '}
+            <Link to="/my-dashboard/hub-backups">Hub backups</Link> for data disaster recovery.
+          </p>
+        ) : null}
         {applyResults?.length ? (
           <ul className="hubs-apply-results">
             {applyResults.map((row) => (

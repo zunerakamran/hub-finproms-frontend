@@ -952,17 +952,6 @@ export default function SecurityMonitoring() {
                 <strong>Allow countries</strong> can reopen a restricted country or extend UK-only.
                 Env deny-list and temporary firewall blocks still apply.
               </p>
-              <ul className="muted secmon-access-examples">
-                <li>
-                  Restrict country Pakistan + Allow IP X → only X from Pakistan is allowed
-                </li>
-                <li>
-                  Allow country Pakistan + Restrict IP X → Pakistan is allowed except X
-                </li>
-                <li>
-                  UK only + Restrict IP X → UK is allowed except X
-                </li>
-              </ul>
 
               <div className="secmon-access-rules">
                 <div className="secmon-access-rule">
@@ -1344,15 +1333,6 @@ export default function SecurityMonitoring() {
         .secmon-chip-row .btn.ghost {
           font-size: 0.82rem;
           padding: 0.25rem 0.65rem;
-        }
-        .secmon-access-examples {
-          margin: 0.5rem 0 0;
-          padding-left: 1.2rem;
-          font-size: 0.9rem;
-          line-height: 1.45;
-        }
-        .secmon-access-examples li {
-          margin: 0.15rem 0;
         }
         .secmon-access-rules {
           display: flex;

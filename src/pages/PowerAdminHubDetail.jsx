@@ -251,8 +251,10 @@ export default function PowerAdminHubDetail() {
         ) : null}
         <p className="muted">
           Phase 2 apply pushes zips from Central to this hub via <code>api_url</code>. Set the
-          frontend extract path (server folder for Vite dist). You can still ship manually via
-          Git/FTP and refresh/mark version.
+          frontend extract path (server folder for Vite dist). Code-update auth uses a{' '}
+          <strong>separate</strong> <code>code_update_token</code> (not the backup token) — Central
+          mints and syncs it on apply. You can still ship manually via Git/FTP and refresh/mark
+          version.
         </p>
         {hub.code_update?.apply_error ? (
           <div className="alert">{hub.code_update.apply_error}</div>
@@ -267,7 +269,8 @@ export default function PowerAdminHubDetail() {
         </label>
         <p className="muted form-hint">
           Saved with <strong>Save hub details</strong> / deploy wiring below. Required to apply a
-          frontend zip to this hub.
+          frontend zip. If the hub also sets <code>CODE_UPDATE_FRONTEND_PATH</code> in{' '}
+          <code>.env</code>, that value must match this path exactly.
         </p>
         <div className="actions">
           <button

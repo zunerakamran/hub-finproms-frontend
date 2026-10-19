@@ -542,8 +542,10 @@ export default function PowerAdminHubs() {
 
           <p className="muted form-hint">
             Before applying a frontend zip, open each hub and set its{' '}
-            <strong>frontend extract path</strong> (server folder). Content hubs also need{' '}
-            <strong>API URL</strong> in deploy wiring.
+            <strong>frontend extract path</strong> (server folder; must match that hub&apos;s{' '}
+            <code>CODE_UPDATE_FRONTEND_PATH</code> if set). Content hubs also need{' '}
+            <strong>API URL</strong> in deploy wiring. Apply uses a dedicated code-update token
+            (synced from Central) — backup tokens alone no longer authorize releases.
           </p>
 
           <div className="actions">

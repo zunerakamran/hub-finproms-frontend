@@ -94,11 +94,27 @@ export function buildDeployPreview(hub, meta) {
     env_snippet: [
       `# ${typeLabel} deploy - same codebase, OWN database`,
       `HUB_SLUG=${slug}`,
-      hub?.type === 'shared' ? 'HUB_IS_CONTROL_PLANE=false' : null,
+      isCentral ? 'HUB_IS_CONTROL_PLANE=true' : 'HUB_IS_CONTROL_PLANE=false',
       frontend ? `FRONTEND_URL=${frontend.replace(/\/$/, '')}` : 'FRONTEND_URL=https://example.com',
       api ? `APP_URL=${api.replace(/\/$/, '')}` : 'APP_URL=https://api.example.com',
       'APP_VERSION=1.0.0',
       'FRONTEND_VERSION=1.0.0',
+      // Security: backups upload + code-update apply (content hubs)
+      needsRemoteDb
+        ? '# Required for backup upload to Central (prefer this over receive-URL overrides)'
+        : null,
+      needsRemoteDb ? 'CENTRAL_API_URL=https://central.example.com/api' : null,
+      needsRemoteDb
+        ? '# Or, if CENTRAL_API_URL is empty: CENTRAL_ALLOWED_RECEIVE_HOSTS=central.example.com'
+        : null,
+      needsRemoteDb ? '# Separate from HUB_BACKUP_SECRET — used only for release apply/artifacts' : null,
+      needsRemoteDb ? 'HUB_CODE_UPDATE_SECRET=' : null,
+      needsRemoteDb
+        ? '# Must match Power Admin → hub “Frontend extract path” (or leave empty and set only there)'
+        : null,
+      needsRemoteDb
+        ? `CODE_UPDATE_FRONTEND_PATH=${(meta?.code_frontend_path || hub?.code_update?.frontend_path || '').trim() || '/home/user/public_html'}`
+        : null,
       `DB_CONNECTION=${driver}`,
       `DB_HOST=${dbHost || '127.0.0.1'}`,
       `DB_PORT=${port || 3306}`,

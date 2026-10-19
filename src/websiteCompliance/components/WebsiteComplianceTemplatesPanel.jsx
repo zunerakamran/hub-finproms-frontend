@@ -30,6 +30,7 @@ import WcStatusBadge from '../../components/WebsiteComplianceUI'
 import { websiteComplianceAssetUrl } from '../../api/client'
 import { formatDateTime } from '../../utils/dateFormat'
 import { truncateRichText } from '../../utils/richText'
+import { unsafePreviewUrlMessage } from '../../utils/safeOutboundUrl'
 import { defaultTemplatePreviewUrl, resolveHubPreviewBase } from '../utils/assetUrl'
 import { sectionDisplayName } from '../utils/sectionDisplay'
 import TemplateScrollPreview from './TemplateScrollPreview'
@@ -449,6 +450,13 @@ export default function WebsiteComplianceTemplatesPanel({
   const handleSaveTemplate = async (e) => {
     e.preventDefault()
     if (!templateName) return
+    const previewCandidate =
+      templatePreviewUrl || defaultTemplatePreviewUrl(templateSlug, previewBase)
+    const previewBlock = unsafePreviewUrlMessage(previewCandidate)
+    if (previewBlock) {
+      setError(previewBlock)
+      return
+    }
     setIsSavingTemplate(true)
     setMessage('')
     setError('')
@@ -457,7 +465,7 @@ export default function WebsiteComplianceTemplatesPanel({
         name: templateName,
         slug: templateSlug,
         description: templateDesc,
-        preview_url: templatePreviewUrl || defaultTemplatePreviewUrl(templateSlug, previewBase),
+        preview_url: previewCandidate,
         is_active: templateIsActive,
         color_schemes: normalizeColorSchemes(templateColorSchemes),
         available_pages: normalizeAvailablePages(templateAvailablePages),
@@ -1237,7 +1245,8 @@ export default function WebsiteComplianceTemplatesPanel({
                     (<span className="font-mono text-gray-600">{previewBase}</span>)
                   </>
                 ) : null}
-                .
+                . Must be a public http(s) URL — localhost / private IPs are blocked (server
+                screenshot capture).
               </p>
             </div>
 

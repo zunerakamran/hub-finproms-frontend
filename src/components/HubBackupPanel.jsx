@@ -230,7 +230,9 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
           <h2>Backups</h2>
           <p className="muted">
             Scheduled backups save on the hub&apos;s own server and upload a copy to Central. Restore
-            uses the Central copy.
+            uses the Central copy. Content hubs should set <code>CENTRAL_API_URL</code> in their{' '}
+            <code>.env</code> (see deploy env snippet) so uploads always go to Central — arbitrary
+            receive URLs are no longer accepted for security.
           </p>
         </div>
       )}

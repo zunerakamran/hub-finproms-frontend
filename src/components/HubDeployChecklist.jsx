@@ -30,7 +30,9 @@ export default function HubDeployChecklist({ deploy, slug }) {
         Registry fields below can be verified here. Each white-labelled has its <strong>own
         database</strong>. <code>HUB_SLUG</code> and that hub&apos;s <code>DB_*</code> env are ops
         steps on the white-labelled server - use the env snippet when provisioning. Shared stores a
-        copy of the DB credentials so it can push content later.
+        copy of the DB credentials so it can push content later. Content hubs should also set{' '}
+        <code>CENTRAL_API_URL</code> (backups) and keep <code>HUB_CODE_UPDATE_SECRET</code> separate
+        from the backup secret.
       </p>
       <ul className="hub-deploy-steps">
         {checklist.map((item) => (

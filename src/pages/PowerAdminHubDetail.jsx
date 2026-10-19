@@ -7,7 +7,7 @@ import { codeUpdateBadge, formatReportedVersion } from '../utils/codeUpdate'
 import { buildDeployPreview } from '../utils/hubDeploy'
 
 /**
- * Hub registry detail: name / slug / deploy wiring only.
+ * Hub registry detail: name / slug / deploy wiring only
  * Functionalities, Modules, Capabilities, and Subscriber credits are managed
  * after selecting the hub in the Control hub switcher - not from this page.
  */

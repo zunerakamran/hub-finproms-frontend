@@ -781,6 +781,8 @@ export const api = {
     request('/power-admin/hubs', { method: 'POST', body: JSON.stringify(payload) }),
   updatePowerAdminHub: (id, payload) =>
     request(`/power-admin/hubs/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  pushPowerAdminHubDeployEnv: (id) =>
+    request(`/power-admin/hubs/${id}/push-deploy-env`, { method: 'POST' }),
   powerAdminReleases: () => request('/power-admin/releases'),
   powerAdminReleaseHistory: (params = {}) => {
     const qs = new URLSearchParams()

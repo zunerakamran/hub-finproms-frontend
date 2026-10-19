@@ -39,7 +39,11 @@ export default function PowerAdminHubDetail() {
     clear_db_ssl_ca: false,
     is_active: true,
     code_frontend_path: '',
+    central_api_url: '',
+    central_allowed_receive_hosts: '',
+    push_deploy_env: true,
   })
+  const [pushingEnv, setPushingEnv] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -66,6 +70,9 @@ export default function PowerAdminHubDetail() {
         clear_db_ssl_ca: false,
         is_active: Boolean(next.is_active),
         code_frontend_path: next.code_update?.frontend_path || '',
+        central_api_url: next.deploy?.central_api_url || '',
+        central_allowed_receive_hosts: next.deploy?.central_allowed_receive_hosts || '',
+        push_deploy_env: true,
       })
     } catch (err) {
       setError(err.message)
@@ -124,6 +131,9 @@ export default function PowerAdminHubDetail() {
         api_url: meta.api_url.trim() || null,
         deploy_notes: meta.deploy_notes.trim() || null,
         code_frontend_path: meta.code_frontend_path.trim() || null,
+        central_api_url: meta.central_api_url.trim() || null,
+        central_allowed_receive_hosts: meta.central_allowed_receive_hosts.trim() || null,
+        push_deploy_env: Boolean(meta.push_deploy_env),
         db_driver: 'mysql',
         db_host: meta.db_host.trim() || null,
         db_port: 3306,
@@ -165,12 +175,29 @@ export default function PowerAdminHubDetail() {
         db_database: data.hub.deploy?.database?.database || '',
         db_username: data.hub.deploy?.database?.username || '',
         code_frontend_path: data.hub.code_update?.frontend_path || '',
+        central_api_url: data.hub.deploy?.central_api_url || '',
+        central_allowed_receive_hosts: data.hub.deploy?.central_allowed_receive_hosts || '',
       }))
       setMessage(data.message || 'Hub updated.')
     } catch (err) {
       setError(err.message)
     } finally {
       setSavingMeta(false)
+    }
+  }
+
+  const onPushDeployEnv = async () => {
+    setPushingEnv(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.pushPowerAdminHubDeployEnv(hubId)
+      setHub(data.hub)
+      setMessage(data.message || 'Deploy env pushed to hub.')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setPushingEnv(false)
     }
   }
 
@@ -361,7 +388,7 @@ export default function PowerAdminHubDetail() {
           />
         </label>
         <label>
-          API URL (optional)
+          API URL (this hub&apos;s public API — required to push .env)
           <input
             type="url"
             value={meta.api_url}
@@ -369,6 +396,43 @@ export default function PowerAdminHubDetail() {
             placeholder="https://api.my-hub.com"
           />
         </label>
+        {hub.type !== 'central' && (
+          <>
+            <h3 style={{ margin: '0.75rem 0 0' }}>Deploy env (written to hub .env)</h3>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Set once here. On save, Central syncs the hub database and (by default) writes these
+              keys into that hub&apos;s <code>.env</code> so you do not edit each server by hand.
+              Leave Central API URL blank to auto-fill from this Central&apos;s <code>APP_URL</code>.
+            </p>
+            <label>
+              Central API URL (on the content hub)
+              <input
+                type="url"
+                value={meta.central_api_url}
+                onChange={(e) => setMeta({ ...meta, central_api_url: e.target.value })}
+                placeholder="https://central.example.com/api"
+              />
+            </label>
+            <label>
+              Allowed receive hosts (comma-separated)
+              <input
+                value={meta.central_allowed_receive_hosts}
+                onChange={(e) =>
+                  setMeta({ ...meta, central_allowed_receive_hosts: e.target.value })
+                }
+                placeholder="central.example.com"
+              />
+            </label>
+            <label className="toggle-row">
+              <input
+                type="checkbox"
+                checked={meta.push_deploy_env}
+                onChange={(e) => setMeta({ ...meta, push_deploy_env: e.target.checked })}
+              />
+              <span>Also write allowlisted keys to the hub <code>.env</code> file on save</span>
+            </label>
+          </>
+        )}
         <label>
           Deploy notes
           <textarea
@@ -523,6 +587,17 @@ export default function PowerAdminHubDetail() {
           <button className="btn primary" disabled={savingMeta}>
             {savingMeta ? 'Saving...' : 'Save deploy wiring'}
           </button>
+          {hub.type !== 'central' && (
+            <button
+              type="button"
+              className="btn"
+              disabled={pushingEnv || savingMeta}
+              onClick={onPushDeployEnv}
+              title="Sync DB + write CENTRAL_API_URL / frontend path into the hub .env"
+            >
+              {pushingEnv ? 'Pushing…' : 'Push deploy env to hub'}
+            </button>
+          )}
         </div>
         <HubDeployChecklist deploy={buildDeployPreview(hub, meta)} slug={hub.slug} />
       </form>

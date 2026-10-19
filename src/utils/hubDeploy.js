@@ -20,10 +20,20 @@ export function buildDeployPreview(hub, meta) {
   const port = meta?.db_port ? String(meta.db_port).trim() : hub?.deploy?.database?.port || 3306
   const typeLabel = hub?.type === 'shared' ? 'Shared' : hub?.type === 'central' ? 'Central' : 'White-labelled'
 
+  const centralApi = (meta?.central_api_url || hub?.deploy?.central_api_url || '').trim()
+  const centralHosts = (
+    meta?.central_allowed_receive_hosts ||
+    hub?.deploy?.central_allowed_receive_hosts ||
+    ''
+  ).trim()
+  const codeFrontendPath = (meta?.code_frontend_path || hub?.code_update?.frontend_path || '').trim()
+
   return {
     ...(hub?.deploy || {}),
     frontend_url: frontend || null,
     api_url: api || null,
+    central_api_url: centralApi || null,
+    central_allowed_receive_hosts: centralHosts || null,
     deploy_notes: notes || null,
     database: {
       driver,
@@ -101,19 +111,16 @@ export function buildDeployPreview(hub, meta) {
       'FRONTEND_VERSION=1.0.0',
       // Security: backups upload + code-update apply (content hubs)
       needsRemoteDb
-        ? '# Required for backup upload to Central (prefer this over receive-URL overrides)'
-        : null,
-      needsRemoteDb ? 'CENTRAL_API_URL=https://central.example.com/api' : null,
-      needsRemoteDb
-        ? '# Or, if CENTRAL_API_URL is empty: CENTRAL_ALLOWED_RECEIVE_HOSTS=central.example.com'
-        : null,
-      needsRemoteDb ? '# Separate from HUB_BACKUP_SECRET — used only for release apply/artifacts' : null,
-      needsRemoteDb ? 'HUB_CODE_UPDATE_SECRET=' : null,
-      needsRemoteDb
-        ? '# Must match Power Admin → hub “Frontend extract path” (or leave empty and set only there)'
+        ? '# Written from Central via “Push deploy env” / Save (also live in hubs DB)'
         : null,
       needsRemoteDb
-        ? `CODE_UPDATE_FRONTEND_PATH=${(meta?.code_frontend_path || hub?.code_update?.frontend_path || '').trim() || '/home/user/public_html'}`
+        ? `CENTRAL_API_URL=${centralApi || 'https://central.example.com/api'}`
+        : null,
+      needsRemoteDb
+        ? `CENTRAL_ALLOWED_RECEIVE_HOSTS=${centralHosts || 'central.example.com'}`
+        : null,
+      needsRemoteDb
+        ? `CODE_UPDATE_FRONTEND_PATH=${codeFrontendPath || '/home/user/public_html'}`
         : null,
       `DB_CONNECTION=${driver}`,
       `DB_HOST=${dbHost || '127.0.0.1'}`,

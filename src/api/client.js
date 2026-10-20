@@ -1164,6 +1164,26 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
+  accessControlHubSettings: (options = {}) =>
+    request(`${adminBase(options)}/access-control/hub-settings`),
+  accessControlUpdateHubSettings: (payload, options = {}) =>
+    request(`${adminBase(options)}/access-control/hub-settings`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  accessControlUsers: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/access-control/users${query ? `?${query}` : ''}`)
+  },
+  accessControlUserSettings: (userId, options = {}) =>
+    request(`${adminBase(options)}/access-control/users/${userId}`),
+  accessControlUpdateUserSettings: (userId, payload, options = {}) =>
+    request(`${adminBase(options)}/access-control/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
 
   activeSessions: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN

@@ -67,7 +67,6 @@ const SECMON_NAV_ANY = [
   'secmon_view_report',
   'secmon_manage_incidents',
   'secmon_manage_alerts',
-  'secmon_manage_access',
 ]
 
 const WTL_NAV_ANY = [
@@ -637,7 +636,7 @@ export const DASHBOARD_LINKS = [
     kind: 'section',
     id: 'secmon',
     label: 'Security Monitoring',
-    anyOf: SECMON_NAV_ANY,
+    anyOf: [...SECMON_NAV_ANY, 'secmon_manage_access'],
   },
   {
     to: '/my-dashboard/security-monitoring',
@@ -646,6 +645,15 @@ export const DASHBOARD_LINKS = [
     description:
       'Regular security event feed, incident investigations, and monitoring report (when / what / status).',
     anyOf: SECMON_NAV_ANY,
+    group: 'secmon',
+  },
+  {
+    to: '/my-dashboard/access-control',
+    label: 'Access control',
+    title: 'Access control',
+    description:
+      'Hub and per-user IP, country, UK, and VPN access rules. Checked on every API request.',
+    capability: 'secmon_manage_access',
     group: 'secmon',
   },
   {

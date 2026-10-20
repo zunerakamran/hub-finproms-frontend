@@ -80,6 +80,7 @@ const SupportTicketSubmit = lazy(() => import('./pages/SupportTicketSubmit'))
 const SupportTicketsQueue = lazy(() => import('./pages/SupportTicketsQueue'))
 const SupportTicketDetail = lazy(() => import('./pages/SupportTicketDetail'))
 const SecurityMonitoring = lazy(() => import('./pages/SecurityMonitoring'))
+const AccessControl = lazy(() => import('./pages/AccessControl'))
 const TaxonomyAddRequestsMy = lazy(() => import('./pages/TaxonomyAddRequestsMy'))
 const TaxonomyAddRequestSubmit = lazy(() => import('./pages/TaxonomyAddRequestSubmit'))
 const TaxonomyAddRequestsQueue = lazy(() => import('./pages/TaxonomyAddRequestsQueue'))
@@ -492,10 +493,17 @@ export default function App() {
                         'secmon_view_report',
                         'secmon_manage_incidents',
                         'secmon_manage_alerts',
-                        'secmon_manage_access',
                       ]}
                     >
                       <SecurityMonitoring />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="access-control"
+                  element={
+                    <HubCapabilityRoute capability="secmon_manage_access">
+                      <AccessControl />
                     </HubCapabilityRoute>
                   }
                 />

@@ -370,6 +370,8 @@ export default function AccessControl() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyScope, setHistoryScope] = useState('')
   const [expandedHistoryId, setExpandedHistoryId] = useState(null)
+  const [restoringId, setRestoringId] = useState(null)
+  const [unlocking, setUnlocking] = useState(false)
 
   const loadHub = useCallback(async () => {
     const data = await api.accessControlHubSettings({ asPowerAdmin })
@@ -457,6 +459,14 @@ export default function AccessControl() {
     })
   }
 
+  const confirmSelfLockout = (preview) => {
+    const ip = preview?.ip || 'your IP'
+    const rule = preview?.reason_label || preview?.reason || 'access rules'
+    return window.confirm(
+      `These rules would BLOCK ${ip} (rule: ${rule}).\n\nSave anyway? Prefer Monitor mode or Simulate first if you are unsure.`
+    )
+  }
+
   const saveHub = async (e) => {
     e.preventDefault()
     if (!hubSettings) return
@@ -464,11 +474,33 @@ export default function AccessControl() {
     setError('')
     setMessage('')
     try {
-      const data = await api.accessControlUpdateHubSettings(buildPayload(hubSettings), {
-        asPowerAdmin,
-      })
+      const payload = buildPayload(hubSettings)
+      let data
+      try {
+        data = await api.accessControlUpdateHubSettings(payload, { asPowerAdmin })
+      } catch (err) {
+        if (err.status === 409 && err.data?.code === 'self_lockout_risk') {
+          if (!confirmSelfLockout(err.data.preview)) {
+            setError('Save cancelled — rules would block your current IP.')
+            return
+          }
+          data = await api.accessControlUpdateHubSettings(
+            { ...payload, acknowledge_self_lockout: true },
+            { asPowerAdmin }
+          )
+        } else {
+          throw err
+        }
+      }
       setHubSettings({ ...ACCESS_DEFAULT, ...(data.data || {}) })
-      setMessage('Hub access rules saved.')
+      const preview = data.self_lockout_preview
+      if (preview?.result === 'would_block') {
+        setMessage(
+          `Hub access rules saved (Monitor). Your IP ${preview.ip || ''} would be blocked if you switch to Enforce (${preview.reason_label || preview.reason}).`
+        )
+      } else {
+        setMessage('Hub access rules saved.')
+      }
       if (section === 'history') {
         loadHistory().catch(() => {})
       }
@@ -486,11 +518,27 @@ export default function AccessControl() {
     setError('')
     setMessage('')
     try {
-      const data = await api.accessControlUpdateUserSettings(
-        selectedUser.id,
-        buildPayload(userSettings),
-        { asPowerAdmin }
-      )
+      const payload = buildPayload(userSettings)
+      let data
+      try {
+        data = await api.accessControlUpdateUserSettings(selectedUser.id, payload, {
+          asPowerAdmin,
+        })
+      } catch (err) {
+        if (err.status === 409 && err.data?.code === 'self_lockout_risk') {
+          if (!confirmSelfLockout(err.data.preview)) {
+            setError('Save cancelled — rules would block your current IP.')
+            return
+          }
+          data = await api.accessControlUpdateUserSettings(
+            selectedUser.id,
+            { ...payload, acknowledge_self_lockout: true },
+            { asPowerAdmin }
+          )
+        } else {
+          throw err
+        }
+      }
       setUserSettings({ ...ACCESS_DEFAULT, ...(data.data || {}) })
       setMessage(`Access rules saved for ${selectedUser.email}.`)
       if (section === 'history') {
@@ -500,6 +548,74 @@ export default function AccessControl() {
       setError(err.message || 'Failed to save user access rules.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const restoreHistoryRow = async (row, snapshot = 'before') => {
+    if (!row?.id) return
+    const label = snapshot === 'after' ? 'the new values from' : 'the previous values before'
+    if (
+      !window.confirm(
+        `Restore ${label} this change?\n\n${row.change_summary || row.title || ''}`
+      )
+    ) {
+      return
+    }
+    setRestoringId(row.id)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.accessControlRestoreChange(
+        row.id,
+        { snapshot },
+        { asPowerAdmin }
+      )
+      if (data.scope === 'hub' && data.data) {
+        setHubSettings({ ...ACCESS_DEFAULT, ...data.data })
+      }
+      if (data.scope === 'user' && data.data && data.user) {
+        setSelectedUser(data.user)
+        setUserSettings({ ...ACCESS_DEFAULT, ...data.data })
+      }
+      setMessage(
+        snapshot === 'after'
+          ? 'Restored the “after” snapshot from history.'
+          : 'Restored the previous (“before”) snapshot from history.'
+      )
+      await loadHistory()
+      await loadHub()
+    } catch (err) {
+      setError(err.message || 'Failed to restore from history.')
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
+  const runEmergencyUnlock = async ({ keepRules = false } = {}) => {
+    const ok = window.confirm(
+      keepRules
+        ? 'Switch enforcement to Monitor for this hub (keep rule flags)? You will no longer get hard 403s from these rules.'
+        : 'Emergency unlock: clear UK-only / country / IP / VPN gates and set Monitor mode for this hub (and user rules)?'
+    )
+    if (!ok) return
+    setUnlocking(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await api.accessControlEmergencyUnlock({ keep_rules: keepRules }, { asPowerAdmin })
+      if (data.data) {
+        setHubSettings({ ...ACCESS_DEFAULT, ...data.data })
+      } else {
+        await loadHub()
+      }
+      setMessage(data.message || 'Emergency unlock applied.')
+      if (section === 'history') {
+        loadHistory().catch(() => {})
+      }
+    } catch (err) {
+      setError(err.message || 'Emergency unlock failed.')
+    } finally {
+      setUnlocking(false)
     }
   }
 
@@ -578,6 +694,24 @@ export default function AccessControl() {
             Hub-wide rules for everyone, plus optional per-user rules after login. Checked on every
             API request using the current IP / location / VPN signal.
           </p>
+        </div>
+        <div className="access-control-header__actions">
+          <button
+            type="button"
+            className="btn ghost"
+            disabled={unlocking}
+            onClick={() => runEmergencyUnlock({ keepRules: true })}
+          >
+            {unlocking ? 'Unlocking…' : 'Switch to Monitor'}
+          </button>
+          <button
+            type="button"
+            className="btn ghost"
+            disabled={unlocking}
+            onClick={() => runEmergencyUnlock({ keepRules: false })}
+          >
+            Emergency unlock
+          </button>
         </div>
       </header>
 
@@ -1017,6 +1151,30 @@ export default function AccessControl() {
                           </tbody>
                         </table>
                       )}
+                      {row.can_restore ? (
+                        <div className="access-control-history-item__restore">
+                          {row.has_before ? (
+                            <button
+                              type="button"
+                              className="btn primary"
+                              disabled={restoringId === row.id}
+                              onClick={() => restoreHistoryRow(row, 'before')}
+                            >
+                              {restoringId === row.id ? 'Restoring…' : 'Restore previous'}
+                            </button>
+                          ) : null}
+                          {row.has_after ? (
+                            <button
+                              type="button"
+                              className="btn ghost"
+                              disabled={restoringId === row.id}
+                              onClick={() => restoreHistoryRow(row, 'after')}
+                            >
+                              Restore this version
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </article>

@@ -8614,6 +8614,20 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   max-width: 960px;
 }
 
+.access-control-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.access-control-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .access-control-header h1 {
   margin: 0 0 0.35rem;
 }
@@ -9115,4 +9129,11 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted, #64748b);
+}
+
+.access-control-history-item__restore {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
 }

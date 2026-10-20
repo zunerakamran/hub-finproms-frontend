@@ -1195,6 +1195,16 @@ export const api = {
     ).toString()
     return request(`${adminBase(options)}/access-control/changes${query ? `?${query}` : ''}`)
   },
+  accessControlRestoreChange: (changeId, payload = {}, options = {}) =>
+    request(`${adminBase(options)}/access-control/changes/${changeId}/restore`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  accessControlEmergencyUnlock: (payload = {}, options = {}) =>
+    request(`${adminBase(options)}/access-control/emergency-unlock`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   activeSessions: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN

@@ -8607,52 +8607,104 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
 }
 
 /* Security monitoring — prominent Block VPN toggle */
-.secmon-vpn-toggle {
+/* Access control page */
+.access-control-page {
+  display: grid;
+  gap: 1rem;
+  max-width: 960px;
+}
+
+.access-control-header h1 {
+  margin: 0 0 0.35rem;
+}
+
+.access-control-header .muted {
+  margin: 0;
+  max-width: 46rem;
+}
+
+.access-control-tabs {
+  margin-bottom: 0.25rem;
+}
+
+.access-control-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.access-control-section__intro h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.access-control-section__intro .muted {
+  margin: 0;
+}
+
+.access-control-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.12));
+  border-radius: 14px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.access-control-rules-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.access-control-hint {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.access-control-vpn {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin: 0.75rem 0 1.1rem;
-  padding: 0.95rem 1.1rem;
+  padding: 0.95rem 1.05rem;
   border-radius: 12px;
-  border: 1px solid rgba(37, 99, 235, 0.28);
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.06));
+  border: 1px solid color-mix(in srgb, var(--brand, #1d4ed8) 28%, var(--line, #e2e8f0));
+  background: color-mix(in srgb, var(--brand, #1d4ed8) 8%, var(--surface, #fff));
 }
 
-.secmon-vpn-toggle__copy {
+.access-control-vpn__copy {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   min-width: 0;
 }
 
-.secmon-vpn-toggle__copy strong {
+.access-control-vpn__copy strong {
   font-size: 1.02rem;
+  color: var(--ink, #0f172a);
 }
 
-.secmon-vpn-toggle__control {
+.access-control-vpn__control {
   display: flex;
   align-items: center;
   gap: 0.65rem;
   flex-shrink: 0;
 }
 
-.secmon-vpn-toggle__state {
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+.access-control-vpn__state {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
-.secmon-vpn-toggle__state.is-allowed {
-  color: #15803d;
+.access-control-vpn__state.is-allowed {
+  color: var(--brand, #1d4ed8);
 }
 
-.secmon-vpn-toggle__state.is-blocked {
+.access-control-vpn__state.is-blocked {
   color: #b91c1c;
 }
 
-.secmon-switch {
+.access-control-switch {
   position: relative;
   width: 52px;
   height: 30px;
@@ -8664,11 +8716,11 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   transition: background 0.18s ease;
 }
 
-.secmon-switch.is-on {
+.access-control-switch.is-on {
   background: #dc2626;
 }
 
-.secmon-switch__knob {
+.access-control-switch__knob {
   position: absolute;
   top: 3px;
   left: 3px;
@@ -8680,17 +8732,173 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   transition: transform 0.18s ease;
 }
 
-.secmon-switch.is-on .secmon-switch__knob {
+.access-control-switch.is-on .access-control-switch__knob {
   transform: translateX(22px);
 }
 
+.access-control-rules {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.access-control-rule {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.12));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface, #fff) 94%, var(--brand, #1d4ed8) 6%);
+}
+
+.access-control-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  cursor: pointer;
+}
+
+.access-control-check input {
+  margin-top: 0.2rem;
+  accent-color: var(--brand, #1d4ed8);
+}
+
+.access-control-rule__body {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line, rgba(15, 23, 42, 0.1));
+}
+
+.access-control-rule__body textarea,
+.access-control-search input {
+  width: 100%;
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.14));
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  background: #fff;
+}
+
+.access-control-rule__body textarea:focus,
+.access-control-search input:focus {
+  outline: none;
+  border-color: var(--brand, #1d4ed8);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand, #1d4ed8) 18%, transparent);
+}
+
+.access-control-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.access-control-chip {
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.14));
+  background: #fff;
+  color: var(--ink, #0f172a);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.access-control-chip:hover {
+  border-color: var(--brand, #1d4ed8);
+  color: var(--brand, #1d4ed8);
+}
+
+.access-control-chip.is-active {
+  background: var(--brand, #1d4ed8);
+  border-color: var(--brand, #1d4ed8);
+  color: #fff;
+}
+
+.access-control-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.access-control-user-picker {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.access-control-search {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.access-control-search input {
+  flex: 1;
+}
+
+.access-control-user-list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.access-control-user-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.12));
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.access-control-user-item:hover {
+  border-color: var(--brand, #1d4ed8);
+}
+
+.access-control-user-item.is-active {
+  background: var(--brand, #1d4ed8);
+  border-color: var(--brand, #1d4ed8);
+  color: #fff;
+}
+
+.access-control-user-item.is-active .muted,
+.access-control-user-item.is-active .access-control-user-item__meta {
+  color: color-mix(in srgb, #fff 82%, transparent);
+}
+
+.access-control-user-item__name {
+  font-weight: 700;
+}
+
+.access-control-user-item__meta {
+  font-size: 0.86rem;
+}
+
+.access-control-selected {
+  margin: 0;
+}
+
 @media (max-width: 640px) {
-  .secmon-vpn-toggle {
+  .access-control-vpn {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .secmon-vpn-toggle__control {
+  .access-control-vpn__control {
     justify-content: space-between;
+  }
+
+  .access-control-search {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

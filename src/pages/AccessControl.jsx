@@ -51,9 +51,9 @@ function AccessRulesForm({
   if (!settings) return null
 
   return (
-    <form className="secmon-card" onSubmit={onSubmit}>
-      <div className="secmon-vpn-toggle">
-        <div className="secmon-vpn-toggle__copy">
+    <form className="access-control-card access-control-rules-card" onSubmit={onSubmit}>
+      <div className="access-control-vpn">
+        <div className="access-control-vpn__copy">
           <strong>Block VPN</strong>
           <span className="muted">
             {settings.restrict_vpn_enabled
@@ -62,9 +62,9 @@ function AccessRulesForm({
             Detection is best-effort.
           </span>
         </div>
-        <div className="secmon-vpn-toggle__control">
+        <div className="access-control-vpn__control">
           <span
-            className={`secmon-vpn-toggle__state ${
+            className={`access-control-vpn__state ${
               settings.restrict_vpn_enabled ? 'is-blocked' : 'is-allowed'
             }`}
           >
@@ -75,23 +75,22 @@ function AccessRulesForm({
             role="switch"
             aria-checked={!!settings.restrict_vpn_enabled}
             aria-label="Block VPN"
-            className={`secmon-switch ${settings.restrict_vpn_enabled ? 'is-on' : ''}`}
+            className={`access-control-switch ${settings.restrict_vpn_enabled ? 'is-on' : ''}`}
             onClick={() => setFlag('restrict_vpn_enabled', !settings.restrict_vpn_enabled)}
           >
-            <span className="secmon-switch__knob" />
+            <span className="access-control-switch__knob" />
           </button>
         </div>
       </div>
 
-      <p className="muted">
-        Other rules are checked in this order (top wins first): Restrict IPs → Allow IPs → Restrict
-        countries → Allow countries → Specific UK cities → UK only. When Block VPN is on, VPN is
-        checked after Allow IPs.
+      <p className="access-control-hint muted">
+        Rules order: Restrict IPs → Allow IPs → Restrict countries → Allow countries → Specific UK
+        cities → UK only. When Block VPN is on, VPN is checked after Allow IPs.
       </p>
 
-      <div className="secmon-access-rules">
-        <div className="secmon-access-rule">
-          <label className="checkbox-row secmon-access-check">
+      <div className="access-control-rules">
+        <div className="access-control-rule">
+          <label className="access-control-check">
             <input
               type="checkbox"
               checked={!!settings.restrict_ips_enabled}
@@ -103,7 +102,7 @@ function AccessRulesForm({
             </span>
           </label>
           {settings.restrict_ips_enabled ? (
-            <div className="secmon-access-rule__body">
+            <div className="access-control-rule__body">
               <textarea
                 rows={3}
                 value={listToInput(settings.restricted_ips)}
@@ -114,8 +113,8 @@ function AccessRulesForm({
           ) : null}
         </div>
 
-        <div className="secmon-access-rule">
-          <label className="checkbox-row secmon-access-check">
+        <div className="access-control-rule">
+          <label className="access-control-check">
             <input
               type="checkbox"
               checked={!!settings.allow_ips_enabled}
@@ -130,7 +129,7 @@ function AccessRulesForm({
             </span>
           </label>
           {settings.allow_ips_enabled ? (
-            <div className="secmon-access-rule__body">
+            <div className="access-control-rule__body">
               <textarea
                 rows={3}
                 value={listToInput(settings.allowed_ips)}
@@ -141,8 +140,8 @@ function AccessRulesForm({
           ) : null}
         </div>
 
-        <div className="secmon-access-rule">
-          <label className="checkbox-row secmon-access-check">
+        <div className="access-control-rule">
+          <label className="access-control-check">
             <input
               type="checkbox"
               checked={!!settings.restrict_countries_enabled}
@@ -154,7 +153,7 @@ function AccessRulesForm({
             </span>
           </label>
           {settings.restrict_countries_enabled ? (
-            <div className="secmon-access-rule__body">
+            <div className="access-control-rule__body">
               <textarea
                 rows={3}
                 value={listToInput(settings.restricted_countries)}
@@ -166,8 +165,8 @@ function AccessRulesForm({
           ) : null}
         </div>
 
-        <div className="secmon-access-rule">
-          <label className="checkbox-row secmon-access-check">
+        <div className="access-control-rule">
+          <label className="access-control-check">
             <input
               type="checkbox"
               checked={!!settings.allow_countries_enabled}
@@ -182,7 +181,7 @@ function AccessRulesForm({
             </span>
           </label>
           {settings.allow_countries_enabled ? (
-            <div className="secmon-access-rule__body">
+            <div className="access-control-rule__body">
               <textarea
                 rows={3}
                 value={listToInput(settings.allowed_countries)}
@@ -194,8 +193,8 @@ function AccessRulesForm({
           ) : null}
         </div>
 
-        <div className="secmon-access-rule">
-          <label className="checkbox-row secmon-access-check">
+        <div className="access-control-rule">
+          <label className="access-control-check">
             <input
               type="checkbox"
               checked={!!settings.uk_cities_enabled}
@@ -207,15 +206,15 @@ function AccessRulesForm({
             </span>
           </label>
           {settings.uk_cities_enabled ? (
-            <div className="secmon-access-rule__body">
-              <div className="secmon-chip-row">
+            <div className="access-control-rule__body">
+              <div className="access-control-chip-row">
                 {(suggestedCities || []).map((city) => {
                   const selected = parseListInput(settings.uk_cities).includes(city)
                   return (
                     <button
                       key={city}
                       type="button"
-                      className={`btn ghost ${selected ? 'active' : ''}`}
+                      className={`access-control-chip ${selected ? 'is-active' : ''}`}
                       onClick={() => toggleSuggestedCity(city)}
                     >
                       {city}
@@ -233,8 +232,8 @@ function AccessRulesForm({
           ) : null}
         </div>
 
-        <div className="secmon-access-rule">
-          <label className="checkbox-row secmon-access-check">
+        <div className="access-control-rule">
+          <label className="access-control-check">
             <input
               type="checkbox"
               checked={!!settings.uk_only}
@@ -248,7 +247,7 @@ function AccessRulesForm({
         </div>
       </div>
 
-      <div className="filters-row__actions" style={{ marginTop: '1rem' }}>
+      <div className="access-control-actions">
         <button type="submit" className="btn primary" disabled={saving}>
           {saving ? 'Saving…' : submitLabel}
         </button>
@@ -406,54 +405,77 @@ export default function AccessControl() {
   }
 
   if (hubLoading || loading) {
-    return <p className="muted">Loading access control…</p>
+    return (
+      <div className="access-control-page">
+        <p className="muted">Loading access control…</p>
+      </div>
+    )
   }
 
   if (!enabled) {
     return (
-      <div className="secmon-card">
-        <h1>Access control</h1>
-        <p className="muted">
-          You need the Access control capability (and Security Monitoring enabled for this hub) to
-          manage these settings.
-        </p>
+      <div className="access-control-page">
+        <div className="access-control-card">
+          <h1>Access control</h1>
+          <p className="muted">
+            You need the Access control capability (and Security Monitoring enabled for this hub) to
+            manage these settings.
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="secmon-settings">
-      <div className="secmon-card" style={{ marginBottom: '1rem' }}>
-        <h1>Access control</h1>
-        <p className="muted">
-          Configure hub-wide rules for everyone, plus optional extra rules for individual users
-          (applied after login). Checked on every API request using the current IP / location / VPN
-          signal.
-        </p>
-        <div className="secmon-chip-row" style={{ marginTop: '0.75rem' }}>
-          <button
-            type="button"
-            className={`btn ghost ${section === 'hub' ? 'active' : ''}`}
-            onClick={() => setSection('hub')}
-          >
-            Hub rules
-          </button>
-          <button
-            type="button"
-            className={`btn ghost ${section === 'user' ? 'active' : ''}`}
-            onClick={() => setSection('user')}
-          >
-            User rules
-          </button>
+    <div className="access-control-page">
+      <header className="access-control-header">
+        <div>
+          <h1>Access control</h1>
+          <p className="muted">
+            Hub-wide rules for everyone, plus optional per-user rules after login. Checked on every
+            API request using the current IP / location / VPN signal.
+          </p>
         </div>
+      </header>
+
+      <div className="tab-row access-control-tabs" role="tablist" aria-label="Access control views">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={section === 'hub'}
+          className={`btn ghost ${section === 'hub' ? 'active' : ''}`}
+          onClick={() => {
+            setSection('hub')
+            setMessage('')
+            setError('')
+          }}
+        >
+          Hub rules
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={section === 'user'}
+          className={`btn ghost ${section === 'user' ? 'active' : ''}`}
+          onClick={() => {
+            setSection('user')
+            setMessage('')
+            setError('')
+          }}
+        >
+          User rules
+        </button>
       </div>
 
-      {error ? <p className="error">{error}</p> : null}
-      {message ? <p className="success">{message}</p> : null}
+      {error ? <div className="alert">{error}</div> : null}
+      {message ? <div className="alert success">{message}</div> : null}
 
       {section === 'hub' ? (
-        <>
-          <h2 style={{ marginBottom: '0.75rem' }}>Hub access rules</h2>
+        <section className="access-control-section" aria-label="Hub access rules">
+          <div className="access-control-section__intro">
+            <h2>Hub access rules</h2>
+            <p className="muted">These rules apply to all users on this hub.</p>
+          </div>
           <AccessRulesForm
             settings={hubSettings}
             setFlag={setHubFlag}
@@ -463,59 +485,72 @@ export default function AccessControl() {
             saving={saving}
             submitLabel="Save hub access rules"
           />
-        </>
+        </section>
       ) : (
-        <>
-          <div className="secmon-card" style={{ marginBottom: '1rem' }}>
-            <h2>User access rules</h2>
-            <p className="muted">
-              Extra rules for one person, merged with hub rules after they log in. Restrict lists and
-              Block VPN combine (union). UK cities intersect when both hub and user enable cities.
-            </p>
-            <div className="filters-row" style={{ marginTop: '0.75rem' }}>
+        <section className="access-control-section" aria-label="User access rules">
+          <div className="access-control-card access-control-user-picker">
+            <div className="access-control-section__intro">
+              <h2>User access rules</h2>
+              <p className="muted">
+                Extra rules for one person, merged with hub rules after login. Restrict lists and
+                Block VPN combine. UK cities intersect when both hub and user enable cities.
+              </p>
+            </div>
+
+            <form
+              className="access-control-search"
+              onSubmit={(e) => {
+                e.preventDefault()
+                loadUsers(userQuery).catch((err) => setError(err.message))
+              }}
+            >
               <input
                 type="search"
                 value={userQuery}
                 onChange={(e) => setUserQuery(e.target.value)}
                 placeholder="Search users by name or email"
+                aria-label="Search users"
               />
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => loadUsers(userQuery).catch((err) => setError(err.message))}
-              >
+              <button type="submit" className="btn primary">
                 Search
               </button>
-            </div>
-            <div className="secmon-access-rule__body" style={{ marginTop: '0.75rem' }}>
-              {users.length === 0 ? (
-                <p className="muted">No users found.</p>
-              ) : (
-                <div className="secmon-chip-row">
-                  {users.map((u) => (
+            </form>
+
+            {users.length === 0 ? (
+              <p className="muted">No users found.</p>
+            ) : (
+              <div className="access-control-user-list" role="listbox" aria-label="Users">
+                {users.map((u) => {
+                  const active = selectedUser?.id === u.id
+                  return (
                     <button
                       key={u.id}
                       type="button"
-                      className={`btn ghost ${selectedUser?.id === u.id ? 'active' : ''}`}
+                      role="option"
+                      aria-selected={active}
+                      className={`access-control-user-item ${active ? 'is-active' : ''}`}
                       onClick={() => {
                         setMessage('')
                         loadUserSettings(u.id).catch((err) => setError(err.message))
                       }}
                     >
-                      {u.name || u.email}
+                      <span className="access-control-user-item__name">{u.name || u.email}</span>
+                      <span className="access-control-user-item__meta muted">
+                        {u.email}
+                        {u.role ? ` · ${u.role}` : ''}
+                      </span>
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                  )
+                })}
+              </div>
+            )}
+
             {selectedUser ? (
-              <p className="muted" style={{ marginTop: '0.75rem' }}>
-                Editing: <strong>{selectedUser.name}</strong> ({selectedUser.email})
+              <p className="access-control-selected muted">
+                Editing <strong>{selectedUser.name}</strong> ({selectedUser.email})
               </p>
             ) : (
-              <p className="muted" style={{ marginTop: '0.75rem' }}>
-                Select a user to edit their access rules.
-              </p>
+              <p className="access-control-selected muted">Select a user to edit their access rules.</p>
             )}
           </div>
 
@@ -530,7 +565,7 @@ export default function AccessControl() {
               submitLabel="Save user access rules"
             />
           ) : null}
-        </>
+        </section>
       )}
     </div>
   )

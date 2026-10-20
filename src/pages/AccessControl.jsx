@@ -18,6 +18,7 @@ const ACCESS_DEFAULT = {
   allowed_ips: [],
   restrict_vpn_enabled: false,
   allow_vpn_enabled: false,
+  enforcement_mode: 'enforce',
 }
 
 function parseListInput(value) {
@@ -52,6 +53,37 @@ function AccessRulesForm({
 
   return (
     <form className="access-control-card access-control-rules-card" onSubmit={onSubmit}>
+      <div className="access-control-mode">
+        <div className="access-control-mode__copy">
+          <strong>Enforcement mode</strong>
+          <span className="muted">
+            {settings.enforcement_mode === 'monitor'
+              ? 'Monitor — rules are evaluated and logged, but matching requests are still allowed.'
+              : 'Enforce — matching requests are blocked with HTTP 403.'}
+          </span>
+        </div>
+        <div className="tab-row access-control-mode__tabs" role="tablist" aria-label="Enforcement mode">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={settings.enforcement_mode !== 'monitor'}
+            className={`btn ghost ${settings.enforcement_mode !== 'monitor' ? 'active' : ''}`}
+            onClick={() => setFlag('enforcement_mode', 'enforce')}
+          >
+            Enforce
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={settings.enforcement_mode === 'monitor'}
+            className={`btn ghost ${settings.enforcement_mode === 'monitor' ? 'active' : ''}`}
+            onClick={() => setFlag('enforcement_mode', 'monitor')}
+          >
+            Monitor
+          </button>
+        </div>
+      </div>
+
       <div className="access-control-vpn">
         <div className="access-control-vpn__copy">
           <strong>Block VPN</strong>
@@ -271,6 +303,7 @@ function buildPayload(settings) {
     allowed_ips: parseListInput(settings.allowed_ips),
     restrict_vpn_enabled: !!settings.restrict_vpn_enabled,
     allow_vpn_enabled: false,
+    enforcement_mode: settings.enforcement_mode === 'monitor' ? 'monitor' : 'enforce',
   }
 }
 

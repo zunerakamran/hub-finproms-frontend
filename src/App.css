@@ -8902,3 +8902,37 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
     align-items: stretch;
   }
 }
+
+.access-control-mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1.05rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--brand, #1d4ed8) 28%, var(--line, #e2e8f0));
+  background: color-mix(in srgb, var(--brand, #1d4ed8) 6%, var(--surface, #fff));
+}
+
+.access-control-mode__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.access-control-mode__copy strong {
+  font-size: 1.02rem;
+}
+
+.access-control-mode__tabs {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .access-control-mode {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

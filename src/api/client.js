@@ -1184,6 +1184,11 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
+  accessControlSimulate: (payload, options = {}) =>
+    request(`${adminBase(options)}/access-control/simulate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   activeSessions: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN

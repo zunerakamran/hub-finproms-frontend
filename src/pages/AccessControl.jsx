@@ -326,6 +326,13 @@ export default function AccessControl() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [simIp, setSimIp] = useState('')
+  const [simUserId, setSimUserId] = useState('')
+  const [simCountry, setSimCountry] = useState('')
+  const [simCity, setSimCity] = useState('')
+  const [simVpn, setSimVpn] = useState('')
+  const [simulating, setSimulating] = useState(false)
+  const [simResult, setSimResult] = useState(null)
 
   const loadHub = useCallback(async () => {
     const data = await api.accessControlHubSettings({ asPowerAdmin })
@@ -437,6 +444,50 @@ export default function AccessControl() {
     }
   }
 
+  const runSimulate = async (e, { useMyIp = false } = {}) => {
+    e?.preventDefault?.()
+    setSimulating(true)
+    setError('')
+    setMessage('')
+    setSimResult(null)
+    try {
+      const payload = {}
+      const ipValue = useMyIp ? '' : simIp.trim()
+      if (ipValue) payload.ip = ipValue
+      if (simUserId) payload.user_id = Number(simUserId)
+      if (simCountry.trim()) payload.country = simCountry.trim().toUpperCase()
+      if (simCity.trim()) payload.city = simCity.trim()
+      if (simVpn === 'true') payload.vpn = true
+      if (simVpn === 'false') payload.vpn = false
+
+      const data = await api.accessControlSimulate(payload, { asPowerAdmin })
+      setSimResult(data.data || null)
+      if (data.data?.ip && (useMyIp || !simIp.trim())) {
+        setSimIp(data.data.ip)
+      }
+    } catch (err) {
+      setError(err.message || 'Simulation failed.')
+    } finally {
+      setSimulating(false)
+    }
+  }
+
+  const simResultTone =
+    simResult?.result === 'block'
+      ? 'is-block'
+      : simResult?.result === 'would_block'
+        ? 'is-would-block'
+        : 'is-pass'
+
+  const simResultLabel =
+    simResult?.result === 'block'
+      ? 'BLOCK'
+      : simResult?.result === 'would_block'
+        ? 'WOULD BLOCK'
+        : simResult
+          ? 'PASS'
+          : ''
+
   if (hubLoading || loading) {
     return (
       <div className="access-control-page">
@@ -498,6 +549,19 @@ export default function AccessControl() {
         >
           User rules
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={section === 'simulate'}
+          className={`btn ghost ${section === 'simulate' ? 'active' : ''}`}
+          onClick={() => {
+            setSection('simulate')
+            setMessage('')
+            setError('')
+          }}
+        >
+          Simulate
+        </button>
       </div>
 
       {error ? <div className="alert">{error}</div> : null}
@@ -519,7 +583,9 @@ export default function AccessControl() {
             submitLabel="Save hub access rules"
           />
         </section>
-      ) : (
+      ) : null}
+
+      {section === 'user' ? (
         <section className="access-control-section" aria-label="User access rules">
           <div className="access-control-card access-control-user-picker">
             <div className="access-control-section__intro">
@@ -599,7 +665,156 @@ export default function AccessControl() {
             />
           ) : null}
         </section>
-      )}
+      ) : null}
+
+      {section === 'simulate' ? (
+        <section className="access-control-section" aria-label="Simulate access">
+          <div className="access-control-section__intro">
+            <h2>Simulate access</h2>
+            <p className="muted">
+              Preview what the current saved rules would do for an IP. Does not change settings or
+              block anyone. Leave IP blank to use your current connection.
+            </p>
+          </div>
+
+          <form className="access-control-card access-control-simulate" onSubmit={runSimulate}>
+            <div className="access-control-simulate__grid">
+              <label className="access-control-field">
+                <span>IP address</span>
+                <input
+                  type="text"
+                  value={simIp}
+                  onChange={(e) => setSimIp(e.target.value)}
+                  placeholder="Leave blank for my IP"
+                  aria-label="IP address to simulate"
+                />
+              </label>
+
+              <label className="access-control-field">
+                <span>User (optional)</span>
+                <select
+                  value={simUserId}
+                  onChange={(e) => setSimUserId(e.target.value)}
+                  aria-label="User to include in simulation"
+                >
+                  <option value="">Hub rules only</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name || u.email} ({u.email})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="access-control-field">
+                <span>Country override (optional)</span>
+                <input
+                  type="text"
+                  value={simCountry}
+                  onChange={(e) => setSimCountry(e.target.value)}
+                  placeholder="GB"
+                  maxLength={2}
+                  aria-label="Country override"
+                />
+              </label>
+
+              <label className="access-control-field">
+                <span>City override (optional)</span>
+                <input
+                  type="text"
+                  value={simCity}
+                  onChange={(e) => setSimCity(e.target.value)}
+                  placeholder="London"
+                  aria-label="City override"
+                />
+              </label>
+
+              <label className="access-control-field">
+                <span>VPN signal (optional)</span>
+                <select
+                  value={simVpn}
+                  onChange={(e) => setSimVpn(e.target.value)}
+                  aria-label="VPN override"
+                >
+                  <option value="">Auto / lookup</option>
+                  <option value="true">Treat as VPN</option>
+                  <option value="false">Treat as not VPN</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="access-control-actions">
+              <button type="submit" className="btn primary" disabled={simulating}>
+                {simulating ? 'Running…' : 'Run simulation'}
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                disabled={simulating}
+                onClick={() => runSimulate(null, { useMyIp: true })}
+              >
+                Use my IP
+              </button>
+            </div>
+          </form>
+
+          {simResult ? (
+            <div className={`access-control-card access-control-sim-result ${simResultTone}`}>
+              <div className="access-control-sim-result__badge">{simResultLabel}</div>
+              <dl className="access-control-sim-result__meta">
+                <div>
+                  <dt>IP</dt>
+                  <dd>{simResult.ip || '—'}</dd>
+                </div>
+                <div>
+                  <dt>Mode</dt>
+                  <dd>{simResult.mode === 'monitor' ? 'Monitor' : 'Enforce'}</dd>
+                </div>
+                <div>
+                  <dt>Rule</dt>
+                  <dd>{simResult.reason_label || simResult.reason || '—'}</dd>
+                </div>
+                <div>
+                  <dt>Country / city</dt>
+                  <dd>
+                    {simResult.country || '—'}
+                    {simResult.city ? ` / ${simResult.city}` : ''}
+                  </dd>
+                </div>
+                <div>
+                  <dt>VPN</dt>
+                  <dd>
+                    {simResult.vpn === true ? 'Yes' : simResult.vpn === false ? 'No' : 'Unknown'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Scopes</dt>
+                  <dd>
+                    {simResult.hub_rules_active ? 'Hub' : 'No hub rules'}
+                    {simResult.user_rules_active
+                      ? ` + user${simResult.user?.email ? ` (${simResult.user.email})` : ''}`
+                      : simResult.user
+                        ? ` (user ${simResult.user.email} has no extra rules)`
+                        : ''}
+                  </dd>
+                </div>
+              </dl>
+              {simResult.private_ip_bypass ? (
+                <p className="muted">
+                  This is a private/local IP. Live API traffic from it skips geo / VPN rules by
+                  default.
+                </p>
+              ) : null}
+              {simResult.self_lockout_risk ? (
+                <p className="access-control-sim-result__warn">
+                  Warning: this matches your current IP. Switching to Enforce with these rules could
+                  lock you out.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
     </div>
   )
 }

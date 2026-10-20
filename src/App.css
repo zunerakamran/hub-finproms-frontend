@@ -8936,3 +8936,104 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
     align-items: stretch;
   }
 }
+
+.access-control-simulate__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.access-control-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.access-control-field input,
+.access-control-field select {
+  font: inherit;
+  font-weight: 500;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.12));
+  background: #fff;
+}
+
+.access-control-field input:focus,
+.access-control-field select:focus {
+  outline: 2px solid color-mix(in srgb, var(--brand, #1d4ed8) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.access-control-sim-result {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.access-control-sim-result__badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.access-control-sim-result.is-pass .access-control-sim-result__badge {
+  background: color-mix(in srgb, #15803d 14%, #fff);
+  color: #166534;
+}
+
+.access-control-sim-result.is-would-block .access-control-sim-result__badge {
+  background: color-mix(in srgb, #ca8a04 18%, #fff);
+  color: #854d0e;
+}
+
+.access-control-sim-result.is-block .access-control-sim-result__badge {
+  background: color-mix(in srgb, #dc2626 14%, #fff);
+  color: #991b1b;
+}
+
+.access-control-sim-result__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 1rem;
+  margin: 0;
+}
+
+.access-control-sim-result__meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.access-control-sim-result__meta dt {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted, #64748b);
+}
+
+.access-control-sim-result__meta dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.access-control-sim-result__warn {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, #dc2626 10%, #fff);
+  color: #991b1b;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .access-control-simulate__grid,
+  .access-control-sim-result__meta {
+    grid-template-columns: 1fr;
+  }
+}

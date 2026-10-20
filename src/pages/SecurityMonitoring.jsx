@@ -33,6 +33,8 @@ const ACCESS_DEFAULT = {
   restricted_ips: [],
   allow_ips_enabled: false,
   allowed_ips: [],
+  restrict_vpn_enabled: false,
+  allow_vpn_enabled: false,
 }
 
 /** Split comma / newline / semicolon lists into trimmed unique values. */
@@ -524,6 +526,8 @@ export default function SecurityMonitoring() {
         restricted_ips: parseListInput(accessSettings.restricted_ips),
         allow_ips_enabled: !!accessSettings.allow_ips_enabled,
         allowed_ips: parseListInput(accessSettings.allowed_ips),
+        restrict_vpn_enabled: !!accessSettings.restrict_vpn_enabled,
+        allow_vpn_enabled: !!accessSettings.allow_vpn_enabled,
       }
 
       const data = await api.securityMonitoringUpdateAccessSettings(payload, { asPowerAdmin })
@@ -1113,10 +1117,14 @@ export default function SecurityMonitoring() {
                 country/UK).
                 {' '}
                 <strong>Allow IPs</strong> always let those addresses through (even from a
-                restricted country).
+                restricted country or VPN).
+                {' '}
+                <strong>Restrict VPN</strong> blocks detected VPN/proxy/datacenter exits;
+                {' '}
+                <strong>Allow VPN</strong> lets detected VPN traffic through country/UK/city blocks.
                 {' '}
                 <strong>Allow countries</strong> can reopen a restricted country or extend UK-only.
-                Env deny-list and temporary firewall blocks still apply.
+                VPN detection is best-effort. Env deny-list and temporary firewall blocks still apply.
               </p>
 
               <div className="secmon-access-rules">
@@ -1258,7 +1266,7 @@ export default function SecurityMonitoring() {
                     />
                     <span>
                       <strong>Allow IPs</strong>
-                      <span className="muted"> — these IPs always allowed; override country / UK / city blocks</span>
+                      <span className="muted"> — these IPs always allowed; override VPN / country / UK / city blocks</span>
                     </span>
                   </label>
                   {accessSettings.allow_ips_enabled ? (
@@ -1271,6 +1279,34 @@ export default function SecurityMonitoring() {
                       />
                     </div>
                   ) : null}
+                </div>
+
+                <div className="secmon-access-rule">
+                  <label className="checkbox-row secmon-access-check">
+                    <input
+                      type="checkbox"
+                      checked={!!accessSettings.restrict_vpn_enabled}
+                      onChange={(e) => setAccessFlag('restrict_vpn_enabled', e.target.checked)}
+                    />
+                    <span>
+                      <strong>Restrict VPN</strong>
+                      <span className="muted"> — block detected VPN, proxy, or hosting/datacenter exits (Allow IPs can override)</span>
+                    </span>
+                  </label>
+                </div>
+
+                <div className="secmon-access-rule">
+                  <label className="checkbox-row secmon-access-check">
+                    <input
+                      type="checkbox"
+                      checked={!!accessSettings.allow_vpn_enabled}
+                      onChange={(e) => setAccessFlag('allow_vpn_enabled', e.target.checked)}
+                    />
+                    <span>
+                      <strong>Allow VPN</strong>
+                      <span className="muted"> — detected VPN/proxy exits always allowed; override country / UK / city blocks. Alone, only VPN traffic may access</span>
+                    </span>
+                  </label>
                 </div>
               </div>
 

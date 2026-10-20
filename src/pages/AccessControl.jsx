@@ -307,6 +307,39 @@ function buildPayload(settings) {
   }
 }
 
+function formatChangeValue(value) {
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
+  if (Array.isArray(value)) return value.length ? value.join(', ') : '[]'
+  if (value === null || value === undefined || value === '') return '—'
+  return String(value)
+}
+
+function formatChangeTime(iso) {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleString()
+  } catch {
+    return iso
+  }
+}
+
+const CHANGE_FIELD_LABELS = {
+  uk_only: 'UK only',
+  uk_cities_enabled: 'Specific UK cities enabled',
+  uk_cities: 'UK cities',
+  restrict_countries_enabled: 'Restrict countries enabled',
+  restricted_countries: 'Restricted countries',
+  allow_countries_enabled: 'Allow countries enabled',
+  allowed_countries: 'Allowed countries',
+  restrict_ips_enabled: 'Restrict IPs enabled',
+  restricted_ips: 'Restricted IPs',
+  allow_ips_enabled: 'Allow IPs enabled',
+  allowed_ips: 'Allowed IPs',
+  restrict_vpn_enabled: 'Block VPN',
+  allow_vpn_enabled: 'Allow VPN',
+  enforcement_mode: 'Enforcement mode',
+}
+
 export default function AccessControl() {
   const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, actingHubId } = useHub()
@@ -333,6 +366,10 @@ export default function AccessControl() {
   const [simVpn, setSimVpn] = useState('')
   const [simulating, setSimulating] = useState(false)
   const [simResult, setSimResult] = useState(null)
+  const [history, setHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyScope, setHistoryScope] = useState('')
+  const [expandedHistoryId, setExpandedHistoryId] = useState(null)
 
   const loadHub = useCallback(async () => {
     const data = await api.accessControlHubSettings({ asPowerAdmin })
@@ -358,6 +395,22 @@ export default function AccessControl() {
       }
     },
     [asPowerAdmin]
+  )
+
+  const loadHistory = useCallback(
+    async (scope = historyScope) => {
+      setHistoryLoading(true)
+      try {
+        const data = await api.accessControlChanges(
+          { per_page: 50, scope: scope || undefined },
+          { asPowerAdmin }
+        )
+        setHistory(data.data || [])
+      } finally {
+        setHistoryLoading(false)
+      }
+    },
+    [asPowerAdmin, historyScope]
   )
 
   useEffect(() => {
@@ -416,6 +469,9 @@ export default function AccessControl() {
       })
       setHubSettings({ ...ACCESS_DEFAULT, ...(data.data || {}) })
       setMessage('Hub access rules saved.')
+      if (section === 'history') {
+        loadHistory().catch(() => {})
+      }
     } catch (err) {
       setError(err.message || 'Failed to save hub access rules.')
     } finally {
@@ -437,6 +493,9 @@ export default function AccessControl() {
       )
       setUserSettings({ ...ACCESS_DEFAULT, ...(data.data || {}) })
       setMessage(`Access rules saved for ${selectedUser.email}.`)
+      if (section === 'history') {
+        loadHistory().catch(() => {})
+      }
     } catch (err) {
       setError(err.message || 'Failed to save user access rules.')
     } finally {
@@ -561,6 +620,20 @@ export default function AccessControl() {
           }}
         >
           Simulate
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={section === 'history'}
+          className={`btn ghost ${section === 'history' ? 'active' : ''}`}
+          onClick={() => {
+            setSection('history')
+            setMessage('')
+            setError('')
+            loadHistory().catch((err) => setError(err.message || 'Failed to load history.'))
+          }}
+        >
+          History
         </button>
       </div>
 
@@ -813,6 +886,143 @@ export default function AccessControl() {
               ) : null}
             </div>
           ) : null}
+        </section>
+      ) : null}
+
+      {section === 'history' ? (
+        <section className="access-control-section" aria-label="Access policy history">
+          <div className="access-control-section__intro">
+            <h2>Change history</h2>
+            <p className="muted">
+              Who changed hub or user access rules, when, and what fields changed. Does not include
+              simulate runs.
+            </p>
+          </div>
+
+          <div className="access-control-card access-control-history-toolbar">
+            <div className="tab-row" role="tablist" aria-label="History scope filter">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={historyScope === ''}
+                className={`btn ghost ${historyScope === '' ? 'active' : ''}`}
+                onClick={() => {
+                  setHistoryScope('')
+                  loadHistory('').catch((err) => setError(err.message))
+                }}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={historyScope === 'hub'}
+                className={`btn ghost ${historyScope === 'hub' ? 'active' : ''}`}
+                onClick={() => {
+                  setHistoryScope('hub')
+                  loadHistory('hub').catch((err) => setError(err.message))
+                }}
+              >
+                Hub
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={historyScope === 'user'}
+                className={`btn ghost ${historyScope === 'user' ? 'active' : ''}`}
+                onClick={() => {
+                  setHistoryScope('user')
+                  loadHistory('user').catch((err) => setError(err.message))
+                }}
+              >
+                User
+              </button>
+            </div>
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={historyLoading}
+              onClick={() => loadHistory().catch((err) => setError(err.message))}
+            >
+              {historyLoading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
+
+          {historyLoading && history.length === 0 ? (
+            <p className="muted">Loading history…</p>
+          ) : null}
+
+          {!historyLoading && history.length === 0 ? (
+            <div className="access-control-card">
+              <p className="muted">No access rule changes recorded yet.</p>
+            </div>
+          ) : null}
+
+          <div className="access-control-history-list">
+            {history.map((row) => {
+              const open = expandedHistoryId === row.id
+              const changes = row.changes || {}
+              const changeKeys = Object.keys(changes)
+              return (
+                <article key={row.id} className="access-control-card access-control-history-item">
+                  <button
+                    type="button"
+                    className="access-control-history-item__header"
+                    aria-expanded={open}
+                    onClick={() => setExpandedHistoryId(open ? null : row.id)}
+                  >
+                    <div className="access-control-history-item__main">
+                      <strong>{row.title}</strong>
+                      <span className="muted">
+                        {formatChangeTime(row.occurred_at)}
+                        {row.actor?.email ? ` · ${row.actor.email}` : ''}
+                        {row.scope === 'user' && row.target_user?.email
+                          ? ` · target ${row.target_user.email}`
+                          : row.scope === 'hub'
+                            ? ' · hub'
+                            : ''}
+                      </span>
+                      {row.change_summary ? (
+                        <span className="access-control-history-item__summary">
+                          {row.change_summary}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="access-control-history-item__toggle muted">
+                      {open ? 'Hide' : 'Details'}
+                    </span>
+                  </button>
+
+                  {open ? (
+                    <div className="access-control-history-item__body">
+                      {changeKeys.length === 0 ? (
+                        <p className="muted">No field-level details available.</p>
+                      ) : (
+                        <table className="access-control-history-table">
+                          <thead>
+                            <tr>
+                              <th>Field</th>
+                              <th>From</th>
+                              <th>To</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {changeKeys.map((key) => (
+                              <tr key={key}>
+                                <td>{CHANGE_FIELD_LABELS[key] || key}</td>
+                                <td>{formatChangeValue(changes[key]?.from)}</td>
+                                <td>{formatChangeValue(changes[key]?.to)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  ) : null}
+                </article>
+              )
+            })}
+          </div>
         </section>
       ) : null}
     </div>

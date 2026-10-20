@@ -1189,6 +1189,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  accessControlChanges: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${adminBase(options)}/access-control/changes${query ? `?${query}` : ''}`)
+  },
 
   activeSessions: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN

@@ -9037,3 +9037,82 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
     grid-template-columns: 1fr;
   }
 }
+
+.access-control-history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.access-control-history-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.access-control-history-item {
+  padding: 0;
+  overflow: hidden;
+}
+
+.access-control-history-item__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.95rem 1.05rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.access-control-history-item__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.access-control-history-item__summary {
+  font-size: 0.9rem;
+  color: var(--text, #0f172a);
+  word-break: break-word;
+}
+
+.access-control-history-item__toggle {
+  flex-shrink: 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding-top: 0.15rem;
+}
+
+.access-control-history-item__body {
+  padding: 0 1.05rem 1.05rem;
+  border-top: 1px solid var(--line, rgba(15, 23, 42, 0.08));
+}
+
+.access-control-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.access-control-history-table th,
+.access-control-history-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.55rem 0.45rem;
+  border-bottom: 1px solid var(--line, rgba(15, 23, 42, 0.08));
+}
+
+.access-control-history-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted, #64748b);
+}

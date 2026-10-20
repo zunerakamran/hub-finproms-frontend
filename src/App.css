@@ -8605,3 +8605,92 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
 .cookie-banner__text a {
   color: #9ec5ff;
 }
+
+/* Security monitoring — prominent Block VPN toggle */
+.secmon-vpn-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.75rem 0 1.1rem;
+  padding: 0.95rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.06));
+}
+
+.secmon-vpn-toggle__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.secmon-vpn-toggle__copy strong {
+  font-size: 1.02rem;
+}
+
+.secmon-vpn-toggle__control {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.secmon-vpn-toggle__state {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.secmon-vpn-toggle__state.is-allowed {
+  color: #15803d;
+}
+
+.secmon-vpn-toggle__state.is-blocked {
+  color: #b91c1c;
+}
+
+.secmon-switch {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: #94a3b8;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.secmon-switch.is-on {
+  background: #dc2626;
+}
+
+.secmon-switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+  transition: transform 0.18s ease;
+}
+
+.secmon-switch.is-on .secmon-switch__knob {
+  transform: translateX(22px);
+}
+
+@media (max-width: 640px) {
+  .secmon-vpn-toggle {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .secmon-vpn-toggle__control {
+    justify-content: space-between;
+  }
+}

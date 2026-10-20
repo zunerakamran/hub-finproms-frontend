@@ -526,8 +526,9 @@ export default function SecurityMonitoring() {
         restricted_ips: parseListInput(accessSettings.restricted_ips),
         allow_ips_enabled: !!accessSettings.allow_ips_enabled,
         allowed_ips: parseListInput(accessSettings.allowed_ips),
+        // Single UI toggle: on = block VPN; off = VPN not specially blocked.
         restrict_vpn_enabled: !!accessSettings.restrict_vpn_enabled,
-        allow_vpn_enabled: !!accessSettings.allow_vpn_enabled,
+        allow_vpn_enabled: false,
       }
 
       const data = await api.securityMonitoringUpdateAccessSettings(payload, { asPowerAdmin })
@@ -1110,21 +1111,49 @@ export default function SecurityMonitoring() {
           ) : (
             <form className="secmon-card" onSubmit={saveAccessSettings}>
               <h2>Access restrictions</h2>
+
+              <div className="secmon-vpn-toggle">
+                <div className="secmon-vpn-toggle__copy">
+                  <strong>Block VPN</strong>
+                  <span className="muted">
+                    {accessSettings.restrict_vpn_enabled
+                      ? 'On — detected VPN, proxy, and hosting/datacenter exits are blocked (Allow IPs can still override).'
+                      : 'Off — VPN traffic is allowed and follows the IP / country / UK rules below.'}
+                    {' '}
+                    Detection is best-effort.
+                  </span>
+                </div>
+                <div className="secmon-vpn-toggle__control">
+                  <span
+                    className={`secmon-vpn-toggle__state ${
+                      accessSettings.restrict_vpn_enabled ? 'is-blocked' : 'is-allowed'
+                    }`}
+                  >
+                    {accessSettings.restrict_vpn_enabled ? 'Blocked' : 'Allowed'}
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!!accessSettings.restrict_vpn_enabled}
+                    aria-label="Block VPN"
+                    className={`secmon-switch ${accessSettings.restrict_vpn_enabled ? 'is-on' : ''}`}
+                    onClick={() =>
+                      setAccessFlag('restrict_vpn_enabled', !accessSettings.restrict_vpn_enabled)
+                    }
+                  >
+                    <span className="secmon-switch__knob" />
+                  </button>
+                </div>
+              </div>
+
               <p className="muted">
-                Rules combine with overrides (most specific wins):
+                Other rules are checked in this order (top wins first):
+                Restrict IPs → Allow IPs → Restrict countries → Allow countries → Specific UK cities → UK only.
                 {' '}
-                <strong>Restrict IPs</strong> always block those addresses (even inside an allowed
-                country/UK).
-                {' '}
-                <strong>Allow IPs</strong> always let those addresses through (even from a
-                restricted country or VPN).
-                {' '}
-                <strong>Restrict VPN</strong> blocks detected VPN/proxy/datacenter exits;
-                {' '}
-                <strong>Allow VPN</strong> lets detected VPN traffic through country/UK/city blocks.
-                {' '}
-                <strong>Allow countries</strong> can reopen a restricted country or extend UK-only.
-                VPN detection is best-effort. Env deny-list and temporary firewall blocks still apply.
+                When Block VPN is on, VPN is checked after Allow IPs.
+                Allow IPs override VPN and geo blocks.
+                Allow countries can reopen a restricted country or extend UK rules.
+                Env deny-list and temporary firewall blocks still apply.
               </p>
 
               <div className="secmon-access-rules">
@@ -1132,50 +1161,45 @@ export default function SecurityMonitoring() {
                   <label className="checkbox-row secmon-access-check">
                     <input
                       type="checkbox"
-                      checked={!!accessSettings.uk_only}
-                      onChange={(e) => setAccessFlag('uk_only', e.target.checked)}
+                      checked={!!accessSettings.restrict_ips_enabled}
+                      onChange={(e) => setAccessFlag('restrict_ips_enabled', e.target.checked)}
                     />
                     <span>
-                      <strong>UK only</strong>
-                      <span className="muted"> — allow requests only from the United Kingdom</span>
+                      <strong>Restrict IPs</strong>
+                      <span className="muted"> — always block these IPs, even inside an allowed country/UK</span>
                     </span>
                   </label>
+                  {accessSettings.restrict_ips_enabled ? (
+                    <div className="secmon-access-rule__body">
+                      <textarea
+                        rows={3}
+                        value={listToInput(accessSettings.restricted_ips)}
+                        onChange={(e) => setAccessFlag('restricted_ips', e.target.value)}
+                        placeholder={'203.0.113.10\n198.51.100.0/24'}
+                      />
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="secmon-access-rule">
                   <label className="checkbox-row secmon-access-check">
                     <input
                       type="checkbox"
-                      checked={!!accessSettings.uk_cities_enabled}
-                      onChange={(e) => setAccessFlag('uk_cities_enabled', e.target.checked)}
+                      checked={!!accessSettings.allow_ips_enabled}
+                      onChange={(e) => setAccessFlag('allow_ips_enabled', e.target.checked)}
                     />
                     <span>
-                      <strong>Specific UK cities</strong>
-                      <span className="muted"> — allow only selected UK cities (must resolve as GB)</span>
+                      <strong>Allow IPs</strong>
+                      <span className="muted"> — these IPs always allowed; override VPN / country / UK / city blocks</span>
                     </span>
                   </label>
-                  {accessSettings.uk_cities_enabled ? (
+                  {accessSettings.allow_ips_enabled ? (
                     <div className="secmon-access-rule__body">
-                      <div className="secmon-chip-row">
-                        {(accessOptions.suggested_uk_cities || []).map((city) => {
-                          const selected = parseListInput(accessSettings.uk_cities).includes(city)
-                          return (
-                            <button
-                              key={city}
-                              type="button"
-                              className={`btn ghost ${selected ? 'active' : ''}`}
-                              onClick={() => toggleSuggestedCity(city)}
-                            >
-                              {city}
-                            </button>
-                          )
-                        })}
-                      </div>
                       <textarea
                         rows={3}
-                        value={listToInput(accessSettings.uk_cities)}
-                        onChange={(e) => setAccessFlag('uk_cities', e.target.value)}
-                        placeholder="London, Manchester, Birmingham"
+                        value={listToInput(accessSettings.allowed_ips)}
+                        onChange={(e) => setAccessFlag('allowed_ips', e.target.value)}
+                        placeholder={'203.0.113.80\n198.51.100.0/24'}
                       />
                     </div>
                   ) : null}
@@ -1237,21 +1261,36 @@ export default function SecurityMonitoring() {
                   <label className="checkbox-row secmon-access-check">
                     <input
                       type="checkbox"
-                      checked={!!accessSettings.restrict_ips_enabled}
-                      onChange={(e) => setAccessFlag('restrict_ips_enabled', e.target.checked)}
+                      checked={!!accessSettings.uk_cities_enabled}
+                      onChange={(e) => setAccessFlag('uk_cities_enabled', e.target.checked)}
                     />
                     <span>
-                      <strong>Restrict IPs</strong>
-                      <span className="muted"> — always block these IPs, even inside an allowed country/UK</span>
+                      <strong>Specific UK cities</strong>
+                      <span className="muted"> — allow only selected UK cities (must resolve as GB)</span>
                     </span>
                   </label>
-                  {accessSettings.restrict_ips_enabled ? (
+                  {accessSettings.uk_cities_enabled ? (
                     <div className="secmon-access-rule__body">
+                      <div className="secmon-chip-row">
+                        {(accessOptions.suggested_uk_cities || []).map((city) => {
+                          const selected = parseListInput(accessSettings.uk_cities).includes(city)
+                          return (
+                            <button
+                              key={city}
+                              type="button"
+                              className={`btn ghost ${selected ? 'active' : ''}`}
+                              onClick={() => toggleSuggestedCity(city)}
+                            >
+                              {city}
+                            </button>
+                          )
+                        })}
+                      </div>
                       <textarea
                         rows={3}
-                        value={listToInput(accessSettings.restricted_ips)}
-                        onChange={(e) => setAccessFlag('restricted_ips', e.target.value)}
-                        placeholder={'203.0.113.10\n198.51.100.0/24'}
+                        value={listToInput(accessSettings.uk_cities)}
+                        onChange={(e) => setAccessFlag('uk_cities', e.target.value)}
+                        placeholder="London, Manchester, Birmingham"
                       />
                     </div>
                   ) : null}
@@ -1261,50 +1300,12 @@ export default function SecurityMonitoring() {
                   <label className="checkbox-row secmon-access-check">
                     <input
                       type="checkbox"
-                      checked={!!accessSettings.allow_ips_enabled}
-                      onChange={(e) => setAccessFlag('allow_ips_enabled', e.target.checked)}
+                      checked={!!accessSettings.uk_only}
+                      onChange={(e) => setAccessFlag('uk_only', e.target.checked)}
                     />
                     <span>
-                      <strong>Allow IPs</strong>
-                      <span className="muted"> — these IPs always allowed; override VPN / country / UK / city blocks</span>
-                    </span>
-                  </label>
-                  {accessSettings.allow_ips_enabled ? (
-                    <div className="secmon-access-rule__body">
-                      <textarea
-                        rows={3}
-                        value={listToInput(accessSettings.allowed_ips)}
-                        onChange={(e) => setAccessFlag('allowed_ips', e.target.value)}
-                        placeholder={'203.0.113.80\n198.51.100.0/24'}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="secmon-access-rule">
-                  <label className="checkbox-row secmon-access-check">
-                    <input
-                      type="checkbox"
-                      checked={!!accessSettings.restrict_vpn_enabled}
-                      onChange={(e) => setAccessFlag('restrict_vpn_enabled', e.target.checked)}
-                    />
-                    <span>
-                      <strong>Restrict VPN</strong>
-                      <span className="muted"> — block detected VPN, proxy, or hosting/datacenter exits (Allow IPs can override)</span>
-                    </span>
-                  </label>
-                </div>
-
-                <div className="secmon-access-rule">
-                  <label className="checkbox-row secmon-access-check">
-                    <input
-                      type="checkbox"
-                      checked={!!accessSettings.allow_vpn_enabled}
-                      onChange={(e) => setAccessFlag('allow_vpn_enabled', e.target.checked)}
-                    />
-                    <span>
-                      <strong>Allow VPN</strong>
-                      <span className="muted"> — detected VPN/proxy exits always allowed; override country / UK / city blocks. Alone, only VPN traffic may access</span>
+                      <strong>UK only</strong>
+                      <span className="muted"> — allow requests only from the United Kingdom</span>
                     </span>
                   </label>
                 </div>

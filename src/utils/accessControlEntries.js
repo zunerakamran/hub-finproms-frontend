@@ -208,22 +208,33 @@ export function collectOpposingConflicts(settings) {
   if (countryConflicts.length) {
     const sample = countryConflicts.map((c) => c.a).join(', ')
     messages.push(
-      `Country conflict: ${sample} cannot be in both Restricted countries and Allowed countries.`
+      `Country conflict: ${sample} cannot be in both Restricted and Allowed countries.`
     )
   }
 
-  // UK cities are an allowlist; opposing signal is restricting GB while cities are enabled.
+  const restrictedCities = parseListInput(settings?.restricted_cities).map(normalizeCity)
+  const allowedCities = parseListInput(settings?.allowed_cities).map(normalizeCity)
+  const cityConflicts = findExactConflicts(restrictedCities, allowedCities, {
+    normalize: (v) => normalizeCity(v).toLowerCase(),
+  })
+  if (cityConflicts.length) {
+    const sample = cityConflicts.map((c) => c.a).join(', ')
+    messages.push(
+      `City conflict: ${sample} cannot be in both Restricted and Allowed cities.`
+    )
+  }
+
+  // UK cities / UK only conflict with restricting GB.
   const ukCities = parseListInput(settings?.uk_cities).map(normalizeCity).filter(Boolean)
   if (settings?.uk_cities_enabled && ukCities.length && restrictedCountries.includes('GB')) {
     messages.push(
-      'City / country conflict: Specific UK cities is on, but GB is in Restricted countries. Remove GB from Restricted countries, or turn off UK cities.'
+      'Conflict: Specific UK cities is on, but GB is in Restricted countries. Remove GB from Restricted countries, or turn off UK cities.'
     )
   }
 
-  // Soft opposing pair: UK-only vs restricting GB
   if (settings?.uk_only && restrictedCountries.includes('GB')) {
     messages.push(
-      'Country conflict: UK only is on, but GB is in Restricted countries. Remove GB from Restricted countries, or turn off UK only.'
+      'Conflict: UK only is on, but GB is in Restricted countries. Remove GB from Restricted countries, or turn off UK only.'
     )
   }
 

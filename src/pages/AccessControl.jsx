@@ -22,8 +22,10 @@ const ACCESS_DEFAULT = {
   uk_cities: [],
   restrict_countries_enabled: false,
   restricted_countries: [],
+  restricted_cities: [],
   allow_countries_enabled: false,
   allowed_countries: [],
+  allowed_cities: [],
   restrict_ips_enabled: false,
   restricted_ips: [],
   allow_ips_enabled: false,
@@ -239,8 +241,8 @@ function AccessRulesForm({
       </div>
 
       <p className="access-control-hint muted">
-        Rules order: Restrict IPs → Allow IPs → Restrict countries → Allow countries → Specific UK
-        cities → UK only. When Block VPN is on, VPN is checked after Allow IPs.
+        Rules order: Restrict IPs → Allow IPs → Block VPN → Restricted countries/cities → Allowed
+        countries/cities → Specific UK cities → UK only.
       </p>
 
       <div className="access-control-rules">
@@ -315,12 +317,13 @@ function AccessRulesForm({
               onChange={(e) => setFlag('restrict_countries_enabled', e.target.checked)}
             />
             <span>
-              <strong>Restrict countries</strong>
-              <span className="muted"> — block selected countries (Allow IPs can override)</span>
+              <strong>Restricted countries / cities</strong>
+              <span className="muted"> — block selected countries or cities (Allow IPs can override)</span>
             </span>
           </label>
           {settings.restrict_countries_enabled ? (
             <div className="access-control-rule__body">
+              <p className="access-control-entry-editor__hint muted">Countries</p>
               <EntryListEditor
                 items={settings.restricted_countries}
                 onChange={(next) => {
@@ -344,8 +347,21 @@ function AccessRulesForm({
                 validate={isValidCountryCode}
                 normalize={normalizeCountry}
                 placeholder="RU"
-                hint="ISO 2-letter country codes. Cannot also appear in Allowed countries."
+                hint="ISO 2-letter codes. Cannot also appear in Allowed countries."
                 ariaLabel="Restricted countries"
+              />
+              <p className="access-control-entry-editor__hint muted">Cities</p>
+              <EntryListEditor
+                items={settings.restricted_cities}
+                onChange={(next) => setFlag('restricted_cities', next)}
+                opposingItems={settings.allowed_cities}
+                opposingLabel="Allowed cities"
+                validate={isValidCityName}
+                normalize={normalizeCity}
+                conflictsWith={(a, b) => normalizeCity(a).toLowerCase() === normalizeCity(b).toLowerCase()}
+                placeholder="Karachi"
+                hint="City names as resolved by geo (case-insensitive). Cannot also appear in Allowed cities."
+                ariaLabel="Restricted cities"
               />
             </div>
           ) : null}
@@ -359,15 +375,16 @@ function AccessRulesForm({
               onChange={(e) => setFlag('allow_countries_enabled', e.target.checked)}
             />
             <span>
-              <strong>Allow countries</strong>
+              <strong>Allowed countries / cities</strong>
               <span className="muted">
                 {' '}
-                — allow these countries; also overrides Restrict countries / UK rules for them
+                — always allow these; overrides Specific UK cities / UK only
               </span>
             </span>
           </label>
           {settings.allow_countries_enabled ? (
             <div className="access-control-rule__body">
+              <p className="access-control-entry-editor__hint muted">Countries</p>
               <EntryListEditor
                 items={settings.allowed_countries}
                 onChange={(next) => setFlag('allowed_countries', next)}
@@ -376,8 +393,21 @@ function AccessRulesForm({
                 validate={isValidCountryCode}
                 normalize={normalizeCountry}
                 placeholder="IE"
-                hint="ISO 2-letter country codes. Cannot also appear in Restricted countries."
+                hint="ISO 2-letter codes. Cannot also appear in Restricted countries."
                 ariaLabel="Allowed countries"
+              />
+              <p className="access-control-entry-editor__hint muted">Cities</p>
+              <EntryListEditor
+                items={settings.allowed_cities}
+                onChange={(next) => setFlag('allowed_cities', next)}
+                opposingItems={settings.restricted_cities}
+                opposingLabel="Restricted cities"
+                validate={isValidCityName}
+                normalize={normalizeCity}
+                conflictsWith={(a, b) => normalizeCity(a).toLowerCase() === normalizeCity(b).toLowerCase()}
+                placeholder="Dubai"
+                hint="City names as resolved by geo. Cannot also appear in Restricted cities."
+                ariaLabel="Allowed cities"
               />
             </div>
           ) : null}
@@ -502,8 +532,10 @@ function buildPayload(settings) {
     uk_cities: parseListInput(settings.uk_cities),
     restrict_countries_enabled: !!settings.restrict_countries_enabled,
     restricted_countries: parseListInput(settings.restricted_countries).map((c) => c.toUpperCase()),
+    restricted_cities: parseListInput(settings.restricted_cities),
     allow_countries_enabled: !!settings.allow_countries_enabled,
     allowed_countries: parseListInput(settings.allowed_countries).map((c) => c.toUpperCase()),
+    allowed_cities: parseListInput(settings.allowed_cities),
     restrict_ips_enabled: !!settings.restrict_ips_enabled,
     restricted_ips: parseListInput(settings.restricted_ips),
     allow_ips_enabled: !!settings.allow_ips_enabled,
@@ -534,10 +566,12 @@ const CHANGE_FIELD_LABELS = {
   uk_only: 'UK only',
   uk_cities_enabled: 'Specific UK cities enabled',
   uk_cities: 'UK cities',
-  restrict_countries_enabled: 'Restrict countries enabled',
+  restrict_countries_enabled: 'Restricted countries / cities enabled',
   restricted_countries: 'Restricted countries',
-  allow_countries_enabled: 'Allow countries enabled',
+  restricted_cities: 'Restricted cities',
+  allow_countries_enabled: 'Allowed countries / cities enabled',
   allowed_countries: 'Allowed countries',
+  allowed_cities: 'Allowed cities',
   restrict_ips_enabled: 'Restrict IPs enabled',
   restricted_ips: 'Restricted IPs',
   allow_ips_enabled: 'Allow IPs enabled',
@@ -579,6 +613,10 @@ export default function AccessControl() {
   const [expandedHistoryId, setExpandedHistoryId] = useState(null)
   const [restoringId, setRestoringId] = useState(null)
   const [unlocking, setUnlocking] = useState(false)
+  const [blockedAttempts, setBlockedAttempts] = useState([])
+  const [blockedLoading, setBlockedLoading] = useState(false)
+  const [blockedQuery, setBlockedQuery] = useState('')
+  const [blockedType, setBlockedType] = useState('')
 
   const loadHub = useCallback(async () => {
     const data = await api.accessControlHubSettings({ asPowerAdmin })
@@ -620,6 +658,26 @@ export default function AccessControl() {
       }
     },
     [asPowerAdmin, historyScope]
+  )
+
+  const loadBlockedAttempts = useCallback(
+    async ({ q = blockedQuery, event_type = blockedType } = {}) => {
+      setBlockedLoading(true)
+      try {
+        const data = await api.accessControlBlockedAttempts(
+          {
+            per_page: 50,
+            q: q || undefined,
+            event_type: event_type || undefined,
+          },
+          { asPowerAdmin }
+        )
+        setBlockedAttempts(data.data || [])
+      } finally {
+        setBlockedLoading(false)
+      }
+    },
+    [asPowerAdmin, blockedQuery, blockedType]
   )
 
   useEffect(() => {
@@ -979,6 +1037,22 @@ export default function AccessControl() {
         <button
           type="button"
           role="tab"
+          aria-selected={section === 'blocked'}
+          className={`btn ghost ${section === 'blocked' ? 'active' : ''}`}
+          onClick={() => {
+            setSection('blocked')
+            setMessage('')
+            setError('')
+            loadBlockedAttempts().catch((err) =>
+              setError(err.message || 'Failed to load blocked attempts.')
+            )
+          }}
+        >
+          Blocked attempts
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={section === 'history'}
           className={`btn ghost ${section === 'history' ? 'active' : ''}`}
           onClick={() => {
@@ -1244,13 +1318,122 @@ export default function AccessControl() {
         </section>
       ) : null}
 
+      {section === 'blocked' ? (
+        <section className="access-control-section" aria-label="Blocked access attempts">
+          <div className="access-control-section__intro">
+            <h2>Blocked attempts</h2>
+            <p className="muted">
+              Requests denied (or that would be denied in Monitor mode) by Access Control / the
+              application firewall. Shows user, country, city, IP, path, and rule. Stored as
+              security events — not in Change history or the general Activity log.
+            </p>
+          </div>
+
+          <div className="access-control-card access-control-history-toolbar">
+            <form
+              className="access-control-search"
+              onSubmit={(e) => {
+                e.preventDefault()
+                loadBlockedAttempts().catch((err) => setError(err.message))
+              }}
+            >
+              <input
+                type="search"
+                value={blockedQuery}
+                onChange={(e) => setBlockedQuery(e.target.value)}
+                placeholder="Search IP, email, country, city…"
+                aria-label="Search blocked attempts"
+              />
+              <select
+                value={blockedType}
+                onChange={(e) => setBlockedType(e.target.value)}
+                aria-label="Event type filter"
+              >
+                <option value="">All types</option>
+                <option value="fw.access_restricted">Blocked (enforce)</option>
+                <option value="fw.access_would_block">Would block (monitor)</option>
+                <option value="fw.ip_denied">Firewall IP deny</option>
+                <option value="fw.ip_auto_blocked">Auto-blocked IP</option>
+              </select>
+              <button type="submit" className="btn primary" disabled={blockedLoading}>
+                Search
+              </button>
+            </form>
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={blockedLoading}
+              onClick={() => loadBlockedAttempts().catch((err) => setError(err.message))}
+            >
+              {blockedLoading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
+
+          {blockedLoading && blockedAttempts.length === 0 ? (
+            <p className="muted">Loading blocked attempts…</p>
+          ) : null}
+
+          {!blockedLoading && blockedAttempts.length === 0 ? (
+            <div className="access-control-card">
+              <p className="muted">No blocked attempts recorded yet.</p>
+            </div>
+          ) : null}
+
+          <div className="access-control-blocked-list">
+            {blockedAttempts.map((row) => (
+              <article key={row.id} className="access-control-card access-control-blocked-item">
+                <div className="access-control-blocked-item__head">
+                  <strong>{row.title}</strong>
+                  <span className="muted">{formatChangeTime(row.occurred_at)}</span>
+                </div>
+                <p className="access-control-blocked-item__desc">{row.description}</p>
+                <dl className="access-control-blocked-item__meta">
+                  <div>
+                    <dt>User</dt>
+                    <dd>
+                      {row.user?.email || row.actor?.email
+                        ? `${row.user?.name || row.actor?.name || 'User'} (${row.user?.email || row.actor?.email})`
+                        : 'Guest / unauthenticated'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Location</dt>
+                    <dd>
+                      {[row.country, row.city].filter(Boolean).join(' / ') || '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>IP</dt>
+                    <dd>
+                      <code>{row.source_ip || '—'}</code>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Request</dt>
+                    <dd>
+                      <code>
+                        {row.http_method || ''} {row.path || '—'}
+                      </code>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Rule</dt>
+                    <dd>{row.reason || row.event_type || '—'}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {section === 'history' ? (
         <section className="access-control-section" aria-label="Access policy history">
           <div className="access-control-section__intro">
             <h2>Change history</h2>
             <p className="muted">
               Who changed hub or user access rules, when, and what fields changed. Does not include
-              simulate runs.
+              simulate runs or blocked access attempts (see Blocked attempts).
             </p>
           </div>
 

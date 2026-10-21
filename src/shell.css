@@ -2414,6 +2414,29 @@ a.site-footer__powered:hover {
   to { transform: rotate(360deg); }
 }
 
+.access-blocked-splash__inner {
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+.access-blocked-splash__logo {
+  max-width: min(220px, 70vw);
+  max-height: 72px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.access-blocked-splash__name {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink, #0f172a);
+  text-align: center;
+}
+
 .listing-page {
   position: relative;
 }

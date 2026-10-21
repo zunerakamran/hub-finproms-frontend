@@ -62,6 +62,8 @@ export function HubProvider({ children }) {
   const [hub, setHubState] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  /** @type {[{ code: string, branding: object|null }|null, Function]} */
+  const [accessBlocked, setAccessBlocked] = useState(null)
   const [actingHubSwitching, setActingHubSwitching] = useState(false)
   // Shown while reloading hub context after Functionalities / Modules / Capabilities
   // saves so the dashboard navbar can update against fresh checklist + caps.
@@ -116,6 +118,7 @@ export function HubProvider({ children }) {
       const nextHub = hubData.hub
       setHub(nextHub)
       setError('')
+      setAccessBlocked(null)
 
       // Firm-document rights must not block first paint / AppBootGate.
       if (user) {
@@ -157,7 +160,20 @@ export function HubProvider({ children }) {
 
       return nextHub
     } catch (err) {
-      setError(err.message || 'Failed to load hub')
+      const code = err?.data?.code
+      if (
+        err?.status === 403 &&
+        (code === 'access_restricted' || code === 'firewall_denied')
+      ) {
+        setAccessBlocked({
+          code,
+          branding: err.data?.branding || null,
+        })
+        setError('')
+      } else {
+        setAccessBlocked(null)
+        setError(err.message || 'Failed to load hub')
+      }
       return null
     } finally {
       setLoading(false)
@@ -508,6 +524,7 @@ export function HubProvider({ children }) {
         // Only block the tree on the first hub fetch - not background refreshes.
         loading: (loading && !hub) || authLoading,
         error,
+        accessBlocked,
         refreshHub,
         can,
         canViewSitePages,
@@ -557,6 +574,7 @@ export function HubProvider({ children }) {
       loading,
       authLoading,
       error,
+      accessBlocked,
       refreshHub,
       can,
       advisorBillingEnabled,

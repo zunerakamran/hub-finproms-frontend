@@ -1195,6 +1195,14 @@ export const api = {
     ).toString()
     return request(`${adminBase(options)}/access-control/changes${query ? `?${query}` : ''}`)
   },
+  accessControlBlockedAttempts: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(
+      `${adminBase(options)}/access-control/blocked-attempts${query ? `?${query}` : ''}`
+    )
+  },
   accessControlRestoreChange: (changeId, payload = {}, options = {}) =>
     request(`${adminBase(options)}/access-control/changes/${changeId}/restore`, {
       method: 'POST',

@@ -2344,9 +2344,14 @@ SECURITY HARDENING (phase 2 — 2026-10-04)
     rejection (incl. SVG block) + optional ClamAV; see §8 NFR-SEC-FW + §9.5
     (per-endpoint mime allowlists already exist on major upload routes)
 [x] Access Control page (`/my-dashboard/access-control`): chip adders for
-    IPs (single / CIDR / hyphen range), countries, UK cities; alert + block
-    when Restrict vs Allow IPs/countries overlap, or GB restricted while
-    UK only / UK cities is on (API also 422s these)
+    IPs (single / CIDR / hyphen range), Restricted/Allowed countries+cities,
+    Specific UK cities; precedence Restrict IPs → Allow IPs → Block VPN →
+    Restricted countries/cities → Allowed countries/cities → UK cities →
+    UK only; opposing-list alerts (API 422)
+[x] Access blocked visitors: hub logo + loader splash (`AccessBlockedSplash`)
+    when `/hub` returns 403 `access_restricted` / `firewall_denied` (branding
+    in 403 body). Blocked attempts tab lists security events (user / country /
+    city / IP) — not Activity log / not Change history
 
 --------------------------------------------------------------------------------
 UK GDPR / DATA PROTECTION (section 2.2d + 6E) — Phase 1 backend done

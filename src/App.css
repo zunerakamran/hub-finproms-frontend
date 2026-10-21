@@ -9225,3 +9225,53 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   gap: 0.55rem;
   margin-top: 0.85rem;
 }
+
+.access-control-blocked-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.access-control-blocked-item__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.access-control-blocked-item__desc {
+  margin: 0.55rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.access-control-blocked-item__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.65rem 1rem;
+  margin: 0.85rem 0 0;
+}
+
+.access-control-blocked-item__meta dt {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #64748b);
+}
+
+.access-control-blocked-item__meta dd {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.access-control-history-toolbar .access-control-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.access-control-history-toolbar .access-control-search select {
+  max-width: 12rem;
+}

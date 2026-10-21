@@ -3,6 +3,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import {
+  collectOpposingConflicts,
+  formatConflictAlert,
+  ipEntriesConflict,
+  isValidCityName,
+  isValidCountryCode,
+  isValidIpEntry,
+  normalizeCity,
+  normalizeCountry,
+  parseIpEntry,
+  parseListInput,
+} from '../utils/accessControlEntries'
 
 const ACCESS_DEFAULT = {
   uk_only: false,
@@ -21,23 +33,134 @@ const ACCESS_DEFAULT = {
   enforcement_mode: 'enforce',
 }
 
-function parseListInput(value) {
-  if (Array.isArray(value)) {
-    return [...new Set(value.map((s) => String(s).trim()).filter(Boolean))]
+function EntryListEditor({
+  items,
+  onChange,
+  opposingItems = [],
+  opposingLabel = 'the opposing list',
+  validate,
+  normalize = (v) => String(v || '').trim(),
+  conflictsWith,
+  placeholder,
+  hint,
+  addLabel = 'Add',
+  inputMode,
+  ariaLabel,
+}) {
+  const [draft, setDraft] = useState('')
+  const [localError, setLocalError] = useState('')
+  const list = parseListInput(items)
+
+  const tryAdd = () => {
+    const raw = draft.trim()
+    if (!raw) return
+
+    // Allow pasting several values at once (newline / comma / semicolon).
+    const candidates = parseListInput(raw)
+    const next = [...list]
+    const added = []
+    const errors = []
+
+    for (const candidate of candidates) {
+      const normalized = normalize(candidate)
+      if (!normalized) continue
+
+      if (validate && !validate(normalized)) {
+        errors.push(`Invalid entry: ${candidate}`)
+        continue
+      }
+
+      if (next.some((existing) => normalize(existing) === normalized)) {
+        errors.push(`Already added: ${normalized}`)
+        continue
+      }
+
+      const opposing = parseListInput(opposingItems)
+      const conflict = opposing.find((other) =>
+        conflictsWith ? conflictsWith(normalized, other) : normalize(other) === normalized
+      )
+      if (conflict) {
+        errors.push(
+          `"${normalized}" is already in ${opposingLabel} (${conflict}). Remove it there first, or keep it only on one side.`
+        )
+        continue
+      }
+
+      next.push(normalized)
+      added.push(normalized)
+    }
+
+    if (errors.length) {
+      setLocalError(errors[0])
+      window.alert(errors[0])
+    } else {
+      setLocalError('')
+    }
+
+    if (added.length) {
+      onChange(next)
+      setDraft('')
+    }
   }
-  return [
-    ...new Set(
-      String(value || '')
-        .split(/[\n,;]+/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-    ),
-  ]
+
+  const removeItem = (item) => {
+    const key = normalize(item)
+    onChange(list.filter((existing) => normalize(existing) !== key))
+    setLocalError('')
+  }
+
+  return (
+    <div className="access-control-entry-editor">
+      <div className="access-control-entry-editor__add">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value)
+            if (localError) setLocalError('')
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              tryAdd()
+            }
+          }}
+          placeholder={placeholder}
+          inputMode={inputMode}
+          aria-label={ariaLabel || placeholder}
+        />
+        <button type="button" className="btn primary" onClick={tryAdd}>
+          {addLabel}
+        </button>
+      </div>
+      {hint ? <p className="access-control-entry-editor__hint muted">{hint}</p> : null}
+      {localError ? <p className="access-control-entry-editor__error">{localError}</p> : null}
+      {list.length ? (
+        <ul className="access-control-entry-chips" aria-label={ariaLabel || 'Entries'}>
+          {list.map((item) => (
+            <li key={item} className="access-control-entry-chip">
+              <code>{item}</code>
+              <button
+                type="button"
+                className="access-control-entry-chip__remove"
+                aria-label={`Remove ${item}`}
+                onClick={() => removeItem(item)}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="access-control-entry-editor__empty muted">No entries yet — add one above.</p>
+      )}
+    </div>
+  )
 }
 
-function listToInput(value) {
-  if (Array.isArray(value)) return value.join('\n')
-  return String(value || '')
+function normalizeIpForStore(value) {
+  const parsed = parseIpEntry(value)
+  return parsed?.raw || String(value || '').trim()
 }
 
 function AccessRulesForm({
@@ -135,11 +258,17 @@ function AccessRulesForm({
           </label>
           {settings.restrict_ips_enabled ? (
             <div className="access-control-rule__body">
-              <textarea
-                rows={3}
-                value={listToInput(settings.restricted_ips)}
-                onChange={(e) => setFlag('restricted_ips', e.target.value)}
-                placeholder={'203.0.113.10\n198.51.100.0/24'}
+              <EntryListEditor
+                items={settings.restricted_ips}
+                onChange={(next) => setFlag('restricted_ips', next)}
+                opposingItems={settings.allowed_ips}
+                opposingLabel="Allowed IPs"
+                validate={isValidIpEntry}
+                normalize={normalizeIpForStore}
+                conflictsWith={ipEntriesConflict}
+                placeholder="203.0.113.10 or 198.51.100.0/24 or 203.0.113.10-203.0.113.50"
+                hint="Add a single IP, CIDR (e.g. 198.51.100.0/24), or inclusive range (start-end). Press Enter or Add. Cannot overlap Allowed IPs."
+                ariaLabel="Restricted IPs"
               />
             </div>
           ) : null}
@@ -162,11 +291,17 @@ function AccessRulesForm({
           </label>
           {settings.allow_ips_enabled ? (
             <div className="access-control-rule__body">
-              <textarea
-                rows={3}
-                value={listToInput(settings.allowed_ips)}
-                onChange={(e) => setFlag('allowed_ips', e.target.value)}
-                placeholder={'203.0.113.80\n198.51.100.0/24'}
+              <EntryListEditor
+                items={settings.allowed_ips}
+                onChange={(next) => setFlag('allowed_ips', next)}
+                opposingItems={settings.restricted_ips}
+                opposingLabel="Restricted IPs"
+                validate={isValidIpEntry}
+                normalize={normalizeIpForStore}
+                conflictsWith={ipEntriesConflict}
+                placeholder="203.0.113.80 or 10.0.0.1-10.0.0.20"
+                hint="Same formats as Restrict IPs. Entries must not overlap Restricted IPs."
+                ariaLabel="Allowed IPs"
               />
             </div>
           ) : null}
@@ -186,13 +321,32 @@ function AccessRulesForm({
           </label>
           {settings.restrict_countries_enabled ? (
             <div className="access-control-rule__body">
-              <textarea
-                rows={3}
-                value={listToInput(settings.restricted_countries)}
-                onChange={(e) => setFlag('restricted_countries', e.target.value)}
-                placeholder="RU, CN, KP"
+              <EntryListEditor
+                items={settings.restricted_countries}
+                onChange={(next) => {
+                  const codes = next.map(normalizeCountry)
+                  if (codes.includes('GB') && settings.uk_cities_enabled && parseListInput(settings.uk_cities).length) {
+                    window.alert(
+                      'Cannot restrict GB while Specific UK cities has entries. Clear UK cities or turn that rule off first.'
+                    )
+                    return
+                  }
+                  if (codes.includes('GB') && settings.uk_only) {
+                    window.alert(
+                      'Cannot restrict GB while UK only is on. Turn off UK only first, or do not restrict GB.'
+                    )
+                    return
+                  }
+                  setFlag('restricted_countries', next)
+                }}
+                opposingItems={settings.allowed_countries}
+                opposingLabel="Allowed countries"
+                validate={isValidCountryCode}
+                normalize={normalizeCountry}
+                placeholder="RU"
+                hint="ISO 2-letter country codes. Cannot also appear in Allowed countries."
+                ariaLabel="Restricted countries"
               />
-              <span className="muted">ISO 2-letter codes, comma or newline separated.</span>
             </div>
           ) : null}
         </div>
@@ -214,13 +368,17 @@ function AccessRulesForm({
           </label>
           {settings.allow_countries_enabled ? (
             <div className="access-control-rule__body">
-              <textarea
-                rows={3}
-                value={listToInput(settings.allowed_countries)}
-                onChange={(e) => setFlag('allowed_countries', e.target.value)}
-                placeholder="GB, IE"
+              <EntryListEditor
+                items={settings.allowed_countries}
+                onChange={(next) => setFlag('allowed_countries', next)}
+                opposingItems={settings.restricted_countries}
+                opposingLabel="Restricted countries"
+                validate={isValidCountryCode}
+                normalize={normalizeCountry}
+                placeholder="IE"
+                hint="ISO 2-letter country codes. Cannot also appear in Restricted countries."
+                ariaLabel="Allowed countries"
               />
-              <span className="muted">ISO 2-letter codes, comma or newline separated.</span>
             </div>
           ) : null}
         </div>
@@ -230,7 +388,19 @@ function AccessRulesForm({
             <input
               type="checkbox"
               checked={!!settings.uk_cities_enabled}
-              onChange={(e) => setFlag('uk_cities_enabled', e.target.checked)}
+              onChange={(e) => {
+                const enabled = e.target.checked
+                if (enabled) {
+                  const restricted = parseListInput(settings.restricted_countries).map(normalizeCountry)
+                  if (restricted.includes('GB')) {
+                    window.alert(
+                      'GB is in Restricted countries. UK cities only apply to GB traffic — remove GB from Restricted countries first, or leave UK cities off.'
+                    )
+                    return
+                  }
+                }
+                setFlag('uk_cities_enabled', enabled)
+              }}
             />
             <span>
               <strong>Specific UK cities</strong>
@@ -241,24 +411,49 @@ function AccessRulesForm({
             <div className="access-control-rule__body">
               <div className="access-control-chip-row">
                 {(suggestedCities || []).map((city) => {
-                  const selected = parseListInput(settings.uk_cities).includes(city)
+                  const selected = parseListInput(settings.uk_cities)
+                    .map(normalizeCity)
+                    .includes(normalizeCity(city))
                   return (
                     <button
                       key={city}
                       type="button"
                       className={`access-control-chip ${selected ? 'is-active' : ''}`}
-                      onClick={() => toggleSuggestedCity(city)}
+                      onClick={() => {
+                        const restricted = parseListInput(settings.restricted_countries).map(
+                          normalizeCountry
+                        )
+                        if (!selected && restricted.includes('GB')) {
+                          window.alert(
+                            'GB is in Restricted countries. Remove GB from Restricted countries before selecting UK cities.'
+                          )
+                          return
+                        }
+                        toggleSuggestedCity(city)
+                      }}
                     >
                       {city}
                     </button>
                   )
                 })}
               </div>
-              <textarea
-                rows={3}
-                value={listToInput(settings.uk_cities)}
-                onChange={(e) => setFlag('uk_cities', e.target.value)}
-                placeholder="London, Manchester, Birmingham"
+              <EntryListEditor
+                items={settings.uk_cities}
+                onChange={(next) => {
+                  const restricted = parseListInput(settings.restricted_countries).map(normalizeCountry)
+                  if (next.length && restricted.includes('GB')) {
+                    window.alert(
+                      'GB is in Restricted countries. Remove GB from Restricted countries before adding UK cities.'
+                    )
+                    return
+                  }
+                  setFlag('uk_cities', next)
+                }}
+                validate={isValidCityName}
+                normalize={normalizeCity}
+                placeholder="London"
+                hint="Pick a suggested city or type a UK city name. Conflicts with Restricted countries if GB is blocked."
+                ariaLabel="UK cities"
               />
             </div>
           ) : null}
@@ -269,7 +464,19 @@ function AccessRulesForm({
             <input
               type="checkbox"
               checked={!!settings.uk_only}
-              onChange={(e) => setFlag('uk_only', e.target.checked)}
+              onChange={(e) => {
+                const enabled = e.target.checked
+                if (enabled) {
+                  const restricted = parseListInput(settings.restricted_countries).map(normalizeCountry)
+                  if (restricted.includes('GB')) {
+                    window.alert(
+                      'GB is in Restricted countries. Remove GB from Restricted countries before enabling UK only.'
+                    )
+                    return
+                  }
+                }
+                setFlag('uk_only', enabled)
+              }}
             />
             <span>
               <strong>UK only</strong>
@@ -470,6 +677,13 @@ export default function AccessControl() {
   const saveHub = async (e) => {
     e.preventDefault()
     if (!hubSettings) return
+    const conflicts = collectOpposingConflicts(hubSettings)
+    if (conflicts.length) {
+      const alertText = formatConflictAlert(conflicts)
+      window.alert(alertText)
+      setError(conflicts[0])
+      return
+    }
     setSaving(true)
     setError('')
     setMessage('')
@@ -514,6 +728,13 @@ export default function AccessControl() {
   const saveUser = async (e) => {
     e.preventDefault()
     if (!userSettings || !selectedUser?.id) return
+    const conflicts = collectOpposingConflicts(userSettings)
+    if (conflicts.length) {
+      const alertText = formatConflictAlert(conflicts)
+      window.alert(alertText)
+      setError(conflicts[0])
+      return
+    }
     setSaving(true)
     setError('')
     setMessage('')

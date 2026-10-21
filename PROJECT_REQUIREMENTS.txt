@@ -1,7 +1,8 @@
 ================================================================================
 HUB FINPROMS — PROJECT REQUIREMENTS
 ================================================================================
-Last updated: 2026-10-16 (6B.1 Module disaster recovery via Security Monitoring — implemented)
+Last updated: 2026-10-21 (Access Control UI: IP/CIDR/range chip adder + opposing
+  Restrict vs Allow conflict alerts for IPs, countries, UK cities/GB)
 Location: PROJECT_REQUIREMENTS.txt (project root)
 IMPORTANT: Refer to this document before and after every code change.
 IMPORTANT: Backend and frontend are SEPARATE repos — update BOTH when a
@@ -2342,6 +2343,10 @@ SECURITY HARDENING (phase 2 — 2026-10-04)
 [x] NFR-SEC-FW (section 9.5): application-layer IP deny + dangerous upload
     rejection (incl. SVG block) + optional ClamAV; see §8 NFR-SEC-FW + §9.5
     (per-endpoint mime allowlists already exist on major upload routes)
+[x] Access Control page (`/my-dashboard/access-control`): chip adders for
+    IPs (single / CIDR / hyphen range), countries, UK cities; alert + block
+    when Restrict vs Allow IPs/countries overlap, or GB restricted while
+    UK only / UK cities is on (API also 422s these)
 
 --------------------------------------------------------------------------------
 UK GDPR / DATA PROTECTION (section 2.2d + 6E) — Phase 1 backend done

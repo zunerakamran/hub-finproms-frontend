@@ -8783,6 +8783,7 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
 }
 
 .access-control-rule__body textarea,
+.access-control-rule__body input,
 .access-control-search input {
   width: 100%;
   border: 1px solid var(--line, rgba(15, 23, 42, 0.14));
@@ -8793,10 +8794,97 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
 }
 
 .access-control-rule__body textarea:focus,
+.access-control-rule__body input:focus,
 .access-control-search input:focus {
   outline: none;
   border-color: var(--brand, #1d4ed8);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand, #1d4ed8) 18%, transparent);
+}
+
+.access-control-entry-editor {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.access-control-entry-editor__add {
+  display: flex;
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.access-control-entry-editor__add input {
+  flex: 1;
+  min-width: 0;
+}
+
+.access-control-entry-editor__add .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.access-control-entry-editor__hint,
+.access-control-entry-editor__empty {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.access-control-entry-editor__error {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.access-control-entry-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.access-control-entry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  border: 1px solid var(--line, rgba(15, 23, 42, 0.14));
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.28rem 0.35rem 0.28rem 0.7rem;
+}
+
+.access-control-entry-chip code {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 18rem;
+}
+
+.access-control-entry-chip__remove {
+  border: 0;
+  background: color-mix(in srgb, var(--ink, #0f172a) 8%, transparent);
+  color: var(--ink, #0f172a);
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.access-control-entry-chip__remove:hover {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .access-control-chip-row {

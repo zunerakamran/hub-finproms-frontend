@@ -346,8 +346,8 @@ function AccessRulesForm({
                 opposingLabel="Allowed countries"
                 validate={isValidCountryCode}
                 normalize={normalizeCountry}
-                placeholder="RU"
-                hint="ISO 2-letter codes. Cannot also appear in Allowed countries."
+                placeholder="e.g. GB"
+                hint="ISO 2-letter codes (United Kingdom = GB). Cannot also appear in Allowed countries."
                 ariaLabel="Restricted countries"
               />
               <p className="access-control-entry-editor__hint muted">Cities</p>
@@ -359,8 +359,8 @@ function AccessRulesForm({
                 validate={isValidCityName}
                 normalize={normalizeCity}
                 conflictsWith={(a, b) => normalizeCity(a).toLowerCase() === normalizeCity(b).toLowerCase()}
-                placeholder="Karachi"
-                hint="City names as resolved by geo (case-insensitive). Cannot also appear in Allowed cities."
+                placeholder="e.g. London, Manchester, Birmingham"
+                hint="City names as resolved by geo (e.g. UK cities). Cannot also appear in Allowed cities."
                 ariaLabel="Restricted cities"
               />
             </div>
@@ -392,8 +392,8 @@ function AccessRulesForm({
                 opposingLabel="Restricted countries"
                 validate={isValidCountryCode}
                 normalize={normalizeCountry}
-                placeholder="IE"
-                hint="ISO 2-letter codes. Cannot also appear in Restricted countries."
+                placeholder="e.g. GB"
+                hint="ISO 2-letter codes (United Kingdom = GB). Cannot also appear in Restricted countries."
                 ariaLabel="Allowed countries"
               />
               <p className="access-control-entry-editor__hint muted">Cities</p>
@@ -405,8 +405,8 @@ function AccessRulesForm({
                 validate={isValidCityName}
                 normalize={normalizeCity}
                 conflictsWith={(a, b) => normalizeCity(a).toLowerCase() === normalizeCity(b).toLowerCase()}
-                placeholder="Dubai"
-                hint="City names as resolved by geo. Cannot also appear in Restricted cities."
+                placeholder="e.g. London, Manchester, Birmingham"
+                hint="City names as resolved by geo (e.g. UK cities). Cannot also appear in Restricted cities."
                 ariaLabel="Allowed cities"
               />
             </div>
@@ -481,8 +481,8 @@ function AccessRulesForm({
                 }}
                 validate={isValidCityName}
                 normalize={normalizeCity}
-                placeholder="London"
-                hint="Pick a suggested city or type a UK city name. Conflicts with Restricted countries if GB is blocked."
+                placeholder="e.g. London, Manchester, Birmingham, Edinburgh"
+                hint="UK only — pick a suggested city or type a UK city name. Country must resolve as GB."
                 ariaLabel="UK cities"
               />
             </div>
@@ -1214,7 +1214,7 @@ export default function AccessControl() {
                   type="text"
                   value={simCountry}
                   onChange={(e) => setSimCountry(e.target.value)}
-                  placeholder="GB"
+                  placeholder="e.g. GB"
                   maxLength={2}
                   aria-label="Country override"
                 />
@@ -1226,7 +1226,7 @@ export default function AccessControl() {
                   type="text"
                   value={simCity}
                   onChange={(e) => setSimCity(e.target.value)}
-                  placeholder="London"
+                  placeholder="e.g. London, Manchester"
                   aria-label="City override"
                 />
               </label>

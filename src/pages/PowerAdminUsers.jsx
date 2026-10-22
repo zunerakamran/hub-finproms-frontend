@@ -1,16 +1,22 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { FaEdit, FaTrash } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { roleLabel as resolveRoleLabel } from '../utils/roleLabels'
+import {
+  formatUserRoles,
+  pickPrimaryRole,
+  roleLabel as resolveRoleLabel,
+  userRoleKeys,
+} from '../utils/roleLabels'
 
 const emptyForm = {
   name: '',
   email: '',
   password: '',
-  role: 'user',
+  roles: ['user'],
+  primary_role: 'user',
   firm_id: '',
   credits: 0,
   is_suspended: false,
@@ -19,6 +25,7 @@ const emptyForm = {
 }
 
 const BASE_MODULE_LABELS = new Set(['Shared Hub', 'White Label Hub'])
+const CONTROL_PLANE_ROLES = new Set(['power_admin', 'finproms_admin'])
 
 function formatUserModules(user) {
   const mods = user?.modules
@@ -27,6 +34,10 @@ function formatUserModules(user) {
   const labels = (mods.labels || []).filter((label) => !BASE_MODULE_LABELS.has(label))
   if (labels.length === 0) return 'Base hub only'
   return labels.join(', ')
+}
+
+function rolesIncludeControlPlane(roles) {
+  return (roles || []).some((role) => CONTROL_PLANE_ROLES.has(role))
 }
 
 export default function PowerAdminUsers() {
@@ -73,13 +84,28 @@ export default function PowerAdminUsers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowed, actingHubId, roleFilter])
 
-  // After roles load, keep create-form role on a visible option.
+  // After roles load, keep create-form roles on visible options.
   useEffect(() => {
     if (editingId || roles.length === 0) return
-    if (!roles.some((role) => role.key === form.role)) {
-      setForm((f) => ({ ...f, role: roles[0].key }))
-    }
-  }, [roles, editingId, form.role])
+    setForm((f) => {
+      const visible = new Set(roles.map((role) => role.key))
+      const nextRoles = (f.roles || []).filter((role) => visible.has(role))
+      if (nextRoles.length > 0 && nextRoles.length === (f.roles || []).length) {
+        return f
+      }
+      const fallback = nextRoles.length > 0 ? nextRoles : [roles[0].key]
+      const primary = fallback.includes(f.primary_role)
+        ? f.primary_role
+        : pickPrimaryRole(fallback)
+      return {
+        ...f,
+        roles: fallback,
+        primary_role: primary,
+        is_advisor: fallback.includes('advisor') ? true : f.is_advisor,
+        firm_id: rolesIncludeControlPlane(fallback) ? '' : f.firm_id,
+      }
+    })
+  }, [roles, editingId])
 
   const resetForm = () => {
     setForm(emptyForm)
@@ -87,37 +113,69 @@ export default function PowerAdminUsers() {
   }
 
   const startEdit = (user) => {
+    const held = userRoleKeys(user)
+    const rolesList = held.length > 0 ? held : ['user']
+    const primary = user.primary_role || user.role || pickPrimaryRole(rolesList)
     setEditingId(user.id)
     setForm({
       name: user.name || '',
       email: user.email || '',
       password: '',
-      role: user.role || 'user',
+      roles: rolesList,
+      primary_role: rolesList.includes(primary) ? primary : pickPrimaryRole(rolesList),
       firm_id: user.firm_id ? String(user.firm_id) : '',
       credits: user.has_unlimited_credits ? 0 : Number(user.credits || 0),
       is_suspended: Boolean(user.is_suspended),
       allows_admin_staff_acting: Boolean(user.allows_admin_staff_acting),
-      is_advisor: Boolean(user.is_advisor) || user.role === 'advisor',
+      is_advisor: Boolean(user.is_advisor) || rolesList.includes('advisor'),
     })
     setMessage('')
     setError('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // API roles = matrix-visible for this hub. Keep current edit value if missing.
+  // API roles = matrix-visible for this hub. Keep current edit values if missing.
   const roleOptions = useMemo(() => {
     const list = [...roles]
-    if (form.role && !list.some((role) => role.key === form.role)) {
-      list.push({
-        key: form.role,
-        label: resolveRoleLabel(hub, form.role) || roleLabels?.[form.role] || form.role,
-      })
+    for (const key of form.roles || []) {
+      if (key && !list.some((role) => role.key === key)) {
+        list.push({
+          key,
+          label: resolveRoleLabel(hub, key) || roleLabels?.[key] || key,
+        })
+      }
     }
     return list
-  }, [roles, form.role, hub, roleLabels])
+  }, [roles, form.roles, hub, roleLabels])
 
-  const isAdvisorForm = form.role === 'advisor' || Boolean(form.is_advisor)
+  const isAdvisorForm = (form.roles || []).includes('advisor') || Boolean(form.is_advisor)
+  const isControlPlaneForm = rolesIncludeControlPlane(form.roles)
   const staffLabel = resolveRoleLabel(hub, 'admin_staff') || 'Admin-staff'
+
+  const toggleRole = (roleKey) => {
+    setForm((f) => {
+      const current = new Set(f.roles || [])
+      if (current.has(roleKey)) {
+        if (current.size <= 1) return f
+        current.delete(roleKey)
+      } else {
+        current.add(roleKey)
+      }
+      const nextRoles = Array.from(current)
+      const primary = nextRoles.includes(f.primary_role)
+        ? f.primary_role
+        : pickPrimaryRole(nextRoles)
+      return {
+        ...f,
+        roles: nextRoles,
+        primary_role: primary,
+        is_advisor: nextRoles.includes('advisor') ? true : f.is_advisor,
+        allows_admin_staff_acting:
+          nextRoles.includes('advisor') || f.is_advisor ? f.allows_admin_staff_acting : false,
+        firm_id: rolesIncludeControlPlane(nextRoles) ? '' : f.firm_id,
+      }
+    })
+  }
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -126,21 +184,26 @@ export default function PowerAdminUsers() {
     setError('')
     setMessage('')
     try {
+      const rolesPayload = form.roles?.length ? form.roles : ['user']
+      const primary = rolesPayload.includes(form.primary_role)
+        ? form.primary_role
+        : pickPrimaryRole(rolesPayload)
       const payload = {
         name: form.name.trim(),
         email: form.email.trim(),
-        role: form.role,
+        roles: rolesPayload,
+        primary_role: primary,
+        role: primary,
         credits: Number(form.credits) || 0,
         is_suspended: Boolean(form.is_suspended),
         allows_admin_staff_acting: isAdvisorForm
           ? Boolean(form.allows_admin_staff_acting)
           : false,
-        firm_id:
-          form.role === 'power_admin' || form.role === 'finproms_admin'
-            ? null
-            : form.firm_id
-              ? Number(form.firm_id)
-              : null,
+        firm_id: isControlPlaneForm
+          ? null
+          : form.firm_id
+            ? Number(form.firm_id)
+            : null,
       }
       if (form.password.trim()) {
         payload.password = form.password
@@ -191,9 +254,9 @@ export default function PowerAdminUsers() {
       { key: 'email', label: 'Email' },
       {
         key: 'role',
-        label: 'Role',
-        filterValue: (row) => row.role_label || row.role || '',
-        render: (row) => row.role_label || row.role,
+        label: 'Roles',
+        filterValue: (row) => formatUserRoles(row, hub),
+        render: (row) => formatUserRoles(row, hub),
       },
       {
         key: 'firm',
@@ -219,7 +282,7 @@ export default function PowerAdminUsers() {
         render: (row) => (row.has_unlimited_credits ? 'Unlimited' : row.credits),
       },
     ],
-    []
+    [hub]
   )
 
   if (!allowed) {
@@ -234,7 +297,7 @@ export default function PowerAdminUsers() {
         <div className="empty-state">
           <h2>Capability disabled</h2>
           <p className="muted">
-            Enable &quot;Manage users &amp; roles&quot; under Power Admin → Capabilities.
+            Enable &quot;Manage users &amp; roles&quot; under Power Admin â†’ Capabilities.
           </p>
         </div>
       </section>
@@ -247,7 +310,9 @@ export default function PowerAdminUsers() {
         <div>
           <p className="eyebrow">Platform</p>
           <h1>Users & roles</h1>
-          <p className="muted">Create accounts, update details, and assign platform roles.</p>
+          <p className="muted">
+            Create accounts, update details, and assign one or more platform roles.
+          </p>
         </div>
       </div>
 
@@ -285,27 +350,20 @@ export default function PowerAdminUsers() {
             />
           </label>
           <label>
-            Role
+            Primary role
             <select
-              value={form.role}
-              onChange={(e) => {
-                const role = e.target.value
-                setForm((f) => ({
-                  ...f,
-                  role,
-                  is_advisor: role === 'advisor' ? true : f.is_advisor,
-                  allows_admin_staff_acting:
-                    role === 'advisor' || f.is_advisor ? f.allows_admin_staff_acting : false,
-                  firm_id: role === 'power_admin' || role === 'finproms_admin' ? '' : f.firm_id,
-                }))
-              }}
+              value={form.primary_role}
+              onChange={(e) => setForm((f) => ({ ...f, primary_role: e.target.value }))}
               required
             >
-              {(roleOptions.length ? roleOptions : [{ key: 'user', label: 'User' }]).map((role) => (
-                <option key={role.key} value={role.key}>
-                  {role.label}
-                </option>
-              ))}
+              {(form.roles || []).map((key) => {
+                const option = roleOptions.find((role) => role.key === key)
+                return (
+                  <option key={key} value={key}>
+                    {option?.label || resolveRoleLabel(hub, key) || key}
+                  </option>
+                )
+              })}
             </select>
           </label>
           <label>
@@ -313,13 +371,10 @@ export default function PowerAdminUsers() {
             <select
               value={form.firm_id}
               onChange={(e) => setForm((f) => ({ ...f, firm_id: e.target.value }))}
-              disabled={form.role === 'power_admin' || form.role === 'finproms_admin'}
+              disabled={isControlPlaneForm}
             >
               <option value="">No firm</option>
-              {(form.role === 'power_admin' || form.role === 'finproms_admin'
-                ? []
-                : firms
-              ).map((firm) => (
+              {(isControlPlaneForm ? [] : firms).map((firm) => (
                 <option key={firm.id} value={firm.id}>
                   {firm.name}
                   {firm.is_central ? ' (Central / Network)' : ''}
@@ -337,10 +392,36 @@ export default function PowerAdminUsers() {
             />
           </label>
         </div>
-        {form.role === 'admin_staff' ? (
+
+        <fieldset style={{ marginTop: '1rem', border: '1px solid var(--border, #ddd)', borderRadius: 8, padding: '0.75rem 1rem' }}>
+          <legend style={{ padding: '0 0.35rem' }}>Roles</legend>
+          <p className="muted" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
+            Select one or more roles. Effective capabilities are the union of all selected roles.
+            Primary role is used for display and activity logs only.
+          </p>
+          <div className="row" style={{ gap: '0.75rem 1.25rem', flexWrap: 'wrap' }}>
+            {(roleOptions.length ? roleOptions : [{ key: 'user', label: 'User' }]).map((role) => {
+              const checked = (form.roles || []).includes(role.key)
+              const onlyOne = checked && (form.roles || []).length === 1
+              return (
+                <label key={role.key} className="checkbox" style={{ margin: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={onlyOne}
+                    onChange={() => toggleRole(role.key)}
+                  />
+                  {role.label}
+                </label>
+              )
+            })}
+          </div>
+        </fieldset>
+
+        {(form.roles || []).includes('admin_staff') ? (
           <p className="muted" style={{ marginTop: '0.5rem' }}>
             {staffLabel} use their Capabilities matrix access by default. Assign a firm so they
-            can pick advisors who have granted “work on behalf” permission, then act as that
+            can pick advisors who have granted â€œwork on behalfâ€ permission, then act as that
             advisor with attribution on submissions and reporting.
           </p>
         ) : null}
@@ -366,7 +447,7 @@ export default function PowerAdminUsers() {
         </label>
         <div className="row" style={{ gap: '0.75rem', marginTop: '1rem' }}>
           <button type="submit" className="btn" disabled={saving}>
-            {saving ? 'Saving…' : editingId ? 'Update user' : 'Create user'}
+            {saving ? 'Savingâ€¦' : editingId ? 'Update user' : 'Create user'}
           </button>
           {editingId ? (
             <button type="button" className="btn ghost" onClick={resetForm} disabled={saving}>
@@ -415,3 +496,4 @@ export default function PowerAdminUsers() {
     </section>
   )
 }
+

@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { formatUserRoles, userHasAnyRole } from '../utils/roleLabels'
 
 const BASE_MODULE_LABELS = new Set(['Shared Hub', 'White Label Hub'])
 const CONTROL_PLANE_ROLES = new Set(['power_admin', 'finproms_admin'])
@@ -25,7 +26,7 @@ function statusLabel(user) {
 
 function canDiscontinueUser(user) {
   if (!user || user.is_discontinued) return false
-  if (CONTROL_PLANE_ROLES.has(user.role)) return false
+  if (userHasAnyRole(user, [...CONTROL_PLANE_ROLES])) return false
   return true
 }
 
@@ -118,9 +119,9 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
       },
       {
         key: 'role',
-        label: 'Role',
-        filterValue: (row) => row.role_label || roleLabel(row.role) || row.role || '',
-        render: (row) => row.role_label || roleLabel(row.role) || row.role || '-',
+        label: 'Roles',
+        filterValue: (row) => formatUserRoles(row, null, roleLabel),
+        render: (row) => formatUserRoles(row, null, roleLabel),
       },
       {
         key: 'firm',

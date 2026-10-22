@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import { formatUserRoles } from '../utils/roleLabels'
 import {
   collectOpposingConflicts,
   formatConflictAlert,
@@ -1138,7 +1139,7 @@ export default function AccessControl() {
                       <span className="access-control-user-item__name">{u.name || u.email}</span>
                       <span className="access-control-user-item__meta muted">
                         {u.email}
-                        {u.role ? ` · ${u.role}` : ''}
+                        {formatUserRoles(u) !== '-' ? ` · ${formatUserRoles(u)}` : ''}
                       </span>
                     </button>
                   )

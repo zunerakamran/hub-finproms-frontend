@@ -5,6 +5,7 @@ import {
   clearNavigationContinuity,
   markNavigationContinuity,
 } from '../security/navigationContinuity'
+import { userHasAnyRole, userHasRole, userRoleKeys } from '../utils/roleLabels'
 
 const AuthContext = createContext(null)
 
@@ -16,6 +17,7 @@ function sameUser(a, b) {
   return (
     a.id === b.id &&
     a.role === b.role &&
+    JSON.stringify(userRoleKeys(a)) === JSON.stringify(userRoleKeys(b)) &&
     a.name === b.name &&
     a.email === b.email &&
     a.credits === b.credits &&
@@ -74,7 +76,7 @@ export function AuthProvider({ children }) {
       setUser(data.user)
       if (data.power_admin_capabilities) {
         setPowerCapabilities(data.power_admin_capabilities)
-      } else if (data.user?.role === 'power_admin') {
+      } else if (userHasRole(data.user, 'power_admin')) {
         try {
           const caps = await api.powerAdminCapabilitiesMe()
           setPowerCapabilities(caps.resolved || {})
@@ -128,7 +130,7 @@ export function AuthProvider({ children }) {
     clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)
-    if (data.user?.role === 'power_admin') {
+    if (userHasRole(data.user, 'power_admin')) {
       try {
         const caps = await api.powerAdminCapabilitiesMe()
         setPowerCapabilities(caps.resolved || {})
@@ -148,7 +150,7 @@ export function AuthProvider({ children }) {
     clearHubCaches()
     setUser(data.user)
     queryClient.setQueryData(authQueryKey, data)
-    if (data.user?.role === 'power_admin') {
+    if (userHasRole(data.user, 'power_admin')) {
       try {
         const caps = await api.powerAdminCapabilitiesMe()
         setPowerCapabilities(caps.resolved || {})
@@ -218,15 +220,17 @@ export function AuthProvider({ children }) {
       powerCapabilities,
       setPowerCapabilities,
       canPower,
-      isFinpromsAdmin: user?.role === 'finproms_admin',
-      isClientAdmin: HUB_ADMIN_ROLES.includes(user?.role),
-      isWhiteLabelClientAdmin: user?.role === 'client_admin' || user?.role === 'admin',
-      isManager: user?.role === 'manager',
-      isApprover: user?.role === 'approver',
-      isAdvisor: user?.role === 'advisor' || Boolean(user?.is_advisor),
-      isAdminStaff: user?.role === 'admin_staff',
-      isPowerAdmin: user?.role === 'power_admin',
-      isAdmin: HUB_ADMIN_ROLES.includes(user?.role),
+      isFinpromsAdmin: userHasRole(user, 'finproms_admin'),
+      isClientAdmin: userHasAnyRole(user, HUB_ADMIN_ROLES),
+      isWhiteLabelClientAdmin: userHasAnyRole(user, ['client_admin', 'admin']),
+      isManager: userHasRole(user, 'manager'),
+      isApprover: userHasRole(user, 'approver'),
+      isAdvisor: userHasRole(user, 'advisor') || Boolean(user?.is_advisor),
+      isAdminStaff: userHasRole(user, 'admin_staff'),
+      isPowerAdmin: userHasRole(user, 'power_admin'),
+      isAdmin: userHasAnyRole(user, HUB_ADMIN_ROLES),
+      hasRole: (role) => userHasRole(user, role),
+      roleKeys: userRoleKeys(user),
       isAuthenticated: Boolean(user),
     }),
     [user, loading, login, verifyLoginOtp, register, completeEmailVerification, logout, refreshUser, powerCapabilities, setUser, setPowerCapabilities, canPower]

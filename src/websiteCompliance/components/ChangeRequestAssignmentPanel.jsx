@@ -33,7 +33,10 @@ import {
   savePreviewSnapshot,
 } from '../utils/changeRequestPreview'
 import SyncedSectionPreviewPair from './SyncedSectionPreviewPair'
-import { reviewersForSubmitterFirm } from '../../utils/firmAssigneeFilter'
+import {
+  apiValidationMessage,
+  assignableReviewers,
+} from '../../utils/complianceSeparation'
 import OnBehalfAttribution from '../../components/OnBehalfAttribution'
 
 const PENDING_STATUS = 'pending'
@@ -656,7 +659,7 @@ export default function ChangeRequestAssignmentPanel({
       })
       if (selectedId === requestId) setSelectedId(null)
     } catch (err) {
-      reportError(err.message || err.data?.message || err.response?.data?.message || 'Failed to assign request.')
+      reportError(apiValidationMessage(err, 'Failed to assign request.'))
     } finally {
       setAssigningId(null)
     }
@@ -756,8 +759,10 @@ export default function ChangeRequestAssignmentPanel({
         actions={(row) => {
           const isAssignable =
             row.status === PENDING_STATUS || row.status === 'under_review'
-          const filtered = reviewersForSubmitterFirm(approvers, row.editor?.firm)
-          const rowApprovers = filtered.length ? filtered : approvers
+          const rowApprovers = assignableReviewers(approvers, row, row.editor?.firm, {
+            ownerKey: 'editor_id',
+            onBehalfKey: 'on_behalf_by_user_id',
+          })
 
           return (
             <>

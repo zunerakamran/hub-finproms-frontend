@@ -17,6 +17,11 @@ import {
   compliancePostBody,
 } from '../utils/complianceSupportingFiles'
 import ComplianceStatusText from '../components/ComplianceStatusText'
+import {
+  actorIsConflicted,
+  apiValidationMessage,
+  SOD_MESSAGE,
+} from '../utils/complianceSeparation'
 
 export default function SocialMediaComplianceRequestDetail() {
   const { id } = useParams()
@@ -106,16 +111,27 @@ export default function SocialMediaComplianceRequestDetail() {
     user &&
     (Number(row.user_id) === Number(user.id) ||
       (effectiveAdvisorId != null && Number(row.user_id) === Number(effectiveAdvisorId)))
+  const isConflicted = Boolean(
+    row &&
+      user &&
+      actorIsConflicted(user.id, row, { effectiveAdvisorId })
+  )
   const isAssignee = row && user && Number(row.assigned_to) === Number(user.id)
-  const canReviewThis = canReview && (canViewAll || isAssignee)
+  const canReviewThis = canReview && (canViewAll || isAssignee) && !isConflicted
   const canShowReviewForm = canReviewThis && row?.status === 'Pending'
-  const canAssignToMyself = canReview && row && !row.assigned_to && user?.id
+  const canAssignToMyself =
+    canReview && row && !row.assigned_to && user?.id && !isConflicted
+  const canShowChangeStatus = canChangeStatus && row && !isConflicted
   const canOwnerRespond =
     isOwner && can('smc_submit_request') && row &&
     (row.status === 'Rejected' || row.status === 'Approved with Feedback')
 
   const assignToMyself = async () => {
     if (!user?.id) return
+    if (isConflicted) {
+      setError(SOD_MESSAGE)
+      return
+    }
     setAssigningSelf(true)
     setError('')
     setMessage('')
@@ -124,7 +140,7 @@ export default function SocialMediaComplianceRequestDetail() {
       setRow(data.data)
       setMessage('Assigned to you. You can review this request now.')
     } catch (err) {
-      setError(err.message || 'Could not assign this request to you.')
+      setError(apiValidationMessage(err, 'Could not assign this request to you.'))
     } finally {
       setAssigningSelf(false)
     }
@@ -145,7 +161,7 @@ export default function SocialMediaComplianceRequestDetail() {
       setReviewSupportingFiles([])
       setMessage('Review saved.')
     } catch (err) {
-      setError(err.message || 'Review failed.')
+      setError(apiValidationMessage(err, 'Review failed.'))
     } finally {
       setSaving(false)
     }
@@ -168,7 +184,7 @@ export default function SocialMediaComplianceRequestDetail() {
       setChangeStatus(data.data?.status || changeStatus)
       setMessage('Status updated (new version created).')
     } catch (err) {
-      setError(err.message || 'Status change failed.')
+      setError(apiValidationMessage(err, 'Status change failed.'))
     } finally {
       setSaving(false)
     }
@@ -275,6 +291,9 @@ export default function SocialMediaComplianceRequestDetail() {
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
+      {isConflicted && (canReview || canChangeStatus) ? (
+        <div className="alert">{SOD_MESSAGE}</div>
+      ) : null}
 
       {canShowReviewForm && (
         <form className="admin-form smc-panel" onSubmit={saveReview}>
@@ -396,7 +415,7 @@ export default function SocialMediaComplianceRequestDetail() {
         </form>
       )}
 
-      {canChangeStatus && (
+      {canShowChangeStatus && (
         <form className="admin-form smc-panel" onSubmit={saveChangeStatus}>
           <h2>Change status</h2>
           <p className="muted">

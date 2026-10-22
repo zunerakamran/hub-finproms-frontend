@@ -1289,8 +1289,13 @@ export const api = {
   },
   socialMediaComplianceAdminShow: (id, options = {}) =>
     request(`${adminBase(options)}/social-media-compliance/requests/${id}`),
-  socialMediaComplianceReviewers: (options = {}) =>
-    request(`${adminBase(options)}/social-media-compliance/reviewers`),
+  socialMediaComplianceReviewers: (options = {}) => {
+    const qs =
+      options.requestId != null && options.requestId !== ''
+        ? `?request_id=${encodeURIComponent(options.requestId)}`
+        : ''
+    return request(`${adminBase(options)}/social-media-compliance/reviewers${qs}`)
+  },
   socialMediaComplianceAssign: (id, assignedTo, options = {}) =>
     request(`${adminBase(options)}/social-media-compliance/requests/${id}/assign`, {
       method: 'POST',
@@ -1374,8 +1379,13 @@ export const api = {
   },
   generalComplianceAdminShow: (id, options = {}) =>
     request(`${adminBase(options)}/general-compliance/requests/${id}`),
-  generalComplianceReviewers: (options = {}) =>
-    request(`${adminBase(options)}/general-compliance/reviewers`),
+  generalComplianceReviewers: (options = {}) => {
+    const qs =
+      options.requestId != null && options.requestId !== ''
+        ? `?request_id=${encodeURIComponent(options.requestId)}`
+        : ''
+    return request(`${adminBase(options)}/general-compliance/reviewers${qs}`)
+  },
   generalComplianceAssign: (id, assignedTo, options = {}) =>
     request(`${adminBase(options)}/general-compliance/requests/${id}/assign`, {
       method: 'POST',
@@ -1759,7 +1769,14 @@ export const api = {
     return request(`/website-compliance/reports${query ? `?${query}` : ''}`)
   },
   websiteComplianceAdvisors: () => request('/website-compliance/advisors'),
-  websiteComplianceReviewers: () => request('/website-compliance/reviewers'),
+  websiteComplianceReviewers: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries({
+        request_id: params.requestId ?? params.request_id,
+      }).filter(([, v]) => v !== undefined && v !== null && v !== '')
+    ).toString()
+    return request(`/website-compliance/reviewers${query ? `?${query}` : ''}`)
+  },
   websiteCompliancePublicPages: () => request('/website-compliance/public/pages'),
 }
 

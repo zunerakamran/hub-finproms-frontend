@@ -6,7 +6,11 @@ import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import SmcStatusBadge from '../components/SocialMediaComplianceUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { reviewersForSubmitterFirm } from '../utils/firmAssigneeFilter'
+import {
+  actorIsConflicted,
+  apiValidationMessage,
+  assignableReviewers,
+} from '../utils/complianceSeparation'
 import { formatDateTime, complianceStatusChangedAt } from '../utils/dateFormat'
 import { gridActorName } from '../utils/submissionAttribution'
 
@@ -86,7 +90,7 @@ export default function SocialMediaComplianceQueue() {
       )
       setMessage(assignedTo ? 'Assigned.' : 'Unassigned.')
     } catch (err) {
-      setError(err.message || 'Assign failed.')
+      setError(apiValidationMessage(err, 'Assign failed.'))
     } finally {
       setAssigning(null)
     }
@@ -94,6 +98,13 @@ export default function SocialMediaComplianceQueue() {
 
   const assignToMe = async (requestId) => {
     if (!user?.id) return
+    const row = items.find((r) => Number(r.id) === Number(requestId))
+    if (row && actorIsConflicted(user.id, row)) {
+      setError(
+        'You cannot assign this request to yourself — you submitted it (or submitted it on behalf).'
+      )
+      return
+    }
     await assign(requestId, user.id)
     setMessage('Assigned to you. You can open and review this request.')
   }
@@ -251,7 +262,7 @@ export default function SocialMediaComplianceQueue() {
                 title="Assign reviewer"
               >
                 <option value="">- Unassigned -</option>
-                {reviewersForSubmitterFirm(reviewers, row.submitter?.firm).map((r) => (
+                {assignableReviewers(reviewers, row, row.submitter?.firm).map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}
                     {r.firm?.name ? ` (${r.firm.name})` : ''}
@@ -259,7 +270,7 @@ export default function SocialMediaComplianceQueue() {
                 ))}
               </select>
             ) : null}
-            {canSelfAssign && !canAssign ? (
+            {canSelfAssign && !canAssign && !actorIsConflicted(user?.id, row) ? (
               !row.assigned_to ? (
                 <DataGridIconBtn
                   icon={FaUserPlus}

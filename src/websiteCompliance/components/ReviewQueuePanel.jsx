@@ -8,6 +8,10 @@ import DataGrid, { DataGridDate, DataGridIconBtn } from '../../components/DataGr
 import WcStatusBadge from '../../components/WebsiteComplianceUI'
 import { formatDateTime, complianceStatusChangedAt } from '../../utils/dateFormat'
 import { gridActorName } from '../../utils/submissionAttribution'
+import {
+  actorIsConflicted,
+  apiValidationMessage,
+} from '../../utils/complianceSeparation'
 
 const PAGE_SIZE = 20
 
@@ -42,7 +46,7 @@ function isPickupPool(r) {
 export default function ReviewQueuePanel({ variant = 'active' } = {}) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { can, complianceStatusLabel } = useHub()
+  const { can, complianceStatusLabel, effectiveAdvisorId } = useHub()
   const canChangeStatus = can('wc_change_request_status')
   const canViewAll =
     (can('wc_view_all_change_requests') || canChangeStatus) &&
@@ -129,7 +133,7 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
           state: { from: 'history' },
         })
       } catch (err) {
-        setError(err.response?.data?.message || 'Could not pick up this request.')
+        setError(apiValidationMessage(err, 'Could not pick up this request.'))
       } finally {
         setPickingId(null)
       }
@@ -258,7 +262,12 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
         }
         actionsLabel="Actions"
         actions={(row) => {
-          const canPick = variant === 'active' && isPickupPool(row)
+          const conflicted = actorIsConflicted(user?.id, row, {
+            ownerKey: 'editor_id',
+            onBehalfKey: 'on_behalf_by_user_id',
+            effectiveAdvisorId,
+          })
+          const canPick = variant === 'active' && isPickupPool(row) && !conflicted
           return (
             <>
               <DataGridIconBtn

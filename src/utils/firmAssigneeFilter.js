@@ -44,8 +44,10 @@ export function reviewersForSubmitterFirm(reviewers, submitterFirm) {
   const firm = normalizeSubmitterFirm(submitterFirm)
 
   return list.filter((reviewer) => {
-    const role = String(reviewer?.role || '')
-    if (role === 'power_admin' || role === 'finproms_admin') {
+    const roles = Array.isArray(reviewer?.roles) && reviewer.roles.length
+      ? reviewer.roles.map((r) => String(r))
+      : [String(reviewer?.role || '')]
+    if (roles.includes('power_admin') || roles.includes('finproms_admin')) {
       return true
     }
 

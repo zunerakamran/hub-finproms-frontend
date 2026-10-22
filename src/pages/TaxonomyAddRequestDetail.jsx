@@ -6,11 +6,16 @@ import TaxStatusBadge from '../components/TaxonomyAddRequestsUI'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { TAX_REVIEW_ANY, canReviewTaxTarget } from '../utils/taxonomyAddRequests'
+import {
+  actorIsConflicted,
+  apiValidationMessage,
+  SOD_MESSAGE,
+} from '../utils/complianceSeparation'
 
 export default function TaxonomyAddRequestDetail() {
   const { id } = useParams()
   const location = useLocation()
-  const { isPowerAdmin } = useAuth()
+  const { user, isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, effectiveAdvisorId } = useHub()
 
   const [row, setRow] = useState(null)
@@ -68,11 +73,21 @@ export default function TaxonomyAddRequestDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, hubLoading, canRequest, canReviewAny, effectiveAdvisorId])
 
-  const canReviewThis = row ? canReviewTaxTarget(can, row.target) : false
+  const isConflicted = Boolean(
+    row &&
+      user &&
+      actorIsConflicted(user.id, row, { effectiveAdvisorId })
+  )
+  const canReviewThis =
+    row && canReviewTaxTarget(can, row.target) && !isConflicted
   const isPending = row?.status === 'Pending'
 
   const approve = async (event) => {
     event.preventDefault()
+    if (isConflicted) {
+      setError(SOD_MESSAGE)
+      return
+    }
     setSaving(true)
     setError('')
     setMessage('')
@@ -86,7 +101,7 @@ export default function TaxonomyAddRequestDetail() {
       setMessage(data.message || 'Request marked as approved.')
       setReviewNote('')
     } catch (err) {
-      setError(err.message || 'Could not approve request.')
+      setError(apiValidationMessage(err, 'Could not approve request.'))
     } finally {
       setSaving(false)
     }
@@ -94,6 +109,10 @@ export default function TaxonomyAddRequestDetail() {
 
   const reject = async (event) => {
     event.preventDefault()
+    if (isConflicted) {
+      setError(SOD_MESSAGE)
+      return
+    }
     if (!reviewNote.trim()) {
       setError('A review note is required when rejecting.')
       return
@@ -111,7 +130,7 @@ export default function TaxonomyAddRequestDetail() {
       setMessage(data.message || 'Request rejected.')
       setReviewNote('')
     } catch (err) {
-      setError(err.message || 'Could not reject request.')
+      setError(apiValidationMessage(err, 'Could not reject request.'))
     } finally {
       setSaving(false)
     }
@@ -177,6 +196,9 @@ export default function TaxonomyAddRequestDetail() {
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
+      {isConflicted && canReviewAny ? (
+        <div className="alert">{SOD_MESSAGE}</div>
+      ) : null}
 
       <div className="card stack" style={{ gap: '0.75rem', padding: '1rem 1.25rem' }}>
         <div>

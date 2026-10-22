@@ -20,6 +20,11 @@ import {
 } from '../utils/changeRequestPreview'
 import SupportingFilesPicker from '../../components/SupportingFilesPicker'
 import { compliancePostBody } from '../../utils/complianceSupportingFiles'
+import {
+  actorIsConflicted,
+  apiValidationMessage,
+  SOD_MESSAGE,
+} from '../../utils/complianceSeparation'
 import wcApi from '../wcApi'
 
 /**
@@ -35,7 +40,7 @@ export default function ChangeRequestReviewActions({
   onMessage,
   onError,
 }) {
-  const { complianceStatusLabel } = useHub()
+  const { complianceStatusLabel, effectiveAdvisorId } = useHub()
   const [busy, setBusy] = useState(null)
   const [decision, setDecision] = useState('approve')
   const [scheduleDate, setScheduleDate] = useState('')
@@ -45,6 +50,11 @@ export default function ChangeRequestReviewActions({
 
   if (!request || !user) return null
 
+  const isConflicted = actorIsConflicted(user.id, request, {
+    ownerKey: 'editor_id',
+    onBehalfKey: 'on_behalf_by_user_id',
+    effectiveAdvisorId,
+  })
   const isAssignedToMe = Number(request.approver_id) === Number(user.id)
   const isPendingLike =
     request.status === 'under_review' || request.status === 'pending'
@@ -54,10 +64,15 @@ export default function ChangeRequestReviewActions({
   const isLocked =
     request.status === 'published' || request.status === 'scheduled'
   const showPickBanner =
-    request.status === 'pending' && !request.approver_id && !canOverrideStatus && !canViewAll
+    !isConflicted &&
+    request.status === 'pending' &&
+    !request.approver_id &&
+    !canOverrideStatus &&
+    !canViewAll
 
   // Managers with view-all or change-status can decide without picking first.
-  const canDecide = isAssignedToMe || canViewAll || canOverrideStatus
+  const canDecide =
+    !isConflicted && (isAssignedToMe || canViewAll || canOverrideStatus)
   // Approvers: pending / under_review only.
   // Change-status managers: also rejected / approved-with-feedback (not published or scheduled).
   const showReviewPanel =
@@ -66,6 +81,14 @@ export default function ChangeRequestReviewActions({
     (isPendingLike || (canOverrideStatus && isOverrideableTerminal))
   // After approve-only, show scheduler (+ optional publish now).
   const showSchedulePanel = canDecide && isApprovedAwaitingPublish
+
+  if (isConflicted) {
+    return (
+      <div className="admin-form wc-panel wc-detail-card">
+        <p className="muted">{SOD_MESSAGE}</p>
+      </div>
+    )
+  }
 
   if (!showPickBanner && !showReviewPanel && !showSchedulePanel) return null
 
@@ -107,7 +130,7 @@ export default function ChangeRequestReviewActions({
       onUpdated?.(next)
       onMessage?.('Request picked up. You can now review and approve or reject.')
     } catch (err) {
-      onError?.(err.message || err.data?.message || 'Could not pick up this request.')
+      onError?.(apiValidationMessage(err, 'Could not pick up this request.'))
     } finally {
       setBusy(null)
     }
@@ -132,7 +155,7 @@ export default function ChangeRequestReviewActions({
       )
       setReviewSupportingFiles([])
     } catch (err) {
-      onError?.(err.message || err.data?.message || 'Failed to approve request.')
+      onError?.(apiValidationMessage(err, 'Failed to approve request.'))
     } finally {
       setBusy(null)
     }
@@ -229,7 +252,7 @@ export default function ChangeRequestReviewActions({
       setReviewSupportingFiles([])
       setScheduleDate('')
     } catch (err) {
-      onError?.(err.message || err.data?.message || 'Failed to schedule publish.')
+      onError?.(apiValidationMessage(err, 'Failed to schedule publish.'))
     } finally {
       setBusy(null)
     }
@@ -257,7 +280,7 @@ export default function ChangeRequestReviewActions({
       onMessage?.('Request rejected. Section locks released for editor.')
       setReviewSupportingFiles([])
     } catch (err) {
-      onError?.(err.message || err.data?.message || 'Failed to reject request.')
+      onError?.(apiValidationMessage(err, 'Failed to reject request.'))
     } finally {
       setBusy(null)
     }
@@ -285,7 +308,7 @@ export default function ChangeRequestReviewActions({
       onMessage?.('Request approved with feedback. Editor can revise or confirm & publish.')
       setReviewSupportingFiles([])
     } catch (err) {
-      onError?.(err.message || err.data?.message || 'Failed to approve with feedback.')
+      onError?.(apiValidationMessage(err, 'Failed to approve with feedback.'))
     } finally {
       setBusy(null)
     }

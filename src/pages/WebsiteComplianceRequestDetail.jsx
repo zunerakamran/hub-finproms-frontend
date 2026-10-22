@@ -26,7 +26,12 @@ import { useHub } from '../context/HubContext'
 import ChangeRequestPreviewPanel from '../websiteCompliance/components/ChangeRequestPreviewPanel'
 import ChangeRequestReviewActions from '../websiteCompliance/components/ChangeRequestReviewActions'
 import { isHistoricalRequest } from '../websiteCompliance/utils/changeRequestPreview'
-import { reviewersForSubmitterFirm } from '../utils/firmAssigneeFilter'
+import {
+  actorIsConflicted,
+  apiValidationMessage,
+  assignableReviewers,
+  SOD_MESSAGE,
+} from '../utils/complianceSeparation'
 import {
   wcSectionTitle,
 } from '../utils/websiteCompliance'
@@ -113,10 +118,10 @@ export default function WebsiteComplianceRequestDetail() {
   }, [id, hubLoading, moduleOn])
 
   useEffect(() => {
-    if (hubLoading || !moduleOn || !canAssign) return undefined
+    if (hubLoading || !moduleOn || !canAssign || !id) return undefined
     let cancelled = false
     api
-      .websiteComplianceReviewers()
+      .websiteComplianceReviewers({ requestId: id })
       .then((data) => {
         if (!cancelled) setReviewers(Array.isArray(data) ? data : data?.data || [])
       })
@@ -126,22 +131,25 @@ export default function WebsiteComplianceRequestDetail() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, moduleOn, canAssign])
+  }, [hubLoading, moduleOn, canAssign, id])
 
+  const wcSodOpts = { ownerKey: 'editor_id', onBehalfKey: 'on_behalf_by_user_id', effectiveAdvisorId }
   const isOwner =
     row &&
     user &&
     (Number(row.editor_id) === Number(user.id) ||
       (effectiveAdvisorId != null && Number(row.editor_id) === Number(effectiveAdvisorId)))
+  const isConflicted = Boolean(row && user && actorIsConflicted(user.id, row, wcSodOpts))
 
   // Locked once published live or once a publish schedule is set (approved-only still allows scheduling).
   const statusLocked = row?.status === 'published' || row?.status === 'scheduled'
-  const canShowReviewActions = (canReview || canChangeStatus) && row && !statusLocked
+  const canShowReviewActions =
+    (canReview || canChangeStatus) && row && !statusLocked && !isConflicted
   const canShowAssign =
     canAssign &&
     row &&
     (row.status === 'pending' || row.status === 'under_review')
-  const eligibleReviewers = reviewersForSubmitterFirm(reviewers, row?.editor?.firm)
+  const eligibleReviewers = assignableReviewers(reviewers, row, row?.editor?.firm, wcSodOpts)
 
   const confirmFeedback = async () => {
     setSaving(true)
@@ -154,7 +162,7 @@ export default function WebsiteComplianceRequestDetail() {
       setConfirmSupportingFiles([])
       setMessage('Request confirmed and published.')
     } catch (err) {
-      setError(err.message || err.data?.message || 'Confirm failed.')
+      setError(apiValidationMessage(err, 'Confirm failed.'))
     } finally {
       setSaving(false)
     }
@@ -176,7 +184,7 @@ export default function WebsiteComplianceRequestDetail() {
       setRow(typeof data === 'object' && data?.id ? data : data?.change_request || data)
       setMessage(`Assigned to ${roleLabel('approver').toLowerCase()}.`)
     } catch (err) {
-      setError(err.message || err.data?.message || 'Failed to assign request.')
+      setError(apiValidationMessage(err, 'Failed to assign request.'))
     } finally {
       setAssigning(false)
     }
@@ -249,6 +257,9 @@ export default function WebsiteComplianceRequestDetail() {
 
       {error ? <div className="alert">{error}</div> : null}
       {message ? <div className="alert success">{message}</div> : null}
+      {isConflicted && (canReview || canChangeStatus) ? (
+        <div className="alert">{SOD_MESSAGE}</div>
+      ) : null}
 
       <div className="wc-detail-meta">
         <MetaItem icon={FaLayerGroup} label="Section">
@@ -338,7 +349,7 @@ export default function WebsiteComplianceRequestDetail() {
             <RequiredMark>{roleLabel('approver')}</RequiredMark>
             <select value={assignTo} onChange={(e) => setAssignTo(e.target.value)} required>
               <option value="">Choose {roleLabel('approver').toLowerCase()}…</option>
-              {(eligibleReviewers.length ? eligibleReviewers : reviewers).map((r) => (
+              {eligibleReviewers.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
                   {r.firm?.name ? ` (${r.firm.name})` : ''}
@@ -346,9 +357,10 @@ export default function WebsiteComplianceRequestDetail() {
               ))}
             </select>
           </label>
-          {eligibleReviewers.length === 0 && reviewers.length === 0 ? (
+          {eligibleReviewers.length === 0 ? (
             <p className="field-hint">
-              No {roleLabel('approver').toLowerCase()}s available to assign.
+              No {roleLabel('approver').toLowerCase()}s available to assign
+              (submitter / on-behalf users are excluded).
             </p>
           ) : null}
           <div className="actions">

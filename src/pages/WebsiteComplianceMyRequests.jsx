@@ -36,21 +36,10 @@ export default function WebsiteComplianceMyRequests() {
     setLoading(true)
     setError('')
     api
-      .websiteComplianceChangeRequests({ per_page: 100 })
+      .websiteComplianceChangeRequests({ per_page: 100, mine_as_editor: 1 })
       .then((data) => {
         if (cancelled) return
-        const list = asList(data)
-        // Admin-staff acting as an advisor: editor_id is the advisor; also include
-        // anything they submitted on behalf of that advisor.
-        const mine = list.filter((cr) => {
-          const editorId = Number(cr.editor_id)
-          return (
-            editorId === Number(ownerId) ||
-            editorId === Number(user?.id) ||
-            Number(cr.on_behalf_by_user_id) === Number(user?.id)
-          )
-        })
-        setItems(mine)
+        setItems(asList(data))
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || 'Failed to load change requests.')

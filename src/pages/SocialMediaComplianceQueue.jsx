@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FaEye, FaUserPlus } from 'react-icons/fa'
+import { FaEye, FaHandPointer, FaUserPlus } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import SmcStatusBadge from '../components/SocialMediaComplianceUI'
@@ -14,7 +14,13 @@ import {
 import { formatDateTime, complianceStatusChangedAt } from '../utils/dateFormat'
 import { gridActorName } from '../utils/submissionAttribution'
 
-export default function SocialMediaComplianceQueue() {
+/**
+ * @param {{ variant?: 'review' | 'history' }} props
+ * - review: unassigned pickup queue (“Requests queue”) with Pick it
+ * - history: assigned / reviewed history (“All requests”)
+ */
+export default function SocialMediaComplianceQueue({ variant = 'history' }) {
+  const isReview = variant === 'review'
   const { user, isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, complianceStatusLabel, actingHubId } = useHub()
   const [items, setItems] = useState([])
@@ -33,12 +39,13 @@ export default function SocialMediaComplianceQueue() {
   const canReview = can('smc_review_requests')
   const canChangeStatus = can('smc_change_request_status')
   const canSelfAssign = canReview
-  // Full hub list when view-all, assign, or change-status; reviewers without those see assigned + unassigned (pickup).
-  const useFullList = canViewAll || canAssign || canChangeStatus
+  const seesHubWideHistory = canViewAll || canAssign || canChangeStatus
   const enabled = moduleOn && (canViewAll || canAssign || canReview || canChangeStatus)
+  const reviewEnabled = moduleOn && (canReview || canAssign)
 
   useEffect(() => {
-    if (hubLoading || !enabled) {
+    const pageEnabled = isReview ? reviewEnabled : enabled
+    if (hubLoading || !pageEnabled) {
       setLoading(false)
       return
     }
@@ -49,14 +56,22 @@ export default function SocialMediaComplianceQueue() {
     const params = {
       per_page: 50,
       status: appliedStatus || undefined,
+      ...(isReview
+        ? { unassigned_only: 1 }
+        : {
+            history_only: 1,
+            ...(seesHubWideHistory ? {} : { mine_as_approver: 1 }),
+          }),
     }
 
     Promise.all([
       api.socialMediaComplianceAdminRequests(params, {
         asPowerAdmin,
-        queueOnly: !useFullList,
+        queueOnly: !seesHubWideHistory && isReview,
       }),
-      canAssign ? api.socialMediaComplianceReviewers({ asPowerAdmin }) : Promise.resolve({ data: [] }),
+      canAssign && isReview
+        ? api.socialMediaComplianceReviewers({ asPowerAdmin })
+        : Promise.resolve({ data: [] }),
     ])
       .then(([listData, reviewersData]) => {
         if (cancelled) return
@@ -73,7 +88,17 @@ export default function SocialMediaComplianceQueue() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, enabled, appliedStatus, asPowerAdmin, useFullList, canAssign, actingHubId])
+  }, [
+    hubLoading,
+    enabled,
+    reviewEnabled,
+    appliedStatus,
+    asPowerAdmin,
+    canAssign,
+    actingHubId,
+    isReview,
+    seesHubWideHistory,
+  ])
 
   const assign = async (requestId, assignedTo) => {
     setAssigning(requestId)
@@ -85,9 +110,14 @@ export default function SocialMediaComplianceQueue() {
         assignedTo ? Number(assignedTo) : null,
         { asPowerAdmin }
       )
-      setItems((prev) =>
-        prev.map((row) => (row.id === requestId ? { ...row, ...data.data } : row))
-      )
+      if (isReview) {
+        // Picked / assigned items leave the unassigned queue.
+        setItems((prev) => prev.filter((row) => row.id !== requestId))
+      } else {
+        setItems((prev) =>
+          prev.map((row) => (row.id === requestId ? { ...row, ...data.data } : row))
+        )
+      }
       setMessage(assignedTo ? 'Assigned.' : 'Unassigned.')
     } catch (err) {
       setError(apiValidationMessage(err, 'Assign failed.'))
@@ -96,17 +126,18 @@ export default function SocialMediaComplianceQueue() {
     }
   }
 
-  const assignToMe = async (requestId) => {
+  const pickIt = async (requestId) => {
     if (!user?.id) return
     const row = items.find((r) => Number(r.id) === Number(requestId))
     if (row && actorIsConflicted(user.id, row)) {
       setError(
-        'You cannot assign this request to yourself — you submitted it (or submitted it on behalf).'
+        'You cannot pick up this request — you submitted it (or submitted it on behalf).'
       )
       return
     }
     await assign(requestId, user.id)
-    setMessage('Assigned to you. You can open and review this request.')
+    setMessage('Picked up. Opening request…')
+    // Navigation happens via the Review link; keep a clear success message.
   }
 
   const columns = [
@@ -181,17 +212,28 @@ export default function SocialMediaComplianceQueue() {
     },
   ]
 
-  if (!hubLoading && !enabled) {
+  const title = isReview ? 'Requests queue' : 'All requests'
+  const subtitle = isReview
+    ? 'New unassigned requests you can pick up for review.'
+    : seesHubWideHistory
+      ? 'Assigned and reviewed requests for this hub.'
+      : 'Requests assigned to you (your review history).'
+  const fromState = isReview ? 'review' : 'queue'
+  const pageEnabled = isReview ? reviewEnabled : enabled
+
+  if (!hubLoading && !pageEnabled) {
     return (
       <section>
         <div className="page-head">
           <div>
             <p className="eyebrow">Social Media Compliance</p>
-            <h1>All requests</h1>
+            <h1>{title}</h1>
             <p className="muted">
               {!moduleOn
                 ? 'Enable the Social Media Pre Approval module first.'
-                : 'You need assign, view-all, or review capability for this queue.'}
+                : isReview
+                  ? 'You need review or assign capability for this queue.'
+                  : 'You need assign, view-all, or review capability for this list.'}
             </p>
           </div>
         </div>
@@ -204,33 +246,33 @@ export default function SocialMediaComplianceQueue() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Social Media Compliance</p>
-          <h1>All requests</h1>
-          <p className="muted">
-            {useFullList
-              ? 'All hub requests.'
-              : 'Your assigned requests and unassigned requests you can pick up.'}
-          </p>
+          <h1>{title}</h1>
+          <p className="muted">{subtitle}</p>
         </div>
       </div>
 
-      <form
-        className="filters-row"
-        onSubmit={(e) => {
-          e.preventDefault()
-          setAppliedStatus(status)
-        }}
-      >
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All statuses</option>
-          <option value="Pending">{complianceStatusLabel('Pending')}</option>
-          <option value="Approved">{complianceStatusLabel('Approved')}</option>
-          <option value="Approved with Feedback">{complianceStatusLabel('Approved with Feedback')}</option>
-          <option value="Rejected">{complianceStatusLabel('Rejected')}</option>
-        </select>
-        <button className="btn primary" type="submit">
-          Filter
-        </button>
-      </form>
+      {!isReview ? (
+        <form
+          className="filters-row"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setAppliedStatus(status)
+          }}
+        >
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">All statuses</option>
+            <option value="Pending">{complianceStatusLabel('Pending')}</option>
+            <option value="Approved">{complianceStatusLabel('Approved')}</option>
+            <option value="Approved with Feedback">
+              {complianceStatusLabel('Approved with Feedback')}
+            </option>
+            <option value="Rejected">{complianceStatusLabel('Rejected')}</option>
+          </select>
+          <button className="btn primary" type="submit">
+            Filter
+          </button>
+        </form>
+      ) : null}
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
@@ -239,53 +281,65 @@ export default function SocialMediaComplianceQueue() {
         columns={columns}
         rows={items}
         loading={loading}
-        emptyMessage="No requests in this queue."
+        emptyMessage={
+          isReview ? 'No unassigned requests available to pick up.' : 'No requests in history yet.'
+        }
         pageSize={10}
         actionsLabel="Actions"
-        actions={(row) => (
-          <>
-            <DataGridIconBtn
-              icon={FaEye}
-              label="Review"
-              as={Link}
-              to={`/my-dashboard/social-media-compliance/${row.id}`}
-              state={{ from: 'queue' }}
-            />
-            {canAssign ? (
-              <select
-                key={`${row.id}-${row.assigned_to || ''}`}
-                className="data-grid__inline-select"
-                defaultValue={row.assigned_to || ''}
-                disabled={assigning === row.id}
-                onChange={(e) => assign(row.id, e.target.value)}
-                aria-label="Assign reviewer"
-                title="Assign reviewer"
-              >
-                <option value="">- Unassigned -</option>
-                {assignableReviewers(reviewers, row, row.submitter?.firm).map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                    {r.firm?.name ? ` (${r.firm.name})` : ''}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            {canSelfAssign && !canAssign && !actorIsConflicted(user?.id, row) ? (
-              !row.assigned_to ? (
+        actions={(row) => {
+          const conflicted = actorIsConflicted(user?.id, row)
+          return (
+            <>
+              <DataGridIconBtn
+                icon={FaEye}
+                label="Open"
+                as={Link}
+                to={`/my-dashboard/social-media-compliance/${row.id}`}
+                state={{ from: fromState }}
+              />
+              {isReview && canAssign ? (
+                <select
+                  key={`${row.id}-${row.assigned_to || ''}`}
+                  className="data-grid__inline-select"
+                  defaultValue=""
+                  disabled={assigning === row.id}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (!value) return
+                    assign(row.id, value)
+                  }}
+                  aria-label="Assign reviewer"
+                  title="Assign reviewer"
+                >
+                  <option value="">Assign…</option>
+                  {assignableReviewers(reviewers, row, row.submitter?.firm).map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                      {r.firm?.name ? ` (${r.firm.name})` : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+              {isReview && canSelfAssign && !conflicted ? (
+                <DataGridIconBtn
+                  icon={FaHandPointer}
+                  label={assigning === row.id ? 'Picking…' : 'Pick it'}
+                  variant="primary"
+                  disabled={assigning === row.id}
+                  onClick={() => pickIt(row.id)}
+                />
+              ) : null}
+              {!isReview && canSelfAssign && !row.assigned_to && !canAssign && !conflicted ? (
                 <DataGridIconBtn
                   icon={FaUserPlus}
                   label={assigning === row.id ? 'Assigning…' : 'Assign to me'}
                   disabled={assigning === row.id}
-                  onClick={() => assignToMe(row.id)}
+                  onClick={() => pickIt(row.id)}
                 />
-              ) : Number(row.assigned_to) === Number(user?.id) ? (
-                <span className="muted">You</span>
-              ) : (
-                <span className="muted">-</span>
-              )
-            ) : null}
-          </>
-        )}
+              ) : null}
+            </>
+          )
+        }}
       />
     </section>
   )

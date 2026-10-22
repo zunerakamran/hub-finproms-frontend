@@ -54,22 +54,31 @@ export default function GeneralComplianceRequestDetail() {
 
   const moduleOn = can('module_general_compliance')
   const canReview = can('gc_review_requests')
+  const canAssign = can('gc_assign_requests')
   const canChangeStatus = can('gc_change_request_status')
   const canViewAll =
-    can('gc_view_all_requests') || can('gc_assign_requests') || canChangeStatus
+    can('gc_view_all_requests') || canAssign || canChangeStatus
   const asPowerAdmin = isPowerAdmin
 
   const backFrom = location.state?.from
   const backTo =
-    backFrom === 'queue'
-      ? '/my-dashboard/general-compliance/queue'
-      : backFrom === 'mine' || backFrom === 'submit'
-        ? '/my-dashboard/general-compliance'
-        : canViewAll || canReview || canChangeStatus
-          ? '/my-dashboard/general-compliance/queue'
-          : '/my-dashboard/general-compliance'
+    backFrom === 'review'
+      ? '/my-dashboard/general-compliance/review'
+      : backFrom === 'queue'
+        ? '/my-dashboard/general-compliance/queue'
+        : backFrom === 'mine' || backFrom === 'submit'
+          ? '/my-dashboard/general-compliance'
+          : canReview || canAssign
+            ? '/my-dashboard/general-compliance/review'
+            : canViewAll || canChangeStatus
+              ? '/my-dashboard/general-compliance/queue'
+              : '/my-dashboard/general-compliance'
   const backLabel =
-    backTo.endsWith('/queue') ? '← Back to queue' : '← Back to my requests'
+    backTo.endsWith('/review')
+      ? '← Back to requests queue'
+      : backTo.endsWith('/queue')
+        ? '← Back to all requests'
+        : '← Back to my requests'
 
   const load = async () => {
     setLoading(true)

@@ -66,11 +66,13 @@ const Bundles = lazy(() => import('./pages/Bundles'))
 const ContentPurchaseSuccess = lazy(() => import('./pages/ContentPurchaseSuccess'))
 const SocialMediaComplianceMyRequests = lazy(() => import('./pages/SocialMediaComplianceMyRequests'))
 const SocialMediaComplianceQueue = lazy(() => import('./pages/SocialMediaComplianceQueue'))
+const SocialMediaComplianceReviewQueue = lazy(() => import('./pages/SocialMediaComplianceReviewQueue'))
 const SocialMediaComplianceReports = lazy(() => import('./pages/SocialMediaComplianceReports'))
 const SocialMediaComplianceRequestDetail = lazy(() => import('./pages/SocialMediaComplianceRequestDetail'))
 const SocialMediaComplianceSubmit = lazy(() => import('./pages/SocialMediaComplianceSubmit'))
 const GeneralComplianceMyRequests = lazy(() => import('./pages/GeneralComplianceMyRequests'))
 const GeneralComplianceQueue = lazy(() => import('./pages/GeneralComplianceQueue'))
+const GeneralComplianceReviewQueue = lazy(() => import('./pages/GeneralComplianceReviewQueue'))
 const GeneralComplianceReports = lazy(() => import('./pages/GeneralComplianceReports'))
 const GeneralComplianceRequestDetail = lazy(() => import('./pages/GeneralComplianceRequestDetail'))
 const GeneralComplianceSubmit = lazy(() => import('./pages/GeneralComplianceSubmit'))
@@ -564,6 +566,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="social-media-compliance/review"
+                  element={
+                    <HubCapabilityRoute anyOf={['smc_review_requests', 'smc_assign_requests']}>
+                      <SocialMediaComplianceReviewQueue />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
                   path="social-media-compliance/queue"
                   element={
                     <HubCapabilityRoute
@@ -619,6 +629,14 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="gc_manage_content_types">
                       <AdminGcContentTypes />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="general-compliance/review"
+                  element={
+                    <HubCapabilityRoute anyOf={['gc_review_requests', 'gc_assign_requests']}>
+                      <GeneralComplianceReviewQueue />
                     </HubCapabilityRoute>
                   }
                 />

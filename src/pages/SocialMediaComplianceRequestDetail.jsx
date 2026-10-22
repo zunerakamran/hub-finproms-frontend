@@ -48,22 +48,31 @@ export default function SocialMediaComplianceRequestDetail() {
 
   const moduleOn = can('module_social_media_compliance')
   const canReview = can('smc_review_requests')
+  const canAssign = can('smc_assign_requests')
   const canChangeStatus = can('smc_change_request_status')
   const canViewAll =
-    can('smc_view_all_requests') || can('smc_assign_requests') || canChangeStatus
+    can('smc_view_all_requests') || canAssign || canChangeStatus
   const asPowerAdmin = isPowerAdmin
 
   const backFrom = location.state?.from
   const backTo =
-    backFrom === 'queue'
-      ? '/my-dashboard/social-media-compliance/queue'
-      : backFrom === 'mine' || backFrom === 'submit'
-        ? '/my-dashboard/social-media-compliance'
-        : canViewAll || canReview || canChangeStatus
-          ? '/my-dashboard/social-media-compliance/queue'
-          : '/my-dashboard/social-media-compliance'
+    backFrom === 'review'
+      ? '/my-dashboard/social-media-compliance/review'
+      : backFrom === 'queue'
+        ? '/my-dashboard/social-media-compliance/queue'
+        : backFrom === 'mine' || backFrom === 'submit'
+          ? '/my-dashboard/social-media-compliance'
+          : canReview || canAssign
+            ? '/my-dashboard/social-media-compliance/review'
+            : canViewAll || canChangeStatus
+              ? '/my-dashboard/social-media-compliance/queue'
+              : '/my-dashboard/social-media-compliance'
   const backLabel =
-    backTo.endsWith('/queue') ? '← Back to queue' : '← Back to my requests'
+    backTo.endsWith('/review')
+      ? '← Back to requests queue'
+      : backTo.endsWith('/queue')
+        ? '← Back to all requests'
+        : '← Back to my requests'
 
   const [changeStatus, setChangeStatus] = useState('Pending')
   const [changeComment, setChangeComment] = useState('')

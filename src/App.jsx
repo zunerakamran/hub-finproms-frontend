@@ -28,6 +28,7 @@ const AdminAdvisors = lazy(() => import('./pages/AdminAdvisors'))
 const AdminActivityLogs = lazy(() => import('./pages/AdminActivityLogs'))
 const AdminActiveSessions = lazy(() => import('./pages/AdminActiveSessions'))
 const AdminHubUsers = lazy(() => import('./pages/AdminHubUsers'))
+const AdminUserCapabilities = lazy(() => import('./pages/AdminUserCapabilities'))
 const AdminComplianceAuditTrail = lazy(() => import('./pages/AdminComplianceAuditTrail'))
 const AdminOneTimeInvoices = lazy(() => import('./pages/AdminOneTimeInvoices'))
 const AdminAdvisorInvoices = lazy(() => import('./pages/AdminAdvisorInvoices'))
@@ -522,6 +523,14 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_view_hub_users">
                       <AdminHubUsers />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="user-capabilities"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_user_capabilities">
+                      <AdminUserCapabilities />
                     </HubCapabilityRoute>
                   }
                 />

@@ -1240,6 +1240,24 @@ export const api = {
     ).toString()
     return request(`${base}/hub-users${query ? `?${query}` : ''}`)
   },
+  userCapabilitiesUsers: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/user-capabilities${query ? `?${query}` : ''}`)
+  },
+  userCapabilities: (userId, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/user-capabilities/${userId}`)
+  },
+  updateUserCapabilities: (userId, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/user-capabilities/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
   complianceAuditEvents: (params = {}, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const query = new URLSearchParams(

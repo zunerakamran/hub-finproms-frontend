@@ -48,6 +48,7 @@ export const DASHBOARD_NAV_DEFAULTS = {
     '/my-dashboard/security-monitoring': 'Security monitoring',
     '/my-dashboard/active-sessions': 'Active sessions',
     '/my-dashboard/hub-users': 'Users',
+    '/my-dashboard/user-capabilities': 'User capabilities',
     '/my-dashboard/compliance-audit-trail': 'Audit trail',
     '/my-dashboard/one-time-invoices': 'One-time invoices',
     '/my-dashboard/modules': 'Modules',

@@ -684,6 +684,15 @@ export const DASHBOARD_LINKS = [
     group: 'hub',
   },
   {
+    to: '/my-dashboard/user-capabilities',
+    label: 'User capabilities',
+    title: 'User capabilities',
+    description:
+      'Refine which of a user’s assigned-role capabilities they actually have (check / uncheck within their role UNION only).',
+    capability: 'dashboard_manage_user_capabilities',
+    group: 'hub',
+  },
+  {
     to: '/my-dashboard/compliance-audit-trail',
     label: 'Audit trail',
     title: 'Audit trail',

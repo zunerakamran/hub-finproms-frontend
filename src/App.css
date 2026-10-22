@@ -9275,3 +9275,482 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
 .access-control-history-toolbar .access-control-search select {
   max-width: 12rem;
 }
+
+/* ---- User capabilities (per-user overrides) ---- */
+.user-capabilities-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+  padding-bottom: 5rem;
+}
+
+.ucap-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  margin-top: 0.5rem;
+}
+
+.ucap-layout .panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel, #fff);
+  box-sizing: border-box;
+}
+
+.ucap-users {
+  position: sticky;
+  top: 0.75rem;
+  max-height: calc(100vh - 7rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ucap-users__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem 0.35rem;
+}
+
+.ucap-users__head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.ucap-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0.85rem 0.75rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg, #fff);
+  color: var(--muted, #64748b);
+}
+
+.ucap-search input {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+
+.ucap-search--wide {
+  margin: 0;
+  flex: 1;
+  min-width: 12rem;
+}
+
+.ucap-pad {
+  padding: 0.75rem 1rem 1rem;
+}
+
+.ucap-user-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.5rem 0.75rem;
+  overflow: auto;
+  flex: 1;
+}
+
+.ucap-user {
+  display: flex;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.6rem;
+  margin-bottom: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.ucap-user:hover {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.ucap-user.is-active {
+  border-color: var(--accent, #2563eb);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.ucap-user__avatar {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--accent, #2563eb);
+}
+
+.ucap-user__avatar--lg {
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 1.05rem;
+}
+
+.ucap-user__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ucap-user__name {
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.ucap-user__email {
+  font-size: 0.82rem;
+  color: var(--muted, #64748b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ucap-user__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.ucap-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg, #fff);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ucap-chip--sm {
+  padding: 0.1rem 0.4rem;
+  font-size: 0.7rem;
+}
+
+.ucap-chip--primary {
+  border-color: var(--accent, #2563eb);
+  color: var(--accent, #2563eb);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.ucap-chip--shared {
+  border-color: transparent;
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--muted, #475569);
+  font-weight: 600;
+}
+
+.ucap-chip__count {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.ucap-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.ucap-empty {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+
+.ucap-empty__icon {
+  font-size: 1.75rem;
+  opacity: 0.35;
+  margin-bottom: 0.75rem;
+}
+
+.ucap-empty h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.ucap-detail__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+}
+
+.ucap-detail__identity {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.ucap-detail__identity h2 {
+  margin: 0 0 0.15rem;
+  font-size: 1.2rem;
+}
+
+.ucap-detail__identity .muted {
+  margin: 0 0 0.45rem;
+}
+
+.ucap-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(4.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.ucap-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg, #fff);
+  min-width: 4.5rem;
+}
+
+.ucap-stat strong {
+  font-size: 1.1rem;
+  line-height: 1.1;
+}
+
+.ucap-stat span {
+  font-size: 0.72rem;
+  color: var(--muted, #64748b);
+  margin-top: 0.15rem;
+}
+
+.ucap-stat.is-dirty {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.ucap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+}
+
+.ucap-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.ucap-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ucap-jump a {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg, #fff);
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+
+.ucap-jump a:hover {
+  border-color: var(--accent, #2563eb);
+}
+
+.ucap-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ucap-role {
+  overflow: hidden;
+}
+
+.ucap-role__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(15, 23, 42, 0.02);
+}
+
+.ucap-role__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  padding: 0.25rem 0.35rem;
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.ucap-role__toggle:hover {
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.ucap-role__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.ucap-role__bulk {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.ucap-cap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ucap-cap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.ucap-cap:last-child {
+  border-bottom: 0;
+}
+
+.ucap-cap.is-revoked {
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.ucap-cap.is-changed {
+  box-shadow: inset 3px 0 0 #f59e0b;
+}
+
+.ucap-cap__label {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.ucap-cap__label input {
+  margin-top: 0.2rem;
+  flex: 0 0 auto;
+}
+
+.ucap-cap__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.ucap-cap__name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.ucap-cap__desc,
+.ucap-cap__also {
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.ucap-cap__meta {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  padding-top: 0.15rem;
+}
+
+.ucap-savebar {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 12px;
+  background: var(--panel, #fff);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+.ucap-savebar p {
+  margin: 0;
+}
+
+.ucap-savebar__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .ucap-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ucap-users {
+    position: static;
+    max-height: 18rem;
+  }
+
+  .ucap-stats {
+    grid-template-columns: repeat(2, minmax(4.5rem, 1fr));
+    width: 100%;
+  }
+
+  .ucap-cap {
+    grid-template-columns: 1fr;
+  }
+
+  .ucap-cap__meta {
+    padding-left: 1.7rem;
+  }
+}

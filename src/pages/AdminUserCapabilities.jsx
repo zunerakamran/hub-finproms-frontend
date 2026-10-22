@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FaSave, FaSync } from 'react-icons/fa'
+import {
+  FaCheckSquare,
+  FaChevronDown,
+  FaChevronRight,
+  FaSave,
+  FaSearch,
+  FaSquare,
+  FaSync,
+  FaUserShield,
+} from 'react-icons/fa'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
@@ -7,7 +16,7 @@ import { formatUserRoles } from '../utils/roleLabels'
 
 /**
  * Per-user capability overrides within the user's assigned-role UNION.
- * Only role-granted capabilities are listed; unchecking revokes for that user.
+ * Capabilities are listed under each assigned role; shared caps stay in sync.
  */
 export default function AdminUserCapabilities({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
@@ -20,7 +29,9 @@ export default function AdminUserCapabilities({ shell = 'client-admin' }) {
   const [selectedId, setSelectedId] = useState(null)
   const [matrix, setMatrix] = useState(null)
   const [draft, setDraft] = useState({})
-  const [query, setQuery] = useState('')
+  const [userQuery, setUserQuery] = useState('')
+  const [capQuery, setCapQuery] = useState('')
+  const [collapsed, setCollapsed] = useState({})
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [loadingMatrix, setLoadingMatrix] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -30,6 +41,21 @@ export default function AdminUserCapabilities({ shell = 'client-admin' }) {
   const targetName = isActingRemotely
     ? actingHub?.name || matrix?.hub?.name || 'selected hub'
     : matrix?.hub?.name || actingHub?.name || 'this hub'
+
+  const applyMatrix = (data) => {
+    setMatrix(data)
+    const next = {}
+    for (const row of data.rows || []) {
+      next[row.key] = !!row.enabled
+    }
+    setDraft(next)
+    // Expand all role sections by default when loading a user.
+    const open = {}
+    for (const section of data.role_sections || []) {
+      open[section.role] = false
+    }
+    setCollapsed(open)
+  }
 
   const loadUsers = useCallback(async () => {
     setLoadingUsers(true)
@@ -57,12 +83,7 @@ export default function AdminUserCapabilities({ shell = 'client-admin' }) {
       setMessage('')
       try {
         const data = await api.userCapabilities(userId, apiOpts)
-        setMatrix(data)
-        const next = {}
-        for (const row of data.rows || []) {
-          next[row.key] = !!row.enabled
-        }
-        setDraft(next)
+        applyMatrix(data)
       } catch (err) {
         setError(err.message || 'Failed to load user capabilities.')
         setMatrix(null)
@@ -89,49 +110,88 @@ export default function AdminUserCapabilities({ shell = 'client-admin' }) {
   }, [selectedId, loadMatrix, actingHub?.id, isActingRemotely])
 
   const filteredUsers = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = userQuery.trim().toLowerCase()
     if (!q) return users
     return users.filter((u) => {
       const hay = `${u.name || ''} ${u.email || ''} ${formatUserRoles(u, null, roleLabel)}`.toLowerCase()
       return hay.includes(q)
     })
-  }, [users, query, roleLabel])
+  }, [users, userQuery, roleLabel])
 
-  const groupedRows = useMemo(() => {
-    const rows = matrix?.rows || []
-    const order = matrix?.group_order || []
-    const groups = new Map()
-    for (const row of rows) {
-      const g = row.group || 'other'
-      if (!groups.has(g)) {
-        groups.set(g, {
-          key: g,
-          label: row.group_label || g,
-          rows: [],
-        })
-      }
-      groups.get(g).rows.push(row)
-    }
-    const ordered = []
-    for (const key of order) {
-      if (groups.has(key)) {
-        ordered.push(groups.get(key))
-        groups.delete(key)
-      }
-    }
-    for (const group of groups.values()) {
-      ordered.push(group)
-    }
-    return ordered
-  }, [matrix])
+  const roleSections = useMemo(() => {
+    const sections = matrix?.role_sections || []
+    const q = capQuery.trim().toLowerCase()
+    if (!q) return sections
+    return sections
+      .map((section) => ({
+        ...section,
+        rows: (section.rows || []).filter((row) => {
+          const hay = `${row.label || ''} ${row.description || ''} ${row.key || ''} ${row.group_label || ''}`.toLowerCase()
+          return hay.includes(q)
+        }),
+      }))
+      .filter((section) => section.rows.length > 0)
+  }, [matrix, capQuery])
 
-  const dirty = useMemo(() => {
-    if (!matrix?.rows) return false
-    return matrix.rows.some((row) => !!draft[row.key] !== !!row.enabled)
+  const dirtyKeys = useMemo(() => {
+    if (!matrix?.rows) return []
+    return matrix.rows.filter((row) => !!draft[row.key] !== !!row.enabled).map((row) => row.key)
   }, [matrix, draft])
+
+  const dirty = dirtyKeys.length > 0
+
+  const liveSummary = useMemo(() => {
+    const rows = matrix?.rows || []
+    let enabledCount = 0
+    let overridden = 0
+    for (const row of rows) {
+      const on = draft[row.key] !== undefined ? !!draft[row.key] : !!row.enabled
+      if (on) enabledCount++
+      if (!on) overridden++
+    }
+    return {
+      total: rows.length,
+      enabled: enabledCount,
+      overridden,
+      roles: (matrix?.role_sections || []).length,
+      dirty: dirtyKeys.length,
+    }
+  }, [matrix, draft, dirtyKeys])
 
   const onToggle = (key) => {
     setDraft((prev) => ({ ...prev, [key]: !prev[key] }))
+    setMessage('')
+  }
+
+  const setSectionEnabled = (section, enabledValue) => {
+    setDraft((prev) => {
+      const next = { ...prev }
+      for (const row of section.rows || []) {
+        next[row.key] = enabledValue
+      }
+      return next
+    })
+    setMessage('')
+  }
+
+  const toggleCollapsed = (role) => {
+    setCollapsed((prev) => ({ ...prev, [role]: !prev[role] }))
+  }
+
+  const expandAll = () => {
+    const next = {}
+    for (const section of matrix?.role_sections || []) {
+      next[section.role] = false
+    }
+    setCollapsed(next)
+  }
+
+  const collapseAll = () => {
+    const next = {}
+    for (const section of matrix?.role_sections || []) {
+      next[section.role] = true
+    }
+    setCollapsed(next)
   }
 
   const onSave = async () => {
@@ -141,12 +201,7 @@ export default function AdminUserCapabilities({ shell = 'client-admin' }) {
     setMessage('')
     try {
       const data = await api.updateUserCapabilities(selectedId, { capabilities: draft }, apiOpts)
-      setMatrix(data)
-      const next = {}
-      for (const row of data.rows || []) {
-        next[row.key] = !!row.enabled
-      }
-      setDraft(next)
+      applyMatrix(data)
       setMessage(data.message || 'User capabilities updated.')
     } catch (err) {
       setError(err.message || 'Failed to save.')
@@ -155,83 +210,102 @@ export default function AdminUserCapabilities({ shell = 'client-admin' }) {
     }
   }
 
+  const onDiscard = () => {
+    if (!matrix?.rows) return
+    const next = {}
+    for (const row of matrix.rows) {
+      next[row.key] = !!row.enabled
+    }
+    setDraft(next)
+    setMessage('')
+  }
+
   if (!hubLoading && !enabled) {
     return (
-      <div className="admin-page">
-        <h1>User capabilities</h1>
-        <p className="muted">You do not have permission to manage per-user capabilities.</p>
-      </div>
+      <section>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Hub</p>
+            <h1>User capabilities</h1>
+          </div>
+        </div>
+        <div className="empty-state">
+          <h2>Capability disabled</h2>
+          <p className="muted">
+            Enable &quot;Manage user capabilities&quot; under Capabilities for your role on this hub.
+          </p>
+        </div>
+      </section>
     )
   }
 
   return (
-    <div className="admin-page">
-      <div className="page-header-row" style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+    <section className="user-capabilities-page">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.25rem' }}>User capabilities</h1>
-          <p className="muted" style={{ margin: 0 }}>
-            Refine capabilities for a user on <strong>{targetName}</strong>. Only capabilities
-            granted by their assigned roles are shown — uncheck to revoke for that user.
+          <p className="eyebrow">Hub</p>
+          <h1>User capabilities</h1>
+          <p className="muted">
+            Refine what a person can do on <strong>{targetName}</strong>. Capabilities are grouped
+            by each assigned role — uncheck to revoke for that user only (cannot grant beyond their roles).
           </p>
         </div>
-        <button type="button" className="btn btn-secondary" onClick={loadUsers} disabled={loadingUsers}>
-          <FaSync style={{ marginRight: 6 }} /> Refresh users
-        </button>
+        <div className="actions">
+          <button type="button" className="btn ghost" onClick={loadUsers} disabled={loadingUsers}>
+            <FaSync aria-hidden /> Refresh
+          </button>
+        </div>
       </div>
 
-      {error ? <div className="alert alert-error" style={{ marginTop: '1rem' }}>{error}</div> : null}
-      {message ? <div className="alert alert-success" style={{ marginTop: '1rem' }}>{message}</div> : null}
+      {error ? <div className="alert">{error}</div> : null}
+      {message ? <div className="alert success">{message}</div> : null}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(240px, 320px) 1fr',
-          gap: '1.25rem',
-          marginTop: '1.25rem',
-          alignItems: 'start',
-        }}
-        className="user-capabilities-layout"
-      >
-        <aside className="card" style={{ padding: '1rem' }}>
-          <label className="field" style={{ display: 'block', marginBottom: '0.75rem' }}>
-            <span className="muted" style={{ fontSize: '0.85em' }}>Find user</span>
+      <div className="ucap-layout">
+        <aside className="ucap-users panel">
+          <div className="ucap-users__head">
+            <h2>Users</h2>
+            <span className="muted">{filteredUsers.length}</span>
+          </div>
+          <label className="ucap-search">
+            <FaSearch aria-hidden />
             <input
               type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Name, email, role…"
-              style={{ width: '100%', marginTop: 4 }}
+              value={userQuery}
+              onChange={(e) => setUserQuery(e.target.value)}
+              placeholder="Search name, email, role…"
+              aria-label="Search users"
             />
           </label>
           {loadingUsers ? (
-            <p className="muted">Loading users…</p>
+            <p className="muted ucap-pad">Loading users…</p>
           ) : filteredUsers.length === 0 ? (
-            <p className="muted">No users found.</p>
+            <p className="muted ucap-pad">No users match your search.</p>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: '70vh', overflow: 'auto' }}>
+            <ul className="ucap-user-list">
               {filteredUsers.map((user) => {
                 const active = selectedId === user.id
+                const roles = user.roles || (user.role ? [user.role] : [])
                 return (
                   <li key={user.id}>
                     <button
                       type="button"
+                      className={`ucap-user ${active ? 'is-active' : ''}`}
                       onClick={() => setSelectedId(user.id)}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '0.65rem 0.75rem',
-                        marginBottom: 4,
-                        border: active ? '1px solid var(--color-primary, #2563eb)' : '1px solid transparent',
-                        borderRadius: 6,
-                        background: active ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
-                        cursor: 'pointer',
-                      }}
                     >
-                      <div style={{ fontWeight: 600 }}>{user.name || '—'}</div>
-                      <div className="muted" style={{ fontSize: '0.85em' }}>{user.email}</div>
-                      <div className="muted" style={{ fontSize: '0.8em', marginTop: 2 }}>
-                        {formatUserRoles(user, null, roleLabel)}
-                      </div>
+                      <span className="ucap-user__avatar" aria-hidden>
+                        {(user.name || user.email || '?').slice(0, 1).toUpperCase()}
+                      </span>
+                      <span className="ucap-user__body">
+                        <span className="ucap-user__name">{user.name || '—'}</span>
+                        <span className="ucap-user__email">{user.email}</span>
+                        <span className="ucap-user__roles">
+                          {roles.map((role) => (
+                            <span key={role} className="ucap-chip ucap-chip--sm">
+                              {roleLabel?.(role) || role}
+                            </span>
+                          ))}
+                        </span>
+                      </span>
                     </button>
                   </li>
                 )
@@ -240,79 +314,235 @@ export default function AdminUserCapabilities({ shell = 'client-admin' }) {
           )}
         </aside>
 
-        <section className="card" style={{ padding: '1rem' }}>
+        <div className="ucap-detail">
           {!selectedId ? (
-            <p className="muted">Select a user to view and edit their capabilities.</p>
+            <div className="ucap-empty panel">
+              <FaUserShield className="ucap-empty__icon" aria-hidden />
+              <h2>Select a user</h2>
+              <p className="muted">
+                Choose someone from the list to review capabilities granted by each of their roles.
+              </p>
+            </div>
           ) : loadingMatrix ? (
-            <p className="muted">Loading capabilities…</p>
+            <div className="ucap-empty panel">
+              <p className="muted">Loading capabilities…</p>
+            </div>
           ) : !matrix ? (
-            <p className="muted">No capability data.</p>
+            <div className="ucap-empty panel">
+              <p className="muted">No capability data for this user.</p>
+            </div>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                <div>
-                  <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.15rem' }}>
-                    {matrix.user?.name || 'User'}
-                  </h2>
-                  <p className="muted" style={{ margin: 0 }}>
-                    {matrix.user?.email} · {formatUserRoles(matrix.user, null, roleLabel)}
-                  </p>
+              <div className="ucap-detail__head panel">
+                <div className="ucap-detail__identity">
+                  <span className="ucap-user__avatar ucap-user__avatar--lg" aria-hidden>
+                    {(matrix.user?.name || matrix.user?.email || '?').slice(0, 1).toUpperCase()}
+                  </span>
+                  <div>
+                    <h2>{matrix.user?.name || 'User'}</h2>
+                    <p className="muted">{matrix.user?.email}</p>
+                    <div className="ucap-user__roles">
+                      {(matrix.role_sections || []).map((section) => (
+                        <span
+                          key={section.role}
+                          className={`ucap-chip ${section.is_primary ? 'ucap-chip--primary' : ''}`}
+                        >
+                          {section.label}
+                          {section.is_primary ? ' · Primary' : ''}
+                          <span className="ucap-chip__count">{section.count}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={onSave}
-                  disabled={!dirty || saving}
-                >
-                  <FaSave style={{ marginRight: 6 }} />
-                  {saving ? 'Saving…' : 'Save'}
-                </button>
+                <div className="ucap-stats">
+                  <div className="ucap-stat">
+                    <strong>{liveSummary.enabled}</strong>
+                    <span>Enabled</span>
+                  </div>
+                  <div className="ucap-stat">
+                    <strong>{liveSummary.total}</strong>
+                    <span>From roles</span>
+                  </div>
+                  <div className="ucap-stat">
+                    <strong>{liveSummary.overridden}</strong>
+                    <span>Revoked</span>
+                  </div>
+                  <div className={`ucap-stat ${dirty ? 'is-dirty' : ''}`}>
+                    <strong>{liveSummary.dirty}</strong>
+                    <span>Unsaved</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ucap-toolbar panel">
+                <label className="ucap-search ucap-search--wide">
+                  <FaSearch aria-hidden />
+                  <input
+                    type="search"
+                    value={capQuery}
+                    onChange={(e) => setCapQuery(e.target.value)}
+                    placeholder="Filter capabilities…"
+                    aria-label="Filter capabilities"
+                  />
+                </label>
+                <div className="ucap-toolbar__actions">
+                  <button type="button" className="btn ghost" onClick={expandAll}>
+                    Expand all
+                  </button>
+                  <button type="button" className="btn ghost" onClick={collapseAll}>
+                    Collapse all
+                  </button>
+                  {(matrix.role_sections || []).length > 1 ? (
+                    <nav className="ucap-jump" aria-label="Jump to role">
+                      {(matrix.role_sections || []).map((section) => (
+                        <a key={section.role} href={`#ucap-role-${section.role}`}>
+                          {section.label}
+                        </a>
+                      ))}
+                    </nav>
+                  ) : null}
+                </div>
               </div>
 
               {(matrix.rows || []).length === 0 ? (
-                <p className="muted">
-                  This user’s roles do not grant any capabilities on this hub yet.
-                  Assign roles (and enable cells on the Capabilities matrix) first.
-                </p>
+                <div className="empty-state panel">
+                  <h2>No role capabilities yet</h2>
+                  <p className="muted">
+                    This user’s roles do not grant any capabilities on this hub. Assign roles and
+                    enable cells on the Capabilities matrix first.
+                  </p>
+                </div>
+              ) : roleSections.length === 0 ? (
+                <div className="empty-state panel">
+                  <h2>No matches</h2>
+                  <p className="muted">Nothing matches “{capQuery}”.</p>
+                </div>
               ) : (
-                groupedRows.map((group) => (
-                  <div key={group.key} style={{ marginBottom: '1.25rem' }}>
-                    <h3 style={{ fontSize: '0.95rem', margin: '0 0 0.5rem' }}>{group.label}</h3>
-                    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                      {group.rows.map((row) => (
-                        <li
-                          key={row.key}
-                          style={{
-                            display: 'flex',
-                            gap: '0.75rem',
-                            alignItems: 'flex-start',
-                            padding: '0.45rem 0',
-                            borderBottom: '1px solid rgba(0,0,0,0.06)',
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            id={`ucap-${row.key}`}
-                            checked={!!draft[row.key]}
-                            onChange={() => onToggle(row.key)}
-                            style={{ marginTop: 3 }}
-                          />
-                          <label htmlFor={`ucap-${row.key}`} style={{ cursor: 'pointer', flex: 1 }}>
-                            <div style={{ fontWeight: 500 }}>{row.label}</div>
-                            {row.description ? (
-                              <div className="muted" style={{ fontSize: '0.85em' }}>{row.description}</div>
-                            ) : null}
-                          </label>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))
+                <div className="ucap-sections">
+                  {roleSections.map((section) => {
+                    const isCollapsed = !!collapsed[section.role]
+                    const sectionEnabled = (section.rows || []).filter((r) => !!draft[r.key]).length
+                    const sectionTotal = (section.rows || []).length
+                    return (
+                      <section
+                        key={section.role}
+                        id={`ucap-role-${section.role}`}
+                        className="ucap-role panel"
+                      >
+                        <header className="ucap-role__head">
+                          <button
+                            type="button"
+                            className="ucap-role__toggle"
+                            onClick={() => toggleCollapsed(section.role)}
+                            aria-expanded={!isCollapsed}
+                          >
+                            {isCollapsed ? <FaChevronRight aria-hidden /> : <FaChevronDown aria-hidden />}
+                            <span className="ucap-role__title">
+                              {section.label}
+                              {section.is_primary ? (
+                                <span className="badge ok">Primary</span>
+                              ) : null}
+                            </span>
+                            <span className="muted">
+                              {sectionEnabled}/{sectionTotal} enabled
+                            </span>
+                          </button>
+                          <div className="ucap-role__bulk">
+                            <button
+                              type="button"
+                              className="btn ghost"
+                              title="Enable all in this role"
+                              onClick={() => setSectionEnabled(section, true)}
+                            >
+                              <FaCheckSquare aria-hidden /> All
+                            </button>
+                            <button
+                              type="button"
+                              className="btn ghost"
+                              title="Revoke all in this role"
+                              onClick={() => setSectionEnabled(section, false)}
+                            >
+                              <FaSquare aria-hidden /> None
+                            </button>
+                          </div>
+                        </header>
+
+                        {!isCollapsed ? (
+                          <ul className="ucap-cap-list">
+                            {(section.rows || []).map((row) => {
+                              const checked = !!draft[row.key]
+                              const shared = !!row.shared || (row.granted_by || []).length > 1
+                              const otherLabels = (row.granted_by_labels || []).filter(
+                                (label) => label !== section.label
+                              )
+                              const changed =
+                                matrix.rows?.some(
+                                  (r) => r.key === row.key && !!draft[row.key] !== !!r.enabled
+                                ) || false
+                              return (
+                                <li
+                                  key={`${section.role}-${row.key}`}
+                                  className={`ucap-cap ${checked ? '' : 'is-revoked'} ${changed ? 'is-changed' : ''}`}
+                                >
+                                  <label className="ucap-cap__label" htmlFor={`ucap-${section.role}-${row.key}`}>
+                                    <input
+                                      id={`ucap-${section.role}-${row.key}`}
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => onToggle(row.key)}
+                                    />
+                                    <span className="ucap-cap__text">
+                                      <span className="ucap-cap__name">
+                                        {row.label}
+                                        {shared ? (
+                                          <span className="ucap-chip ucap-chip--shared" title="Also granted by another role">
+                                            Shared
+                                          </span>
+                                        ) : null}
+                                      </span>
+                                      {row.description ? (
+                                        <span className="ucap-cap__desc muted">{row.description}</span>
+                                      ) : null}
+                                      {shared && otherLabels.length > 0 ? (
+                                        <span className="ucap-cap__also muted">
+                                          Also from {otherLabels.join(', ')} — toggle stays in sync
+                                        </span>
+                                      ) : null}
+                                    </span>
+                                  </label>
+                                  <span className="ucap-cap__meta muted">{row.group_label}</span>
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        ) : null}
+                      </section>
+                    )
+                  })}
+                </div>
               )}
+
+              {dirty ? (
+                <div className="ucap-savebar">
+                  <p>
+                    <strong>{dirtyKeys.length}</strong> unsaved change
+                    {dirtyKeys.length === 1 ? '' : 's'}
+                  </p>
+                  <div className="ucap-savebar__actions">
+                    <button type="button" className="btn ghost" onClick={onDiscard} disabled={saving}>
+                      Discard
+                    </button>
+                    <button type="button" className="btn" onClick={onSave} disabled={saving}>
+                      <FaSave aria-hidden /> {saving ? 'Saving…' : 'Save changes'}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </>
           )}
-        </section>
+        </div>
       </div>
-    </div>
+    </section>
   )
 }

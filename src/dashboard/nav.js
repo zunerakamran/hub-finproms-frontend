@@ -320,12 +320,12 @@ export function resolveItemOrder(dashboardNav = null) {
   }
   for (const path of defaults) {
     if (order.includes(path)) continue
-    // New “Requests queue” (/review) should sit above “All requests” (/queue).
+    // New “Requests queue” (/review) should sit above “All requests” (/history).
     if (path.endsWith('/review')) {
-      const queuePath = path.replace(/\/review$/, '/queue')
-      const queueIdx = order.indexOf(queuePath)
-      if (queueIdx !== -1) {
-        order.splice(queueIdx, 0, path)
+      const historyPath = path.replace(/\/review$/, '/history')
+      const historyIdx = order.indexOf(historyPath)
+      if (historyIdx !== -1) {
+        order.splice(historyIdx, 0, path)
         continue
       }
     }
@@ -825,7 +825,7 @@ export const DASHBOARD_LINKS = [
     group: 'smc',
   },
   {
-    to: '/my-dashboard/social-media-compliance/queue',
+    to: '/my-dashboard/social-media-compliance/history',
     label: 'All requests',
     title: 'All requests',
     description: 'History of assigned and reviewed social media pre-approval requests.',
@@ -882,7 +882,7 @@ export const DASHBOARD_LINKS = [
     group: 'gc',
   },
   {
-    to: '/my-dashboard/general-compliance/queue',
+    to: '/my-dashboard/general-compliance/history',
     label: 'All requests',
     title: 'All requests',
     description: 'History of assigned and reviewed generic content pre-approval requests.',

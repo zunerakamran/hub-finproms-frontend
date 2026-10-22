@@ -64,19 +64,19 @@ export default function GeneralComplianceRequestDetail() {
   const backTo =
     backFrom === 'review'
       ? '/my-dashboard/general-compliance/review'
-      : backFrom === 'queue'
-        ? '/my-dashboard/general-compliance/queue'
+      : backFrom === 'history' || backFrom === 'queue'
+        ? '/my-dashboard/general-compliance/history'
         : backFrom === 'mine' || backFrom === 'submit'
           ? '/my-dashboard/general-compliance'
           : canReview || canAssign
             ? '/my-dashboard/general-compliance/review'
             : canViewAll || canChangeStatus
-              ? '/my-dashboard/general-compliance/queue'
+              ? '/my-dashboard/general-compliance/history'
               : '/my-dashboard/general-compliance'
   const backLabel =
     backTo.endsWith('/review')
       ? '← Back to requests queue'
-      : backTo.endsWith('/queue')
+      : backTo.endsWith('/history')
         ? '← Back to all requests'
         : '← Back to my requests'
 

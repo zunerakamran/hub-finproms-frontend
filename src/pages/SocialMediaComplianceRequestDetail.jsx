@@ -58,19 +58,19 @@ export default function SocialMediaComplianceRequestDetail() {
   const backTo =
     backFrom === 'review'
       ? '/my-dashboard/social-media-compliance/review'
-      : backFrom === 'queue'
-        ? '/my-dashboard/social-media-compliance/queue'
+      : backFrom === 'history' || backFrom === 'queue'
+        ? '/my-dashboard/social-media-compliance/history'
         : backFrom === 'mine' || backFrom === 'submit'
           ? '/my-dashboard/social-media-compliance'
           : canReview || canAssign
             ? '/my-dashboard/social-media-compliance/review'
             : canViewAll || canChangeStatus
-              ? '/my-dashboard/social-media-compliance/queue'
+              ? '/my-dashboard/social-media-compliance/history'
               : '/my-dashboard/social-media-compliance'
   const backLabel =
     backTo.endsWith('/review')
       ? '← Back to requests queue'
-      : backTo.endsWith('/queue')
+      : backTo.endsWith('/history')
         ? '← Back to all requests'
         : '← Back to my requests'
 

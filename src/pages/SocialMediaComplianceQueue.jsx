@@ -218,7 +218,7 @@ export default function SocialMediaComplianceQueue({ variant = 'history' }) {
     : seesHubWideHistory
       ? 'Assigned and reviewed requests for this hub.'
       : 'Requests assigned to you (your review history).'
-  const fromState = isReview ? 'review' : 'queue'
+  const fromState = isReview ? 'review' : 'history'
   const pageEnabled = isReview ? reviewEnabled : enabled
 
   if (!hubLoading && !pageEnabled) {

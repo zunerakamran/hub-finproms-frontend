@@ -583,7 +583,7 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="social-media-compliance/queue"
+                  path="social-media-compliance/history"
                   element={
                     <HubCapabilityRoute
                       anyOf={['smc_view_all_requests', 'smc_assign_requests', 'smc_review_requests', 'smc_change_request_status']}
@@ -591,6 +591,10 @@ export default function App() {
                       <SocialMediaComplianceQueue />
                     </HubCapabilityRoute>
                   }
+                />
+                <Route
+                  path="social-media-compliance/queue"
+                  element={<Navigate to="/my-dashboard/social-media-compliance/history" replace />}
                 />
                 <Route
                   path="social-media-compliance/reports"
@@ -650,7 +654,7 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="general-compliance/queue"
+                  path="general-compliance/history"
                   element={
                     <HubCapabilityRoute
                       anyOf={['gc_view_all_requests', 'gc_assign_requests', 'gc_review_requests', 'gc_change_request_status']}
@@ -658,6 +662,10 @@ export default function App() {
                       <GeneralComplianceQueue />
                     </HubCapabilityRoute>
                   }
+                />
+                <Route
+                  path="general-compliance/queue"
+                  element={<Navigate to="/my-dashboard/general-compliance/history" replace />}
                 />
                 <Route
                   path="general-compliance/reports"

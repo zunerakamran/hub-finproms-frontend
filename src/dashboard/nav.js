@@ -319,7 +319,17 @@ export function resolveItemOrder(dashboardNav = null) {
     }
   }
   for (const path of defaults) {
-    if (!order.includes(path)) order.push(path)
+    if (order.includes(path)) continue
+    // New “Requests queue” (/review) should sit above “All requests” (/queue).
+    if (path.endsWith('/review')) {
+      const queuePath = path.replace(/\/review$/, '/queue')
+      const queueIdx = order.indexOf(queuePath)
+      if (queueIdx !== -1) {
+        order.splice(queueIdx, 0, path)
+        continue
+      }
+    }
+    order.push(path)
   }
   return order
 }

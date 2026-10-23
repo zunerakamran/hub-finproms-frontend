@@ -403,14 +403,19 @@ export function HubProvider({ children }) {
   }, [actingChecklist])
 
   /**
-   * Payment-card is the client-admin payer tool only on white-labelled hubs
+   * Payment-card: white-label client admin or Accounts Admin
    * (matches backend AdvisorPaymentCardController). Power / FinProms staff
-   * complete import checkout against the client admin card - they do not
+   * complete import checkout against the payer card - they do not
    * manage Payment card settings.
    */
   const canManagePaymentCard = useMemo(() => {
     if (!user || !advisorBillingEnabled) return false
-    return user.role === 'client_admin' || user.role === 'admin'
+    const roles = Array.isArray(user.roles) && user.roles.length
+      ? user.roles
+      : [user.role].filter(Boolean)
+    return roles.some((role) =>
+      ['client_admin', 'admin', 'accounts_admin'].includes(String(role))
+    )
   }, [user, advisorBillingEnabled])
 
   /** Staff always; remaining roles only when a dashboard capability is on. */

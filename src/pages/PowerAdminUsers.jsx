@@ -371,9 +371,11 @@ export default function PowerAdminUsers() {
           <legend style={{ padding: '0 0.35rem' }}>Roles</legend>
           <p className="muted" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
             Select one or more roles. All assigned roles are equal; effective capabilities are the
-            union of all selected roles. Network Admin is for the Central / Network firm head; Firm
-            Admin is for a member firm head — they cannot be combined, and the user must belong to
-            the matching firm (syncs Head of Firm / Document Repository).
+            union of all selected roles. Network Admin / Firm Admin designate Document Repository
+            heads (cannot be combined; firm must match). Top Management = reports; Auditor =
+            activity logs and audit trails; Accounts Admin = invoices and payment card. Member-firm
+            users are scoped to their firm; Central / Network firm users with those oversight roles
+            can manage the network / all firms.
           </p>
           <div className="row" style={{ gap: '0.75rem 1.25rem', flexWrap: 'wrap' }}>
             {(roleOptions.length ? roleOptions : [{ key: 'user', label: 'User' }]).map((role) => {

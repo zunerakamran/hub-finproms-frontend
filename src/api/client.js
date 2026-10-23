@@ -293,10 +293,16 @@ export const api = {
     request(`${adminBase(options)}/firms/${id}`, { method: 'DELETE' }),
   firmMembers: (firmId, options = {}) =>
     request(`${adminBase(options)}/firms/${firmId}/members`),
-  assignFirmHead: (firmId, headUserId, options = {}) =>
+  assignFirmHead: (firmId, headUserIds, options = {}) =>
     request(`${adminBase(options)}/firms/${firmId}/head`, {
       method: 'PUT',
-      body: JSON.stringify({ head_user_id: headUserId }),
+      body: JSON.stringify({
+        head_user_ids: Array.isArray(headUserIds)
+          ? headUserIds
+          : headUserIds == null || headUserIds === ''
+            ? []
+            : [headUserIds],
+      }),
     }),
   firmDocumentsMyRights: () => request('/firm-documents/my-rights'),
   listFirmDocuments: (params = {}) => {

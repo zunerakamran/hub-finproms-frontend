@@ -309,9 +309,12 @@ export default function PowerAdminModules() {
                               : 'Bundled product modules')}
                         </small>
                         <small className="muted">
-                          Package price: {formatMoney(pkg.amount, pkg.currency)}
+                          One-time: {formatMoney(pkg.amount, pkg.currency)}
+                          {pkg.recurring_billing_unit && pkg.recurring_billing_unit !== 'none'
+                            ? ` · Recurring: ${formatMoney(pkg.recurring_amount || 0, pkg.currency)} (${pkg.recurring_billing_unit}${pkg.recurring_tier_slot ? ` slot #${pkg.recurring_tier_slot}` : ''})`
+                            : ''}
                           {Number(pkg.individual_module_amount_sum) > 0
-                            ? ` (individual sum ${formatMoney(pkg.individual_module_amount_sum, pkg.currency)})`
+                            ? ` · Individual one-time sum ${formatMoney(pkg.individual_module_amount_sum, pkg.currency)}`
                             : ''}
                         </small>
                         {moduleNames && pkg.description ? (

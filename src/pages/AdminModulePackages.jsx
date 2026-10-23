@@ -19,6 +19,9 @@ const emptyPackageForm = {
   name: '',
   description: '',
   amount: '',
+  recurring_amount: '',
+  recurring_billing_unit: 'none',
+  recurring_tier_slot: '',
   is_active: true,
   module_keys: [],
 }
@@ -125,6 +128,9 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
       name: pkg.name || '',
       description: pkg.description || '',
       amount: pkg.amount ?? '',
+      recurring_amount: pkg.recurring_amount ?? '',
+      recurring_billing_unit: pkg.recurring_billing_unit || 'none',
+      recurring_tier_slot: pkg.recurring_tier_slot ?? '',
       is_active: !!pkg.is_active,
       module_keys: [...(pkg.module_keys || [])],
     })
@@ -164,6 +170,12 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
         name: packageForm.name.trim(),
         description: packageForm.description?.trim() || null,
         amount: Number(packageForm.amount || 0),
+        recurring_amount: Number(packageForm.recurring_amount || 0),
+        recurring_billing_unit: packageForm.recurring_billing_unit || 'none',
+        recurring_tier_slot:
+          packageForm.recurring_tier_slot === '' || packageForm.recurring_tier_slot == null
+            ? null
+            : Number(packageForm.recurring_tier_slot),
         is_active: !!packageForm.is_active,
         module_keys: withPackageDependencies(packageForm.module_keys),
       }
@@ -223,10 +235,11 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
           <p className="eyebrow">Modules</p>
           <h1>Module packages</h1>
           <p className="muted">
-            Bundle product modules at a single one-time package price (may differ from the sum of
-            individual catalogue prices). Enable packages per hub on the{' '}
-            <Link to="/my-dashboard/modules">Modules</Link> page. Individual module catalogue
-            amounts stay under <Link to="/my-dashboard/module-pricing">Module prices</Link>.
+            Bundle product modules with one-time and recurring package prices (same units as single
+            modules: per network / adviser / user / website / firm + slot). While a package is
+            enabled, it replaces individual catalogue charges for covered modules. Enable packages
+            on the <Link to="/my-dashboard/modules">Modules</Link> page. Per-module catalogue stays
+            under <Link to="/my-dashboard/module-pricing">Module prices</Link>.
           </p>
         </div>
         {!showPackageForm && (
@@ -270,6 +283,47 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
               required
               value={packageForm.amount}
               onChange={(e) => setPackageForm({ ...packageForm, amount: e.target.value })}
+            />
+          </label>
+          <label>
+            Recurring amount (£)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={packageForm.recurring_amount}
+              onChange={(e) => setPackageForm({ ...packageForm, recurring_amount: e.target.value })}
+            />
+          </label>
+          <label>
+            Recurring unit
+            <select
+              value={packageForm.recurring_billing_unit}
+              onChange={(e) =>
+                setPackageForm({ ...packageForm, recurring_billing_unit: e.target.value })
+              }
+            >
+              <option value="none">None</option>
+              <option value="per_network">Per network</option>
+              <option value="per_adviser">Per adviser (slot)</option>
+              <option value="per_user">Per user (slot)</option>
+              <option value="per_website">Per website</option>
+              <option value="per_firm">Per firm</option>
+            </select>
+          </label>
+          <label>
+            Recurring slot (1-3)
+            <input
+              type="number"
+              min="1"
+              max="3"
+              value={packageForm.recurring_tier_slot}
+              onChange={(e) =>
+                setPackageForm({ ...packageForm, recurring_tier_slot: e.target.value })
+              }
+              disabled={
+                !['per_user', 'per_adviser'].includes(packageForm.recurring_billing_unit)
+              }
             />
           </label>
           <fieldset className="checklist-section" style={{ border: 0, padding: 0, margin: 0 }}>
@@ -332,7 +386,9 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
                 <tr>
                   <th>Package</th>
                   <th>Modules</th>
-                  <th>Package price</th>
+                  <th>One-time</th>
+                  <th>Recurring</th>
+                  <th>Slot</th>
                   <th>Individual sum</th>
                   <th>Active</th>
                   <th />
@@ -355,6 +411,13 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
                         .join(', ') || (pkg.module_keys || []).join(', ')}
                     </td>
                     <td>{formatMoney(pkg.amount, pkg.currency)}</td>
+                    <td>
+                      {formatMoney(pkg.recurring_amount || 0, pkg.currency)}
+                      <div className="muted" style={{ fontSize: '0.85em' }}>
+                        {pkg.recurring_billing_unit || 'none'}
+                      </div>
+                    </td>
+                    <td>{pkg.recurring_tier_slot || '-'}</td>
                     <td>{formatMoney(pkg.individual_module_amount_sum || 0, pkg.currency)}</td>
                     <td>{pkg.is_active ? 'Yes' : 'No'}</td>
                     <td className="actions">

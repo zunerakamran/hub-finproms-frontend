@@ -53,7 +53,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
   const [message, setMessage] = useState('')
   const [headFirmId, setHeadFirmId] = useState(null)
   const [headMembers, setHeadMembers] = useState([])
-  const [headUserId, setHeadUserId] = useState('')
+  const [headUserIds, setHeadUserIds] = useState([])
   const [savingHead, setSavingHead] = useState(false)
 
   const otherFirmOptions = useMemo(
@@ -120,17 +120,36 @@ export default function AdminFirms({ shell = 'client-admin' }) {
   const startAssignHead = async (firm) => {
     setShowForm(false)
     setHeadFirmId(firm.id)
-    setHeadUserId(firm.head_user_id ? String(firm.head_user_id) : '')
+    setHeadUserIds([])
     setMessage('')
     setError('')
     try {
       const data = await api.firmMembers(firm.id, apiOpts)
-      setHeadMembers(data.members || [])
+      const members = data.members || []
+      setHeadMembers(members)
+      const fromApi = Array.isArray(data.admin_user_ids)
+        ? data.admin_user_ids.map(Number)
+        : members.filter((m) => m.is_admin).map((m) => Number(m.id))
+      setHeadUserIds(
+        fromApi.length
+          ? fromApi
+          : firm.head_user_id
+            ? [Number(firm.head_user_id)]
+            : []
+      )
     } catch (err) {
       setError(err.message)
       setHeadMembers([])
+      setHeadUserIds([])
     }
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const toggleHeadUser = (memberId) => {
+    const id = Number(memberId)
+    setHeadUserIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
   }
 
   const onSubmit = async (e) => {
@@ -173,16 +192,17 @@ export default function AdminFirms({ shell = 'client-admin' }) {
     setError('')
     setMessage('')
     try {
-      const data = await api.assignFirmHead(
-        headFirmId,
-        headUserId ? Number(headUserId) : null,
-        apiOpts
-      )
-      setMessage(data.message || 'Firm admin updated.')
+      const data = await api.assignFirmHead(headFirmId, headUserIds, apiOpts)
+      setMessage(data.message || 'Firm admins updated.')
       setHeadFirmId(null)
       await load()
     } catch (err) {
-      setError(err.data?.errors?.head_user_id?.[0] || err.data?.message || err.message)
+      setError(
+        err.data?.errors?.head_user_ids?.[0] ||
+          err.data?.errors?.head_user_id?.[0] ||
+          err.data?.message ||
+          err.message
+      )
     } finally {
       setSavingHead(false)
     }
@@ -220,13 +240,13 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                   : 'Edit Firm'
                 : 'Add Firm'
               : headFirmId
-                ? `Update admin — ${headFirm?.name || ''}`
+                ? `Update admins — ${headFirm?.name || ''}`
                 : 'Firms'}
           </h1>
           <p className="muted">
             {isActingRemotely
               ? `Managing Firms on ${actingHub?.name}. Switch hubs from the top bar.`
-              : 'Manage Firms, update each firm’s admin (Network Admin for Central / Network, Firm Admin for member firms), and set who may review compliance requests.'}
+              : 'Manage Firms, update each firm’s admins (Network Admin for Central / Network, Firm Admin for member firms — multiple allowed), and set who may review compliance requests.'}
           </p>
         </div>
         {!showForm && !headFirmId && canManageFirms ? (
@@ -241,33 +261,49 @@ export default function AdminFirms({ shell = 'client-admin' }) {
 
       {headFirmId ? (
         <form className="admin-form" onSubmit={onAssignHead}>
-          <label>
-            Firm admin
-            <select value={headUserId} onChange={(e) => setHeadUserId(e.target.value)}>
-              <option value="">No admin assigned</option>
-              {headMembers.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name} ({member.email})
-                </option>
-              ))}
-            </select>
-          </label>
-          {headMembers.length === 0 ? (
-            <p className="muted">
-              No users are assigned to this firm yet. Assign users to this firm first (Users / advisor
-              import), then choose an admin. The selected user will receive the{' '}
-              <strong>{adminRoleLabel}</strong> role.
-            </p>
-          ) : (
-            <p className="muted">
-              Only one admin per firm. Saving assigns the <strong>{adminRoleLabel}</strong> role to
-              the selected user (and removes it from any previous admin). That unlocks Document
-              Repository rights for this firm — add / view / delete / archive and member grants.
-            </p>
-          )}
+          <fieldset
+            style={{
+              border: '1px solid var(--border, #ddd)',
+              borderRadius: 8,
+              padding: '1rem',
+              marginTop: 0,
+            }}
+          >
+            <legend style={{ padding: '0 0.35rem' }}>Firm admins</legend>
+            {headMembers.length === 0 ? (
+              <p className="muted" style={{ marginBottom: 0 }}>
+                No users are assigned to this firm yet. Assign users to this firm first (Users /
+                advisor import), then choose admins. Selected users receive the{' '}
+                <strong>{adminRoleLabel}</strong> role.
+              </p>
+            ) : (
+              <>
+                <p className="muted" style={{ marginTop: 0 }}>
+                  Select one or more members. Each checked user gets the{' '}
+                  <strong>{adminRoleLabel}</strong> role (Document Repository full rights for this
+                  firm). Unchecked users lose that role. Multiple admins are allowed.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {headMembers.map((member) => {
+                    const id = Number(member.id)
+                    return (
+                      <label key={member.id} className="checkbox">
+                        <input
+                          type="checkbox"
+                          checked={headUserIds.includes(id)}
+                          onChange={() => toggleHeadUser(id)}
+                        />
+                        {member.name} ({member.email})
+                      </label>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </fieldset>
           <div className="actions">
-            <button className="btn primary" disabled={savingHead}>
-              {savingHead ? 'Saving…' : 'Save firm admin'}
+            <button className="btn primary" disabled={savingHead || headMembers.length === 0}>
+              {savingHead ? 'Saving…' : 'Save firm admins'}
             </button>
             <button
               type="button"
@@ -421,7 +457,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
               {canAssignHead ? (
                 <DataGridIconBtn
                   icon={FaUserTie}
-                  label="Update admin of this firm"
+                  label="Update admins of this firm"
                   onClick={() => startAssignHead(row)}
                 />
               ) : null}

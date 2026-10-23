@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -15,6 +15,13 @@ function formatMoney(amount, currency = 'gbp') {
   }
 }
 
+function hubTypeLabel(type) {
+  if (type === 'central') return 'Central Hub Controller'
+  if (type === 'white_label') return 'White Label Hub'
+  if (type === 'shared') return 'Shared Hub'
+  return type || 'this hub'
+}
+
 const emptyForm = {
   amount: '',
   billing_unit: 'one_time',
@@ -24,52 +31,15 @@ const emptyForm = {
   is_active: true,
 }
 
-const emptyPackageForm = {
-  name: '',
-  description: '',
-  amount: '',
-  is_active: true,
-  module_keys: [],
-}
-
-/** Product modules that can go in a package (base hub modules are never packaged). */
-const DEFAULT_PACKAGEABLE_KEYS = [
-  'module_social_media_template_library',
-  'module_social_media_compliance',
-  'module_website_template_library',
-  'module_website_compliance',
-  'module_general_compliance',
-]
-
-/** When selecting a dependent, also select its parents (mirrors backend). */
-const PACKAGE_DEPS = {
-  module_social_media_compliance: ['module_social_media_template_library'],
-  module_website_compliance: ['module_website_template_library'],
-}
-
-function withPackageDependencies(keys) {
-  const set = new Set(keys)
-  for (const key of [...set]) {
-    for (const dep of PACKAGE_DEPS[key] || []) set.add(dep)
-  }
-  return DEFAULT_PACKAGEABLE_KEYS.filter((k) => set.has(k))
-}
-
 export default function AdminModulePricing({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
-  const { can, loading: hubLoading, actingHub } = useHub()
+  const { can, loading: hubLoading, actingHub, hub } = useHub()
   const [pricing, setPricing] = useState([])
-  const [packages, setPackages] = useState([])
-  const [availableModuleKeys, setAvailableModuleKeys] = useState(DEFAULT_PACKAGEABLE_KEYS)
   const [tiers, setTiers] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(emptyForm)
-  const [packageEditingId, setPackageEditingId] = useState(null)
-  const [showPackageForm, setShowPackageForm] = useState(false)
-  const [packageForm, setPackageForm] = useState(emptyPackageForm)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [savingPackage, setSavingPackage] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [chargeEnabled, setChargeEnabled] = useState(null)
@@ -80,41 +50,18 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
   const enabled = can('dashboard_manage_module_pricing')
   const eyebrow = 'Modules'
   const apiOpts = { asPowerAdmin }
-
-  const labelByKey = useMemo(() => {
-    const map = {}
-    for (const row of pricing) map[row.module_key] = row.label
-    return map
-  }, [pricing])
-
-  const packageableModules = useMemo(() => {
-    const keys = (availableModuleKeys?.length ? availableModuleKeys : DEFAULT_PACKAGEABLE_KEYS).filter(
-      (k) => DEFAULT_PACKAGEABLE_KEYS.includes(k)
-    )
-    return keys.map((key) => ({
-      key,
-      label: labelByKey[key] || key,
-    }))
-  }, [availableModuleKeys, labelByKey])
+  const displayType = targetHub?.type || actingHub?.type || hub?.type
 
   const load = async () => {
     setLoading(true)
     setError('')
     try {
-      const [pricingData, packagesData] = await Promise.all([
-        api.modulePricing(apiOpts),
-        api.modulePackages(apiOpts).catch(() => null),
-      ])
-      setPricing(pricingData.pricing || [])
-      setTiers(pricingData.recurring_tiers || [])
-      setTargetHub(pricingData.target_hub || null)
-      setChargeEnabled(Boolean(pricingData.target_hub?.charge_amount_per_module))
-      setRecurringEnabled(Boolean(pricingData.target_hub?.charge_recurring_per_module))
-      const pkgs = packagesData?.packages || pricingData.packages || []
-      setPackages(pkgs)
-      if (packagesData?.available_module_keys?.length) {
-        setAvailableModuleKeys(packagesData.available_module_keys)
-      }
+      const data = await api.modulePricing(apiOpts)
+      setPricing(data.pricing || [])
+      setTiers(data.recurring_tiers || [])
+      setTargetHub(data.target_hub || null)
+      setChargeEnabled(Boolean(data.target_hub?.charge_amount_per_module))
+      setRecurringEnabled(Boolean(data.target_hub?.charge_recurring_per_module))
     } catch (err) {
       setError(err.message)
       setChargeEnabled(null)
@@ -151,50 +98,6 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
     setForm(emptyForm)
   }
 
-  const resetPackageForm = () => {
-    setPackageEditingId(null)
-    setShowPackageForm(false)
-    setPackageForm(emptyPackageForm)
-  }
-
-  const startCreatePackage = () => {
-    setPackageEditingId(null)
-    setPackageForm(emptyPackageForm)
-    setShowPackageForm(true)
-  }
-
-  const startEditPackage = (pkg) => {
-    setPackageEditingId(pkg.id)
-    setPackageForm({
-      name: pkg.name || '',
-      description: pkg.description || '',
-      amount: pkg.amount ?? '',
-      is_active: !!pkg.is_active,
-      module_keys: [...(pkg.module_keys || [])],
-    })
-    setShowPackageForm(true)
-  }
-
-  const togglePackageModule = (key, checked) => {
-    setPackageForm((prev) => {
-      let keys = new Set(prev.module_keys || [])
-      if (checked) {
-        keys.add(key)
-        keys = new Set(withPackageDependencies([...keys]))
-      } else {
-        keys.delete(key)
-        // Drop dependents that require this key.
-        for (const [child, deps] of Object.entries(PACKAGE_DEPS)) {
-          if (deps.includes(key)) keys.delete(child)
-        }
-      }
-      return {
-        ...prev,
-        module_keys: DEFAULT_PACKAGEABLE_KEYS.filter((k) => keys.has(k)),
-      }
-    })
-  }
-
   const onSubmit = async (e) => {
     e.preventDefault()
     if (!editingId) return
@@ -224,55 +127,6 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
     }
   }
 
-  const onSubmitPackage = async (e) => {
-    e.preventDefault()
-    if (!packageForm.module_keys?.length) {
-      setError('Select at least one product module for the package.')
-      return
-    }
-    setSavingPackage(true)
-    setError('')
-    setMessage('')
-    try {
-      const payload = {
-        name: packageForm.name.trim(),
-        description: packageForm.description?.trim() || null,
-        amount: Number(packageForm.amount || 0),
-        is_active: !!packageForm.is_active,
-        module_keys: withPackageDependencies(packageForm.module_keys),
-      }
-      if (packageEditingId) {
-        await api.updateModulePackage(packageEditingId, payload, apiOpts)
-        setMessage('Module package updated.')
-      } else {
-        await api.createModulePackage(payload, apiOpts)
-        setMessage('Module package created.')
-      }
-      resetPackageForm()
-      await load()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSavingPackage(false)
-    }
-  }
-
-  const onDeletePackage = async (pkg) => {
-    if (!window.confirm(`Delete package “${pkg.name}”? Hubs using it will have it removed.`)) {
-      return
-    }
-    setError('')
-    setMessage('')
-    try {
-      await api.deleteModulePackage(pkg.id, apiOpts)
-      setMessage('Module package deleted.')
-      if (packageEditingId === pkg.id) resetPackageForm()
-      await load()
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
   if (!hubLoading && !enabled) {
     return (
       <section>
@@ -298,10 +152,11 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
           <p className="eyebrow">{eyebrow}</p>
           <h1>Module prices (one-time + recurring)</h1>
           <p className="muted">
-            One-time prices on module enable; recurring catalogue + slot tables for per-user /
-            per-network / per-website / per-firm charges. Create packages to bundle product modules
-            at a different one-time price — enable them on the{' '}
-            <Link to="/my-dashboard/modules">Modules</Link> page.
+            Catalogue for <strong>{targetHub?.name || actingHub?.name || hub?.name || 'this hub'}</strong>
+            {displayType ? ` (${hubTypeLabel(displayType)})` : ''}: only modules that apply to this
+            hub type are listed. One-time on enable; recurring for per-user / per-network /
+            per-website / per-firm. Bundled pricing is managed on{' '}
+            <Link to="/my-dashboard/module-packages">Module packages</Link>.
           </p>
         </div>
       </div>
@@ -310,8 +165,7 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
         <div className="alert">
           Both charge functionalities are off
           {targetHub?.name ? ` for ${targetHub.name}` : ' for this hub'} - enable one-time and/or
-          recurring under Functionalities to generate invoices. Package catalogue can still be
-          managed from Central.
+          recurring under Functionalities to generate invoices.
         </div>
       )}
       {error && <div className="alert">{error}</div>}
@@ -395,11 +249,11 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
       )}
 
       <div className="advisor-list-block">
-        <h2>Catalogue</h2>
+        <h2>Catalogue for {hubTypeLabel(displayType)}</h2>
         {loading ? (
           <div className="state">Loading...</div>
         ) : pricing.length === 0 ? (
-          <p className="muted">No module prices configured.</p>
+          <p className="muted">No module prices for this hub type.</p>
         ) : (
           <div className="table-wrap">
             <table className="admin-table">
@@ -439,162 +293,6 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
                     <td className="actions">
                       <button type="button" className="btn ghost" onClick={() => startEdit(row)}>
                         Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="advisor-list-block">
-        <div className="page-head" style={{ marginBottom: '0.75rem' }}>
-          <div>
-            <h2>Module packages</h2>
-            <p className="muted">
-              Bundle product modules at a package one-time price (can differ from the sum of
-              individual catalogue prices). Base Shared / White Label Hub is never included.
-              Dependencies are auto-added (e.g. Social Media Pre Approval includes Template Library).
-            </p>
-          </div>
-          {!showPackageForm && (
-            <button type="button" className="btn primary" onClick={startCreatePackage}>
-              New package
-            </button>
-          )}
-        </div>
-
-        {showPackageForm && (
-          <form className="admin-form" onSubmit={onSubmitPackage}>
-            <h3>{packageEditingId ? 'Edit package' : 'New package'}</h3>
-            <label>
-              Name
-              <input
-                type="text"
-                required
-                maxLength={255}
-                value={packageForm.name}
-                onChange={(e) => setPackageForm({ ...packageForm, name: e.target.value })}
-              />
-            </label>
-            <label>
-              Description (optional)
-              <textarea
-                rows={2}
-                maxLength={2000}
-                value={packageForm.description}
-                onChange={(e) => setPackageForm({ ...packageForm, description: e.target.value })}
-              />
-            </label>
-            <label>
-              Package one-time amount (£)
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                value={packageForm.amount}
-                onChange={(e) => setPackageForm({ ...packageForm, amount: e.target.value })}
-              />
-            </label>
-            <fieldset className="checklist-section" style={{ border: 0, padding: 0, margin: 0 }}>
-              <legend>
-                <strong>Modules in package</strong>
-              </legend>
-              <p className="muted checklist-section-hint">
-                Selecting a dependent module also selects its required parent.
-              </p>
-              <div className="checklist-grid">
-                {packageableModules.map((mod) => (
-                  <label key={mod.key} className="checklist-item">
-                    <input
-                      type="checkbox"
-                      checked={(packageForm.module_keys || []).includes(mod.key)}
-                      onChange={(e) => togglePackageModule(mod.key, e.target.checked)}
-                    />
-                    <span>
-                      <strong>{mod.label}</strong>
-                      <small className="muted">{mod.key}</small>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <label className="checklist-item">
-              <input
-                type="checkbox"
-                checked={!!packageForm.is_active}
-                onChange={(e) => setPackageForm({ ...packageForm, is_active: e.target.checked })}
-              />
-              Active (available on Modules page)
-            </label>
-            <div className="actions">
-              <button className="btn primary" disabled={savingPackage}>
-                {savingPackage
-                  ? 'Saving...'
-                  : packageEditingId
-                    ? 'Update package'
-                    : 'Create package'}
-              </button>
-              <button type="button" className="btn ghost" onClick={resetPackageForm}>
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
-
-        {loading ? (
-          <div className="state">Loading...</div>
-        ) : packages.length === 0 ? (
-          <p className="muted">No packages yet. Create one to offer bundled module pricing.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Package</th>
-                  <th>Modules</th>
-                  <th>Package price</th>
-                  <th>Individual sum</th>
-                  <th>Active</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {packages.map((pkg) => (
-                  <tr key={pkg.id}>
-                    <td>
-                      <strong>{pkg.name}</strong>
-                      {pkg.description ? (
-                        <div className="muted" style={{ fontSize: '0.85em' }}>
-                          {pkg.description}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td>
-                      {(pkg.modules || [])
-                        .map((m) => m.label)
-                        .join(', ') || (pkg.module_keys || []).join(', ')}
-                    </td>
-                    <td>{formatMoney(pkg.amount, pkg.currency)}</td>
-                    <td>{formatMoney(pkg.individual_module_amount_sum || 0, pkg.currency)}</td>
-                    <td>{pkg.is_active ? 'Yes' : 'No'}</td>
-                    <td className="actions">
-                      <button
-                        type="button"
-                        className="btn ghost"
-                        onClick={() => startEditPackage(pkg)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn ghost"
-                        onClick={() => onDeletePackage(pkg)}
-                      >
-                        Delete
                       </button>
                     </td>
                   </tr>

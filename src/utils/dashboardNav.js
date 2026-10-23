@@ -53,6 +53,7 @@ export const DASHBOARD_NAV_DEFAULTS = {
     '/my-dashboard/one-time-invoices': 'One-time invoices',
     '/my-dashboard/modules': 'Modules',
     '/my-dashboard/module-pricing': 'Module prices',
+    '/my-dashboard/module-packages': 'Module packages',
     '/my-dashboard/module-invoices': 'Module invoices',
     '/my-dashboard/advisors': 'Import Users',
     '/my-dashboard/payment-card': 'Payment card',

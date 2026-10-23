@@ -35,6 +35,7 @@ const AdminAdvisorInvoices = lazy(() => import('./pages/AdminAdvisorInvoices'))
 const AdminAdvisorRenewal = lazy(() => import('./pages/AdminAdvisorRenewal'))
 const AdminModuleInvoices = lazy(() => import('./pages/AdminModuleInvoices'))
 const AdminModulePricing = lazy(() => import('./pages/AdminModulePricing'))
+const AdminModulePackages = lazy(() => import('./pages/AdminModulePackages'))
 const AdminSubscriberCredits = lazy(() => import('./pages/AdminSubscriberCredits'))
 const AdminBundles = lazy(() => import('./pages/AdminBundles'))
 const AdminCategories = lazy(() => import('./pages/AdminCategories'))
@@ -1094,6 +1095,14 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_manage_module_pricing">
                       <AdminModulePricing />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="module-packages"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_module_packages">
+                      <AdminModulePackages />
                     </HubCapabilityRoute>
                   }
                 />

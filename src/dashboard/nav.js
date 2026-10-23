@@ -143,6 +143,7 @@ const HUB_OPS_ANY = [
 const MODULES_ANY = [
   'dashboard_manage_modules',
   'dashboard_manage_module_pricing',
+  'dashboard_manage_module_packages',
   'dashboard_view_module_invoices',
   'dashboard_mark_module_invoices_paid',
 ]
@@ -729,8 +730,16 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/module-pricing',
     label: 'Module prices',
     title: 'Module one-time prices',
-    description: 'Set one-time / recurring catalogue prices and create module packages with their own package price.',
+    description: 'Set one-time / recurring catalogue prices for modules that apply to the current hub type.',
     capability: 'dashboard_manage_module_pricing',
+    group: 'modules',
+  },
+  {
+    to: '/my-dashboard/module-packages',
+    label: 'Module packages',
+    title: 'Module packages',
+    description: 'Create bundles of product modules with a single package one-time price.',
+    capability: 'dashboard_manage_module_packages',
     group: 'modules',
   },
   {

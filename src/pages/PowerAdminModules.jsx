@@ -268,9 +268,10 @@ export default function PowerAdminModules() {
             <div className="checklist-section" id="module-packages">
               <h2>Module packages</h2>
               <p className="muted checklist-section-hint">
-                Packages bundle several product modules at a single one-time price (set under Module
-                prices). Enabling a package turns its modules on and locks them so they cannot be
-                selected separately. Packages that share a module cannot both be on.
+                Packages bundle several product modules at a single one-time price (create/edit under{' '}
+                <Link to="/my-dashboard/module-packages">Module packages</Link>). Enabling a package
+                turns its modules on and locks them so they cannot be selected separately. Packages
+                that share a module cannot both be on.
               </p>
               <div className="checklist-grid">
                 {packages.map((pkg) => {

@@ -10,18 +10,6 @@ export const DEFAULT_ROLE_LABELS = {
   user: 'User',
 }
 
-/** Highest privilege first — used when picking a default primary role. */
-export const ROLE_PRIVILEGE_ORDER = [
-  'power_admin',
-  'finproms_admin',
-  'client_admin',
-  'manager',
-  'approver',
-  'admin_staff',
-  'advisor',
-  'user',
-]
-
 /**
  * Resolve a display label for a role key from hub.role_labels (or defaults).
  * Custom / newly added roles come from hub.role_labels after the hub payload refresh.
@@ -47,6 +35,7 @@ export function roleLabelsMap(hub) {
 
 /**
  * Role keys held by a user (API roles[] or legacy single role).
+ * All assigned roles are equal — there is no primary/secondary distinction.
  * @param {object|null|undefined} user
  * @returns {string[]}
  */
@@ -54,8 +43,8 @@ export function userRoleKeys(user) {
   if (Array.isArray(user?.roles) && user.roles.length > 0) {
     return user.roles.map((role) => String(role)).filter(Boolean)
   }
-  const primary = String(user?.role || user?.primary_role || '')
-  return primary ? [primary] : []
+  const legacy = String(user?.role || '')
+  return legacy ? [legacy] : []
 }
 
 /**
@@ -76,20 +65,9 @@ export function userHasAnyRole(user, roleKeys) {
 }
 
 /**
- * @param {string[]} roles
- * @returns {string}
- */
-export function pickPrimaryRole(roles) {
-  const list = (roles || []).map((role) => String(role)).filter(Boolean)
-  for (const role of ROLE_PRIVILEGE_ORDER) {
-    if (list.includes(role)) return role
-  }
-  return list[0] || 'user'
-}
-
-/**
  * Display string for one or many roles (lists / grids).
  * Prefers API role_labels[]; falls back to hub labels / defaults.
+ * All roles are shown equally (joined labels).
  * @param {object|null|undefined} user
  * @param {object|null|undefined} hub
  * @param {(key: string) => string} [labelFn]

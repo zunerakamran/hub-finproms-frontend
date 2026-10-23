@@ -9450,12 +9450,6 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   font-size: 0.7rem;
 }
 
-.ucap-chip--primary {
-  border-color: var(--accent, #2563eb);
-  color: var(--accent, #2563eb);
-  background: rgba(37, 99, 235, 0.08);
-}
-
 .ucap-chip--shared {
   border-color: transparent;
   background: rgba(100, 116, 139, 0.12);

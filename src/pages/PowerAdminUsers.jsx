@@ -6,7 +6,6 @@ import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import {
   formatUserRoles,
-  pickPrimaryRole,
   roleLabel as resolveRoleLabel,
   userRoleKeys,
 } from '../utils/roleLabels'
@@ -16,7 +15,6 @@ const emptyForm = {
   email: '',
   password: '',
   roles: ['user'],
-  primary_role: 'user',
   firm_id: '',
   credits: 0,
   is_suspended: false,
@@ -94,13 +92,9 @@ export default function PowerAdminUsers() {
         return f
       }
       const fallback = nextRoles.length > 0 ? nextRoles : [roles[0].key]
-      const primary = fallback.includes(f.primary_role)
-        ? f.primary_role
-        : pickPrimaryRole(fallback)
       return {
         ...f,
         roles: fallback,
-        primary_role: primary,
         is_advisor: fallback.includes('advisor') ? true : f.is_advisor,
         firm_id: rolesIncludeControlPlane(fallback) ? '' : f.firm_id,
       }
@@ -115,14 +109,12 @@ export default function PowerAdminUsers() {
   const startEdit = (user) => {
     const held = userRoleKeys(user)
     const rolesList = held.length > 0 ? held : ['user']
-    const primary = user.primary_role || user.role || pickPrimaryRole(rolesList)
     setEditingId(user.id)
     setForm({
       name: user.name || '',
       email: user.email || '',
       password: '',
       roles: rolesList,
-      primary_role: rolesList.includes(primary) ? primary : pickPrimaryRole(rolesList),
       firm_id: user.firm_id ? String(user.firm_id) : '',
       credits: user.has_unlimited_credits ? 0 : Number(user.credits || 0),
       is_suspended: Boolean(user.is_suspended),
@@ -162,13 +154,9 @@ export default function PowerAdminUsers() {
         current.add(roleKey)
       }
       const nextRoles = Array.from(current)
-      const primary = nextRoles.includes(f.primary_role)
-        ? f.primary_role
-        : pickPrimaryRole(nextRoles)
       return {
         ...f,
         roles: nextRoles,
-        primary_role: primary,
         is_advisor: nextRoles.includes('advisor') ? true : f.is_advisor,
         allows_admin_staff_acting:
           nextRoles.includes('advisor') || f.is_advisor ? f.allows_admin_staff_acting : false,
@@ -185,15 +173,12 @@ export default function PowerAdminUsers() {
     setMessage('')
     try {
       const rolesPayload = form.roles?.length ? form.roles : ['user']
-      const primary = rolesPayload.includes(form.primary_role)
-        ? form.primary_role
-        : pickPrimaryRole(rolesPayload)
       const payload = {
         name: form.name.trim(),
         email: form.email.trim(),
         roles: rolesPayload,
-        primary_role: primary,
-        role: primary,
+        // Legacy single-role field: first assigned role for backward compat.
+        role: rolesPayload[0],
         credits: Number(form.credits) || 0,
         is_suspended: Boolean(form.is_suspended),
         allows_admin_staff_acting: isAdvisorForm
@@ -350,23 +335,6 @@ export default function PowerAdminUsers() {
             />
           </label>
           <label>
-            Primary role
-            <select
-              value={form.primary_role}
-              onChange={(e) => setForm((f) => ({ ...f, primary_role: e.target.value }))}
-              required
-            >
-              {(form.roles || []).map((key) => {
-                const option = roleOptions.find((role) => role.key === key)
-                return (
-                  <option key={key} value={key}>
-                    {option?.label || resolveRoleLabel(hub, key) || key}
-                  </option>
-                )
-              })}
-            </select>
-          </label>
-          <label>
             Firm
             <select
               value={form.firm_id}
@@ -396,8 +364,8 @@ export default function PowerAdminUsers() {
         <fieldset style={{ marginTop: '1rem', border: '1px solid var(--border, #ddd)', borderRadius: 8, padding: '0.75rem 1rem' }}>
           <legend style={{ padding: '0 0.35rem' }}>Roles</legend>
           <p className="muted" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
-            Select one or more roles. Effective capabilities are the union of all selected roles.
-            Primary role is used for display and activity logs only.
+            Select one or more roles. All assigned roles are equal; effective capabilities are the
+            union of all selected roles.
           </p>
           <div className="row" style={{ gap: '0.75rem 1.25rem', flexWrap: 'wrap' }}>
             {(roleOptions.length ? roleOptions : [{ key: 'user', label: 'User' }]).map((role) => {

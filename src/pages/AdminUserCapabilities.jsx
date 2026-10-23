@@ -343,12 +343,8 @@ export default function AdminUserCapabilities({ shell = 'client-admin' }) {
                     <p className="muted">{matrix.user?.email}</p>
                     <div className="ucap-user__roles">
                       {(matrix.role_sections || []).map((section) => (
-                        <span
-                          key={section.role}
-                          className={`ucap-chip ${section.is_primary ? 'ucap-chip--primary' : ''}`}
-                        >
+                        <span key={section.role} className="ucap-chip">
                           {section.label}
-                          {section.is_primary ? ' · Primary' : ''}
                           <span className="ucap-chip__count">{section.count}</span>
                         </span>
                       ))}
@@ -440,9 +436,6 @@ export default function AdminUserCapabilities({ shell = 'client-admin' }) {
                             {isCollapsed ? <FaChevronRight aria-hidden /> : <FaChevronDown aria-hidden />}
                             <span className="ucap-role__title">
                               {section.label}
-                              {section.is_primary ? (
-                                <span className="badge ok">Primary</span>
-                              ) : null}
                             </span>
                             <span className="muted">
                               {sectionEnabled}/{sectionTotal} enabled

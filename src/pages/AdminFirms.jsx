@@ -178,7 +178,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
         headUserId ? Number(headUserId) : null,
         apiOpts
       )
-      setMessage(data.message || 'Head of Firm updated.')
+      setMessage(data.message || 'Firm admin updated.')
       setHeadFirmId(null)
       await load()
     } catch (err) {
@@ -205,6 +205,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
     editingFirm?.is_central || (editingId && editingId === centralFirmId)
   )
   const headFirm = firms.find((f) => f.id === headFirmId)
+  const adminRoleLabel = headFirm?.is_central ? 'Network Admin' : 'Firm Admin'
 
   return (
     <section>
@@ -219,13 +220,13 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                   : 'Edit Firm'
                 : 'Add Firm'
               : headFirmId
-                ? `Head of Firm - ${headFirm?.name || ''}`
+                ? `Update admin — ${headFirm?.name || ''}`
                 : 'Firms'}
           </h1>
           <p className="muted">
             {isActingRemotely
               ? `Managing Firms on ${actingHub?.name}. Switch hubs from the top bar.`
-              : 'Manage Firms, appoint a Head of Firm (Network Admin for Central / Network, Firm Admin for member firms), and set who may review compliance requests.'}
+              : 'Manage Firms, update each firm’s admin (Network Admin for Central / Network, Firm Admin for member firms), and set who may review compliance requests.'}
           </p>
         </div>
         {!showForm && !headFirmId && canManageFirms ? (
@@ -241,9 +242,9 @@ export default function AdminFirms({ shell = 'client-admin' }) {
       {headFirmId ? (
         <form className="admin-form" onSubmit={onAssignHead}>
           <label>
-            Head of Firm
+            Firm admin
             <select value={headUserId} onChange={(e) => setHeadUserId(e.target.value)}>
-              <option value="">No head assigned</option>
+              <option value="">No admin assigned</option>
               {headMembers.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.name} ({member.email})
@@ -254,18 +255,19 @@ export default function AdminFirms({ shell = 'client-admin' }) {
           {headMembers.length === 0 ? (
             <p className="muted">
               No users are assigned to this firm yet. Assign users to this firm first (Users / advisor
-              import), then choose a Head of Firm.
+              import), then choose an admin. The selected user will receive the{' '}
+              <strong>{adminRoleLabel}</strong> role.
             </p>
           ) : (
             <p className="muted">
-              Only one Head of Firm per firm. Saving assigns{' '}
-              {headFirm?.is_central ? 'Network Admin' : 'Firm Admin'} and unlocks Document Repository
-              (firm documents) rights for that firm — add / view / delete / archive and member grants.
+              Only one admin per firm. Saving assigns the <strong>{adminRoleLabel}</strong> role to
+              the selected user (and removes it from any previous admin). That unlocks Document
+              Repository rights for this firm — add / view / delete / archive and member grants.
             </p>
           )}
           <div className="actions">
             <button className="btn primary" disabled={savingHead}>
-              {savingHead ? 'Saving…' : 'Save Head of Firm'}
+              {savingHead ? 'Saving…' : 'Save firm admin'}
             </button>
             <button
               type="button"
@@ -376,14 +378,19 @@ export default function AdminFirms({ shell = 'client-admin' }) {
             },
             {
               key: 'head',
-              label: 'Head of Firm',
+              label: 'Firm admin',
               grow: true,
               filterValue: (row) => row.head_user?.name || '',
               render: (row) =>
                 row.head_user ? (
                   <span>
                     {row.head_user.name}
-                    <span className="muted"> · {row.head_user.email}</span>
+                    <span className="muted">
+                      {' '}
+                      · {row.is_central || row.id === centralFirmId ? 'Network Admin' : 'Firm Admin'}
+                      {' · '}
+                      {row.head_user.email}
+                    </span>
                   </span>
                 ) : (
                   <span className="muted">Not assigned</span>
@@ -414,7 +421,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
               {canAssignHead ? (
                 <DataGridIconBtn
                   icon={FaUserTie}
-                  label="Assign Head of Firm"
+                  label="Update admin of this firm"
                   onClick={() => startAssignHead(row)}
                 />
               ) : null}

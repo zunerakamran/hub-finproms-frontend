@@ -508,7 +508,7 @@ export const DASHBOARD_LINKS = [
     label: 'Firms',
     title: 'Firms',
     description:
-      "Manage firms, appoint a Head of Firm (Network Admin / Firm Admin), and set who can review and report on each firm's compliance requests.",
+      "Manage firms, update each firm’s admin (Network Admin / Firm Admin), and set who can review and report on each firm's compliance requests.",
     anyOf: ['dashboard_manage_firms', 'dashboard_assign_firm_head'],
     group: 'hub',
   },

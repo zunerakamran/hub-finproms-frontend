@@ -1,8 +1,9 @@
 ================================================================================
 HUB FINPROMS — PROJECT REQUIREMENTS
 ================================================================================
-Last updated: 2026-10-21 (Access Control UI: IP/CIDR/range chip adder + opposing
-  Restrict vs Allow conflict alerts for IPs, countries, UK cities/GB)
+Last updated: 2026-10-23 (Network Admin + Firm Admin roles §2.7 / §3.4 Document
+  Repository + §5.2 capability matrix; multi-role §2.7.1 already done)
+
 Location: PROJECT_REQUIREMENTS.txt (project root)
 IMPORTANT: Refer to this document before and after every code change.
 IMPORTANT: Backend and frontend are SEPARATE repos — update BOTH when a
@@ -149,15 +150,14 @@ Release artifacts (stored on Central disk: storage/app/private/releases/{ver}/):
 Apply:
 - POST /api/power-admin/releases/apply { release_id?, hub_ids: [] }
 - Central marks hub code_apply_status=updating, ensures code_update_token
-  (reuses backup_token when present), pushes token + code_frontend_path via
-  white-label DB sync when remote DB wired.
+  (never reuses backup/restore/GC/deploy tokens), pushes token +
+  code_frontend_path via white-label DB sync when remote DB wired.
 - Content hub: POST {api_url}/internal/code-updates/apply with
   X-Hub-Code-Update-Key; hub downloads artifacts from Central
   GET /api/internal/code-updates/artifacts/{release}/{backend|frontend},
   extracts, writes VERSION + storage marker, runs migrate --force, clears caches.
 - Central self-apply uses local artifact files (no HTTP loopback).
-- Auth: code_update_token OR backup_token OR HUB_CODE_UPDATE_SECRET /
-  HUB_BACKUP_SECRET.
+- Auth: code_update_token OR HUB_CODE_UPDATE_SECRET only (not backup keys).
 - Per hub: apply_status (idle|updating|applied|failed), target_version,
   applied_at, apply_error; then refresh reported version.
 
@@ -365,9 +365,26 @@ Shared / White-label hubs by default. Central may optionally expose a public
 site shell when Power Admin enables member_* caps on Central’s own matrix.
 Staff and members open Dashboard from the main site nav; login lands on
 /my-dashboard. Legacy /client-admin and /power-admin URLs redirect into
-/my-dashboard. Members never see tools that are not enabled for their role.
+/my-dashboard. Members never see tools that are not enabled for ANY of their
+roles (see §2.7.1 multi-role rule).
 
-ROLES (canonical list):
+MULTI-ROLE MODEL (REQUIRED — target behaviour):
+- PREVIOUSLY: each user had exactly ONE role (`users.role`).
+- NOW: each user MAY hold ONE OR MORE roles at the same time on that hub’s
+  user store (e.g. manager + approver, client_admin + approver,
+  advisor + firm_admin).
+- A user MUST always have at least one role.
+- Capability evaluation uses the UNION of all assigned roles (§2.7.1).
+- Canonical role keys stay stable; display names remain overridable. New
+  system roles `network_admin` and `firm_admin` are added to the catalog and
+  matrix (§2.7 / §3.4 / §5.2). Multi-role itself only changes user↔role
+  cardinality from 1:1 to many:many.
+- Full rules, equal multi-role model, migration, and affected areas:
+  see §2.7.1.
+
+ROLES (canonical list — role keys are stable; display names are overridable
+via hub `role_display_names` / Manage roles — including Network Admin and
+Firm Admin):
 
   1) POWER ADMIN (power_admin) — platform developers / us
      - Logs into CENTRAL HUB CONTROLLER (control plane).
@@ -395,38 +412,312 @@ ROLES (canonical list):
      - Restricted vs FinProms admin; only tools Power Admin enables for that hub.
      - Uses the same hub-admin shell; capabilities from THAT hub's dashboard checklist.
 
-  4) MANAGER (manager) — hub staff (Shared or White-label)
+  4) NETWORK ADMIN (network_admin) — head of the Central / Network firm
+     - NEW system role (multi-role compatible). Default display name
+       “Network Admin” (renameable per hub).
+     - Means: this user is the Head of the hub’s single Central / Network firm
+       (`firms.is_central = true`, default name “Central / Network”).
+     - User MUST be a member of that Central / Network firm (`users.firm_id`
+       points at the central firm). Assigning `network_admin` to a user of a
+       non-central firm is rejected.
+     - ONE Network Admin / Head of Central firm per hub (same one-head rule as
+       other firms). Assigning a new Network Admin replaces the previous head
+       (clears previous `firms.head_user_id` and revokes `network_admin` from
+       the previous holder when that was their head-designation path).
+     - Unlocks Document Repository (Firm Documents) full rights for the
+       Central / Network firm only — see §3.4.
+     - Other screens still follow the §5.2 matrix UNION for this role column
+       (hub-wide firm_documents_* caps remain separate from own-firm head rights).
+     - May be combined with other non–control-plane roles (e.g. manager,
+       approver, user).
+
+  5) FIRM ADMIN (firm_admin) — head of a member firm
+     - NEW system role (multi-role compatible). Default display name
+       “Firm Admin” (renameable per hub).
+     - Means: this user is the Head of THEIR firm — the firm on
+       `users.firm_id`. Example: user belongs to Firm1 and is assigned
+       `firm_admin` → they are Head of Firm1.
+     - User MUST belong to a non-central firm. Do NOT assign `firm_admin` to
+       Central / Network firm members — use `network_admin` instead.
+     - ONE Firm Admin / Head per firm. Assigning `firm_admin` to another
+       member of the same firm replaces the previous head for that firm.
+     - Unlocks Document Repository (Firm Documents) full rights for THEIR
+       firm only — see §3.4.
+     - Other screens follow the §5.2 matrix column for `firm_admin`.
+     - May be combined with other roles (e.g. advisor + firm_admin,
+       manager + firm_admin).
+
+  6) MANAGER (manager) — hub staff (Shared or White-label)
      - Mid-level operational role (e.g. content/ops management without full
        client_admin rights). Exact screens TBD; gated by hub dashboard checklist
        and/or future manager-specific flags.
 
-  5) APPROVER (approver) — compliance / review
+  7) APPROVER (approver) — compliance / review
      - Reviews/approves content (ties to compliance check flow, section 3.3).
      - Not a full hub admin by default; approval UI to be built later.
 
-  6) ADVISOR (advisor) — reserved role label in the capabilities matrix
+  8) ADVISOR (advisor) — reserved role label in the capabilities matrix
      - Not assigned automatically on plan subscribe or Excel import.
-     - White-label invited advisors keep role=user; Excel import sets
-       is_advisor and has_unlimited_credits when hub behaviour allows.
-     - Uses member UI (same as user).
+     - White-label invited advisors keep role=user (may add other roles later);
+       Excel import sets is_advisor and has_unlimited_credits when hub
+       behaviour allows.
+     - Uses member UI (same as user) unless other assigned roles unlock more.
 
-  7) USER (user) — general user / subscriber
+  9) USER (user) — general user / subscriber
      - Browse / subscribe / buy / download as user capability checklist allows.
-     - Role stays user after a paid public-hub plan subscription (credits only).
-     - Private-hub Excel-imported advisors also keep role=user (flags distinguish them).
+     - After a paid public-hub plan subscription, the user role remains
+       (credits only); other roles already assigned are NOT removed.
+     - Private-hub Excel-imported advisors also keep role=user (flags distinguish
+       them) unless staff explicitly assign additional roles.
      - Label in the Capabilities matrix is "User" (not "Member").
+
+  10) ADMIN-STAFF (admin_staff) — firm-scoped staff (see User model / matrix)
+     - Submit compliance and related work on behalf of advisors when allowed.
+     - Display name overridable via hub role_display_names.
 
 Notes:
 - Former "admin" → client_admin. Shared hub operator should use finproms_admin
   going forward (existing client_admin on shared may be migrated).
-- Seeded shared-hub FinProms admin: finproms@hubfinproms.com (role=finproms_admin).
-- Advisor import keeps role=user and sets is_advisor / unlimited flags.
-- Public plan subscribe does NOT change role (stays user; credits only).
-- Role alone does not unlock every screen — Power Admin checklists (on Central
-  Hub) still gate member UI, hub-admin UI, and power_admin UI.
+- Seeded shared-hub FinProms admin: finproms@hubfinproms.com (holds
+  finproms_admin; may later hold additional roles if needed).
+- Advisor import keeps role=user (as one of the user’s roles) and sets
+  is_advisor / unlimited flags; import UI MUST support assigning multiple
+  roles when the multi-role model is live (see §2.7.1), including optional
+  `firm_admin` / `network_admin` when firm membership qualifies.
+- Public plan subscribe does NOT strip or replace other roles; it does not
+  invent new roles beyond keeping `user` as needed for member access.
+- Roles alone do not unlock every screen — Power Admin checklists (on Central
+  Hub) still gate member UI, hub-admin UI, and power_admin UI via the matrix
+  UNION rule in §2.7.1. Exception: Document Repository own-firm head rights
+  for Network Admin / Firm Admin are role + firm-membership based (§3.4),
+  not matrix ticks.
+- Head of Firm appointment UI (`dashboard_assign_firm_head`) and role
+  assignment MUST stay in sync — see §3.4.1 / §3.4.2.
 - LEGACY NOTE: Older builds treated Shared Hub as the control plane. Target
   architecture moves the control plane to Central Hub Controller; Shared Hub
   becomes a controllable content hub only.
+
+
+2.7.1 Multiple roles per user (REQUIRED change)
+--------------------------------------------------------------------
+Decision: YES — this change is approved and required. It is the correct
+direction for the product: the Capabilities matrix is already role ×
+capability; staff often need more than one hat (e.g. manager who also
+approves). Doing this is FINE and recommended, provided the rules below
+are followed so security and audit stay clear.
+
+WHY THIS IS FINE:
+- The matrix already models rights per role column; multi-role only changes
+  how a user’s effective rights are computed (UNION), not the matrix itself.
+- Modules remain functionality-flag based. Document Repository own-firm head
+  rights are now ALSO expressed as system roles (`network_admin` /
+  `firm_admin`) synced with `firms.head_user_id` — still firm-scoped, not
+  hub-wide matrix ticks (§3.4).
+- Risk is mainly migration + replacing “single `users.role`” assumptions in
+  APIs, UI, imports, and audit display — not a redesign of the permission
+  model.
+
+CARDINALITY & STORAGE (target):
+- User ↔ Role is many-to-many on each hub’s user store.
+- Prefer a pivot (`user_roles`: user_id, role) OR an equivalent durable
+  multi-value store. Do NOT keep only a single `users.role` column as the
+  source of truth once multi-role ships.
+- Migration: existing `users.role` becomes the user’s initial role; every
+  current user gets exactly one pivot row matching today’s value.
+- API: expose `roles: string[]` (and optionally `role_labels`). Keep legacy
+  `role` as a privilege-ordered single-string mirror for old call sites /
+  audit columns only — NOT a selectable “primary” role. Frontend must use
+  multi-select assign UI and read `roles`. There is NO primary / secondary
+  role concept; every assigned role is equal.
+
+EQUAL ROLES (no primary / secondary):
+- Each assigned role is a separate, equal role for that user.
+- Do NOT label, select, or store a “primary” vs “secondary” role.
+- When a single string is required (activity_logs.user_role, compliance
+  audit actor role, uploaded_by_role, Excel single-cell fallback), derive
+  a privilege-ordered legacy mirror automatically:
+  power_admin > finproms_admin > client_admin > network_admin >
+  firm_admin > manager > approver > admin_staff > advisor > user.
+- That mirror does NOT limit capabilities and is NOT editable as “primary”.
+- Capabilities always use the UNION of ALL assigned roles (below).
+- UI badges / Hub → Users / Access Control show all role labels equally
+  (chips or joined list) — no Primary badge or Primary role dropdown.
+
+EFFECTIVE CAPABILITIES (UNION / OR):
+- `userCan(hub, user, flag)` is TRUE if ANY of the user’s assigned roles
+  has that flag checked on that hub’s §5.2 matrix (then apply existing
+  module allow-list / acting-advisor / functionality gates as today).
+- Dashboard nav / home cards = union of tools unlocked by any role.
+- Admin-staff “act as advisor” continues to mirror the subject advisor’s
+  effective capabilities when acting; having admin_staff among roles is
+  what enables acting.
+- Control-plane access: if the user holds `power_admin` among their roles,
+  Central / pa_* rules apply as today for that role; other roles still
+  contribute their hub matrix caps when acting on a content hub.
+
+COMBINATION RULES:
+- Any combination of non–control-plane roles is allowed
+  (e.g. manager+approver, client_admin+approver, user+approver).
+- `power_admin` MAY be combined with other roles only when explicitly
+  assigned by a capable Power Admin; last-power_admin protection still
+  applies (cannot remove the only power_admin on a connection).
+- `finproms_admin` / `client_admin` may be combined with operational roles
+  (manager, approver, …) so one person can admin and review.
+- `network_admin` and `firm_admin` may be combined with other non–control-plane
+  roles, but a user MUST NOT hold both `network_admin` and `firm_admin` at
+  once (Central vs member-firm head are mutually exclusive). Firm membership
+  must match the role (§2.7 / §3.4).
+- Duplicate role keys on one user are ignored.
+- Removing a role from a user is blocked if it would leave them with zero
+  roles; the legacy `users.role` mirror is recomputed from remaining roles
+  (privilege order above).
+
+MANAGE ROLES / MATRIX COLUMNS:
+- “Users per role” counts users who HOLD that role (a user with two roles
+  appears in two column counts — expected).
+- Delete role from hub matrix remains blocked while any user still holds
+  that role (unchanged rule; multi-role makes this more important).
+- Adding a custom / dormant system role to the hub is unchanged (§5.2).
+
+USER MANAGEMENT & IMPORT:
+- Hub → Users / Power Admin manage-users: role field becomes multi-select
+  (assign / revoke roles only — no “set primary”).
+- Advisor Excel import: Role column SHOULD accept one role (current) and,
+  when multi-role is live, optionally a delimited list (e.g. manager|approver)
+  or repeated role columns; imported set replaces only the roles specified
+  for that row’s create path — document the chosen Excel format in the
+  import template help text.
+- Public self-register / plan subscribe: assign `user` only (do not wipe
+  other roles if an existing account somehow already has more).
+
+HARD-CODED ROLE CHECKS (must be updated):
+- Any code that reads `$user->role === '…'` for authorisation MUST move to
+  “user has role X” or “userCan(capability)” as appropriate.
+- Approver-scoped list filters (e.g. hide view-all for pure approvers) must
+  use role membership + capabilities, not a single string compare that
+  breaks when approver+manager are combined — prefer capability-first;
+  if a role-based exception remains, define whether “has approver AND has
+  manager” uses the broader (manager) behaviour (RECOMMENDED: broader /
+  union-friendly behaviour).
+
+AFFECTED FUNCTIONALITIES (checklist for backend + frontend):
+  1) Data model & migrations — users.role → multi-role store (equal roles)
+  2) User model helpers — isPowerAdmin / isManager / … → hasRole / roles
+  3) CapabilitiesMatrixService — userCan / effectiveRoleFor → union of roles
+     (acting-advisor path preserved)
+  4) Auth /me and session payloads — roles[] + labels (no primary_role)
+  5) Hub → Users / pa_manage_users_roles — multi-assign UI + APIs
+  6) Manage roles page — user counts per role (multi-count OK)
+  7) Capabilities matrix — no column redesign; evaluation only
+  8) Advisor Excel import / template / submit — multi-role cell support
+  9) White-label user create/update services — accept roles[]
+  10) Activity logs & reports — legacy mirror or joined roles string;
+      filters by role match any held role
+  11) Compliance audit trail (SMC / GC / WC) — actor / related role display
+  12) Supporting-files uploaded_by_role — legacy mirror or derived label
+  13) Support Tickets / Security Monitoring role gates — via userCan union
+  14) Firm Head / Document Repository — sync `network_admin` /
+      `firm_admin` with `firms.head_user_id`; own-firm rights via hasRole +
+      firm membership; hub-wide caps still userCan (§3.4)
+  15) Acting hub / control-plane role detection — hasRole(power_admin) etc.
+  16) Last power_admin / last finproms_admin guards — count users who HOLD
+      that role (any assigned role), not a single-column-only check
+  17) Discontinue / suspend / GDPR erasure — role fields in denormalised
+      logs remain historical snapshots; clearing firm head also revokes
+      network_admin / firm_admin when that was the head designation
+  18) Frontend nav, badges, user forms, filters, import help copy
+      (equal multi-role chips; no Primary role control; show Network Admin /
+      Firm Admin labels)
+  19) Automated tests — factories, feature tests that assume one role;
+      head/role sync tests for Document Repository
+  20) Capabilities matrix / Manage roles — add `network_admin` and
+      `firm_admin` system columns + defaults (§5.2)
+
+OUT OF SCOPE / UNCHANGED:
+- Display-name overrides for all roles including the two new ones (§5.2
+  Manage roles)
+- Hub Functionalities / Modules checklists (5.1 / 5.1A)
+- Power Admin pa_* checklist shape (5.3) — still applies when user holds
+  power_admin
+- ONE Head of Firm per firm rule (still enforced; now also via role sync)
+
+
+2.7.2 Separation of duties (multi-role conflicts) — REQUIRED
+--------------------------------------------------------------------
+When a user holds both submitter-style and reviewer-style roles (e.g.
+advisor + approver, editor + approver, admin_staff + approver), capability
+UNION must NOT allow them to decide on their own work.
+
+CORE RULE (SMC / GC / WC):
+- If the actor is the request OWNER (submitter / editor / subject advisor)
+  OR the ON-BEHALF staff who created it, they MUST NOT:
+  - appear in the assignable reviewers list for that request
+  - self-assign or be assigned that request
+  - review / approve / reject / approve-with-feedback
+  - override status (manager change-status) on that request
+- They MAY still see the item under “my / own” history and in hub-wide
+  view-all / reports when those capabilities allow — viewing is not deciding.
+- Admin-staff acting as advisor A: requests owned by A are conflicted for
+  that staff while deciding; requests the staff submitted on behalf of anyone
+  are also conflicted for that staff.
+
+LIST / QUEUE BEHAVIOUR (SMC / GC — same pattern as Website Compliance):
+- “Requests queue” (`unassigned_only`): new unassigned items with Pick it
+  (and Assign for managers). Never include the actor’s own submissions.
+- “All requests” (`history_only`): assigned / reviewed history. Approvers see
+  their own assignments (`mine_as_approver`); managers with view-all / assign /
+  change-status see hub-wide assigned history (firm-scoped). Own submissions
+  stay under My requests only.
+- Never offer self-assign / Pick it on conflicted own items.
+
+REVIEWER LOOKUPS:
+- Eligible reviewers = users who HOLD any role with the review capability
+  (user_roles / multi-role), not the legacy users.role column alone.
+- Always exclude conflicted user ids for the request being assigned.
+
+TAXONOMY ADD REQUESTS:
+- A user with taxonomy_request_add + taxonomy_request_manage must NOT
+  approve or reject their own pending request.
+
+OPTIONAL / LATER (document only unless product asks):
+- Support ticket self-status-change block
+- Self-affecting credit / plan changes requiring a second admin
+
+IMPLEMENTATION: ComplianceSeparationService (backend) enforces the core
+rule across SMC, GC, WC assign/review/status + reviewer lists + taxonomy.
+
+
+2.7.3 Per-user capability overrides (REQUIRED)
+--------------------------------------------------------------------
+After the hub-wide role × capability matrix (§5.2) and multi-role UNION
+(§2.7.1), staff may further refine capabilities for an individual user.
+
+RULES:
+- Candidate set = capabilities granted by ANY of the user’s assigned roles
+  on that hub’s matrix (role UNION). The User capabilities UI shows ONLY
+  those keys — check / uncheck within that set.
+- Cannot GRANT a capability the user’s roles do not already have.
+- Unchecking stores a denylist override (`users.capability_overrides` JSON:
+  `{ "flag": false }`). Missing key = inherit role UNION.
+- `userCan` = role UNION AND not denylisted AND existing module / acting /
+  functionality gates.
+- When roles are removed, overrides that no longer sit in the role UNION
+  are pruned (activity: `user.capability_overrides_pruned`).
+
+GATE / PAGE:
+- Capability: `dashboard_manage_user_capabilities` (“Manage user capabilities”)
+  in Hub operations — unlocks `/my-dashboard/user-capabilities`.
+- APIs (hub_can): GET/PUT `/api/client-admin/user-capabilities/{userId}`
+  (+ power-admin alias); GET list reuses hub-users listing under the same
+  capability prefix.
+
+ACTIVITY LOGS:
+- Role matrix saves → `capabilities.role_matrix_updated` (enabled/disabled
+  cells, including Power Admin `pa_*` column changes).
+- Per-user saves → `user.capability_enabled` / `user.capability_disabled`.
+
+IMPLEMENTATION: UserCapabilitiesService; wired in CapabilitiesMatrixService
+  userCan; UserRolesService prune; AdminUserCapabilities frontend page.
 
 
 --------------------------------------------------------------------------------
@@ -631,50 +922,106 @@ Notes:
      - Capabilities in group “Website Content Pre Approval” are blurred while
        this module is off.
 
-3.4 Firm Head of Firm & Firm Documents
+3.4 Document Repository (Firm Documents) — Network Admin / Firm Admin / Head
+--------------------------------------------------------------------
+Product name: Document Repository (UI / nav may say “Firm documents” /
+“Documents”). Same module as today’s firm-scoped documents library.
+
 - Firms already exist on hub databases (`firms` + `users.firm_id`; capability
-  `dashboard_manage_firms`). This section adds Head of Firm allocation and a
-  firm-scoped Documents library (attachments) with per-member rights.
+  `dashboard_manage_firms`). Each hub has exactly ONE Central / Network firm
+  (`firms.is_central = true`, default name “Central / Network”) plus any
+  number of member firms.
+- This section covers: designating heads via **roles** (preferred with
+  multi-role) and/or Assign Head of Firm UI; and the firm-scoped Document
+  Repository with per-member rights.
 - Applies on Shared and White-labelled hubs (each hub’s own firms / members).
   Backend and frontend both required.
 
 3.4.0 Functionality gate (hub-wide matrix only)
-- Hub Functionalities checklist flag: `firm_documents` (“Firm documents”).
-  Default OFF. Power Admin enables it per hub on Functionalities (often from
-  Central Hub Controller → Hub Functionalities for that hub).
-- While OFF, firm-document Capabilities (view / add / delete / archive for ALL
-  firms) are blurred / inactive on the Capabilities matrix.
-- Head of Firm does NOT need this flag — appointing a Head unlocks Firm
-  documents for that user on their firm immediately.
+- Hub Functionalities checklist flag: `firm_documents` (“Firm documents” /
+  Document Repository). Default OFF. Power Admin enables it per hub on
+  Functionalities (often from Central Hub Controller → Hub Functionalities).
+- While OFF, hub-wide firm-document Capabilities (view / add / delete /
+  archive for ALL firms) are blurred / inactive on the Capabilities matrix.
+- Network Admin / Firm Admin (Head of their firm) do NOT need this flag —
+  holding the head role unlocks Document Repository for THAT firm immediately.
 - Assign Head of Firm (`dashboard_assign_firm_head`) is NOT gated by this flag.
 - Central control: toggling this flag on Central MUST sync to the content hub’s
-  own database (remote DB wiring). The Head logs into the content hub site
+  own database (remote DB wiring). Heads log into the content hub site
   (Shared / White-label), not Central — that hub’s API must have the same
-  Firm Documents / Head code deployed.
+  Document Repository / Head code deployed.
 
-3.4.1 Who can appoint a Head of Firm
-- Capability (Capabilities matrix): `dashboard_assign_firm_head`
-  (“Assign Head of Firm”) — typically Power Admin / FinProms admin.
-- Not part of the document rights model; only designates the head.
-- ONE Head of Firm per firm; must already be a member of that firm.
-- Head may be ANY role (manager, advisor, approver, client_admin, …).
+3.4.1 Who is Head — Network Admin vs Firm Admin (REQUIRED)
+Two system roles designate firm heads (display names renameable per hub):
 
-3.4.2 Head of Firm rights (own firm only)
-- Head of Firm can be ANY role (manager, advisor, approver, client_admin,
-  admin-staff, user, …). Appointment is membership-based, not role-based.
-- As soon as a user is appointed Head of Firm, they unlock “Firm documents”
-  in the dashboard and have ALL document rights for THEIR firm: add, view,
-  delete, archive, and granting those rights to firm members — no matrix tick
-  and no Functionalities flag required.
-- Documents are scoped to the firm.
-- Frontend unlocks “Firm documents” via `firm_document_rights.is_firm_head` /
-  merged `firm_documents_*` effective capabilities (any role).
+  A) NETWORK ADMIN (`network_admin`)
+     - Head of the Central / Network firm only.
+     - User MUST have `users.firm_id` = the hub’s central firm.
+     - ONE Network Admin per hub (one head for the central firm).
+
+  B) FIRM ADMIN (`firm_admin`)
+     - Head of the user’s own member firm (`users.firm_id`).
+     - Example: member of Firm1 + role `firm_admin` → Head of Firm1.
+     - ONE Firm Admin per member firm.
+     - Must NOT be used for the Central / Network firm (use `network_admin`).
+
+Rules:
+- A user MUST NOT hold both `network_admin` and `firm_admin` at once.
+- Head designation is firm-scoped by membership — assigning `firm_admin` does
+  not make someone head of a firm they do not belong to.
+- Users may still hold other roles at the same time (multi-role UNION), e.g.
+  advisor + firm_admin, manager + network_admin.
+- Changing a user’s firm membership while they hold `network_admin` /
+  `firm_admin` MUST either: move/clear headship consistently, or reject the
+  firm change until the head role is revoked.
+
+3.4.1a Appointing / syncing Head (two equivalent paths)
+Either path designates the same Head; both MUST stay in sync:
+
+  Path 1 — Assign Head of Firm UI / API
+  - Capability: `dashboard_assign_firm_head` (“Assign Head of Firm”) —
+    typically Power Admin / FinProms admin / Client admin as matrix allows.
+  - Sets `firms.head_user_id` (must already be a member of that firm).
+  - MUST also assign the matching role on that user:
+      central firm → add `network_admin` (and remove from previous head)
+      member firm  → add `firm_admin` (and remove from previous head)
+  - Clearing the head clears `head_user_id` AND revokes that head role from
+    the previous holder (does not remove their other roles).
+
+  Path 2 — Role assign (Hub → Users / multi-role UI / Excel when supported)
+  - Assigning `network_admin` or `firm_admin` MUST set that firm’s
+    `head_user_id` to the user (replacing any previous head) when firm
+    membership qualifies; otherwise reject the role assign.
+  - Revoking the last head role for that firm clears `head_user_id`.
+
+- `is_firm_head` / Document Repository unlock = user is `firms.head_user_id`
+  for their firm OR holds the matching head role with matching firm
+  membership (implementations should treat these as one state).
+- LEGACY: older “Head may be ANY role without network_admin/firm_admin” is
+  superseded — new appointments always create/sync the head role. Existing
+  heads without the role SHOULD be migrated (backfill `network_admin` /
+  `firm_admin` from `head_user_id` + firm.is_central).
+
+3.4.2 Head rights (own firm only) — Document Repository
+- As soon as a user is Network Admin or Firm Admin (Head) for a firm, they
+  unlock Document Repository in the dashboard and have ALL document rights
+  for THEIR firm: add, view, delete, archive, granting those rights to firm
+  members, and setting that firm’s visible-firms allowlist — no matrix tick
+  and no Functionalities flag required for own-firm access.
+- Documents are scoped to the firm. Network Admin’s own-firm scope is the
+  Central / Network firm only (NOT automatic hub-wide access to every firm).
+- Hub-wide access to ALL firms still requires §3.4.4 matrix caps
+  (`firm_documents_view` / `_add` / …) on any role column (including the
+  Network Admin / Firm Admin columns if Power Admin ticks them).
+- Frontend unlocks via `firm_document_rights.is_firm_head` / merged
+  `firm_documents_*` effective capabilities.
 
 3.4.3 Head grants rights to firm members (per document)
 - Member rights are PER DOCUMENT (not firm-wide for view/delete/archive).
-- The Head opens access rights from a key icon on each document row; popup
-  grants / revokes any combination of add / view / delete / archive for that
-  document to members of THEIR firm. Members only receive what the head grants.
+- The Head (Network Admin or Firm Admin for that firm) opens access rights
+  from a key icon on each document row; popup grants / revokes any
+  combination of add / view / delete / archive for that document to members
+  of THEIR firm. Members only receive what the head grants.
 - Granting `can_add` on a document also unlocks firm-level upload for that member.
 - Cleared when a user leaves the firm or is discontinued.
 
@@ -700,7 +1047,8 @@ Notes:
   Content catalog capabilities. One request capability covers:
   - SM Templates Library category or tag
   - Generic Compliance content type (GC module must be on)
-  - Firm document category (Firm documents functionality must be on)
+  - Firm document category (Firm documents / Document Repository functionality
+    must be on)
 - Capability `taxonomy_request_manage` (“Manage taxonomy requests”) — see the
   queue. Reviewers create the option manually on the existing Manage
   categories / tags / GC content types / firm document categories pages,
@@ -712,8 +1060,14 @@ Notes:
   admin `GET .../taxonomy-add-requests` + `POST .../approve|reject`
   under client-admin / power-admin / admin (gated by taxonomy_request_manage).
 
-3.4.4 Capabilities matrix — hub-wide (all firms)
-- When Firm documents functionality is ON, these Capabilities are editable:
+3.4.4 Capabilities matrix — hub-wide (all firms) + new role columns
+- Matrix MUST include columns for `network_admin` and `firm_admin` (system
+  roles; addable via Manage roles if dormant on a hub). Defaults for those
+  columns: hub-wide `firm_documents_*` OFF (own-firm head rights come from
+  the role itself, not these ticks). Other dashboard caps default OFF unless
+  listed in §5.2 defaults for these roles.
+- When Firm documents functionality is ON, these Capabilities are editable
+  for EVERY role column (including Network Admin / Firm Admin):
   - `firm_documents_view` — view documents for ANY firm on the hub
   - `firm_documents_add` — upload documents for ANY firm on the hub
     (Head always has add for their own firm; not grantable via key icon)
@@ -725,11 +1079,14 @@ Notes:
   - `firm_documents_manage_categories` — add/edit/delete category options
   - `firm_documents_manage_firm_access` — decide which firms may see a
     firm’s documents (allowlist). Blurred while Firm documents is off.
-- These are hub-wide admin tools, distinct from Head / member per-document grants.
+- These hub-wide admin tools are distinct from Head / member per-document
+  grants. Ticking them on Network Admin does NOT replace Firm Admin rights
+  on other firms unless the tick is hub-wide.
 
 3.4.4a Visible firms + mixed access rights (every firm)
 - Two-step model for ANY firm’s documents:
-  1) Visible firms allowlist — Head of that firm, OR any role with
+  1) Visible firms allowlist — Head of that firm (Network Admin for central /
+     Firm Admin for member firms), OR any role with
      `firm_documents_manage_firm_access`, chooses which other firms may see
      that firm’s documents (`GET/PUT /api/firm-documents/visible-firms`).
   2) Per-document access rights (key icon) — lists OWN-firm users (3.4.3)
@@ -742,14 +1099,17 @@ Notes:
 3.4.5 Activity logs (required for the whole flow)
 - Every mutation in this flow is written to `activity_logs` (same hub audit
   trail as section 6A). Suggested action keys:
-  - `firm.head.assign` — Head of Firm appointed
+  - `firm.head.assign` — Head of Firm appointed (include role key
+    network_admin | firm_admin in payload)
   - `firm.head.replace` — Head of Firm replaced
   - `firm.head.clear` — Head of Firm cleared
+  - `user.role_assigned` / `user.role_removed` — when headship is changed via
+    multi-role assign (already logged by role service; correlate with firm id)
   - `firm.documents.member_rights.grant` — member document rights granted/updated
   - `firm.documents.member_rights.revoke` — member document rights revoked
-  - `firm.documents.visible_firms.sync` — Central visible-firms allowlist updated
-  - `firm.documents.firm_rights.grant` — firm-level Central doc access granted/updated
-  - `firm.documents.firm_rights.revoke` — firm-level Central doc access revoked
+  - `firm.documents.visible_firms.sync` — visible-firms allowlist updated
+  - `firm.documents.firm_rights.grant` — firm-level doc access granted/updated
+  - `firm.documents.firm_rights.revoke` — firm-level doc access revoked
   - `firm.documents.add` — document uploaded / created
   - `firm.documents.folder.create` — folder created
   - `firm.documents.view` — optional: record sensitive downloads if product
@@ -757,9 +1117,9 @@ Notes:
   - `firm.documents.delete` — document permanently deleted
   - `firm.documents.archive` / `firm.documents.unarchive` — archive toggles
 - Log payloads should identify firm id/name, actor, target user (for head /
-  rights changes), grantee firm (for firm-level access), document id/name
-  (for document actions), and granted rights flags — never store file binary
-  contents; redact secrets.
+  rights changes), head role key, grantee firm (for firm-level access),
+  document id/name (for document actions), and granted rights flags — never
+  store file binary contents; redact secrets.
 
 3.5 Other Features (later)
 - Additional features to be added over time; keep architecture flexible.
@@ -1134,18 +1494,32 @@ Notes:
 - Distinct from Functionalities (5.1). Do NOT repeat Functionalities here.
 - This is a role × capability matrix per hub, managed only from the
   CENTRAL HUB CONTROLLER Power Admin dashboard.
-- Matrix COLUMNS = roles currently present on that hub (users with that role
-  exist on the hub’s user store / remote DB) UNION roles Power Admin has
-  explicitly added for THAT hub UNION must roles (power_admin, finproms_admin)
-  which are always present on every hub. Do NOT always show every other system role.
+- MULTI-ROLE (see §2.7.1): a user may hold several roles; their effective
+  rights are the UNION (OR) of every checked cell across those role columns
+  on this hub (then module / acting-advisor / functionality gates apply).
+  The matrix itself stays role × capability — columns are still one per role,
+  not one per user.
+- System role keys in the matrix catalog (left → right order for defaults):
+  power_admin, finproms_admin, client_admin, network_admin, firm_admin,
+  manager, approver, advisor, admin_staff, user — plus any custom roles.
+- Matrix COLUMNS = roles currently present on that hub (users who HOLD that
+  role exist on the hub’s user store / remote DB — a multi-role user counts
+  toward every role they hold) UNION roles Power Admin has explicitly added
+  for THAT hub UNION must roles (power_admin, finproms_admin) which are always
+  present on every hub. Do NOT always show every other system role — but
+  `network_admin` and `firm_admin` SHOULD be addable as dormant system roles
+  via Manage roles and appear once added or once any user holds them.
 - “Manage roles” page (`/my-dashboard/role-display-names`, capability
   `dashboard_manage_role_display_names` labeled Manage roles):
-  - List roles on the CURRENT hub with total users per role
-  - Add a dormant system role or create a custom role for the CURRENT hub
+  - List roles on the CURRENT hub with total users per role (count users who
+    HOLD that role; multi-role users are counted once per role they hold)
+  - Add a dormant system role (including Network Admin / Firm Admin) or create
+    a custom role for the CURRENT hub
   - Delete a role from this hub’s matrix when it has 0 users (blocked while users
     still hold the role; power_admin and finproms_admin are must roles and can
     never be deleted on any hub — display names may still be renamed)
-  - Rename role display titles for that hub
+  - Rename role display titles for that hub (Network Admin / Firm Admin
+    titles are renameable like every other role)
   - Same capability gates add, delete, and rename
   - Does NOT automatically add/remove the role on other hubs — switch hub and act again
   - Custom role definitions are shared platform-wide; enabling a column is per hub
@@ -1153,7 +1527,8 @@ Notes:
 
   Member-facing (end users / advisors / staff columns):
   - Browse catalog / posts / reels — available for ALL roles in the matrix
-    (Power Admin, FinProms admin, client admin, manager, approver, advisor, user)
+    (Power Admin, FinProms admin, client admin, Network Admin, Firm Admin,
+    manager, approver, advisor, admin-staff, user)
   - Browse bundles — show/hide Bundles on the public website (nav + pages);
     turn off for every role to hide bundles for the whole hub
   - View plans / self-serve subscribe
@@ -1241,11 +1616,23 @@ Notes:
     and set compliance visibility between firms — same roles
   - Assign Head of Firm (`dashboard_assign_firm_head`) — appoint / replace /
     clear the single Head of Firm for each firm (must be a member of that firm);
-    not gated by Firm documents functionality
-  - Firm Documents (hub-wide matrix caps, blurred while Functionalities →
-    Firm documents is off): view / add / delete / archive for ALL firms.
-    Head of Firm has full rights for their own firm and may grant those rights
-    to firm members (section 3.4)
+    syncs `network_admin` (Central / Network firm) or `firm_admin` (member
+    firm) on the head user — see §3.4.1a; not gated by Firm documents
+    functionality. Defaults ON for hub-admin style roles (power_admin when
+    acting, finproms_admin, client_admin); defaults OFF for network_admin,
+    firm_admin, manager, approver, advisor, admin_staff, user unless Power
+    Admin enables
+  - Document Repository / Firm Documents (hub-wide matrix caps, blurred while
+    Functionalities → Firm documents is off): view / add / delete / archive /
+    manage access rights / manage categories / manage firm access for ALL
+    firms. Network Admin and Firm Admin always have full own-firm Document
+    Repository rights without these ticks (section 3.4). Defaults for
+    hub-wide `firm_documents_*` on network_admin / firm_admin columns: OFF
+  - Network Admin / Firm Admin matrix defaults (non–document-repository):
+    member general options follow User-like defaults (subscription / credits /
+    invoices / purchases as for user column unless Power Admin changes);
+    hub-admin dashboard tools OFF by default; compliance / support caps OFF
+    until enabled — Power Admin may broaden these columns per hub
   - AI content generation / control hubs remotely — same roles
     (typically Power Admin on Central Hub; Shared-only where appropriate)
   - Any other admin dashboard screens/actions
@@ -1313,7 +1700,8 @@ Notes:
   - Manage hub Functionalities and Modules checklists
   - Manage payment methods
   - Manage Power Admin / user capabilities matrix (this list + 5.2)
-  - Manage users / roles (create, update, delete, assign roles)
+  - Manage users / roles (create, update, delete, assign ONE OR MORE equal
+    roles per user — §2.7.1; no primary / secondary)
   - Manage hub backups (schedules, run/download/restore from Central)
   - Remotely control content hubs (hub switcher / acting hub)
 - Stored as platform settings on Central Hub (not per content hub).
@@ -1333,7 +1721,8 @@ Notes:
      hub_type, deploy wiring)
   2) Hub Functionalities checklist per hub (section 5.1) — how the hub works
   3) User capabilities matrix per hub (section 5.2) — what members and hub
-     admins can do on each Shared AND each White-labelled hub (by role)
+     admins can do on each Shared AND each White-labelled hub (by role;
+     multi-role users get the UNION of their roles — §2.7.1)
   4) Power Admin's OWN capabilities (section 5.3) — same Capabilities screen
   5) Platform payment methods (Stripe / bank transfer), and other platform
      settings as needed
@@ -1365,9 +1754,21 @@ Notes:
 - Scheduler: `hubs:run-due-backups` every minute (requires schedule:run cron on
   each deploy). Central also triggers due remotes via hub api_url when set.
 - Restore from Central uses the Central-stored zip; content hubs receive the
-  archive on POST /api/internal/hub-backups/restore (X-Hub-Backup-Key).
+  archive on POST /api/internal/hub-backups/restore (**X-Hub-Restore-Key**,
+  not the backup key).
+- Purpose-scoped machine auth (2026-10-21): compromising backup credentials
+  MUST NOT authorize restore, GC file bridge, or deploy-env writes.
+    - run / receive → `X-Hub-Backup-Key` + `backup_token` / `HUB_BACKUP_SECRET`
+    - restore → `X-Hub-Restore-Key` + `restore_token` / `HUB_RESTORE_SECRET`
+    - GC files → `X-Hub-Gc-File-Key` + `gc_file_token` / `HUB_GC_FILE_SECRET`
+    - deploy-env → `X-Hub-Deploy-Env-Key` + `deploy_env_token` / `HUB_DEPLOY_ENV_SECRET`
+    - code updates remain on `X-Hub-Code-Update-Key` + `code_update_token`
+  Saving backup schedule mints all purpose tokens; WhiteLabel sync pushes them
+  to content hubs. Optional `HUB_INTERNAL_ALLOWED_IPS`; throttle
+  `internal-hub` + stricter `internal-restore`.
 - Env (optional): CENTRAL_API_URL on content hubs for independent upload;
-  HUB_BACKUP_SECRET shared fallback; per-hub backup_token auto-generated.
+  purpose-scoped shared secret fallbacks (never reuse one value for all);
+  per-hub tokens auto-generated.
 - Capability: pa_manage_hub_backups (Power Admin platform checklist).
 - **Encryption at rest (NFR-BACKUP-ENC):** completed ZIP archives are encrypted
   on disk with streaming AES-256-GCM (`HBENC1` header) when
@@ -1495,10 +1896,10 @@ How this relates to Security Monitoring (6F) — READ THIS
   - Successful mutating API actions (POST / PUT / PATCH / DELETE): content,
     plans, settings, advisor import/discontinue, billing, capabilities, hubs,
     purchases, subscriptions, etc.
-  - Firm Head & Firm Documents (section 3.4): appoint/replace/clear head,
-    grant/revoke member document rights, and document add / delete / archive
-    (and view/download if audited) — action keys `firm.head.*` and
-    `firm.documents.*`
+  - Document Repository / Firm Head (section 3.4): appoint/replace/clear head
+    (sync network_admin / firm_admin), grant/revoke member document rights,
+    and document add / delete / archive (and view/download if audited) —
+    action keys `firm.head.*` and `firm.documents.*`
 - Sensitive fields (passwords, secrets, card data) are NEVER stored; payloads
   are redacted / truncated.
 - Activity report (aggregates): totals, unique users/actions, counts by action,
@@ -1883,6 +2284,10 @@ Who can see what (Capabilities — Hub operations group)
 - `secmon_manage_disaster_recovery` — recognize disasters for an affected
   product module; create module snapshots; roll back that module only
   (section 6B.1 — NOT whole-hub restore; NOT the same as closing an incident)
+- `secmon_manage_access` — open Access Control (hub + user geo/IP/VPN rules,
+  Monitor/Enforce, Simulate, History restore, emergency unlock). See
+  NFR-SEC-FW section 9.5 D). Blurred while Functionalities → Security
+  Monitoring is OFF.
 - Defaults: ON for hub-admin style roles (power_admin when acting, 
   finproms_admin, client_admin, manager); OFF for approver / advisor /
   admin-staff / user until Power Admin enables them.
@@ -1913,6 +2318,12 @@ a **security incident** for investigation. Minimum event types:
      - Upload of disallowed / suspicious file types (NFR-SEC-FW upload scan)
      - Malware detected in upload / malware scan failure (when ClamAV enabled)
      - Application firewall IP denied / temporary auto-block (NFR-SEC-FW)
+     - Access restriction block / would-block (`fw.access_restricted`,
+       `fw.access_would_block`) when hub/user geo/IP/VPN rules match
+       (NFR-SEC-FW 9.5 D)
+     - Access policy change (`fw.access_policy_changed`) — who changed hub
+       or user access rules, with before/after field diff
+     - Emergency access unlock (`fw.access_emergency_unlock`)
 
   D) Platform / dependency health (ops-facing, still shown in the module)
      - Last successful dependency vulnerability scan result (composer audit /
@@ -2006,7 +2417,11 @@ Out of scope for v1 of this module
 - Single codebase for Central Hub Controller + Shared hub(s) + all White-labels.
 - Three instance roles: central (control plane), shared (public/content hub),
   white_label (private client hub).
-- Roles: power_admin, finproms_admin, client_admin, manager, approver, advisor, user.
+- Roles: power_admin, finproms_admin, client_admin, network_admin, firm_admin,
+  manager, approver, admin_staff, advisor, user. Each user may hold MULTIPLE
+  roles; effective capabilities = UNION of assigned roles (§2.7.1). All
+  assigned roles are equal (no primary / secondary). Network Admin / Firm
+  Admin designate Document Repository firm heads (§3.4).
 - Separate frontend shells: member catalog app (on Shared / White-label), and
   one universal Dashboard shell at /my-dashboard (tools from Capabilities +
   Power Admin pa_* checklist on Central Hub).
@@ -2021,7 +2436,8 @@ Out of scope for v1 of this module
 - New Shared and White-label instances are spawned by copying code to another
   cPanel and registering them on Central Hub.
 - Design for future: AI generation (FinProms admin), in-app edit, compliance,
-  firm head + firm documents, more features.
+  Document Repository (Network Admin / Firm Admin + firm documents), more
+  features.
 - UK GDPR tooling (section 6E): privacy notice separate from Terms; DSAR
   export; anonymising erasure that preserves FCA-style audit integrity;
   retention prune jobs. Build in the phased order in 6E.1.
@@ -2173,9 +2589,36 @@ STEP 1 — Shared hub core (content hub)
 [x] Hub Functionalities checklist (section 5.1) — Power Admin Functionalities screen only
 [x] User capabilities matrix (section 5.2) — roles × member/dashboard caps (no Functionalities duplication)
 [x] Wire hub-admin dashboard menus/actions to capability checklist (per-role; no hub-wide OR leak)
+    — “no hub-wide OR leak” = do not grant a capability to an unchecked role
+    column; multi-role users may OR across *their own* roles only (§2.7.1)
 [x] Wire member nav/actions to member capability checklist
 [x] Roles documented: power_admin, finproms_admin, client_admin, manager,
-    approver, advisor, user
+    approver, advisor, user (admin_staff also in matrix / User model)
+[x] Roles documented + wired: network_admin (Network Admin), firm_admin
+    (Firm Admin) — Document Repository heads; matrix columns; renameable
+    display names (§2.7 / §3.4 / §5.2)
+[x] MULTI-ROLE USERS (§2.7 / §2.7.1) — backend: user_roles pivot; all roles
+    equal (no primary/secondary); users.role = privilege-ordered legacy mirror
+    only; capability UNION in userCan; UserRolesService sync + activity logs
+    (user.role_assigned / user.role_removed); Power Admin / WL user APIs accept
+    roles[] (not primary_role); Excel import accepts delimited multi-role cells;
+    Hub → Users / Manage roles counts; approver-scoped queue uses
+    isApproverScopedOnly. Frontend (hub-finproms-frontend): Users & roles
+    multi-select (equal roles, no Primary control), Hub Users / Access Control
+    multi-role display, AuthContext hasRole / roleKeys — done.
+[x] SEPARATION OF DUTIES (§2.7.2) — ComplianceSeparationService blocks
+    owner / on-behalf self-assign, self-review, and change-status on SMC / GC / WC;
+    reviewer lists exclude conflicted ids (optional request_id) and include
+    multi-role holders; taxonomy add-request self-approve/reject blocked;
+    pickup queues exclude conflicted own items; acting-as advisor subject also
+    conflicted. Frontend: hide self-assign/review/change-status when conflicted;
+    assign dropdowns exclude conflicted users; SoD validation messages surfaced.
+[x] PER-USER CAPABILITIES (§2.7.3) — users.capability_overrides denylist within
+    role UNION; dashboard_manage_user_capabilities + /my-dashboard/user-capabilities;
+    APIs GET/PUT user-capabilities; userCan honours overrides; prune on role sync;
+    activity logs for role matrix (`capabilities.role_matrix_updated`) and user
+    overrides (`user.capability_enabled` / `user.capability_disabled`). Frontend
+    AdminUserCapabilities page + nav unlock.
 [x] Power Admin capabilities checklist (section 5.3) — separate from hub Functionalities
 [x] Wire Power Admin nav/APIs to Power Admin capabilities
 [x] Capabilities matrix UI — roles × user capabilities (incl. Power Admin) per hub
@@ -2222,6 +2665,7 @@ STEP 1 — Shared hub core (content hub)
 [x] Optional compliance supporting files (SMC / GC / WC) on submit, review/approve-reject, and change-status — shown in version history with uploader role (advisor / approver / manager), not as a separate request-level box
 [x] Approver / manager dedicated front-end UIs (SMC & ops flows)
 [x] Power Admin user management UI (pa_manage_users_roles — create/update/delete/roles)
+    — multi-role assign (equal roles; no primary) per §2.7.1
 [x] Control white labelled hubs via dashboard hub switcher (dashboard_control_white_label_hubs)
 [x] Acting-hub content create/list on white-label DB (posts, types, categories, tags, bundles)
 [x] Central content library (manual create + Excel bulk, distribute live posts;
@@ -2251,8 +2695,9 @@ STEP 1 — Shared hub core (content hub)
 [x] Frontend: separate nav sections for Website Template Library vs Content Pre Approval
 [x] Firm Head of Firm — capability `dashboard_assign_firm_head`; one head per
     firm appointed from that firm’s members (section 3.4.1)
-[x] Firm Documents library — head can add attachments (images, Word, PDF, etc.)
-    and has all add/view/delete/archive rights (section 3.4.2–3.4.4)
+[x] Firm Documents / Document Repository library — head can add attachments
+    (images, Word, PDF, etc.) and has all add/view/delete/archive rights
+    (section 3.4.2–3.4.4)
 [x] Folders / subfolders + nested expand/collapse library; upload above table
 [x] Document categories (`firm_documents_manage_categories`, GC-style admin CRUD)
 [x] Taxonomy add requests (`taxonomy_request_add` + `taxonomy_request_manage`) —
@@ -2266,6 +2711,18 @@ STEP 1 — Shared hub core (content hub)
 [x] Firm Head & Firm Documents activity logs (`firm.head.*`, `firm.documents.*`)
 [x] Frontend: Assign Head of Firm + Firm Documents UI (rights-gated; mixed
     access rights + which-firms-can-see-documents for every firm)
+[x] Network Admin (`network_admin`) + Firm Admin (`firm_admin`) system roles —
+    User model / ROLE_LABELS / HubRolesService / Manage roles / privilege order
+    (§2.7); display names renameable
+[x] Head ↔ role sync: Assign Head sets/clears network_admin|firm_admin;
+    assigning those roles sets/clears firms.head_user_id; mutual exclusion;
+    migrate existing heads (section 3.4.1 / 3.4.1a)
+[x] Capabilities matrix: add network_admin + firm_admin columns + defaults
+    (hub-wide firm_documents_* OFF; §5.2)
+[x] Document Repository: treat Network Admin / Firm Admin as is_firm_head for
+    own firm; hub-wide caps unchanged (§3.4.2 / 3.4.4)
+[x] Frontend: multi-role assign shows Network Admin / Firm Admin; Firms /
+    Head UI reflects synced roles; Document Repository nav labels as needed
 [x] Support Tickets functionality (`support_tickets`) + APIs (submit with
     module/screenshots, queue, change status, comments) + `st_*` capabilities
 [x] Frontend: Support Tickets nav (My tickets / New ticket / All tickets) + pages
@@ -2297,6 +2754,25 @@ SECURITY HARDENING (phase 1 — 2026-10-04)
 [x] Sanctum token expiry default 7d (SANCTUM_EXPIRATION); session idle 7d (SESSION_LIFETIME);
     per-hub override via hubs.session_lifetime_minutes (Active sessions / capable role)
 [x] Outbound TLS verify on by default (HTTP_TLS_VERIFY); cPanel + embed proxy
+[x] SSRF hardening (2026-10-21): WC public embed proxy and cPanel sync MUST
+    refuse private / loopback / link-local / cloud-metadata hosts via
+    `SafeOutboundUrl` (same helper as template preview capture). Deploy and
+    promote-to-live validate `cpanel_domain` on write (literal IP/host checks);
+    embed + cPanel HTTP clients re-check with DNS resolution before fetch.
+    Unit + feature tests cover metadata/loopback rejection.
+[x] Hub-scoped WC embed auth (2026-10-21): `/embed-site/h/{hubId}/...` and
+    `?hub_id=` MUST NOT open a content-hub remote DB anonymously. Require
+    Sanctum session (capable WC role / acting hub) or a short-lived HMAC
+    `embed_ticket` from POST `/api/website-compliance/embed-ticket`; ticket
+    also set as HttpOnly cookie for iframe asset follow-ups. Local embed
+    (no hub id) stays public. Throttle `wc-embed`.
+[x] WC upload access split (2026-10-21): template-content documents
+    (`upload-document` → `/uploaded-documents/{filename}`) require Sanctum
+    session (WC module enabled) or temporary signed URL; `Cache-Control:
+    private, no-store`. Images (`uploaded-images`) remain public for live
+    advisor sites / preview captures. Document extensions on the legacy
+    images path are also gated. Distinct from WC change-request supporting
+    files and Firm Documents.
 [x] Scheduler auth: X-Scheduler-Key header + hash_equals (query key still works)
 [x] Activity log redacts api_key / cpanel_* / hub stripe secrets
 [x] CORS: localhost origins only outside production; CORS_ALLOWED_ORIGINS extra
@@ -2332,6 +2808,9 @@ SECURITY HARDENING (phase 2 — 2026-10-04)
     WhiteLabelDatabaseService PDO/pgsql ssl options)
 [x] Hub backup & restore (section 6B): per-hub schedule from Central, dual store
     (hub local + Central), Backup now / download / restore, pa_manage_hub_backups
+[x] Hub /internal/* purpose-scoped secrets (2026-10-21): separate tokens +
+    headers for backup / restore / GC files / deploy-env; optional IP allowlist;
+    `throttle:internal-hub` + `throttle:internal-restore`; HubInternalAuth helper
 [x] NFR-BACKUP-ENC (section 6B / 9.7): encrypt backup ZIPs at rest (AES-256-GCM
     HBENC1); shared HUB_BACKUP_ENCRYPTION_KEY; decrypt on download/restore;
     legacy plaintext still works; hub_backups.is_encrypted
@@ -2343,15 +2822,13 @@ SECURITY HARDENING (phase 2 — 2026-10-04)
 [x] NFR-SEC-FW (section 9.5): application-layer IP deny + dangerous upload
     rejection (incl. SVG block) + optional ClamAV; see §8 NFR-SEC-FW + §9.5
     (per-endpoint mime allowlists already exist on major upload routes)
-[x] Access Control page (`/my-dashboard/access-control`): chip adders for
-    IPs (single / CIDR / hyphen range), Restricted/Allowed countries+cities,
-    Specific UK cities; precedence Restrict IPs → Allow IPs → Block VPN →
-    Restricted countries/cities → Allowed countries/cities → UK cities →
-    UK only; opposing-list alerts (API 422)
-[x] Access blocked visitors: hub logo + loader splash (`AccessBlockedSplash`)
-    when `/hub` returns 403 `access_restricted` / `firewall_denied` (branding
-    in 403 body). Blocked attempts tab lists security events (user / country /
-    city / IP) — not Activity log / not Change history
+[x] NFR-SEC-FW 9.5 D) Access restrictions (Option B): Access Control page
+    (hub + per-user rules); Restrict/Allow IPs & countries (single IP, CIDR,
+    or hyphen range e.g. 203.0.113.10-203.0.113.50); UK only / UK cities;
+    Block VPN; Monitor/Enforce; Simulate; change History + restore;
+    self-lockout confirm; emergency unlock (UI + `access-control:unlock`);
+    admin escape for `secmon_manage_access`; trusted proxies + geo-header
+    hardening (TRUSTED_PROXIES / GEOIP_*); capability `secmon_manage_access`
 
 --------------------------------------------------------------------------------
 UK GDPR / DATA PROTECTION (section 2.2d + 6E) — Phase 1 backend done
@@ -2399,10 +2876,16 @@ UK GDPR / DATA PROTECTION (section 2.2d + 6E) — Phase 1 backend done
     threshold; secmon events fw.ip_denied / fw.ip_auto_blocked /
     data.upload_rejected / data.malware_detected; host/cPanel firewall remains
     ops (not a full WAF product)
+[x] NFR-SEC-FW 9.5 D) Access restrictions Option B (2026-10-20): Access
+    Control UI + hub/user geo/IP/VPN rules; Monitor/Enforce; Simulate;
+    History/restore; lockout recovery; trusted-proxy/geo hardening;
+    `secmon_manage_access`; events fw.access_* (see §9.5 D)
 [x] NFR-SEC-APP (section 9.6): protection against SQL injection, XSS, CSRF,
-    brute-force, malware, and app-layer DDoS/abuse — Eloquent/bindings;
-    SafeHtml on Terms/Privacy/Cookies + SPA DOMPurify; Sanctum CSRF;
-    auth+API rate limiters; NFR-SEC-FW malware; volumetric DDoS = ops/CDN
+    brute-force, malware, app-layer DDoS/abuse, and SSRF on WC outbound
+    fetches — Eloquent/bindings; SafeHtml on Terms/Privacy/Cookies + SPA
+    DOMPurify; Sanctum CSRF; auth+API rate limiters; NFR-SEC-FW malware;
+    SafeOutboundUrl on embed proxy + cPanel sync + preview capture;
+    volumetric DDoS = ops/CDN
 [x] NFR-SEC-VAL (section 9.8): server-side validation and sanitization of all
     user inputs — every mutating API uses Laravel validate(); API middleware
     SanitizeRequestInput scrubs null bytes / control chars; InputSanitizer
@@ -2685,10 +3168,12 @@ Related but distinct
 --------------------------------------------------------------------------------
 9.5 NFR-SEC-FW — Firewall and malware protection
 --------------------------------------------------------------------------------
-Status: IMPLEMENTED (2026-10-14) — application-layer controls in this backend.
+Status: IMPLEMENTED (2026-10-14) — application-layer IP deny + upload gates.
+Extended 2026-10-20 — Access restrictions Option B (geo/IP/VPN Access Control).
 Optional ClamAV malware scanning is OFF by default (enable when clamscan is
 installed on the host). Host / cPanel / cloud firewall remains an ops duty.
 Cross-refs: section 6F (Security Monitoring events), NFR-SEC (section 9.1),
+Access Control.docx (architecture baseline; product ships Option B subset),
 SECURITY HARDENING phase 2 (headers / cookies), deferred mime/SVG item closed.
 
 Statement
@@ -2696,10 +3181,14 @@ Statement
   malware / dangerous-upload protections appropriate to a multi-tenant hub
   on shared hosting (cPanel), without requiring a commercial WAF appliance
   inside the application repo.
+- The platform SHALL ALSO support hub- and user-scoped network access
+  restrictions (country / city / IP / VPN signals) evaluated on API requests,
+  with safe activation (Monitor → Simulate → Enforce) and lockout recovery.
 
 Product fulfilment (in-app / API)
   A) Application firewall
-     - Deny list of client IPs (and optional CIDR) configured via
+     - Deny list of client IPs (CIDR and/or hyphen ranges
+       e.g. 203.0.113.10-203.0.113.50) configured via
        SECURITY_FIREWALL_DENIED_IPS / config/security_firewall.php.
      - Middleware DenyBlockedIps on the API group returns HTTP 403 for denied
        clients before controllers run.
@@ -2724,6 +3213,57 @@ Product fulfilment (in-app / API)
      - HTTP security headers (SecurityHeaders middleware)
      - Rate limiters (auth / imports / wc-publish) + secmon rate-limit events
      - Per-route mime allowlists on major upload endpoints
+  D) Access restrictions (Option B — Access Control)
+     Practical subset of Access Control.docx (not full GLOBAL AND/deny-wins
+     platform). Requires Functionalities → Security Monitoring ON + capability
+     `secmon_manage_access`.
+     - UI: `/my-dashboard/access-control` (Hub rules | User rules | Simulate |
+       History). Removed from Security Monitoring as a nested tab.
+     - Hub-wide rules apply to every API request; optional per-user rules merge
+       after the caller is identified (Sanctum user / bearer token).
+     - Rule gates (Option B precedence): Restrict IPs → Allow IPs → Block VPN →
+       Restricted countries/cities → Allowed countries/cities → Specific UK
+       cities → UK only.
+     - Restrict/Allow IP entries accept: single IPv4/IPv6, CIDR
+       (`198.51.100.0/24`), or inclusive hyphen range
+       (`203.0.113.10-203.0.113.50`; spaces around `-` OK). Start must be
+       ≤ end; same address family. Matching is binary inclusive.
+     - Restricted / Allowed countries/cities: each gate has country codes +
+       city names. Specific UK cities remains a separate UK-only allowlist.
+     - Opposing lists must not overlap (UI alerts + API 422): Restricted IPs
+       vs Allowed IPs (incl. CIDR/range overlap); Restricted vs Allowed
+       countries; Restricted vs Allowed cities; GB cannot be Restricted while
+       UK only / Specific UK cities is enabled.
+     - Blocked attempts are logged as security_events (`fw.access_restricted` /
+       `fw.access_would_block` / `fw.ip_denied`) with user, country, city, IP,
+       path, and rule — NOT activity_logs and NOT Change history. Access Control
+       UI tab “Blocked attempts” lists them (`GET …/access-control/blocked-attempts`).
+     - 403 responses include `code` + hub `branding` so the SPA shows logo +
+       loader (AccessBlockedSplash) without revealing deny details.
+     - Block VPN: best-effort detection (edge `X-App-Geo-Vpn` and/or ip-api
+       proxy/hosting). Allow IPs can override.
+     - Enforcement mode per hub/user settings: **Monitor** (evaluate + log
+       `fw.access_would_block`, allow) or **Enforce** (HTTP 403 +
+       `fw.access_restricted`). If both hub and user modes are active,
+       Enforce wins.
+     - Simulate: dry-run same decision engine for an IP (+ optional user /
+       country / city / VPN overrides). Never blocks; never writes deny events.
+     - History: `fw.access_policy_changed` with field-level before/after;
+       restore previous (“before”) or “after” snapshot via API.
+     - Lockout recovery: save confirms when Enforce would block the actor’s
+       current IP (409 `self_lockout_risk` unless acknowledged); Emergency
+       unlock / Switch to Monitor in UI; CLI `php artisan access-control:unlock`;
+       authenticated users with `secmon_manage_access` are soft-escaped from
+       hard 403 (logged as would-block) when ACCESS_RESTRICTION_ADMIN_ESCAPE
+       is true (default).
+     - Trusted request data (architecture § Trusted request data):
+       - TRUSTED_PROXIES — Laravel trusts X-Forwarded-* only from listed
+         proxies (empty = ignore forwarding headers). Use `*` only when origin
+         is firewalled so clients cannot hit Laravel directly.
+       - GEOIP_TRUST_HEADERS / GEOIP_REQUIRE_TRUSTED_PROXY_FOR_HEADERS —
+         CF-IP* / X-App-Geo-* used only from a trusted proxy (or Simulate
+         force-trust). Generic X-Country-Code / X-City off by default.
+       - Per-deploy `.env` (each hub server), not stored in Access Control UI.
 
 Operational fulfilment (infra — outside Laravel code)
 - Operators SHALL keep the host firewall / fail2ban / provider WAF (if any)
@@ -2731,6 +3271,11 @@ Operational fulfilment (infra — outside Laravel code)
 - Where ClamAV is required by policy, install and update virus definitions on
   the server, then set MALWARE_SCAN_ENABLED=true (and REQUIRED if fail-closed
   is mandated).
+- For Access Control in production behind Cloudflare/LB: configure
+  TRUSTED_PROXIES appropriately and keep origin locked to the edge; enable
+  GEOIP_REQUIRE_TRUSTED_PROXY_FOR_HEADERS so forged geo headers on a direct
+  origin hit are ignored. Run pending access-restriction migrations on each
+  hub database.
 
 Out of scope / explicit non-goals
 - Replacing a full network WAF / IDS / SIEM product (already out of scope in 6F)
@@ -2738,6 +3283,10 @@ Out of scope / explicit non-goals
 - Scanning files already stored on disk from before this NFR (no retroactive
   bulk re-scan job in v1)
 - Frontend-only changes (backend enforces uploads; SPA needs no gate)
+- Full Access Control.docx platform in v1: GLOBAL scope AND-combine across
+  scopes, draft→approve workflow, three-valued UNKNOWN fail-closed geo,
+  city confidence thresholds, webhook/service policies, live WebSocket
+  re-evaluation (documented architecture; not shipped as Option B)
 
 Acceptance criteria (for “done”)
   [x] Documented in section 9.5 + section 8 checklist
@@ -2749,6 +3298,13 @@ Acceptance criteria (for “done”)
   [x] Security Monitoring event types documented in section 6F catalogue
   [x] Feature tests: SecurityFirewallTest
   [x] Favicon no longer accepts SVG
+  [x] Access Control page + `secmon_manage_access` + hub/user APIs
+  [x] Monitor vs Enforce + would_block / denied behaviour
+  [x] Simulate API + UI
+  [x] Policy change History + restore
+  [x] Self-lockout confirm + emergency unlock (UI + artisan)
+  [x] Trusted proxies + geo-header hardening + GeoIpTrustHeadersTest
+  [x] Feature tests: AccessRestrictionTest
 
 Related but distinct
 - NFR-SEC / Security Monitoring (9.1) — detection & reporting; this NFR is the gate
@@ -2756,6 +3312,7 @@ Related but distinct
 - NFR-GC-ENC (9.3) — field encryption, not malware scanning
 - NFR-SEC-APP (9.6) — broader attack-surface baseline (includes malware cross-ref)
 - Host / cPanel firewall — ops, not application code
+- Access Control.docx — full architecture proposal; product v1 = Option B above
 
 --------------------------------------------------------------------------------
 9.6 NFR-SEC-APP — Protection against SQLi, XSS, CSRF, brute-force, malware, DDoS
@@ -2767,10 +3324,12 @@ rate limits are application-layer abuse mitigation only.
 
 Statement
 - The platform SHALL protect against SQL injection, cross-site scripting (XSS),
-  cross-site request forgery (CSRF), brute-force authentication attacks, and
-  malware in uploads, and SHALL apply application-layer throttling against
-  abusive / flood traffic. Network-layer DDoS absorption (CDN, provider WAF,
-  host firewall) SHALL be maintained operationally outside this codebase.
+  cross-site request forgery (CSRF), brute-force authentication attacks,
+  malware in uploads, and server-side request forgery (SSRF) on trusted
+  outbound HTTP (WC embed / cPanel / preview), and SHALL apply application-
+  layer throttling against abusive / flood traffic. Network-layer DDoS
+  absorption (CDN, provider WAF, host firewall) SHALL be maintained
+  operationally outside this codebase.
 
 Product fulfilment
 
@@ -2820,6 +3379,28 @@ Product fulfilment
      - Rate-limit trips may record `api.rate_limited` in Security Monitoring.
      - NOT a substitute for CDN / cloud DDoS protection or host firewall.
 
+  G) SSRF (server-side request forgery) — WC outbound
+     - Public embed proxy (`/api/website-compliance/embed-site/...`) and
+       cPanel sync posts MUST call `SafeOutboundUrl` before any server-side
+       HTTP fetch. Block loopback, RFC1918, link-local, and cloud metadata
+       hosts (e.g. 169.254.169.254); do not follow redirects off-host.
+     - `cpanel_domain` on deploy / promote-to-live is validated on write
+       (literal private/metadata hosts rejected). Fetch paths also resolve
+       DNS and fail closed on private answers.
+     - Template preview capture already used the same helper; embed + cPanel
+       must stay aligned.
+     - Hub-scoped embed (`/embed-site/h/{hubId}/` or `?hub_id=`) MUST
+       authorize before `WhiteLabelDatabaseService` runs: Sanctum session or
+       `embed_ticket` from POST `/api/website-compliance/embed-ticket`
+       (`WcEmbedTicket`). Anonymous remote DB opens are forbidden.
+
+  H) Hub machine callbacks — purpose-scoped secrets
+     - `/api/internal/*` MUST NOT share one master key across backup, restore,
+       GC file bridge, and deploy-env. Each purpose has its own header +
+       per-hub token + optional shared env fallback (`HubInternalAuth`).
+     - Optional `HUB_INTERNAL_ALLOWED_IPS`; dedicated rate limiters
+       `internal-hub` and `internal-restore`.
+
 Operational fulfilment (out of app code)
 - Keep cPanel / host firewall, fail2ban (or equivalent), TLS, and optional
   CDN/WAF in front of public hosts.
@@ -2837,6 +3418,14 @@ Acceptance criteria (for “done”)
   [x] Malware covered by cross-ref to NFR-SEC-FW
   [x] Explicit: volumetric DDoS = ops/CDN, not Laravel alone
   [x] Security headers present on API responses (feature test)
+  [x] SSRF: SafeOutboundUrl on WC embed + cPanel sync + preview; deploy
+      validates cpanel_domain; feature test rejects metadata/loopback embed
+  [x] Hub-scoped embed: anonymous remote DB blocked; ticket + session paths
+      covered by feature tests; throttle wc-embed
+  [x] WC documents: auth or signed URL; images public; feature tests cover
+      anonymous deny + signed/session allow
+  [x] Hub /internal/* purpose-scoped secrets (backup ≠ restore ≠ GC ≠ deploy-env);
+      unit + GC feature tests assert backup key cannot unlock other purposes
 
 Related but distinct
 - NFR-SEC (9.1) — monitoring & dependency scan reporting
@@ -2844,7 +3433,7 @@ Related but distinct
 - NFR-SEC-FW (9.5) — IP deny + upload malware gates
 - NFR-SEC-VAL (9.8) — validate + sanitize all user inputs (complements XSS)
 - NFR-BACKUP-ENC (9.7) — backup archive encryption at rest
-- SECURITY HARDENING phase 1–2 — headers, cookies, secrets
+- SECURITY HARDENING phase 1–2 — headers, cookies, secrets (SSRF item in phase 1)
 
 --------------------------------------------------------------------------------
 9.7 NFR-BACKUP-ENC — Hub backup encryption at rest

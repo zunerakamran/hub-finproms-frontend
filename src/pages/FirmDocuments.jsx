@@ -882,11 +882,12 @@ export default function FirmDocuments() {
     <section className="firm-docs-page">
       <div className="page-head">
         <div>
-          <p className="eyebrow">Hub</p>
+          <p className="eyebrow">Document repository</p>
           <h1>Firm documents</h1>
           <p className="muted">
-            Folders, categories, and per-document access. Use the key icon to grant rights to your
-            firm’s users
+            Folders, categories, and per-document access. Network Admin (Central / Network) and Firm
+            Admin (member firms) have full rights for their firm. Use the key icon to grant rights to
+            your firm’s users
             {canManageFirmAccess ? ' and to allowlisted firms.' : '.'}
           </p>
         </div>
@@ -897,8 +898,8 @@ export default function FirmDocuments() {
       {rights && rights.functionality_enabled === false && !rights.is_firm_head ? (
         <div className="alert">
           Hub-wide firm document tools are off. Enable{' '}
-          <strong>Functionalities → Firm documents</strong> for matrix access. Head of Firm still
-          has access to their own firm’s documents.
+          <strong>Functionalities → Firm documents</strong> for matrix access. Network Admin / Firm
+          Admin (Head of Firm) still has access to their own firm’s documents.
         </div>
       ) : null}
 

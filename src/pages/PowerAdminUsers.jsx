@@ -150,6 +150,12 @@ export default function PowerAdminUsers() {
       if (current.has(roleKey)) {
         if (current.size <= 1) return f
         current.delete(roleKey)
+      } else if (roleKey === 'network_admin') {
+        current.delete('firm_admin')
+        current.add('network_admin')
+      } else if (roleKey === 'firm_admin') {
+        current.delete('network_admin')
+        current.add('firm_admin')
       } else {
         current.add(roleKey)
       }
@@ -365,7 +371,9 @@ export default function PowerAdminUsers() {
           <legend style={{ padding: '0 0.35rem' }}>Roles</legend>
           <p className="muted" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
             Select one or more roles. All assigned roles are equal; effective capabilities are the
-            union of all selected roles.
+            union of all selected roles. Network Admin is for the Central / Network firm head; Firm
+            Admin is for a member firm head — they cannot be combined, and the user must belong to
+            the matching firm (syncs Head of Firm / Document Repository).
           </p>
           <div className="row" style={{ gap: '0.75rem 1.25rem', flexWrap: 'wrap' }}>
             {(roleOptions.length ? roleOptions : [{ key: 'user', label: 'User' }]).map((role) => {

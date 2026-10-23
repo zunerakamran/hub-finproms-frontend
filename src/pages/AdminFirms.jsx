@@ -225,7 +225,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
           <p className="muted">
             {isActingRemotely
               ? `Managing Firms on ${actingHub?.name}. Switch hubs from the top bar.`
-              : 'Manage Firms, appoint a Head of Firm, and set who may review compliance requests.'}
+              : 'Manage Firms, appoint a Head of Firm (Network Admin for Central / Network, Firm Admin for member firms), and set who may review compliance requests.'}
           </p>
         </div>
         {!showForm && !headFirmId && canManageFirms ? (
@@ -258,8 +258,9 @@ export default function AdminFirms({ shell = 'client-admin' }) {
             </p>
           ) : (
             <p className="muted">
-              Only one Head of Firm per firm. The head can upload documents and grant add / view / delete /
-              archive rights to firm members.
+              Only one Head of Firm per firm. Saving assigns{' '}
+              {headFirm?.is_central ? 'Network Admin' : 'Firm Admin'} and unlocks Document Repository
+              (firm documents) rights for that firm — add / view / delete / archive and member grants.
             </p>
           )}
           <div className="actions">

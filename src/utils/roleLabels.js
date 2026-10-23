@@ -3,11 +3,36 @@ export const DEFAULT_ROLE_LABELS = {
   power_admin: 'Power Admin',
   finproms_admin: 'FinProms Admin',
   client_admin: 'Client Admin',
+  network_admin: 'Network Admin',
+  firm_admin: 'Firm Admin',
   manager: 'Manager',
   approver: 'Approver',
   advisor: 'Advisor',
   admin_staff: 'Admin-staff',
   user: 'User',
+}
+
+/** Mutually exclusive Document Repository head roles (§3.4). */
+export const FIRM_HEAD_ROLES = ['network_admin', 'firm_admin']
+
+/**
+ * When adding a head role, drop the other head role from the set.
+ * @param {Iterable<string>} roles
+ * @param {string} addedRole
+ * @returns {string[]}
+ */
+export function withExclusiveFirmHeadRole(roles, addedRole) {
+  const next = new Set(roles || [])
+  if (addedRole === 'network_admin') {
+    next.delete('firm_admin')
+    next.add('network_admin')
+  } else if (addedRole === 'firm_admin') {
+    next.delete('network_admin')
+    next.add('firm_admin')
+  } else {
+    next.add(String(addedRole || ''))
+  }
+  return Array.from(next).filter(Boolean)
 }
 
 /**

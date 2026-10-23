@@ -230,7 +230,7 @@ Packaging tips:
 2.2b Two-factor authentication (login OTP) — per user (all hub types)
 - NOT a hub Functionalities checkbox. Each user opts in from Update profile
   (`users.two_factor_enabled`, default OFF). Only that user gets email OTP
-  after a successful password check on every sign-in.
+  after a successful password check on every sign-in (when MFA is not enabled).
 - Enabling / disabling 2FA (and changing email) requires `current_password`.
 - Login returns `otp_required` + `otp_challenge` (no Sanctum token yet)
   only when that user has 2FA enabled.
@@ -242,10 +242,18 @@ Packaging tips:
 - Email template catalog event: `login_otp` (always available to edit).
 - Frontend Login shows a second step when the login response has otp_required.
 - Profile page (all authenticated users): Update profile — name, email,
-  avatar (profile picture), and two-factor toggle.
+  avatar (profile picture), email OTP toggle, and MFA toggle (see 2.2b2).
   API: PUT/PATCH/POST /api/auth/profile (POST for multipart avatar).
   Changing email clears verification and sends a new verification link.
   Avatar stored on public disk (`avatars/{user_id}/…`); URL via /api/media/.
+
+2.2b2 Authenticator MFA (Microsoft Authenticator / TOTP) — per user
+- Second checkbox on Update profile (`mfa_enabled`), mutually exclusive with email OTP.
+- Enabling MFA: save profile → show QR (`mfa_setup.otpauth_uri`) + secret →
+  confirm via POST /api/auth/mfa/confirm. Resume pending via POST /api/auth/mfa/setup.
+- Login: when `mfa_required`, show authenticator code step →
+  POST /api/auth/verify-login-mfa. MFA takes precedence over email OTP.
+- Activity log labels: auth.mfa_chosen / auth.two_factor_otp_chosen / related MFA events.
 
 2.2c Terms & Conditions (all hub types)
 - Capability matrix key: `dashboard_manage_terms` (“Manage terms & conditions”)
@@ -2645,7 +2653,9 @@ STEP 1 — Shared hub core (content hub)
     (verify-email + resend; welcome mail after verify; admin/import users auto-verified)
 [x] Per-user two-factor (login OTP) via Update profile — not hub Functionalities
     (users.two_factor_enabled; verify-login-otp + resend-login-otp; Login UI second step)
-[x] Update profile (all users): name, email, avatar, two-factor toggle
+[x] Per-user authenticator MFA (Microsoft Authenticator / TOTP) via Update profile
+    (mfa checkbox + QR confirm; verify-login-mfa; mutual exclusive vs OTP)
+[x] Update profile (all users): name, email, avatar, OTP toggle, MFA toggle
     (POST/PUT /api/auth/profile; frontend /my-dashboard/profile)
 [x] Capability: dashboard_manage_terms — who can edit Terms & Conditions (all hubs)
 [x] Terms & Conditions rich content + first-login accept gate (saved on user;

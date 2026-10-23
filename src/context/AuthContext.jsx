@@ -31,6 +31,8 @@ function sameUser(a, b) {
     a.privacy_accepted_version === b.privacy_accepted_version &&
     a.billing_subject_id === b.billing_subject_id &&
     Boolean(a.two_factor_enabled) === Boolean(b.two_factor_enabled) &&
+    Boolean(a.mfa_enabled) === Boolean(b.mfa_enabled) &&
+    Boolean(a.mfa_pending) === Boolean(b.mfa_pending) &&
     a.avatar_url === b.avatar_url
   )
 }
@@ -120,11 +122,7 @@ export function AuthProvider({ children }) {
     queryClient.removeQueries({ queryKey: ['hub', 'current'] })
   }, [])
 
-  const login = useCallback(async (payload) => {
-    const data = await api.login(payload)
-    if (data?.otp_required) {
-      return data
-    }
+  const finishAuthSession = useCallback(async (data) => {
     setToken('1')
     markNavigationContinuity()
     clearHubCaches()
@@ -143,25 +141,26 @@ export function AuthProvider({ children }) {
     return data
   }, [setUser, setPowerCapabilities, clearHubCaches])
 
+  const login = useCallback(async (payload) => {
+    const data = await api.login(payload)
+    if (data?.otp_required || data?.mfa_required) {
+      return data
+    }
+    await finishAuthSession(data)
+    return data
+  }, [finishAuthSession])
+
   const verifyLoginOtp = useCallback(async (payload) => {
     const data = await api.verifyLoginOtp(payload)
-    setToken('1')
-    markNavigationContinuity()
-    clearHubCaches()
-    setUser(data.user)
-    queryClient.setQueryData(authQueryKey, data)
-    if (userHasRole(data.user, 'power_admin')) {
-      try {
-        const caps = await api.powerAdminCapabilitiesMe()
-        setPowerCapabilities(caps.resolved || {})
-      } catch {
-        setPowerCapabilities({})
-      }
-    } else {
-      setPowerCapabilities({})
-    }
+    await finishAuthSession(data)
     return data.user
-  }, [setUser, setPowerCapabilities, clearHubCaches])
+  }, [finishAuthSession])
+
+  const verifyLoginMfa = useCallback(async (payload) => {
+    const data = await api.verifyLoginMfa(payload)
+    await finishAuthSession(data)
+    return data.user
+  }, [finishAuthSession])
 
   const register = useCallback(async (payload) => {
     const data = await api.register(payload)
@@ -213,6 +212,7 @@ export function AuthProvider({ children }) {
       loading,
       login,
       verifyLoginOtp,
+      verifyLoginMfa,
       register,
       completeEmailVerification,
       logout,
@@ -233,7 +233,7 @@ export function AuthProvider({ children }) {
       roleKeys: userRoleKeys(user),
       isAuthenticated: Boolean(user),
     }),
-    [user, loading, login, verifyLoginOtp, register, completeEmailVerification, logout, refreshUser, powerCapabilities, setUser, setPowerCapabilities, canPower]
+    [user, loading, login, verifyLoginOtp, verifyLoginMfa, register, completeEmailVerification, logout, refreshUser, powerCapabilities, setUser, setPowerCapabilities, canPower]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -12,13 +12,16 @@ function roleHome() {
 }
 
 export default function Login() {
-  const { login, verifyLoginOtp, isAuthenticated } = useAuth()
+  const { login, verifyLoginOtp, verifyLoginMfa, isAuthenticated } = useAuth()
   const { hub, branding, registrationEnabled } = useHub()
   const navigate = useNavigate()
   const [form, setForm] = useState({ email: '', password: '' })
   const [otpCode, setOtpCode] = useState('')
   const [otpChallenge, setOtpChallenge] = useState('')
   const [otpEmail, setOtpEmail] = useState('')
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaChallenge, setMfaChallenge] = useState('')
+  const [mfaEmail, setMfaEmail] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [needsVerification, setNeedsVerification] = useState(false)
@@ -77,10 +80,19 @@ export default function Login() {
     setSubmitting(true)
     try {
       const data = await login(form)
+      if (data?.mfa_required) {
+        setMfaEmail(data.email || form.email)
+        setMfaChallenge(data.mfa_challenge || '')
+        setMfaCode('')
+        setOtpChallenge('')
+        setInfo(data.message || 'Enter the code from your authenticator app.')
+        return
+      }
       if (data?.otp_required) {
         setOtpEmail(data.email || form.email)
         setOtpChallenge(data.otp_challenge || '')
         setOtpCode('')
+        setMfaChallenge('')
         setInfo(data.message || 'Enter the code we emailed you.')
         return
       }
@@ -114,6 +126,79 @@ export default function Login() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const onSubmitMfa = async (e) => {
+    e.preventDefault()
+    setError('')
+    setInfo('')
+    setSubmitting(true)
+    try {
+      await verifyLoginMfa({
+        email: mfaEmail,
+        challenge: mfaChallenge,
+        code: mfaCode.trim(),
+      })
+      finishLogin()
+    } catch (err) {
+      setError(err.data?.errors?.code?.[0] || err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (mfaChallenge) {
+    return (
+      <AuthScreen>
+        <div className="auth-screen__panel">
+          <div className="auth-screen__brand">
+            <AuthFavicon />
+            <div>
+              <p className="eyebrow">{brandName}</p>
+              <h1>Authenticator code</h1>
+            </div>
+          </div>
+          <p className="muted">
+            Open Microsoft Authenticator (or your TOTP app) for <strong>{mfaEmail}</strong> and
+            enter the 6-digit code to finish signing in.
+          </p>
+          {error && <div className="alert">{error}</div>}
+          {info && <div className="alert success">{info}</div>}
+          <form className="auth-screen__form" onSubmit={onSubmitMfa}>
+            <label>
+              Authenticator code
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                required
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              />
+            </label>
+            <button className="btn primary full" disabled={submitting || mfaCode.length !== 6}>
+              {submitting ? 'Verifying...' : 'Verify and sign in'}
+            </button>
+          </form>
+          <p className="muted center">
+            <button
+              type="button"
+              className="linkish"
+              style={{ background: 'none', border: 0, padding: 0, color: 'inherit', cursor: 'pointer', textDecoration: 'underline' }}
+              onClick={() => {
+                setMfaChallenge('')
+                setMfaCode('')
+                setInfo('')
+                setError('')
+              }}
+            >
+              Back to sign in
+            </button>
+          </p>
+        </div>
+      </AuthScreen>
+    )
   }
 
   if (otpChallenge) {

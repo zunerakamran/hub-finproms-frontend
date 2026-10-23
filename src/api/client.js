@@ -182,6 +182,12 @@ export const api = {
     request('/auth/verify-login-otp', { method: 'POST', body: JSON.stringify(payload) }),
   resendLoginOtp: (payload) =>
     request('/auth/resend-login-otp', { method: 'POST', body: JSON.stringify(payload) }),
+  verifyLoginMfa: (payload) =>
+    request('/auth/verify-login-mfa', { method: 'POST', body: JSON.stringify(payload) }),
+  mfaSetup: (payload) =>
+    request('/auth/mfa/setup', { method: 'POST', body: JSON.stringify(payload) }),
+  confirmMfa: (payload) =>
+    request('/auth/mfa/confirm', { method: 'POST', body: JSON.stringify(payload) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
   /** NFR-SEC-NAV: optional Security Monitoring beacon when SPA blocks external entry. */

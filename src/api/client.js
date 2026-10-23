@@ -1014,6 +1014,28 @@ export const api = {
       body: JSON.stringify(payload),
     })
   },
+  modulePackages: (options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/module-packages`)
+  },
+  createModulePackage: (payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/module-packages`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+  updateModulePackage: (id, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/module-packages/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  deleteModulePackage: (id, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/module-packages/${id}`, { method: 'DELETE' })
+  },
   moduleInvoices: (params = {}, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const query = new URLSearchParams(

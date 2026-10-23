@@ -21,6 +21,10 @@ function lockedHint(item) {
   if (item.locked_reason === 'white_label_hub') {
     return 'Always enabled on white-labelled hubs (cannot be turned off). Other modules depend on this.'
   }
+  if (item.locked_reason === 'module_package') {
+    const name = item.locked_by_package?.name || 'a module package'
+    return `Included in package “${name}”. Turn the package off to select this module separately.`
+  }
   return 'This module cannot be toggled for this hub.'
 }
 
@@ -53,6 +57,17 @@ function dependenciesMet(item, flags) {
   return item.depends_on.every((dep) => Boolean(flags[dep]))
 }
 
+function formatMoney(amount, currency = 'gbp') {
+  try {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: (currency || 'gbp').toUpperCase(),
+    }).format(Number(amount || 0))
+  } catch {
+    return `£${Number(amount || 0).toFixed(2)}`
+  }
+}
+
 export default function PowerAdminModules() {
   const { isPowerAdmin } = useAuth()
   const { actingHubId, actingHub, hub, isActingOnWhiteLabel, isActingRemotely, refreshHub, can, loading: hubLoading } =
@@ -64,7 +79,9 @@ export default function PowerAdminModules() {
   const enabled = can('dashboard_manage_modules')
 
   const [modules, setModules] = useState([])
+  const [packages, setPackages] = useState([])
   const [flags, setFlags] = useState({})
+  const [packageFlags, setPackageFlags] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -75,6 +92,19 @@ export default function PowerAdminModules() {
     for (const row of modules) map[row.key] = row.label
     return map
   }, [modules])
+
+  const applyPayload = (data) => {
+    const rows = data.modules || []
+    const pkgs = data.packages || []
+    setModules(rows)
+    setPackages(pkgs)
+    const next = {}
+    for (const row of rows) next[row.key] = Boolean(row.enabled)
+    setFlags(next)
+    const nextPkgs = {}
+    for (const pkg of pkgs) nextPkgs[pkg.id] = Boolean(pkg.enabled)
+    setPackageFlags(nextPkgs)
+  }
 
   useEffect(() => {
     if (hubLoading || !selectedId || !enabled) {
@@ -93,11 +123,7 @@ export default function PowerAdminModules() {
           { asPowerAdmin }
         )
         if (cancelled) return
-        const rows = data.modules || []
-        setModules(rows)
-        const next = {}
-        for (const row of rows) next[row.key] = Boolean(row.enabled)
-        setFlags(next)
+        applyPayload(data)
       } catch (err) {
         if (!cancelled) setError(err.message)
       } finally {
@@ -110,6 +136,43 @@ export default function PowerAdminModules() {
     }
   }, [selectedId, hubLoading, enabled, asPowerAdmin])
 
+  const onTogglePackage = (pkg, checked) => {
+    setPackageFlags((prevPkgFlags) => {
+      const nextPkgFlags = { ...prevPkgFlags, [pkg.id]: checked }
+      // Optimistic local exclusivity: turning one package on clears overlapping packages.
+      if (checked) {
+        const covered = new Set(pkg.module_keys || [])
+        for (const other of packages) {
+          if (other.id === pkg.id) continue
+          if (!prevPkgFlags[other.id]) continue
+          const overlap = (other.module_keys || []).some((k) => covered.has(k))
+          if (overlap) nextPkgFlags[other.id] = false
+        }
+      }
+
+      setFlags((prevFlags) => {
+        const nextFlags = { ...prevFlags }
+        const keys = pkg.module_keys || []
+        if (checked) {
+          for (const key of keys) nextFlags[key] = true
+        } else {
+          // Turn off covered modules unless another still-enabled package covers them.
+          const stillCovered = new Set()
+          for (const other of packages) {
+            if (!nextPkgFlags[other.id]) continue
+            for (const key of other.module_keys || []) stillCovered.add(key)
+          }
+          for (const key of keys) {
+            if (!stillCovered.has(key)) nextFlags[key] = false
+          }
+        }
+        return nextFlags
+      })
+
+      return nextPkgFlags
+    })
+  }
+
   const onSave = async (e) => {
     e.preventDefault()
     if (!selectedId) return
@@ -117,21 +180,25 @@ export default function PowerAdminModules() {
     setError('')
     setMessage('')
     try {
-      // Omit locked modules from the payload - backend enforces type locks + deps.
-      const payload = {}
+      // Omit locked modules from the payload - backend enforces type locks, packages + deps.
+      const modulePayload = {}
       for (const row of modules) {
         if (row.locked) continue
-        payload[row.key] = Boolean(flags[row.key]) && dependenciesMet(row, flags)
+        modulePayload[row.key] = Boolean(flags[row.key]) && dependenciesMet(row, flags)
       }
+      const packagePayload = packages.map((pkg) => ({
+        id: pkg.id,
+        enabled: Boolean(packageFlags[pkg.id]),
+      }))
       const data = await api.updateHubModules(
-        { hub_id: selectedId, modules: payload },
+        {
+          hub_id: selectedId,
+          modules: modulePayload,
+          packages: packagePayload,
+        },
         { asPowerAdmin }
       )
-      const rows = data.modules || []
-      setModules(rows)
-      const next = {}
-      for (const row of rows) next[row.key] = Boolean(row.enabled)
-      setFlags(next)
+      applyPayload(data)
       setMessage(data.message || 'Modules updated.')
       await refreshHub({ withLoader: true })
     } catch (err) {
@@ -197,22 +264,84 @@ export default function PowerAdminModules() {
         </div>
       ) : (
         <form className="admin-form checklist-form" onSubmit={onSave}>
+          {packages.length > 0 && (
+            <div className="checklist-section" id="module-packages">
+              <h2>Module packages</h2>
+              <p className="muted checklist-section-hint">
+                Packages bundle several product modules at a single one-time price (set under Module
+                prices). Enabling a package turns its modules on and locks them so they cannot be
+                selected separately. Packages that share a module cannot both be on.
+              </p>
+              <div className="checklist-grid">
+                {packages.map((pkg) => {
+                  const checked = Boolean(packageFlags[pkg.id])
+                  const conflictBlocked = !checked && pkg.available === false
+                  const disabled = conflictBlocked
+                  const moduleNames = (pkg.modules || [])
+                    .map((m) => m.label)
+                    .join(', ')
+                  const hint = conflictBlocked
+                    ? pkg.unavailable_reason ||
+                      'One or more modules in this package are already covered by another enabled package.'
+                    : null
+                  return (
+                    <label
+                      key={pkg.id}
+                      className={`checklist-item${conflictBlocked ? ' is-inactive' : ''}`}
+                      title={hint || undefined}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={disabled}
+                        onChange={(e) => onTogglePackage(pkg, e.target.checked)}
+                      />
+                      <span>
+                        <strong>
+                          {pkg.name}
+                          {conflictBlocked ? ' (unavailable)' : ''}
+                        </strong>
+                        <small className="muted">
+                          {pkg.description ||
+                            (moduleNames
+                              ? `Includes: ${moduleNames}`
+                              : 'Bundled product modules')}
+                        </small>
+                        <small className="muted">
+                          Package price: {formatMoney(pkg.amount, pkg.currency)}
+                          {Number(pkg.individual_module_amount_sum) > 0
+                            ? ` (individual sum ${formatMoney(pkg.individual_module_amount_sum, pkg.currency)})`
+                            : ''}
+                        </small>
+                        {moduleNames && pkg.description ? (
+                          <small className="muted">Includes: {moduleNames}</small>
+                        ) : null}
+                        {hint && <small className="muted exclusive-hint">{hint}</small>}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="checklist-section" id="modules">
             <h2>Modules</h2>
             <p className="muted checklist-section-hint">
               {(hub?.type === 'central' || hub?.is_central) && !isActingRemotely
                 ? 'Central Hub Controller is the locked base module for this control plane. Content product modules (posts library, compliance, websites) are managed on Shared / White-label hubs via the hub switcher.'
-                : `Module 1 is the hub base (${isActingOnWhiteLabel || actingHub?.is_white_label ? 'White Label Hub' : 'Shared Hub'}) and is always on. Other modules are gated by dependencies: Social Media Pre Approval needs the Social Media Template Library; Website Content Pre Approval needs the Website Template Library. Turning a parent off cascades to its dependents.`}
+                : `Module 1 is the hub base (${isActingOnWhiteLabel || actingHub?.is_white_label ? 'White Label Hub' : 'Shared Hub'}) and is always on. Other modules are gated by dependencies: Social Media Pre Approval needs the Social Media Template Library; Website Content Pre Approval needs the Website Template Library. Turning a parent off cascades to its dependents. Modules included in an enabled package stay locked until that package is turned off.`}
             </p>
             <div className="checklist-grid">
               {modules.map((item) => {
                 const depsOk = dependenciesMet(item, flags)
+                const packageLocked = item.locked_reason === 'module_package'
                 const isLocked = Boolean(item.locked) || !item.available
                 const depsBlocked = !isLocked && !depsOk
                 const disabled = isLocked || !depsOk
                 const hint = lockedHint(item) || (!depsOk ? dependencyHint(item, labelByKey) : null)
-                // Locked base modules (Shared / White Label Hub) stay checked and editable=false,
-                // but are not dimmed/blurred.
+                // Locked base / package modules stay checked and editable=false,
+                // but base modules are not dimmed/blurred.
                 const checked = isLocked
                   ? Boolean(flags[item.key])
                   : Boolean(flags[item.key]) && depsOk
@@ -233,13 +362,15 @@ export default function PowerAdminModules() {
                     <span>
                       <strong>
                         {item.label}
-                        {item.locked
+                        {item.locked && !packageLocked
                           ? ' (always on)'
-                          : !depsOk
-                            ? ' (requires parent)'
-                            : !item.available
-                              ? ' (coming soon)'
-                              : ''}
+                          : packageLocked
+                            ? ` (in package${item.locked_by_package?.name ? `: ${item.locked_by_package.name}` : ''})`
+                            : !depsOk
+                              ? ' (requires parent)'
+                              : !item.available
+                                ? ' (coming soon)'
+                                : ''}
                       </strong>
                       <small className="muted">{item.description}</small>
                       {hint && <small className="muted exclusive-hint">{hint}</small>}

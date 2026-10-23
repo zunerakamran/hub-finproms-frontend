@@ -36,14 +36,14 @@ export function StCommentList({ comments = [] }) {
             <strong>{comment.author?.name || 'User'}</strong>
             {comment.is_status_change && comment.to_status && (
               <>
-                {' · '}
+                {' | '}
                 {comment.from_status ? `${comment.from_status} → ` : ''}
                 {comment.to_status}
               </>
             )}
             {comment.created_at && (
               <>
-                {' · '}
+                {' | '}
                 {formatStDateSafe(comment.created_at)}
               </>
             )}

@@ -106,7 +106,7 @@ function friendlyAction(action) {
   if (!action) return 'Activity'
   if (ACTION_LABELS[action]) return ACTION_LABELS[action]
   return String(action)
-    .replace(/\./g, ' Â· ')
+    .replace(/\./g, ' | ')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
@@ -239,7 +239,7 @@ function AnomalyDetailDrawer({ anomaly, onClose, onReviewed, onDismissed, onEsca
         <p>
           <strong>Actor:</strong>{' '}
           {anomaly.actor?.name || anomaly.actor?.email || 'Unknown'}
-          {anomaly.actor?.role ? ` · ${anomaly.actor.role}` : ''}
+          {anomaly.actor?.role ? ` | ${anomaly.actor.role}` : ''}
         </p>
         {anomaly.source_ip ? (
           <p>
@@ -255,7 +255,7 @@ function AnomalyDetailDrawer({ anomaly, onClose, onReviewed, onDismissed, onEsca
         {anomaly.security_event_id ? (
           <p>
             <strong>Security event:</strong> #{anomaly.security_event_id}
-            {anomaly.security_incident_id ? ` · incident #${anomaly.security_incident_id}` : ''}
+            {anomaly.security_incident_id ? ` | incident #${anomaly.security_incident_id}` : ''}
           </p>
         ) : null}
         <div className="activity-anomaly-drawer__actions">
@@ -617,7 +617,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           <div>
             <div>
               {row.user_name || 'Guest'}
-              {row.user_role ? ` Â· ${row.user_role}` : ''}
+              {row.user_role ? ` | ${row.user_role}` : ''}
             </div>
             {row.user_email ? <span className="muted">{row.user_email}</span> : null}
           </div>
@@ -996,7 +996,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                 <p className="muted">
                   {insights.topUser
                     ? `${insights.topUser.count} event${insights.topUser.count === 1 ? '' : 's'}${
-                        insights.topUser.user_role ? ` Â· ${insights.topUser.user_role}` : ''
+                        insights.topUser.user_role ? ` | ${insights.topUser.user_role}` : ''
                       }`
                     : 'No users yet'}
                 </p>
@@ -1057,7 +1057,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
                   total={totalEvents}
                   getKey={(row, idx) => `${row.user_id || 'guest'}-${idx}`}
                   getLabel={(row) =>
-                    [row.user_name || 'Guest', row.user_email, row.user_role].filter(Boolean).join(' Â· ')
+                    [row.user_name || 'Guest', row.user_email, row.user_role].filter(Boolean).join(' | ')
                   }
                   isRowClickable={() => true}
                   onRowClick={openPersonActivities}

@@ -348,7 +348,7 @@ export default function PostDetail() {
               </div>
               {invoice && can('member_view_invoices') && (
                 <p className="muted">
-                  Invoice {invoice.invoice_number} created ·{' '}
+                  Invoice {invoice.invoice_number} created |{' '}
                   <Link to={`/my-dashboard/my-invoices/${invoice.id}`}>View invoice</Link>
                 </p>
               )}

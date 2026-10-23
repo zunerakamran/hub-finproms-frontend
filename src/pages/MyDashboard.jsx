@@ -99,7 +99,7 @@ export default function MyDashboard() {
               'Private hub allotment from Subscriber credits settings, plus history with from/to dates.'
           } else {
             const planLabel = activePlan
-              ? `${activePlan.name} · ${activePlan.credits} credits · ${formatMoney(activePlan.price)}`
+              ? `${activePlan.name} | ${activePlan.credits} credits | ${formatMoney(activePlan.price)}`
               : 'No active subscription yet.'
             const history =
               subscriptions.length > 0

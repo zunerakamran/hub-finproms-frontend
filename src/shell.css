@@ -974,7 +974,7 @@ a.site-footer__powered:hover {
 }
 
 .dash-session-email::before {
-  content: '·';
+  content: '|';
   margin-right: 0.35rem;
   color: color-mix(in srgb, var(--muted) 70%, transparent);
 }

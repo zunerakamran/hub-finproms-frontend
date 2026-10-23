@@ -44,7 +44,7 @@ export default function BankTransferPending() {
 
       {autoConfirmed && subscription && (
         <p>
-          Plan: <strong>{subscription.plan?.name}</strong> · Credits added:{' '}
+          Plan: <strong>{subscription.plan?.name}</strong> | Credits added:{' '}
           <strong>{subscription.credits_granted}</strong>
         </p>
       )}

@@ -216,7 +216,7 @@ export default function FileDropzone({
           <strong>{dragging ? 'Drop to upload' : dropCopy}</strong>
           <span>
             or <em>click to browse</em>
-            {multiple ? ` · up to ${maxFiles} files` : ''}
+            {multiple ? ` | up to ${maxFiles} files` : ''}
           </span>
         </div>
       </div>

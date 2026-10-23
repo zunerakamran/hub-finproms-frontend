@@ -389,7 +389,7 @@ export default function InvoiceDetail() {
                     Active users counted: <strong>{breakdown.active_users_for_rate}</strong>
                   </>
                 )}
-                {breakdown.active_users_for_rate != null && breakdown.slot != null && ' · '}
+                {breakdown.active_users_for_rate != null && breakdown.slot != null && ' | '}
                 {breakdown.slot != null && (
                   <>
                     Slot: <strong>#{breakdown.slot}</strong>
@@ -398,7 +398,7 @@ export default function InvoiceDetail() {
                 )}
                 {breakdown.charged_quantity != null && (
                   <>
-                    {' · '}Charged: <strong>{breakdown.charged_quantity}</strong>
+                    {' | '}Charged: <strong>{breakdown.charged_quantity}</strong>
                   </>
                 )}
               </p>

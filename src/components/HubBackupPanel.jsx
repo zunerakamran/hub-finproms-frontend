@@ -263,7 +263,7 @@ export default function HubBackupPanel({ hubId, hubName, embedded = false, onSch
               <strong className="hub-backup-stat__value">
                 {singleStore
                   ? `${centralCount} on this server`
-                  : `${centralCount} Central · ${localCount} local`}
+                  : `${centralCount} Central | ${localCount} local`}
               </strong>
             </div>
           </div>

@@ -1319,7 +1319,7 @@ export default function WebsiteComplianceTemplatesPanel({
       {detailsRequest && (
         <ModalShell
           title="Deployment request details"
-          subtitle={`${detailsRequest.domain_name || 'Unnamed'} · ${requestRequesterName(detailsRequest)}`}
+          subtitle={`${detailsRequest.domain_name || 'Unnamed'} | ${requestRequesterName(detailsRequest)}`}
           onClose={() => setDetailsRequest(null)}
           maxWidth="max-w-3xl"
         >
@@ -1637,7 +1637,7 @@ export default function WebsiteComplianceTemplatesPanel({
           title="Update branding"
           subtitle={
             (brandingOnlyRequest.domain_name || brandingOnlyRequest.domain || requestRequesterName(brandingOnlyRequest)) +
-            ' · logos & colours only'
+            ' | logos & colours only'
           }
           onClose={() => setBrandingOnlyRequest(null)}
           maxWidth="max-w-2xl"

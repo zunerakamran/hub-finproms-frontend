@@ -105,7 +105,7 @@ export default function AdminCookies() {
 
       <p className="muted" style={{ marginBottom: '1rem' }}>
         Version <strong>{version}</strong>
-        {updatedAt ? ` · Updated ${new Date(updatedAt).toLocaleString()}` : ''}
+        {updatedAt ? ` | Updated ${new Date(updatedAt).toLocaleString()}` : ''}
       </p>
 
       <form onSubmit={onSave} className="stack-form">

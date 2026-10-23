@@ -289,8 +289,8 @@ export default function SocialMediaComplianceRequestDetail() {
           <p className="muted">
             {row.attribution_label ||
               `Submitted by ${row.submitter?.name || row.name}`}{' '}
-            · <DateTimeText value={row.submission_date} />
-            {row.post?.title ? ` · ${row.post.title}` : ''}
+            | <DateTimeText value={row.submission_date} />
+            {row.post?.title ? ` | ${row.post.title}` : ''}
           </p>
         </div>
         <Link to={backTo} className="btn ghost">
@@ -474,7 +474,7 @@ export default function SocialMediaComplianceRequestDetail() {
         <p className="smc-banner">
           Assigned to <strong>{row.assignee.name}</strong>
           {row.assignee.role ? (
-            <span className="muted"> · {roleLabel(row.assignee.role)}</span>
+            <span className="muted"> | {roleLabel(row.assignee.role)}</span>
           ) : null}
           {row.assignee.email ? (
             <span className="muted"> ({row.assignee.email})</span>
@@ -490,7 +490,7 @@ export default function SocialMediaComplianceRequestDetail() {
               <br />
               <span className="muted">
                 Assigned by <strong>{row.assigner.name}</strong>
-                {row.assigner.role ? ` · ${roleLabel(row.assigner.role)}` : ''}
+                {row.assigner.role ? ` | ${roleLabel(row.assigner.role)}` : ''}
                 {row.assigner.email ? ` (${row.assigner.email})` : ''}
               </span>
             </>

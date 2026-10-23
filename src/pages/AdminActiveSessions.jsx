@@ -291,7 +291,7 @@ export default function AdminActiveSessions({ shell = 'client-admin' }) {
       </div>
 
       <p className="muted">
-        {meta.total_users} logged-in user{meta.total_users === 1 ? '' : 's'} · {meta.total_sessions}{' '}
+        {meta.total_users} logged-in user{meta.total_users === 1 ? '' : 's'} | {meta.total_sessions}{' '}
         active session{meta.total_sessions === 1 ? '' : 's'}
       </p>
 

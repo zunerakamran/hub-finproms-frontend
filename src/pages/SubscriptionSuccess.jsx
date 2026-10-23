@@ -41,7 +41,7 @@ export default function SubscriptionSuccess() {
       <p className={status === 'error' ? 'alert' : 'muted'}>{message}</p>
       {subscription && (
         <p>
-          Plan: <strong>{subscription.plan?.name}</strong> · Credits added:{' '}
+          Plan: <strong>{subscription.plan?.name}</strong> | Credits added:{' '}
           <strong>{subscription.credits_granted}</strong>
         </p>
       )}

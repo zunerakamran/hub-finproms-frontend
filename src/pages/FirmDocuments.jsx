@@ -92,7 +92,7 @@ function RightsTable({ title, emptyLabel, rows, isFirmRows, savingId, onToggle }
                       <strong>
                         {row.name}
                         {!isFirmRows && row.is_firm_head ? (
-                          <span className="muted"> · Head</span>
+                          <span className="muted"> | Head</span>
                         ) : null}
                       </strong>
                       {!isFirmRows && row.email ? (

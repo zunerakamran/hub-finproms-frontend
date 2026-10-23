@@ -87,7 +87,7 @@ export default function FirmDocumentDetail() {
           <h1>{document.title}</h1>
           <p className="muted">
             {firm?.name ? `${firm.name}` : 'Firm document'}
-            {document.is_archived ? ' · Archived' : ''}
+            {document.is_archived ? ' | Archived' : ''}
           </p>
         </div>
         <button
@@ -122,7 +122,7 @@ export default function FirmDocumentDetail() {
             <dd>
               {document.uploader?.name || '-'}
               {document.uploader?.email ? (
-                <span className="muted"> · {document.uploader.email}</span>
+                <span className="muted"> | {document.uploader.email}</span>
               ) : null}
             </dd>
           </div>

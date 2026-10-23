@@ -164,7 +164,7 @@ export default function AdminBankTransfers() {
                     filterValue: (row) =>
                       `${row.item_type || ''} ${row.item_title || row.item_id || ''}`.trim(),
                     render: (row) =>
-                      `${row.item_type} · ${row.item_title || `#${row.item_id}`}`,
+                      `${row.item_type} | ${row.item_title || `#${row.item_id}`}`,
                   },
                   {
                     key: 'amount',

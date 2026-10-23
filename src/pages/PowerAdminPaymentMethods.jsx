@@ -253,10 +253,10 @@ export default function PowerAdminPaymentMethods() {
 
             <p className="muted">
               Active source for {hubLabel}: <strong>{methods.stripe.source}</strong>
-              {' · '}
+              {' | '}
               Secret set:{' '}
               <strong>{methods.stripe.secret_set || platformStripe.env_secret_set ? 'Yes' : 'No'}</strong>
-              {' · '}
+              {' | '}
               Webhook set:{' '}
               <strong>
                 {methods.stripe.webhook_secret_set || platformStripe.env_webhook_set ? 'Yes' : 'No'}

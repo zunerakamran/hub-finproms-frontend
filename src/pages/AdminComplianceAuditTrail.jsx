@@ -155,7 +155,7 @@ export default function AdminComplianceAuditTrail({ shell = 'client-admin' }) {
           <h1>Audit trail</h1>
           <p className="muted">
             Compliance lifecycle history for <strong>{targetName}</strong>
-            {meta?.total != null ? ` · ${meta.total} events` : ''}. Choose a compliance type below.
+            {meta?.total != null ? ` | ${meta.total} events` : ''}. Choose a compliance type below.
           </p>
         </div>
         <div className="actions">

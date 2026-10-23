@@ -48,7 +48,7 @@ export default function WebsiteCompliancePublish() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Website Content Pre Approval · Direct publish</p>
+          <p className="eyebrow">Website Content Pre Approval | Direct publish</p>
           <h1>Edit &amp; publish</h1>
           <p className="muted">
             Changes publish to the live site immediately - no approver review. Deployment #{deploymentId}.

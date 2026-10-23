@@ -317,7 +317,7 @@ export default function GeneralComplianceRequestDetail() {
           <p className="muted">
             {row.attribution_label ||
               `Submitted by ${row.submitter?.name || row.name}`}{' '}
-            · <DateTimeText value={row.submission_date} />
+            | <DateTimeText value={row.submission_date} />
           </p>
         </div>
         <Link to={backTo} className="btn ghost">
@@ -548,7 +548,7 @@ export default function GeneralComplianceRequestDetail() {
         <p className="gc-banner">
           Assigned to <strong>{row.assignee.name}</strong>
           {row.assignee.role ? (
-            <span className="muted"> · {roleLabel(row.assignee.role)}</span>
+            <span className="muted"> | {roleLabel(row.assignee.role)}</span>
           ) : null}
           {row.assignee.email ? (
             <span className="muted"> ({row.assignee.email})</span>
@@ -564,7 +564,7 @@ export default function GeneralComplianceRequestDetail() {
               <br />
               <span className="muted">
                 Assigned by <strong>{row.assigner.name}</strong>
-                {row.assigner.role ? ` · ${roleLabel(row.assigner.role)}` : ''}
+                {row.assigner.role ? ` | ${roleLabel(row.assigner.role)}` : ''}
                 {row.assigner.email ? ` (${row.assigner.email})` : ''}
               </span>
             </>

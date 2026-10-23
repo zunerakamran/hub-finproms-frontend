@@ -1132,7 +1132,7 @@ export default function SecurityMonitoring() {
                       ) : (
                         disasterSnapshots.map((s) => (
                           <option key={s.id} value={String(s.id)}>
-                            #{s.id} · {s.label || s.trigger} ·{' '}
+                            #{s.id} | {s.label || s.trigger} |{' '}
                             {formatDateTime(s.created_at)}
                           </option>
                         ))
@@ -1159,7 +1159,7 @@ export default function SecurityMonitoring() {
                 {selectedIncident.investigation_notes.map((n) => (
                   <li key={n.id}>
                     <strong>{n.author_name || 'User'}</strong>
-                    <span className="muted"> · {formatDateTime(n.created_at)}</span>
+                    <span className="muted"> | {formatDateTime(n.created_at)}</span>
                     <p>{n.body}</p>
                   </li>
                 ))}

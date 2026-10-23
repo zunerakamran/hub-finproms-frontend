@@ -520,7 +520,7 @@ export default function Home() {
         </span>
         <strong>{item.title}</strong>
         <span className="home-doc-paper__meta">
-          {[item.kindLabel, item.category].filter(Boolean).join(' · ')}
+          {[item.kindLabel, item.category].filter(Boolean).join(' | ')}
         </span>
       </div>
     )

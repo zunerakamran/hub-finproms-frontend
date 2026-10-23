@@ -243,9 +243,9 @@ export default function WebsiteComplianceRequestDetail() {
           </h1>
           <p className="muted wc-detail__subtitle">
             {sectionLabel}
-            <span aria-hidden="true"> · </span>
+            <span aria-hidden="true"> | </span>
             v{row.current_version || 1}
-            <span aria-hidden="true"> · </span>
+            <span aria-hidden="true"> | </span>
             <DateTimeText value={row.created_at} />
           </p>
         </div>

@@ -478,7 +478,7 @@ export default function CentralContentLibrary() {
             <div className="library-grid-title">
               <strong>{row.title}</strong>
               <span className="muted">
-                {row.type || '-'} · {row.credits_cost ?? '-'} credits
+                {row.type || '-'} | {row.credits_cost ?? '-'} credits
               </span>
               {hubNames.length > 0 ? (
                 <span className="library-already-on" title={hubNames.join(', ')}>
@@ -592,7 +592,7 @@ export default function CentralContentLibrary() {
           <div className="library-grid-title">
             <strong>{row.title}</strong>
             <span className="muted">
-              {row.creation_source || 'manual'} · {row.type || '-'}
+              {row.creation_source || 'manual'} | {row.type || '-'}
             </span>
           </div>
         ),
@@ -909,7 +909,7 @@ export default function CentralContentLibrary() {
                   <h3>Ready posts</h3>
                   <p className="muted library-picker__meta">
                     {postsMeta.total} match{postsMeta.total === 1 ? '' : 'es'}
-                    {selectedIds.length > 0 ? ` · ${selectedIds.length} selected` : ''}
+                    {selectedIds.length > 0 ? ` | ${selectedIds.length} selected` : ''}
                   </p>
                 </div>
                 <div className="library-picker__actions">
@@ -999,7 +999,7 @@ export default function CentralContentLibrary() {
                   <h3>Target hubs</h3>
                   <p className="muted library-picker__meta">
                     {filteredSelectableHubIds.length} ready of {targetHubs.length}
-                    {selectedHubIds.length > 0 ? ` · ${selectedHubIds.length} selected` : ''}
+                    {selectedHubIds.length > 0 ? ` | ${selectedHubIds.length} selected` : ''}
                   </p>
                 </div>
                 <div className="library-picker__actions">

@@ -185,7 +185,7 @@ export default function TaxonomyAddRequestDetail() {
           </h1>
           <p className="muted">
             <TaxStatusBadge status={row.status} at={row.reviewed_at || row.updated_at} />
-            {' · '}
+            {' | '}
             {row.target_label || row.target}
           </p>
         </div>
@@ -233,7 +233,7 @@ export default function TaxonomyAddRequestDetail() {
               {row.reviewed_by_user.name}
               {row.reviewed_at ? (
                 <>
-                  {' · '}
+                  {' | '}
                   <DateTimeText value={row.reviewed_at} />
                 </>
               ) : null}

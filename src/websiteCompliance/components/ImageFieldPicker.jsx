@@ -157,7 +157,7 @@ export default function ImageFieldPicker({
             ) : (
               <>
                 <p className="text-xs font-bold text-[var(--brand-dark)]">Drop an image here or click to browse</p>
-                <p className="text-[11px] text-gray-500 mt-1">PNG, JPG, WebP · saved to your server</p>
+                <p className="text-[11px] text-gray-500 mt-1">PNG, JPG, WebP | saved to your server</p>
               </>
             )}
             {isUploaded && !uploading && (

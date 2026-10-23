@@ -201,7 +201,7 @@ export function GcAttachmentList({
               {(roleLabel || byName) && (
                 <p className="muted gc-attach-meta">
                   {roleLabel ? <span className="gc-attach-role">{roleLabel}</span> : null}
-                  {roleLabel && byName ? ' · ' : null}
+                  {roleLabel && byName ? ' | ' : null}
                   {byName ? <span>by {byName}</span> : null}
                 </p>
               )}

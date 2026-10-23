@@ -371,7 +371,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                 <strong>
                   {row.name}
                   {row.is_central || row.id === centralFirmId ? (
-                    <span className="muted"> · Central / Network</span>
+                    <span className="muted"> | Central / Network</span>
                   ) : null}
                 </strong>
               ),
@@ -387,8 +387,8 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                     {row.head_user.name}
                     <span className="muted">
                       {' '}
-                      · {row.is_central || row.id === centralFirmId ? 'Network Admin' : 'Firm Admin'}
-                      {' · '}
+                      | {row.is_central || row.id === centralFirmId ? 'Network Admin' : 'Firm Admin'}
+                      {' | '}
                       {row.head_user.email}
                     </span>
                   </span>

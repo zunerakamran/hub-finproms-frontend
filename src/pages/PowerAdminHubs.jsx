@@ -452,7 +452,7 @@ export default function PowerAdminHubs() {
                   latest.frontend_artifact ? 'Frontend zip' : null,
                 ]
                   .filter(Boolean)
-                  .join(' · ') || 'No zips yet'
+                  .join(' | ') || 'No zips yet'
               : 'Publish a release below'}
           </span>
         </div>
@@ -469,8 +469,8 @@ export default function PowerAdminHubs() {
             {counts.up_to_date || 0} up to date
           </strong>
           <span className="muted">
-            {counts.behind || 0} behind · {counts.unknown || 0} unknown
-            {(counts.error || 0) > 0 ? ` · ${counts.error} check failed` : ''}
+            {counts.behind || 0} behind | {counts.unknown || 0} unknown
+            {(counts.error || 0) > 0 ? ` | ${counts.error} check failed` : ''}
           </span>
         </div>
       </div>
@@ -822,7 +822,7 @@ export default function PowerAdminHubs() {
                             row.migrated ? 'migrated' : null,
                           ]
                             .filter(Boolean)
-                            .join(' · ')}
+                            .join(' | ')}
                         </span>
                       ) : null}
                     </td>

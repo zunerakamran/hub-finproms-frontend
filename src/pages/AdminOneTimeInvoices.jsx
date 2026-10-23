@@ -89,7 +89,7 @@ export default function AdminOneTimeInvoices({ shell = 'client-admin' }) {
           <h1>One-time invoices</h1>
           <p className="muted">
             All one-time invoices for <strong>{targetName}</strong>
-            {meta?.total != null ? ` · ${meta.total} total` : ''} - content purchases and one-time
+            {meta?.total != null ? ` | ${meta.total} total` : ''} - content purchases and one-time
             module charges.
           </p>
         </div>

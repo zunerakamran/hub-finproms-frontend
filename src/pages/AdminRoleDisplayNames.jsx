@@ -350,7 +350,7 @@ export default function AdminRoleDisplayNames() {
                         className="muted"
                         style={{ display: 'block', fontSize: '0.85em', marginBottom: 4 }}
                       >
-                        Key: {role.key} · {Number(role.user_count) || 0} user
+                        Key: {role.key} | {Number(role.user_count) || 0} user
                         {(Number(role.user_count) || 0) === 1 ? '' : 's'}
                       </span>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

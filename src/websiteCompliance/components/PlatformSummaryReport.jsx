@@ -242,7 +242,7 @@ export default function PlatformSummaryReport({ onError }) {
           <p className="text-xs text-gray-500 mt-0.5">
             Templates, site deployments, and content change requests
             {summary.generated_at
-              ? ` · Live as of ${formatDateTime(summary.generated_at)}`
+              ? ` | Live as of ${formatDateTime(summary.generated_at)}`
               : ''}
           </p>
         </div>

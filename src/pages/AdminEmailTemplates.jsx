@@ -87,8 +87,8 @@ export default function AdminEmailTemplates() {
                   filterValue: (row) => {
                     const audiences = Array.isArray(row.audiences) ? row.audiences : []
                     const customized = audiences.filter((a) => a.is_customized).length
-                    return `${audiences.map((a) => a.label).join(' · ')}${
-                      customized > 0 ? ` · ${customized} customized` : ''
+                    return `${audiences.map((a) => a.label).join(' | ')}${
+                      customized > 0 ? ` | ${customized} customized` : ''
                     }`
                   },
                   render: (row) => {
@@ -96,8 +96,8 @@ export default function AdminEmailTemplates() {
                     const customized = audiences.filter((a) => a.is_customized).length
                     return (
                       <span className="muted" style={{ fontSize: '0.85em' }}>
-                        {audiences.map((a) => a.label).join(' · ')}
-                        {customized > 0 ? ` · ${customized} customized` : ''}
+                        {audiences.map((a) => a.label).join(' | ')}
+                        {customized > 0 ? ` | ${customized} customized` : ''}
                       </span>
                     )
                   },

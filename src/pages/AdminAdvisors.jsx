@@ -51,8 +51,8 @@ function ImportBatchDetails({ batch }) {
               {section.rows.map((row) => (
                 <li key={`${section.key}-${row.email || row.name}`}>
                   {row.name || '-'} ({row.email || '-'})
-                  {row.role ? ` · ${row.role}` : ''}
-                  {row.firm ? ` · ${row.firm}` : ''}
+                  {row.role ? ` | ${row.role}` : ''}
+                  {row.firm ? ` | ${row.firm}` : ''}
                 </li>
               ))}
             </ul>
@@ -356,7 +356,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         render: (row) =>
           row.status === 'pending'
             ? `${row.user_count ?? row.submitted_user_count ?? 0} users (sent for import)`
-            : `${row.summary?.created ?? 0} created · ${row.summary?.updated ?? 0} updated · ${row.summary?.reactivated ?? 0} reactivated · ${row.summary?.skipped ?? 0} skipped`,
+            : `${row.summary?.created ?? 0} created | ${row.summary?.updated ?? 0} updated | ${row.summary?.reactivated ?? 0} reactivated | ${row.summary?.skipped ?? 0} skipped`,
       },
       {
         key: 'status',
@@ -544,7 +544,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           <p className="muted">
             {quote?.formula || 'amount = rate(total_advisors) × batch_count'}
             {quote?.renew_day
-              ? ` · Auto-renew day: ${quote.renew_day} of each month`
+              ? ` | Auto-renew day: ${quote.renew_day} of each month`
               : ''}
           </p>
 
@@ -634,8 +634,8 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
                 {result.preview.created.map((row) => (
                   <li key={row.email}>
                     {row.name} ({row.email})
-                    {row.role ? ` · ${row.role}` : ''}
-                    {row.firm ? ` · ${row.firm}` : ''}
+                    {row.role ? ` | ${row.role}` : ''}
+                    {row.firm ? ` | ${row.firm}` : ''}
                   </li>
                 ))}
               </ul>
@@ -695,7 +695,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         <p className="muted">
           Submitted sheets show as <strong>Pending</strong> with how many users are in the file.
           Completed imports list created / updated / skipped counts
-          {historyMeta?.total != null ? ` · ${historyMeta.total} total` : ''}.
+          {historyMeta?.total != null ? ` | ${historyMeta.total} total` : ''}.
         </p>
         <DataGrid
           columns={historyColumns}
@@ -736,7 +736,7 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
             <h3>
               {expandedBatch.status === 'pending' ? 'Submission details' : 'Import details'}
               {expandedBatch.original_filename
-                ? ` · ${fileDisplayName(expandedBatch.original_filename) || expandedBatch.original_filename}`
+                ? ` | ${fileDisplayName(expandedBatch.original_filename) || expandedBatch.original_filename}`
                 : ''}
             </h3>
             <ImportBatchDetails batch={expandedBatch} />

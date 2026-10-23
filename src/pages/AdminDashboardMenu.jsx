@@ -349,7 +349,7 @@ export default function AdminDashboardMenu() {
                           <strong>{label}</strong>
                           <span className="muted form-hint">
                             {sectionKey}
-                            {isCustomSectionId(sectionKey) ? ' · custom' : ''}
+                            {isCustomSectionId(sectionKey) ? ' | custom' : ''}
                           </span>
                         </div>
                         <SortableOrderControls

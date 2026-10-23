@@ -3569,7 +3569,7 @@ label {
   flex-wrap: wrap;
 }
 
-/* —— Hubs page: code update UX —— */
+/* â€”â€” Hubs page: code update UX â€”â€” */
 .hubs-page {
   display: grid;
   gap: 1.25rem;
@@ -8284,7 +8284,7 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   border-color: color-mix(in srgb, var(--brand-accent) 22%, transparent);
 }
 
-/* —— Hub backups & restore —— */
+/* â€”â€” Hub backups & restore â€”â€” */
 .hub-dr-runbook {
   margin-bottom: 1.25rem;
 }
@@ -8606,7 +8606,7 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   color: #9ec5ff;
 }
 
-/* Security monitoring � prominent Block VPN toggle */
+/* Security monitoring — prominent Block VPN toggle */
 /* Access control page */
 .access-control-page {
   display: grid;

@@ -263,13 +263,13 @@ export default function PowerAdminHubDetail() {
           {hub.code_update?.source ? (
             <>
               {' '}
-              · source <code>{hub.code_update.source}</code>
+              | source <code>{hub.code_update.source}</code>
             </>
           ) : null}
           {hub.code_update?.checked_at ? (
             <>
               {' '}
-              · checked {new Date(hub.code_update.checked_at).toLocaleString()}
+              | checked {new Date(hub.code_update.checked_at).toLocaleString()}
             </>
           ) : null}
         </p>

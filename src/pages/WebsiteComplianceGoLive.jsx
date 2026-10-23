@@ -259,7 +259,7 @@ export default function WebsiteComplianceGoLive() {
               >
                 {myStagingRequests.map((row) => (
                   <option key={row.id} value={row.id}>
-                    #{row.id} · {row.domain_name || 'No live domain yet'}
+                    #{row.id} | {row.domain_name || 'No live domain yet'}
                     {row.staging_domain || row.cpanel_domain
                       ? ` (staging: ${row.staging_domain || row.cpanel_domain})`
                       : ''}
@@ -273,7 +273,7 @@ export default function WebsiteComplianceGoLive() {
                 <FaGlobe aria-hidden style={{ marginRight: 6 }} />
                 Currently on staging:{' '}
                 <strong>{selectedStaging.staging_domain || selectedStaging.cpanel_domain || '-'}</strong>
-                {' · '}
+                {' | '}
                 Template: <strong>{selectedStaging.template_name || '-'}</strong>
               </div>
             ) : null}

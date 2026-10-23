@@ -9,7 +9,7 @@ function formatCard(card) {
   const last4 = card.last4 ? `•••• ${card.last4}` : 'on file'
   const exp =
     card.exp_month && card.exp_year
-      ? ` · exp ${String(card.exp_month).padStart(2, '0')}/${card.exp_year}`
+      ? ` | exp ${String(card.exp_month).padStart(2, '0')}/${card.exp_year}`
       : ''
   return `${brand} ${last4}${exp}`
 }

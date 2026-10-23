@@ -189,11 +189,11 @@ export default function SupportTicketDetail() {
           </h1>
           <p className="muted">
             <StStatusBadge status={row.status} at={row.status_changed_at || row.updated_at} />
-            {' · '}
+            {' | '}
             {row.module_area_label || row.module_area}
-            {' · '}
+            {' | '}
             {row.priority_label || row.priority}
-            {' · '}
+            {' | '}
             {row.category_label || row.category}
           </p>
         </div>

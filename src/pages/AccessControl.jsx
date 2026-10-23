@@ -1139,7 +1139,7 @@ export default function AccessControl() {
                       <span className="access-control-user-item__name">{u.name || u.email}</span>
                       <span className="access-control-user-item__meta muted">
                         {u.email}
-                        {formatUserRoles(u) !== '-' ? ` · ${formatUserRoles(u)}` : ''}
+                        {formatUserRoles(u) !== '-' ? ` | ${formatUserRoles(u)}` : ''}
                       </span>
                     </button>
                   )
@@ -1514,11 +1514,11 @@ export default function AccessControl() {
                       <strong>{row.title}</strong>
                       <span className="muted">
                         {formatChangeTime(row.occurred_at)}
-                        {row.actor?.email ? ` · ${row.actor.email}` : ''}
+                        {row.actor?.email ? ` | ${row.actor.email}` : ''}
                         {row.scope === 'user' && row.target_user?.email
-                          ? ` · target ${row.target_user.email}`
+                          ? ` | target ${row.target_user.email}`
                           : row.scope === 'hub'
-                            ? ' · hub'
+                            ? ' | hub'
                             : ''}
                       </span>
                       {row.change_summary ? (

@@ -448,7 +448,7 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
             <p className="text-xs text-gray-500 mt-1">
               Template: <span className="font-semibold text-gray-700">{request.template_name || 'template4'}</span>
               {isDeployed && request.cpanel_domain && (
-                <> · cPanel: <code className="font-mono text-[11px] bg-white/80 px-1.5 py-0.5 rounded border border-gray-200">{request.cpanel_domain}</code></>
+                <> | cPanel: <code className="font-mono text-[11px] bg-white/80 px-1.5 py-0.5 rounded border border-gray-200">{request.cpanel_domain}</code></>
               )}
             </p>
             {assignedToYou && (
@@ -2777,7 +2777,7 @@ export default function AdvisorDashboard({
                 {isPowerAdminPublishMode && activeDeployment && (
                   <p className="text-xs text-gray-500 mt-2">
                     Editing: <strong className="text-[var(--brand-dark)]">{activeDeployment.advisor?.name || advisorLabel}</strong>
-                    {' · '}
+                    {' | '}
                     <span className="font-mono">{activeDeployment.domain_name || activeDeployment.cpanel_domain}</span>
                   </p>
                 )}
@@ -2809,7 +2809,7 @@ export default function AdvisorDashboard({
               {isPowerAdminPublishMode && activeDeployment ? (
                 <p className="text-xs text-gray-500">
                   Editing: <strong className="text-[var(--brand-dark)]">{activeDeployment.advisor?.name || advisorLabel}</strong>
-                  {' · '}
+                  {' | '}
                   <span className="font-mono">{activeDeployment.domain_name || activeDeployment.cpanel_domain}</span>
                 </p>
               ) : (
@@ -2858,7 +2858,7 @@ export default function AdvisorDashboard({
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Deployments</p>
                   <p className="text-sm font-extrabold text-[var(--brand-dark)]">
                     {deployedRequests.length} live
-                    {pendingRequests.length > 0 && <span className="text-amber-600 font-bold"> · {pendingRequests.length} pending</span>}
+                    {pendingRequests.length > 0 && <span className="text-amber-600 font-bold"> | {pendingRequests.length} pending</span>}
                   </p>
                 </div>
               </div>
@@ -3219,7 +3219,7 @@ export default function AdvisorDashboard({
                         <p className="text-sm font-bold text-[var(--brand-dark)]">
                           Request #{cr.id}
                           <span className="ml-2 text-xs font-bold text-slate-500">v{cr.current_version || 1}</span>
-                          <span className="ml-2 text-xs font-bold text-slate-600">· {crStatusLabel(cr.status)}</span>
+                          <span className="ml-2 text-xs font-bold text-slate-600">| {crStatusLabel(cr.status)}</span>
                           {isFocused && (
                             <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand)] text-white">
                               Editing previous sections
@@ -3516,7 +3516,7 @@ export default function AdvisorDashboard({
                                     {sectionDisplayName(section)}
                                   </h3>
                                   <p className="text-[11px] text-gray-400 mt-0.5">
-                                    {isPreview ? 'Preview mode' : 'Fields mode'} · Click to expand
+                                    {isPreview ? 'Preview mode' : 'Fields mode'} | Click to expand
                                   </p>
                                 </div>
                               </button>

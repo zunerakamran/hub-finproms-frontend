@@ -191,9 +191,9 @@ export default function MySubscription() {
               <h2>{activePlan.name}</h2>
               <p className="muted">
                 {activePlan.credits} credits
-                {activePlan.price != null ? ` · ${formatMoney(activePlan.price)}` : ''}
+                {activePlan.price != null ? ` | ${formatMoney(activePlan.price)}` : ''}
                 {activePlan.duration_days
-                  ? ` · ${activePlan.duration_days} day${activePlan.duration_days === 1 ? '' : 's'}`
+                  ? ` | ${activePlan.duration_days} day${activePlan.duration_days === 1 ? '' : 's'}`
                   : ''}
               </p>
               <div className="subscription-card__meta">

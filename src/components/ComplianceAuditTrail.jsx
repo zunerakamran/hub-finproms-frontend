@@ -52,7 +52,7 @@ function PersonBlock({ person, roleLabel }) {
       <div className="compliance-audit-trail__person-text">
         <div>
           <strong>{person.name || 'Unknown'}</strong>
-          {role ? <span className="muted"> · {role}</span> : null}
+          {role ? <span className="muted"> | {role}</span> : null}
         </div>
         {person.email ? (
           <div className="muted compliance-audit-trail__email">{person.email}</div>
@@ -191,7 +191,7 @@ export default function ComplianceAuditTrail({
   )
 }
 
-/** Compact person cell for report grids (name · role + email). */
+/** Compact person cell for report grids (name | role + email). */
 export function CompliancePersonCell({ name, email, role }) {
   const { roleLabel } = useHub()
   if (!name && !email) return '-'
@@ -199,7 +199,7 @@ export function CompliancePersonCell({ name, email, role }) {
   return (
     <>
       {name || '-'}
-      {roleText ? <span className="muted"> · {roleText}</span> : null}
+      {roleText ? <span className="muted"> | {roleText}</span> : null}
       {email ? (
         <>
           <br />
@@ -312,7 +312,7 @@ export function ComplianceAuditTrailCell({
         open={open}
         onClose={() => setOpen(false)}
         title={title}
-        subtitle={`${list.length} lifecycle event${list.length === 1 ? '' : 's'} · oldest → newest`}
+        subtitle={`${list.length} lifecycle event${list.length === 1 ? '' : 's'} | oldest → newest`}
         events={list}
       />
     </div>

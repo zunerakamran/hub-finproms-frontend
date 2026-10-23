@@ -898,7 +898,7 @@ export function CreateDeploymentModal({
                     logoUrl ? 'Logo' : null,
                     whiteLogoUrl ? 'White logo' : null,
                     faviconUrl ? 'Favicon' : null,
-                  ].filter(Boolean).join(' · ') || 'None uploaded'}
+                  ].filter(Boolean).join(' | ') || 'None uploaded'}
                 />
                 <ReviewRow
                   label="Services"

@@ -9282,28 +9282,30 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   max-width: none;
   min-width: 0;
   box-sizing: border-box;
-  padding-bottom: 5rem;
+  padding-bottom: 5.5rem;
 }
 
 .ucap-layout {
   display: grid;
-  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 1.1rem;
   align-items: start;
-  margin-top: 0.5rem;
+  margin-top: 0.65rem;
 }
 
 .ucap-layout .panel {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius, 14px);
   background: var(--panel, #fff);
+  box-shadow: var(--shadow);
   box-sizing: border-box;
 }
 
+/* ?? People sidebar ?? */
 .ucap-users {
   position: sticky;
   top: 0.75rem;
-  max-height: calc(100vh - 7rem);
+  max-height: calc(100vh - 6.5rem);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -9311,27 +9313,69 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
 
 .ucap-users__head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.9rem 1rem 0.35rem;
+  padding: 0.95rem 1rem 0.4rem;
 }
 
-.ucap-users__head h2 {
+.ucap-users__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--brand);
+}
+
+.ucap-users__title h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.05rem;
+  font-family: 'Source Serif 4', Georgia, serif;
+}
+
+.ucap-users__count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--brand-softer);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  min-width: 1.6rem;
+  text-align: center;
+}
+
+.ucap-users__mobile-pick {
+  display: none;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0 0.85rem 0.65rem;
+}
+
+.ucap-users__mobile-pick select {
+  width: 100%;
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
 }
 
 .ucap-search {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin: 0.5rem 0.85rem 0.75rem;
-  padding: 0.45rem 0.65rem;
+  margin: 0.4rem 0.85rem 0.65rem;
+  padding: 0.5rem 0.7rem;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--bg, #fff);
-  color: var(--muted, #64748b);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--muted);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ucap-search:focus-within {
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  box-shadow: var(--focus);
 }
 
 .ucap-search input {
@@ -9340,13 +9384,13 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   width: 100%;
   background: transparent;
   font: inherit;
-  color: inherit;
+  color: var(--ink);
 }
 
 .ucap-search--wide {
   margin: 0;
-  flex: 1;
-  min-width: 12rem;
+  flex: 1 1 14rem;
+  min-width: 10rem;
 }
 
 .ucap-pad {
@@ -9356,112 +9400,94 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
 .ucap-user-list {
   list-style: none;
   margin: 0;
-  padding: 0 0.5rem 0.75rem;
+  padding: 0.15rem 0.55rem 0.85rem;
   overflow: auto;
   flex: 1;
+  scrollbar-width: thin;
 }
 
 .ucap-user {
   display: flex;
-  gap: 0.65rem;
+  gap: 0.7rem;
   width: 100%;
   text-align: left;
-  padding: 0.65rem 0.6rem;
-  margin-bottom: 0.25rem;
+  padding: 0.7rem 0.65rem;
+  margin-bottom: 0.2rem;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 12px;
   background: transparent;
   cursor: pointer;
   color: inherit;
   font: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .ucap-user:hover {
-  background: rgba(37, 99, 235, 0.04);
+  background: var(--brand-softer);
 }
 
 .ucap-user.is-active {
-  border-color: var(--accent, #2563eb);
-  background: rgba(37, 99, 235, 0.08);
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--line));
+  background: var(--brand-soft);
+  box-shadow: inset 3px 0 0 var(--brand);
 }
 
 .ucap-user__avatar {
   flex: 0 0 auto;
-  width: 2rem;
-  height: 2rem;
+  width: 2.15rem;
+  height: 2.15rem;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 0.85rem;
-  background: rgba(37, 99, 235, 0.12);
-  color: var(--accent, #2563eb);
+  background: color-mix(in srgb, var(--brand) 16%, white);
+  color: var(--brand-dark);
 }
 
 .ucap-user__avatar--lg {
-  width: 2.75rem;
-  height: 2.75rem;
-  font-size: 1.05rem;
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.1rem;
 }
 
 .ucap-user__body {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.1rem;
   min-width: 0;
+  flex: 1;
 }
 
 .ucap-user__name {
   font-weight: 650;
   line-height: 1.25;
-}
-
-.ucap-user__email {
-  font-size: 0.82rem;
-  color: var(--muted, #64748b);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ucap-user__roles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
+.ucap-user__email {
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ucap-user__roles-line {
   margin-top: 0.2rem;
-}
-
-.ucap-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--bg, #fff);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  line-height: 1.3;
+  color: var(--brand-dark);
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.ucap-chip--sm {
-  padding: 0.1rem 0.4rem;
-  font-size: 0.7rem;
-}
-
-.ucap-chip--shared {
-  border-color: transparent;
-  background: rgba(100, 116, 139, 0.12);
-  color: var(--muted, #475569);
-  font-weight: 600;
-}
-
-.ucap-chip__count {
-  opacity: 0.7;
-  font-weight: 500;
-}
-
+/* ?? Detail pane ?? */
 .ucap-detail {
   display: flex;
   flex-direction: column;
@@ -9470,49 +9496,115 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
 }
 
 .ucap-empty {
-  padding: 2.5rem 1.5rem;
+  padding: 3rem 1.5rem;
   text-align: center;
 }
 
 .ucap-empty__icon {
-  font-size: 1.75rem;
+  font-size: 2rem;
+  color: var(--brand);
   opacity: 0.35;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
 }
 
 .ucap-empty h2 {
   margin: 0 0 0.35rem;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
 }
 
 .ucap-detail__head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.1rem;
+  gap: 1.1rem;
+  padding: 1.15rem 1.2rem;
 }
 
 .ucap-detail__identity {
   display: flex;
-  gap: 0.85rem;
+  gap: 0.95rem;
   align-items: flex-start;
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.ucap-detail__who {
   min-width: 0;
 }
 
 .ucap-detail__identity h2 {
-  margin: 0 0 0.15rem;
-  font-size: 1.2rem;
+  margin: 0 0 0.1rem;
+  font-size: 1.25rem;
 }
 
 .ucap-detail__identity .muted {
-  margin: 0 0 0.45rem;
+  margin: 0 0 0.55rem;
+}
+
+.ucap-detail__roles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.ucap-detail__roles-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-right: 0.15rem;
+}
+
+.ucap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.ucap-pill--muted {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--muted) 14%, white);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.ucap-pill--action {
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 650;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ucap-pill--action:hover,
+.ucap-pill--action.is-active {
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--line));
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+
+.ucap-pill__count {
+  opacity: 0.65;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .ucap-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(4.5rem, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(4, minmax(4.25rem, 1fr));
+  gap: 0.45rem;
+  align-self: center;
 }
 
 .ucap-stat {
@@ -9520,27 +9612,28 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.55rem 0.4rem;
+  padding: 0.55rem 0.35rem;
   border-radius: 10px;
   border: 1px solid var(--line);
-  background: var(--bg, #fff);
-  min-width: 4.5rem;
+  background: var(--bg);
+  min-width: 4.25rem;
 }
 
 .ucap-stat strong {
   font-size: 1.1rem;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .ucap-stat span {
-  font-size: 0.72rem;
-  color: var(--muted, #64748b);
+  font-size: 0.7rem;
+  color: var(--muted);
   margin-top: 0.15rem;
 }
 
 .ucap-stat.is-dirty {
-  border-color: #f59e0b;
-  background: rgba(245, 158, 11, 0.08);
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--line));
+  background: color-mix(in srgb, var(--warn) 10%, white);
 }
 
 .ucap-toolbar {
@@ -9551,32 +9644,91 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   padding: 0.85rem 1rem;
 }
 
-.ucap-toolbar__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  align-items: center;
+.ucap-view-toggle {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  gap: 0.15rem;
 }
 
-.ucap-jump {
+.ucap-view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--muted);
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ucap-view-toggle button.is-active {
+  background: var(--panel);
+  color: var(--brand-dark);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+.ucap-toolbar__bulk {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+  margin-left: auto;
 }
 
-.ucap-jump a {
-  display: inline-block;
-  padding: 0.3rem 0.6rem;
-  border-radius: 999px;
+.ucap-hint {
+  margin: -0.25rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.ucap-role-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.ucap-role-tab {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 12px;
   border: 1px solid var(--line);
-  background: var(--bg, #fff);
+  background: var(--panel);
+  cursor: pointer;
+  font: inherit;
   color: inherit;
-  text-decoration: none;
-  font-size: 0.82rem;
+  min-width: 7rem;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.ucap-jump a:hover {
-  border-color: var(--accent, #2563eb);
+.ucap-role-tab:hover {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--line));
+}
+
+.ucap-role-tab.is-active {
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  background: var(--brand-soft);
+  box-shadow: inset 0 -3px 0 var(--brand);
+}
+
+.ucap-role-tab__label {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.ucap-role-tab__meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .ucap-sections {
@@ -9595,27 +9747,27 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.65rem 0.75rem;
+  padding: 0.7rem 0.9rem;
   border-bottom: 1px solid var(--line);
-  background: rgba(15, 23, 42, 0.02);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand) 5%, white) 0%,
+    var(--panel) 100%
+  );
 }
 
+.ucap-role__heading,
 .ucap-role__toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
   border: 0;
   background: transparent;
-  cursor: pointer;
   font: inherit;
   color: inherit;
-  padding: 0.25rem 0.35rem;
+  padding: 0.2rem 0.25rem;
   border-radius: 8px;
   min-width: 0;
-}
-
-.ucap-role__toggle:hover {
-  background: rgba(37, 99, 235, 0.06);
 }
 
 .ucap-role__title {
@@ -9623,7 +9775,8 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   align-items: center;
   gap: 0.45rem;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.98rem;
+  font-family: 'Source Serif 4', Georgia, serif;
 }
 
 .ucap-role__bulk {
@@ -9642,39 +9795,51 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem;
   align-items: start;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  transition: background 0.12s ease;
 }
 
 .ucap-cap:last-child {
   border-bottom: 0;
 }
 
+.ucap-cap:hover {
+  background: var(--brand-softer);
+}
+
 .ucap-cap.is-revoked {
-  background: rgba(239, 68, 68, 0.04);
+  background: color-mix(in srgb, var(--danger) 5%, white);
+}
+
+.ucap-cap.is-revoked:hover {
+  background: color-mix(in srgb, var(--danger) 8%, white);
 }
 
 .ucap-cap.is-changed {
-  box-shadow: inset 3px 0 0 #f59e0b;
+  box-shadow: inset 3px 0 0 var(--warn);
 }
 
 .ucap-cap__label {
   display: flex;
-  gap: 0.7rem;
+  gap: 0.75rem;
   align-items: flex-start;
   cursor: pointer;
   min-width: 0;
 }
 
 .ucap-cap__label input {
-  margin-top: 0.2rem;
+  margin-top: 0.25rem;
   flex: 0 0 auto;
+  accent-color: var(--brand);
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
 .ucap-cap__text {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
   min-width: 0;
 }
 
@@ -9683,19 +9848,26 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .ucap-cap__desc,
 .ucap-cap__also {
-  font-size: 0.85rem;
-  line-height: 1.35;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.ucap-cap__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
 }
 
 .ucap-cap__meta {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   white-space: nowrap;
-  padding-top: 0.15rem;
+  padding-top: 0.2rem;
 }
 
 .ucap-savebar {
@@ -9708,11 +9880,11 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   justify-content: space-between;
   gap: 0.75rem;
   margin-top: 0.35rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid rgba(245, 158, 11, 0.45);
-  border-radius: 12px;
-  background: var(--panel, #fff);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  padding: 0.9rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
+  border-radius: var(--radius, 14px);
+  background: var(--panel);
+  box-shadow: var(--shadow-lg);
 }
 
 .ucap-savebar p {
@@ -9725,18 +9897,31 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   flex-wrap: wrap;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .ucap-layout {
     grid-template-columns: 1fr;
   }
 
   .ucap-users {
     position: static;
-    max-height: 18rem;
+    max-height: none;
+  }
+
+  .ucap-user-list {
+    display: none;
+  }
+
+  .ucap-users__mobile-pick {
+    display: flex;
   }
 
   .ucap-stats {
-    grid-template-columns: repeat(2, minmax(4.5rem, 1fr));
+    grid-template-columns: repeat(2, minmax(4.25rem, 1fr));
+    width: 100%;
+  }
+
+  .ucap-toolbar__bulk {
+    margin-left: 0;
     width: 100%;
   }
 
@@ -9745,6 +9930,6 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   }
 
   .ucap-cap__meta {
-    padding-left: 1.7rem;
+    padding-left: 1.85rem;
   }
 }

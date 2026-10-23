@@ -8,29 +8,46 @@ import { useHub } from '../context/HubContext'
 const emptyForm = {
   name: '',
   compliance_visible_to_own: true,
-  compliance_visible_to_central: false,
-  compliance_visible_to_firm_id: '',
+  compliance_authority_firm_ids: [],
 }
 
 const PER_PAGE = 50
 
 function visibilityFromFirm(firm) {
   const vis = firm?.compliance_visibility || {}
+  let authorityIds = Array.isArray(vis.authority_firm_ids)
+    ? vis.authority_firm_ids.map(Number).filter((id) => Number.isFinite(id))
+    : []
+  // Legacy payloads: rebuild from central + single peer.
+  if (!authorityIds.length) {
+    if (vis.visible_to_central && firm?.central_firm_id) {
+      authorityIds.push(Number(firm.central_firm_id))
+    }
+    if (vis.visible_to_firm_id) {
+      authorityIds.push(Number(vis.visible_to_firm_id))
+    }
+  }
   return {
     name: firm?.name || '',
     compliance_visible_to_own: vis.visible_to_own !== false,
-    compliance_visible_to_central: Boolean(vis.visible_to_central),
-    compliance_visible_to_firm_id: vis.visible_to_firm_id ? String(vis.visible_to_firm_id) : '',
+    compliance_authority_firm_ids: [...new Set(authorityIds)],
   }
 }
 
-function checkAuthorityLabel(firm) {
+function delegatedAccessLabel(firm) {
   const vis = firm?.compliance_visibility || {}
   const bits = []
   if (vis.visible_to_own) bits.push('Within the Firm')
-  if (vis.visible_to_central) bits.push("Central / Network's")
-  if (vis.visible_to_firm?.name) bits.push(vis.visible_to_firm.name)
-  return bits.length ? bits.join(', ') : 'No compliance check authority set'
+  const authorities = Array.isArray(vis.authority_firms) ? vis.authority_firms : []
+  if (authorities.length) {
+    authorities.forEach((f) => {
+      bits.push(f.is_central ? 'Central / Network' : f.name)
+    })
+  } else {
+    if (vis.visible_to_central) bits.push('Central / Network')
+    if (vis.visible_to_firm?.name) bits.push(vis.visible_to_firm.name)
+  }
+  return bits.length ? bits.join(', ') : 'No delegated compliance access set'
 }
 
 export default function AdminFirms({ shell = 'client-admin' }) {
@@ -56,8 +73,12 @@ export default function AdminFirms({ shell = 'client-admin' }) {
   const [headUserIds, setHeadUserIds] = useState([])
   const [savingHead, setSavingHead] = useState(false)
 
-  const otherFirmOptions = useMemo(
-    () => firmOptions.filter((f) => !f.is_central && f.id !== editingId),
+  const authorityFirmOptions = useMemo(
+    () =>
+      firmOptions.filter((f) => {
+        if (editingId && Number(f.id) === Number(editingId)) return false
+        return true
+      }),
     [firmOptions, editingId]
   )
 
@@ -109,12 +130,39 @@ export default function AdminFirms({ shell = 'client-admin' }) {
 
   const startEdit = (firm) => {
     setEditingId(firm.id)
-    setForm(visibilityFromFirm(firm))
+    const next = visibilityFromFirm({ ...firm, central_firm_id: centralFirmId })
+    // If API only returned visible_to_central without authority ids, add central id.
+    if (
+      firm?.compliance_visibility?.visible_to_central &&
+      centralFirmId &&
+      !next.compliance_authority_firm_ids.includes(Number(centralFirmId))
+    ) {
+      next.compliance_authority_firm_ids = [
+        ...next.compliance_authority_firm_ids,
+        Number(centralFirmId),
+      ]
+    }
+    setForm(next)
     setShowForm(true)
     setHeadFirmId(null)
     setMessage('')
     setError('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const toggleAuthorityFirm = (firmId) => {
+    const id = Number(firmId)
+    setForm((f) => {
+      const current = Array.isArray(f.compliance_authority_firm_ids)
+        ? f.compliance_authority_firm_ids
+        : []
+      return {
+        ...f,
+        compliance_authority_firm_ids: current.includes(id)
+          ? current.filter((x) => x !== id)
+          : [...current, id],
+      }
+    })
   }
 
   const startAssignHead = async (firm) => {
@@ -161,10 +209,7 @@ export default function AdminFirms({ shell = 'client-admin' }) {
       const payload = {
         name: form.name.trim(),
         compliance_visible_to_own: Boolean(form.compliance_visible_to_own),
-        compliance_visible_to_central: Boolean(form.compliance_visible_to_central),
-        compliance_visible_to_firm_id: form.compliance_visible_to_firm_id
-          ? Number(form.compliance_visible_to_firm_id)
-          : null,
+        compliance_authority_firm_ids: (form.compliance_authority_firm_ids || []).map(Number),
       }
 
       if (editingId) {
@@ -335,10 +380,10 @@ export default function AdminFirms({ shell = 'client-admin' }) {
               marginTop: '1rem',
             }}
           >
-            <legend style={{ padding: '0 0.35rem' }}>Compliance check authority</legend>
+            <legend style={{ padding: '0 0.35rem' }}>Delegated compliance access</legend>
             <p className="muted" style={{ marginTop: 0 }}>
-              Choose who can review, approve, and see reports for requests submitted by users of this
-              Firm.
+              Choose which firms (including Central / Network) may review, assign, see reports, and
+              see audit trails for requests submitted by users of this firm. Access is one-way only.
             </p>
             <label className="checkbox">
               <input
@@ -350,32 +395,31 @@ export default function AdminFirms({ shell = 'client-admin' }) {
               />
               Within the Firm
             </label>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={form.compliance_visible_to_central}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, compliance_visible_to_central: e.target.checked }))
-                }
-              />
-              Central / Network&apos;s
-            </label>
-            <label>
-              Another Firm&apos;s
-              <select
-                value={form.compliance_visible_to_firm_id}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, compliance_visible_to_firm_id: e.target.value }))
-                }
-              >
-                <option value="">None</option>
-                {otherFirmOptions.map((firm) => (
-                  <option key={firm.id} value={firm.id}>
-                    {firm.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {authorityFirmOptions.length === 0 ? (
+              <p className="muted" style={{ marginBottom: 0 }}>
+                No other firms yet. Add more firms to delegate access.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
+                {authorityFirmOptions.map((firm) => {
+                  const id = Number(firm.id)
+                  const checked = (form.compliance_authority_firm_ids || []).includes(id)
+                  return (
+                    <label key={firm.id} className="checkbox">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleAuthorityFirm(id)}
+                      />
+                      {firm.name}
+                      {firm.is_central || id === Number(centralFirmId) ? (
+                        <span className="muted"> (Central / Network)</span>
+                      ) : null}
+                    </label>
+                  )
+                })}
+              </div>
+            )}
           </fieldset>
 
           <div className="actions">
@@ -441,11 +485,11 @@ export default function AdminFirms({ shell = 'client-admin' }) {
                 `${row.users_count || 0} user${(row.users_count || 0) === 1 ? '' : 's'}`,
             },
             {
-              key: 'check_authority',
-              label: 'Check authority',
+              key: 'delegated_access',
+              label: 'Delegated access',
               grow: true,
-              filterValue: (row) => checkAuthorityLabel(row),
-              render: (row) => checkAuthorityLabel(row),
+              filterValue: (row) => delegatedAccessLabel(row),
+              render: (row) => delegatedAccessLabel(row),
             },
           ]}
           rows={firms}

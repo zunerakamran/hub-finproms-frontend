@@ -1,13 +1,8 @@
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import ReviewQueuePanel from '../websiteCompliance/components/ReviewQueuePanel'
-import WebsiteScopeCheckboxes, {
-  resolveWebsiteScopeFromUser,
-} from '../websiteCompliance/components/WebsiteScopeCheckboxes'
 
 export default function WebsiteComplianceReviewQueue() {
-  const { user } = useAuth()
   const { can, loading: hubLoading } = useHub()
   const moduleOn = can('module_website_compliance')
   const canReview = can('wc_review_change_requests')
@@ -65,7 +60,6 @@ export default function WebsiteComplianceReviewQueue() {
           </p>
         </div>
       </div>
-      <WebsiteScopeCheckboxes scope={resolveWebsiteScopeFromUser(user)} />
       <ReviewQueuePanel variant="active" />
     </section>
   )

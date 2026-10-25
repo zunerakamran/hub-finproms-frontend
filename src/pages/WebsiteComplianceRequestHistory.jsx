@@ -2,9 +2,6 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import ReviewQueuePanel from '../websiteCompliance/components/ReviewQueuePanel'
-import WebsiteScopeCheckboxes, {
-  resolveWebsiteScopeFromUser,
-} from '../websiteCompliance/components/WebsiteScopeCheckboxes'
 
 export default function WebsiteComplianceRequestHistory() {
   const { user } = useAuth()
@@ -69,7 +66,6 @@ export default function WebsiteComplianceRequestHistory() {
           </p>
         </div>
       </div>
-      <WebsiteScopeCheckboxes scope={resolveWebsiteScopeFromUser(user)} />
       {/* Without view-all, ReviewQueuePanel scopes history to requests picked by this user.
           AssignmentPanel history is hub-wide and was leaking other approvers' work. */}
       <ReviewQueuePanel variant="history" />

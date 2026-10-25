@@ -11,10 +11,6 @@ import { asList } from '../utils/apiList'
 import { formatDateTime, complianceStatusChangedAt } from '../utils/dateFormat'
 import { gridActorName } from '../utils/submissionAttribution'
 import { wcSectionTitle } from '../utils/websiteCompliance'
-import WebsiteScopeCheckboxes, {
-  resolveWebsiteScopeFromUser,
-} from '../websiteCompliance/components/WebsiteScopeCheckboxes'
-
 export default function WebsiteComplianceMyRequests() {
   const { user } = useAuth()
   const { can, loading: hubLoading, effectiveAdvisorId, actingAdvisor, complianceStatusLabel } =
@@ -178,8 +174,6 @@ export default function WebsiteComplianceMyRequests() {
           </Link>
         )}
       </div>
-
-      <WebsiteScopeCheckboxes scope={resolveWebsiteScopeFromUser(user)} />
 
       {error && <div className="alert">{error}</div>}
       {!loading && sorted.length === 0 ? (

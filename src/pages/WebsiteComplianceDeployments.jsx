@@ -1,20 +1,15 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FaLayerGroup, FaRocket, FaThLarge } from 'react-icons/fa'
-import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import DeploymentRequestPanel from '../websiteCompliance/components/DeploymentRequestPanel'
 import WebsiteComplianceTemplatesPanel from '../websiteCompliance/components/WebsiteComplianceTemplatesPanel'
-import WebsiteScopeCheckboxes, {
-  resolveWebsiteScopeFromUser,
-} from '../websiteCompliance/components/WebsiteScopeCheckboxes'
 import {
   websiteModuleOffMessage,
   websiteTemplateLibraryOn,
 } from '../utils/websiteCompliance'
 
 export default function WebsiteComplianceDeployments() {
-  const { user } = useAuth()
   const { can, loading: hubLoading } = useHub()
   const templateModuleOn = websiteTemplateLibraryOn(can)
   const canAssign = can('wc_assign_website_templates')
@@ -114,8 +109,6 @@ export default function WebsiteComplianceDeployments() {
           </p>
         </div>
       </div>
-
-      <WebsiteScopeCheckboxes scope={resolveWebsiteScopeFromUser(user)} />
 
       {tabs.length > 0 ? (
         <div className="library-tabs mb-5" role="tablist" aria-label="Site operations sections">

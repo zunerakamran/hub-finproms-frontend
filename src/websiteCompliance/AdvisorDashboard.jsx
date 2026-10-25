@@ -10,7 +10,6 @@ import TemplateScrollPreview from './components/TemplateScrollPreview'
 import ImageFieldPicker from './components/ImageFieldPicker'
 import { CreateDeploymentModal } from './components/DeploymentRequestPanel'
 import WebsiteScopeCheckboxes, {
-  resolveWebsiteScopeFromUser,
   websiteScopeFromRequest,
 } from './components/WebsiteScopeCheckboxes'
 import { isDeploymentOnSite } from './utils/deploymentStatus'
@@ -2762,13 +2761,9 @@ export default function AdvisorDashboard({
   const pageContent = (
     <>
       <div className={embedded ? 'w-full min-w-0' : 'max-w-7xl mx-auto px-4 sm:px-6 py-8'}>
-        <WebsiteScopeCheckboxes
-          scope={
-            activeDeployment
-              ? websiteScopeFromRequest(activeDeployment)
-              : resolveWebsiteScopeFromUser(user)
-          }
-        />
+        {activeDeployment ? (
+          <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(activeDeployment)} />
+        ) : null}
 
         {/* Header - skip full page chrome when embedded in hub dashboard (hub page-head already shown) */}
         <div className={embedded ? 'mb-5' : 'mb-8'}>

@@ -8,10 +8,6 @@ import {
   isDeploymentOnSite,
   isDeploymentStagingPhase,
 } from '../websiteCompliance/utils/deploymentStatus'
-import { useAuth } from '../context/AuthContext'
-import WebsiteScopeCheckboxes, {
-  resolveWebsiteScopeFromUser,
-} from '../websiteCompliance/components/WebsiteScopeCheckboxes'
 
 function siteName(req) {
   return (
@@ -48,7 +44,6 @@ function statusBadge(req) {
 }
 
 export default function WebsiteCompliancePublishLive() {
-  const { user } = useAuth()
   const { can, loading: hubLoading, roleLabel, complianceStatusLabel } = useHub()
   const moduleOn = can('module_website_compliance')
   const canPublish = can('wc_publish_live_content')
@@ -148,8 +143,6 @@ export default function WebsiteCompliancePublishLive() {
           </p>
         </div>
       </div>
-
-      <WebsiteScopeCheckboxes scope={resolveWebsiteScopeFromUser(user)} />
 
       <div className="wc-app wc-surface space-y-4">
         <div className="rounded-2xl border border-[var(--brand)]/25 bg-[var(--brand-softer)] px-5 py-4">

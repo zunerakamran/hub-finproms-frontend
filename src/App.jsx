@@ -786,9 +786,7 @@ export default function App() {
                 <Route
                   path="website-compliance/go-live"
                   element={
-                    <HubCapabilityRoute
-                      anyOf={['wc_request_deployments', 'wc_assign_website_templates']}
-                    >
+                    <HubCapabilityRoute anyOf={['wc_request_go_live']}>
                       <WebsiteComplianceGoLive />
                     </HubCapabilityRoute>
                   }

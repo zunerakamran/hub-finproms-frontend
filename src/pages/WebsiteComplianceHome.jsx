@@ -73,7 +73,7 @@ const WTL_CARDS = [
     title: 'Request go-live',
     description: 'Submit a go-live request so Power Admin can deploy your staging site to the main URL.',
     icon: FaRocket,
-    anyOf: ['wc_request_deployments', 'wc_assign_website_templates'],
+    anyOf: ['wc_request_go_live'],
     exceptRoles: ['power_admin', 'finproms_admin'],
   },
 ]

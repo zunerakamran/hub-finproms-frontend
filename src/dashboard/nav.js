@@ -978,7 +978,7 @@ export const DASHBOARD_LINKS = [
     title: 'Request go-live',
     description:
       'Submit a request for Power Admin to deploy your completed staging website to the main URL.',
-    anyOf: ['wc_request_deployments', 'wc_assign_website_templates'],
+    anyOf: ['wc_request_go_live'],
     exceptRoles: ['power_admin', 'finproms_admin'],
     group: 'wtl',
   },

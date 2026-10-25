@@ -45,6 +45,10 @@ import {
   CreateDeploymentModal,
   isRequestedByAdvisor,
 } from './DeploymentRequestPanel'
+import WebsiteScopeCheckboxes, {
+  websiteScopeFromRequest,
+  websiteScopeLabel,
+} from './WebsiteScopeCheckboxes'
 import {
   canPromoteToLive,
   isDeploymentLive,
@@ -350,6 +354,13 @@ export default function WebsiteComplianceTemplatesPanel({
         label: 'Requested by',
         render: (row) => requestRequesterName(row, 'Advisor'),
         filterValue: (row) => requestRequesterName(row, ''),
+      },
+      {
+        key: 'website_scope',
+        label: 'Website type',
+        render: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
+        filterValue: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
+        truncate: false,
       },
       {
         key: 'template_name',
@@ -1370,6 +1381,7 @@ export default function WebsiteComplianceTemplatesPanel({
           maxWidth="max-w-3xl"
         >
           <form onSubmit={handleDeploySubmit} className="space-y-5">
+            <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(selectedRequest)} />
             <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs text-amber-900 leading-relaxed">
               {isDeploymentLive(selectedRequest.status) ? (
                 <>Updating the <strong>live</strong> host. Compliance continues against this URL.</>
@@ -1531,6 +1543,7 @@ export default function WebsiteComplianceTemplatesPanel({
           maxWidth="max-w-3xl"
         >
           <form onSubmit={handlePromoteSubmit} className="space-y-5">
+            <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(promoteRequest)} />
             <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-xs text-indigo-950 leading-relaxed space-y-1.5">
               <p>
                 This is a <strong>go-live request</strong> from the requester. Deploy it to the

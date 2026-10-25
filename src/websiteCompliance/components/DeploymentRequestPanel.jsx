@@ -72,6 +72,11 @@ import {
   emptyRequestContentState,
   templateAvailablePages,
 } from './TemplateRequestContentFields'
+import WebsiteScopeCheckboxes, {
+  resolveWebsiteScopeFromUser,
+  websiteScopeFromRequest,
+  websiteScopeLabel,
+} from './WebsiteScopeCheckboxes'
 
 // ─── Alert banner ─────────────────────────────────────────────────────────────
 
@@ -675,6 +680,8 @@ export function CreateDeploymentModal({
       {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
 
       <form id="create-deployment-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <WebsiteScopeCheckboxes scope={resolveWebsiteScopeFromUser(user)} />
+
         {step === 0 && (
           <div className="space-y-4">
             <FormSection
@@ -942,6 +949,10 @@ export function CreateDeploymentModal({
               tone="accent"
             >
               <div className="rounded-xl border border-gray-200 bg-white px-4 py-1">
+                <ReviewRow
+                  label="Website type"
+                  value={websiteScopeLabel(resolveWebsiteScopeFromUser(user))}
+                />
                 <ReviewRow label="Template" value={templateLabel} />
                 <ReviewRow label="Domain" value={domainName.trim()} mono />
                 {canAssignAdvisor && (
@@ -1095,6 +1106,7 @@ export function AssignAdvisorModal({ request, websiteAdmins = [], advisors = [],
     >
       {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
       <form onSubmit={handleSubmit} className="space-y-5">
+        <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(request)} compact />
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
             Select Website Admin(s)
@@ -1304,6 +1316,13 @@ export default function DeploymentRequestPanel() {
         const requester = row.requested_by || row.requestedBy || row.advisor
         return requester?.name || ''
       },
+    },
+    {
+      key: 'website_scope',
+      label: 'Website type',
+      render: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
+      filterValue: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
+      truncate: false,
     },
     {
       key: 'website_admins',

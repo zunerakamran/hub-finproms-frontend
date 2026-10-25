@@ -13,13 +13,16 @@ import {
 } from '../utils/websiteCompliance'
 import api from '../websiteCompliance/wcApi'
 import { canRequestGoLive } from '../websiteCompliance/utils/deploymentStatus'
+import WebsiteScopeCheckboxes, {
+  websiteScopeFromRequest,
+  websiteScopeLabel,
+} from '../websiteCompliance/components/WebsiteScopeCheckboxes'
 
 export default function WebsiteComplianceGoLive() {
   const { user } = useAuth()
   const { can, loading: hubLoading, complianceStatusLabel, roleLabel } = useHub()
   const templateModuleOn = websiteTemplateLibraryOn(can)
-  const canAccess =
-    can('wc_request_deployments') || can('wc_assign_website_templates')
+  const canAccess = can('wc_request_go_live')
 
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
@@ -145,6 +148,13 @@ export default function WebsiteComplianceGoLive() {
         filterValue: (row) => row.domain_name || '',
       },
       {
+        key: 'website_scope',
+        label: 'Website type',
+        render: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
+        filterValue: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
+        truncate: false,
+      },
+      {
         key: 'staging',
         label: 'Staging URL',
         render: (row) => row.staging_domain || row.cpanel_domain || '-',
@@ -211,8 +221,9 @@ export default function WebsiteComplianceGoLive() {
           <p className="eyebrow">Website Template Library</p>
           <h1>Request go-live</h1>
           <p className="muted">
-            When your staging website is complete, submit a go-live request. {roleLabel('power_admin')}{' '}
-            will see it as a new request and deploy it to your main URL.
+            When a staging website you requested is complete, submit a go-live request.{' '}
+            {roleLabel('power_admin')} will see it as a new request and deploy it to your main URL.
+            Only the original requester can submit for each site.
           </p>
         </div>
         <div className="page-head__actions">
@@ -237,8 +248,8 @@ export default function WebsiteComplianceGoLive() {
       <div className="card" style={{ marginBottom: '1.25rem' }}>
         <h2 style={{ marginTop: 0, marginBottom: '0.35rem' }}>Submit go-live request</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          Only the original requester can submit this. Choose a staging site, confirm the main domain,
-          then submit.
+          Choose one of your staging sites (websites you originally requested), confirm the main
+          domain, then submit.
         </p>
 
         {loading ? (
@@ -250,6 +261,10 @@ export default function WebsiteComplianceGoLive() {
           </div>
         ) : (
           <form onSubmit={handleSubmitGoLive} className="form-grid" style={{ gap: '1rem' }}>
+            {selectedStaging ? (
+              <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(selectedStaging)} />
+            ) : null}
+
             <label>
               <RequiredMark>Staging website</RequiredMark>
               <select
@@ -259,7 +274,8 @@ export default function WebsiteComplianceGoLive() {
               >
                 {myStagingRequests.map((row) => (
                   <option key={row.id} value={row.id}>
-                    #{row.id} | {row.domain_name || 'No live domain yet'}
+                    #{row.id} | {websiteScopeLabel(websiteScopeFromRequest(row))} |{' '}
+                    {row.domain_name || 'No live domain yet'}
                     {row.staging_domain || row.cpanel_domain
                       ? ` (staging: ${row.staging_domain || row.cpanel_domain})`
                       : ''}

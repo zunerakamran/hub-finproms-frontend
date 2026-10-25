@@ -10144,3 +10144,94 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
     padding-left: 1.85rem;
   }
 }
+
+/* Website Template Library — read-only Network / Firm / Independent scope */
+.wc-website-scope {
+  margin: 0 0 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel, #fff) 88%, #f8fafc);
+  min-width: 0;
+}
+
+.wc-website-scope--compact {
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.65rem;
+}
+
+.wc-website-scope__legend,
+.wc-website-scope__compact-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0 0 0.65rem;
+  padding: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--brand-dark, #0f172a);
+}
+
+.wc-website-scope__locked {
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: rgba(100, 116, 139, 0.12);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+}
+
+.wc-website-scope__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.wc-website-scope__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--line, #e2e8f0);
+  background: #fff;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #64748b;
+  cursor: default;
+  user-select: none;
+  opacity: 0.85;
+}
+
+.wc-website-scope__option input {
+  width: auto;
+  margin: 0;
+  pointer-events: none;
+  accent-color: var(--brand, #2563eb);
+}
+
+.wc-website-scope__option.is-checked {
+  border-color: color-mix(in srgb, var(--brand, #2563eb) 45%, var(--line, #e2e8f0));
+  background: color-mix(in srgb, var(--brand, #2563eb) 12%, #fff);
+  color: color-mix(in srgb, var(--brand-dark, #0f172a) 88%, var(--brand, #2563eb));
+  opacity: 1;
+}
+
+.wc-website-scope__option-label {
+  line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+  .wc-website-scope__options {
+    flex-direction: column;
+  }
+
+  .wc-website-scope__option {
+    width: 100%;
+  }
+}

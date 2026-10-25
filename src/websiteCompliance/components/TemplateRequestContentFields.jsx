@@ -14,6 +14,9 @@ import FileDropzone from '../../components/FileDropzone'
 import FileNameLabel from '../../components/FileNameLabel'
 import { websiteComplianceAssetUrl } from '../../api/client'
 import api from '../wcApi'
+import WebsiteScopeCheckboxes, {
+  websiteScopeFromRequest,
+} from './WebsiteScopeCheckboxes'
 
 const fieldLabelClass = 'block text-xs font-bold text-gray-700 mb-1.5'
 
@@ -956,6 +959,8 @@ export function TemplateRequestDetailsView({ request }) {
 
   return (
     <div className="space-y-4">
+      <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(request)} />
+
       <DetailBlock icon={FaGlobe} title="Request summary">
         <DetailRow label="Template" value={request.template_name} />
         <DetailRow label="Intended live domain" value={request.domain_name} mono />

@@ -1106,7 +1106,7 @@ export function AssignAdvisorModal({ request, websiteAdmins = [], advisors = [],
     >
       {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
       <form onSubmit={handleSubmit} className="space-y-5">
-        <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(request)} compact />
+        <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(request)} />
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
             Select Website Admin(s)
@@ -1316,13 +1316,6 @@ export default function DeploymentRequestPanel() {
         const requester = row.requested_by || row.requestedBy || row.advisor
         return requester?.name || ''
       },
-    },
-    {
-      key: 'website_scope',
-      label: 'Website type',
-      render: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
-      filterValue: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
-      truncate: false,
     },
     {
       key: 'website_admins',

@@ -14,6 +14,7 @@ import {
 import api from '../websiteCompliance/wcApi'
 import { canRequestGoLive } from '../websiteCompliance/utils/deploymentStatus'
 import WebsiteScopeCheckboxes, {
+  resolveWebsiteScopeFromUser,
   websiteScopeFromRequest,
   websiteScopeLabel,
 } from '../websiteCompliance/components/WebsiteScopeCheckboxes'
@@ -148,13 +149,6 @@ export default function WebsiteComplianceGoLive() {
         filterValue: (row) => row.domain_name || '',
       },
       {
-        key: 'website_scope',
-        label: 'Website type',
-        render: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
-        filterValue: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
-        truncate: false,
-      },
-      {
         key: 'staging',
         label: 'Staging URL',
         render: (row) => row.staging_domain || row.cpanel_domain || '-',
@@ -242,6 +236,14 @@ export default function WebsiteComplianceGoLive() {
         </div>
       </div>
 
+      <WebsiteScopeCheckboxes
+        scope={
+          selectedStaging
+            ? websiteScopeFromRequest(selectedStaging)
+            : resolveWebsiteScopeFromUser(user)
+        }
+      />
+
       {error ? <div className="alert">{error}</div> : null}
       {message ? <div className="alert success">{message}</div> : null}
 
@@ -257,10 +259,6 @@ export default function WebsiteComplianceGoLive() {
             <p className="muted">Loading staging sites…</p>
           ) : (
             <form onSubmit={handleSubmitGoLive} className="form-grid" style={{ gap: '1rem' }}>
-              {selectedStaging ? (
-                <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(selectedStaging)} />
-              ) : null}
-
               <label>
                 <RequiredMark>Staging website</RequiredMark>
                 <select

@@ -38,10 +38,6 @@ import {
   assignableReviewers,
 } from '../../utils/complianceSeparation'
 import OnBehalfAttribution from '../../components/OnBehalfAttribution'
-import WebsiteScopeCheckboxes, {
-  websiteScopeFromRequest,
-  websiteScopeLabel,
-} from './WebsiteScopeCheckboxes'
 
 const PENDING_STATUS = 'pending'
 const PREVIOUS_STATUSES = new Set([
@@ -290,9 +286,6 @@ const AssignmentRequestCard = memo(function AssignmentRequestCard({
                   <span>Assigned to <strong className="text-[var(--brand)]">{req.approver.name}</strong></span>
                 </span>
               )}
-            </div>
-            <div className="mt-3">
-              <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(req)} compact />
             </div>
           </div>
 
@@ -688,20 +681,6 @@ export default function ChangeRequestAssignmentPanel({
         grow: true,
         render: (row) => getSectionLabel(row),
         filterValue: (row) => getSectionLabel(row),
-      },
-      {
-        key: 'website_scope',
-        label: 'Website type',
-        grow: true,
-        render: (row) => (
-          <WebsiteScopeCheckboxes
-            scope={websiteScopeFromRequest(row)}
-            compact
-            className="wc-website-scope--grid"
-          />
-        ),
-        filterValue: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
-        truncate: false,
       },
       {
         key: 'editor',

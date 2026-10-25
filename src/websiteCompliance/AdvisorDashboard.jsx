@@ -10,6 +10,7 @@ import TemplateScrollPreview from './components/TemplateScrollPreview'
 import ImageFieldPicker from './components/ImageFieldPicker'
 import { CreateDeploymentModal } from './components/DeploymentRequestPanel'
 import WebsiteScopeCheckboxes, {
+  resolveWebsiteScopeFromUser,
   websiteScopeFromRequest,
 } from './components/WebsiteScopeCheckboxes'
 import { isDeploymentOnSite } from './utils/deploymentStatus'
@@ -454,9 +455,6 @@ function DeploymentRequestCard({ request, isActive, onSelect }) {
                 <> | cPanel: <code className="font-mono text-[11px] bg-white/80 px-1.5 py-0.5 rounded border border-gray-200">{request.cpanel_domain}</code></>
               )}
             </p>
-            <div className="mt-2">
-              <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(request)} compact />
-            </div>
             {assignedToYou && (
               <p className="text-xs text-violet-700 mt-2">
                 This website was assigned to you for content editing - it is not your own website request.
@@ -2764,6 +2762,14 @@ export default function AdvisorDashboard({
   const pageContent = (
     <>
       <div className={embedded ? 'w-full min-w-0' : 'max-w-7xl mx-auto px-4 sm:px-6 py-8'}>
+        <WebsiteScopeCheckboxes
+          scope={
+            activeDeployment
+              ? websiteScopeFromRequest(activeDeployment)
+              : resolveWebsiteScopeFromUser(user)
+          }
+        />
+
         {/* Header - skip full page chrome when embedded in hub dashboard (hub page-head already shown) */}
         <div className={embedded ? 'mb-5' : 'mb-8'}>
           {!embedded && (
@@ -3235,12 +3241,6 @@ export default function AdvisorDashboard({
                         <p className="text-xs text-slate-600 mt-1">
                           <span className="font-bold">Sections:</span> {crSectionLabel(cr)}
                         </p>
-                        <div className="mt-2">
-                          <WebsiteScopeCheckboxes
-                            scope={websiteScopeFromRequest(cr.template_request || cr)}
-                            compact
-                          />
-                        </div>
                         {cr.status === 'rejected' && cr.rejection_reason && (
                           <div className="text-xs text-rose-800 mt-1">
                             <span className="font-bold">Rejection:</span>
@@ -3305,12 +3305,6 @@ export default function AdvisorDashboard({
               </div>
             )}
 
-            {activeDeployment ? (
-              <div className="mb-5">
-                <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(activeDeployment)} />
-              </div>
-            ) : null}
-
             {!isPowerAdminPublishMode && deployedRequests.length > 1 && (
               <StepCard
                 step={2}
@@ -3341,9 +3335,6 @@ export default function AdvisorDashboard({
                           )}
                         </div>
                         <p className="text-xs text-gray-500">{req.template_name || 'template4'}</p>
-                        <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                          <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(req)} compact />
-                        </div>
                         {assignedToYou && (
                           <p className="text-[10px] font-bold text-violet-700 mt-1.5 uppercase tracking-wide">Assigned to you</p>
                         )}

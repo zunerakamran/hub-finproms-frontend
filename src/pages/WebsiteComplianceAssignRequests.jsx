@@ -1,8 +1,13 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import ChangeRequestAssignmentPanel from '../websiteCompliance/components/ChangeRequestAssignmentPanel'
+import WebsiteScopeCheckboxes, {
+  resolveWebsiteScopeFromUser,
+} from '../websiteCompliance/components/WebsiteScopeCheckboxes'
 
 export default function WebsiteComplianceAssignRequests() {
+  const { user } = useAuth()
   const { can, loading: hubLoading } = useHub()
   const moduleOn = can('module_website_compliance')
   const canAssign = can('wc_assign_change_requests')
@@ -59,6 +64,7 @@ export default function WebsiteComplianceAssignRequests() {
           </p>
         </div>
       </div>
+      <WebsiteScopeCheckboxes scope={resolveWebsiteScopeFromUser(user)} />
       <ChangeRequestAssignmentPanel variant="pending" />
     </section>
   )

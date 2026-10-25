@@ -10344,47 +10344,6 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
   height: 1px;
 }
 
-/* Compact row used inside DataGrid cells */
-.wc-website-scope--grid {
-  margin: 0;
-  padding: 0.45rem 0.5rem;
-  border-radius: 12px;
-  box-shadow: none;
-  background: #fff;
-}
-
-.wc-website-scope--grid .wc-website-scope__legend {
-  margin-bottom: 0.4rem;
-}
-
-.wc-website-scope--grid .wc-website-scope__title {
-  font-size: 0.68rem;
-}
-
-.wc-website-scope--grid .wc-website-scope__locked {
-  display: none;
-}
-
-.wc-website-scope--grid .wc-website-scope__options {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.35rem;
-}
-
-.wc-website-scope--grid .wc-website-scope__option {
-  min-height: 0;
-  padding: 0.35rem 0.4rem;
-  border-radius: 10px;
-  gap: 0.3rem 0.35rem;
-}
-
-.wc-website-scope--grid .wc-website-scope__icon-wrap {
-  display: none;
-}
-
-.wc-website-scope--grid .wc-website-scope__option-label {
-  font-size: 0.68rem;
-}
-
 @media (max-width: 900px) {
   .wc-website-scope__options {
     grid-template-columns: 1fr;
@@ -10392,10 +10351,6 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
 
   .wc-website-scope__option {
     grid-template-columns: auto auto minmax(0, 1fr);
-  }
-
-  .wc-website-scope--grid .wc-website-scope__options {
-    grid-template-columns: 1fr;
   }
 }
 

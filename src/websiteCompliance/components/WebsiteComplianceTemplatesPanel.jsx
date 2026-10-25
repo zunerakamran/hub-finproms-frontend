@@ -47,7 +47,6 @@ import {
 } from './DeploymentRequestPanel'
 import WebsiteScopeCheckboxes, {
   websiteScopeFromRequest,
-  websiteScopeLabel,
 } from './WebsiteScopeCheckboxes'
 import {
   canPromoteToLive,
@@ -354,13 +353,6 @@ export default function WebsiteComplianceTemplatesPanel({
         label: 'Requested by',
         render: (row) => requestRequesterName(row, 'Advisor'),
         filterValue: (row) => requestRequesterName(row, ''),
-      },
-      {
-        key: 'website_scope',
-        label: 'Website type',
-        render: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
-        filterValue: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
-        truncate: false,
       },
       {
         key: 'template_name',

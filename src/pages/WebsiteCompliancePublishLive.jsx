@@ -8,8 +8,9 @@ import {
   isDeploymentOnSite,
   isDeploymentStagingPhase,
 } from '../websiteCompliance/utils/deploymentStatus'
+import { useAuth } from '../context/AuthContext'
 import WebsiteScopeCheckboxes, {
-  websiteScopeFromRequest,
+  resolveWebsiteScopeFromUser,
 } from '../websiteCompliance/components/WebsiteScopeCheckboxes'
 
 function siteName(req) {
@@ -47,6 +48,7 @@ function statusBadge(req) {
 }
 
 export default function WebsiteCompliancePublishLive() {
+  const { user } = useAuth()
   const { can, loading: hubLoading, roleLabel, complianceStatusLabel } = useHub()
   const moduleOn = can('module_website_compliance')
   const canPublish = can('wc_publish_live_content')
@@ -147,6 +149,8 @@ export default function WebsiteCompliancePublishLive() {
         </div>
       </div>
 
+      <WebsiteScopeCheckboxes scope={resolveWebsiteScopeFromUser(user)} />
+
       <div className="wc-app wc-surface space-y-4">
         <div className="rounded-2xl border border-[var(--brand)]/25 bg-[var(--brand-softer)] px-5 py-4">
           <p className="text-sm font-bold text-[var(--brand-dark)]">Direct publish</p>
@@ -232,9 +236,6 @@ export default function WebsiteCompliancePublishLive() {
                         Intended live: <span className="font-mono">{req.domain_name}</span>
                       </p>
                     ) : null}
-                    <div className="mt-3">
-                      <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(req)} compact />
-                    </div>
                   </div>
                   <Link
                     to={`/my-dashboard/website-compliance/publish/${req.id}`}

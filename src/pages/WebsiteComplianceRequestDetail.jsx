@@ -258,13 +258,13 @@ export default function WebsiteComplianceRequestDetail() {
         </Link>
       </div>
 
+      <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(row)} />
+
       {error ? <div className="alert">{error}</div> : null}
       {message ? <div className="alert success">{message}</div> : null}
       {isConflicted && (canReview || canChangeStatus) ? (
         <div className="alert">{SOD_MESSAGE}</div>
       ) : null}
-
-      <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(row)} />
 
       <div className="wc-detail-meta">
         <MetaItem icon={FaLayerGroup} label="Section">

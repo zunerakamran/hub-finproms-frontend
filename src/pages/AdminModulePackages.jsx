@@ -3,6 +3,14 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import {
+  DEFAULT_BILLING_UNITS,
+  DEFAULT_RECURRING_BILLING_UNITS,
+  normalizeBillingUnit,
+  unitDescription,
+  unitLabel,
+  unitRequiresTierSlot,
+} from '../utils/moduleBillingUnits'
 
 function formatMoney(amount, currency = 'gbp') {
   try {
@@ -19,6 +27,7 @@ const emptyPackageForm = {
   name: '',
   description: '',
   amount: '',
+  billing_unit: 'per_network',
   recurring_amount: '',
   recurring_billing_unit: 'none',
   recurring_tier_slot: '',
@@ -62,6 +71,10 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
   const { can, loading: hubLoading, actingHub } = useHub()
   const [packages, setPackages] = useState([])
   const [availableModuleKeys, setAvailableModuleKeys] = useState(DEFAULT_PACKAGEABLE_KEYS)
+  const [billingUnits, setBillingUnits] = useState(DEFAULT_BILLING_UNITS)
+  const [recurringBillingUnits, setRecurringBillingUnits] = useState(
+    DEFAULT_RECURRING_BILLING_UNITS
+  )
   const [packageEditingId, setPackageEditingId] = useState(null)
   const [showPackageForm, setShowPackageForm] = useState(false)
   const [packageForm, setPackageForm] = useState(emptyPackageForm)
@@ -73,6 +86,13 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const enabled = can('dashboard_manage_module_packages')
   const apiOpts = { asPowerAdmin }
+
+  const oneTimeNeedsSlot = unitRequiresTierSlot(packageForm.billing_unit, billingUnits)
+  const recurringNeedsSlot = unitRequiresTierSlot(
+    packageForm.recurring_billing_unit,
+    recurringBillingUnits
+  )
+  const showSlotField = oneTimeNeedsSlot || recurringNeedsSlot
 
   const packageableModules = useMemo(() => {
     const keys = (availableModuleKeys?.length ? availableModuleKeys : DEFAULT_PACKAGEABLE_KEYS).filter(
@@ -92,6 +112,10 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
       setPackages(data.packages || [])
       if (data.available_module_keys?.length) {
         setAvailableModuleKeys(data.available_module_keys)
+      }
+      if (data.billing_units?.length) setBillingUnits(data.billing_units)
+      if (data.recurring_billing_units?.length) {
+        setRecurringBillingUnits(data.recurring_billing_units)
       }
     } catch (err) {
       setError(err.message)
@@ -128,8 +152,11 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
       name: pkg.name || '',
       description: pkg.description || '',
       amount: pkg.amount ?? '',
+      billing_unit: normalizeBillingUnit(pkg.billing_unit || 'per_network'),
       recurring_amount: pkg.recurring_amount ?? '',
-      recurring_billing_unit: pkg.recurring_billing_unit || 'none',
+      recurring_billing_unit: normalizeBillingUnit(pkg.recurring_billing_unit || 'none', {
+        forRecurring: true,
+      }),
       recurring_tier_slot: pkg.recurring_tier_slot ?? '',
       is_active: !!pkg.is_active,
       module_keys: [...(pkg.module_keys || [])],
@@ -166,16 +193,20 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
     setError('')
     setMessage('')
     try {
+      const needsSlot =
+        unitRequiresTierSlot(packageForm.billing_unit, billingUnits) ||
+        unitRequiresTierSlot(packageForm.recurring_billing_unit, recurringBillingUnits)
       const payload = {
         name: packageForm.name.trim(),
         description: packageForm.description?.trim() || null,
         amount: Number(packageForm.amount || 0),
+        billing_unit: packageForm.billing_unit || 'per_network',
         recurring_amount: Number(packageForm.recurring_amount || 0),
         recurring_billing_unit: packageForm.recurring_billing_unit || 'none',
         recurring_tier_slot:
-          packageForm.recurring_tier_slot === '' || packageForm.recurring_tier_slot == null
-            ? null
-            : Number(packageForm.recurring_tier_slot),
+          needsSlot && packageForm.recurring_tier_slot !== '' && packageForm.recurring_tier_slot != null
+            ? Number(packageForm.recurring_tier_slot)
+            : null,
         is_active: !!packageForm.is_active,
         module_keys: withPackageDependencies(packageForm.module_keys),
       }
@@ -235,11 +266,11 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
           <p className="eyebrow">Modules</p>
           <h1>Module packages</h1>
           <p className="muted">
-            Bundle product modules with one-time and recurring package prices (same units as single
-            modules: per network / adviser / user / website / firm + slot). While a package is
-            enabled, it replaces individual catalogue charges for covered modules. Enable packages
-            on the <Link to="/my-dashboard/modules">Modules</Link> page. Per-module catalogue stays
-            under <Link to="/my-dashboard/module-pricing">Module prices</Link>.
+            Bundle product modules with one-time and recurring package prices using the same units
+            as single modules (per network / firm / user / user slots / website). While a package
+            is enabled, it replaces individual catalogue charges for covered modules. Enable
+            packages on the <Link to="/my-dashboard/modules">Modules</Link> page. Per-module
+            catalogue stays under <Link to="/my-dashboard/module-pricing">Module prices</Link>.
           </p>
         </div>
         {!showPackageForm && (
@@ -286,6 +317,24 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
             />
           </label>
           <label>
+            One-time billing unit
+            <select
+              value={packageForm.billing_unit}
+              onChange={(e) => setPackageForm({ ...packageForm, billing_unit: e.target.value })}
+            >
+              {billingUnits.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            {unitDescription(packageForm.billing_unit, billingUnits) ? (
+              <small className="muted" style={{ display: 'block', marginTop: 4 }}>
+                {unitDescription(packageForm.billing_unit, billingUnits)}
+              </small>
+            ) : null}
+          </label>
+          <label>
             Recurring amount (£)
             <input
               type="number"
@@ -303,29 +352,36 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
                 setPackageForm({ ...packageForm, recurring_billing_unit: e.target.value })
               }
             >
-              <option value="none">None</option>
-              <option value="per_network">Per network</option>
-              <option value="per_adviser">Per adviser (slot)</option>
-              <option value="per_user">Per user (slot)</option>
-              <option value="per_website">Per website</option>
-              <option value="per_firm">Per firm</option>
+              {recurringBillingUnits.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
+            {unitDescription(packageForm.recurring_billing_unit, recurringBillingUnits) ? (
+              <small className="muted" style={{ display: 'block', marginTop: 4 }}>
+                {unitDescription(packageForm.recurring_billing_unit, recurringBillingUnits)}
+              </small>
+            ) : null}
           </label>
-          <label>
-            Recurring slot (1-3)
-            <input
-              type="number"
-              min="1"
-              max="3"
-              value={packageForm.recurring_tier_slot}
-              onChange={(e) =>
-                setPackageForm({ ...packageForm, recurring_tier_slot: e.target.value })
-              }
-              disabled={
-                !['per_user', 'per_adviser'].includes(packageForm.recurring_billing_unit)
-              }
-            />
-          </label>
+          {showSlotField && (
+            <label>
+              Tier slot (1–3)
+              <input
+                type="number"
+                min="1"
+                max="3"
+                required={showSlotField}
+                value={packageForm.recurring_tier_slot}
+                onChange={(e) =>
+                  setPackageForm({ ...packageForm, recurring_tier_slot: e.target.value })
+                }
+              />
+              <small className="muted" style={{ display: 'block', marginTop: 4 }}>
+                Required when one-time or recurring unit is Per user (slots).
+              </small>
+            </label>
+          )}
           <fieldset className="checklist-section" style={{ border: 0, padding: 0, margin: 0 }}>
             <legend>
               <strong>Modules in package</strong>
@@ -410,11 +466,17 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
                         .map((m) => m.label)
                         .join(', ') || (pkg.module_keys || []).join(', ')}
                     </td>
-                    <td>{formatMoney(pkg.amount, pkg.currency)}</td>
+                    <td>
+                      {formatMoney(pkg.amount, pkg.currency)}
+                      <div className="muted" style={{ fontSize: '0.85em' }}>
+                        {pkg.billing_unit_label || unitLabel(pkg.billing_unit, billingUnits)}
+                      </div>
+                    </td>
                     <td>
                       {formatMoney(pkg.recurring_amount || 0, pkg.currency)}
                       <div className="muted" style={{ fontSize: '0.85em' }}>
-                        {pkg.recurring_billing_unit || 'none'}
+                        {pkg.recurring_billing_unit_label ||
+                          unitLabel(pkg.recurring_billing_unit, recurringBillingUnits)}
                       </div>
                     </td>
                     <td>{pkg.recurring_tier_slot || '-'}</td>

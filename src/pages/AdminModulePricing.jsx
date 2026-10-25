@@ -3,6 +3,14 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
+import {
+  DEFAULT_BILLING_UNITS,
+  DEFAULT_RECURRING_BILLING_UNITS,
+  normalizeBillingUnit,
+  unitDescription,
+  unitLabel,
+  unitRequiresTierSlot,
+} from '../utils/moduleBillingUnits'
 
 function formatMoney(amount, currency = 'gbp') {
   try {
@@ -24,7 +32,7 @@ function hubTypeLabel(type) {
 
 const emptyForm = {
   amount: '',
-  billing_unit: 'one_time',
+  billing_unit: 'per_network',
   recurring_amount: '',
   recurring_billing_unit: 'none',
   recurring_tier_slot: '',
@@ -36,6 +44,10 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
   const { can, loading: hubLoading, actingHub, hub } = useHub()
   const [pricing, setPricing] = useState([])
   const [tiers, setTiers] = useState([])
+  const [billingUnits, setBillingUnits] = useState(DEFAULT_BILLING_UNITS)
+  const [recurringBillingUnits, setRecurringBillingUnits] = useState(
+    DEFAULT_RECURRING_BILLING_UNITS
+  )
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(true)
@@ -52,6 +64,13 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
   const apiOpts = { asPowerAdmin }
   const displayType = targetHub?.type || actingHub?.type || hub?.type
 
+  const oneTimeNeedsSlot = unitRequiresTierSlot(form.billing_unit, billingUnits)
+  const recurringNeedsSlot = unitRequiresTierSlot(
+    form.recurring_billing_unit,
+    recurringBillingUnits
+  )
+  const showSlotField = oneTimeNeedsSlot || recurringNeedsSlot
+
   const load = async () => {
     setLoading(true)
     setError('')
@@ -59,6 +78,10 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
       const data = await api.modulePricing(apiOpts)
       setPricing(data.pricing || [])
       setTiers(data.recurring_tiers || [])
+      if (data.billing_units?.length) setBillingUnits(data.billing_units)
+      if (data.recurring_billing_units?.length) {
+        setRecurringBillingUnits(data.recurring_billing_units)
+      }
       setTargetHub(data.target_hub || null)
       setChargeEnabled(Boolean(data.target_hub?.charge_amount_per_module))
       setRecurringEnabled(Boolean(data.target_hub?.charge_recurring_per_module))
@@ -85,9 +108,11 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
     setEditingId(row.id)
     setForm({
       amount: row.amount,
-      billing_unit: row.billing_unit || 'one_time',
+      billing_unit: normalizeBillingUnit(row.billing_unit || 'per_network'),
       recurring_amount: row.recurring_amount ?? 0,
-      recurring_billing_unit: row.recurring_billing_unit || 'none',
+      recurring_billing_unit: normalizeBillingUnit(row.recurring_billing_unit || 'none', {
+        forRecurring: true,
+      }),
       recurring_tier_slot: row.recurring_tier_slot ?? '',
       is_active: !!row.is_active,
     })
@@ -105,6 +130,9 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
     setError('')
     setMessage('')
     try {
+      const needsSlot =
+        unitRequiresTierSlot(form.billing_unit, billingUnits) ||
+        unitRequiresTierSlot(form.recurring_billing_unit, recurringBillingUnits)
       await api.updateModulePricing(
         editingId,
         {
@@ -112,7 +140,14 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
           billing_unit: form.billing_unit,
           recurring_amount: Number(form.recurring_amount || 0),
           recurring_billing_unit: form.recurring_billing_unit,
-          recurring_tier_slot: form.recurring_tier_slot === '' ? null : Number(form.recurring_tier_slot),
+          recurring_tier_slot:
+            needsSlot && form.recurring_tier_slot !== ''
+              ? Number(form.recurring_tier_slot)
+              : needsSlot
+                ? null
+                : form.recurring_tier_slot === ''
+                  ? null
+                  : Number(form.recurring_tier_slot),
           is_active: !!form.is_active,
         },
         apiOpts
@@ -154,8 +189,8 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
           <p className="muted">
             Catalogue for <strong>{targetHub?.name || actingHub?.name || hub?.name || 'this hub'}</strong>
             {displayType ? ` (${hubTypeLabel(displayType)})` : ''}: only modules that apply to this
-            hub type are listed. One-time on enable; recurring for per-user / per-network /
-            per-website / per-firm. Bundled pricing is managed on{' '}
+            hub type are listed. One-time and ongoing use the same units (per network / firm /
+            user / user slots / website). Bundled pricing is managed on{' '}
             <Link to="/my-dashboard/module-packages">Module packages</Link>.
           </p>
         </div>
@@ -191,9 +226,17 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
               value={form.billing_unit}
               onChange={(e) => setForm({ ...form, billing_unit: e.target.value })}
             >
-              <option value="one_time">One time</option>
-              <option value="per_website">Per website</option>
+              {billingUnits.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
+            {unitDescription(form.billing_unit, billingUnits) ? (
+              <small className="muted" style={{ display: 'block', marginTop: 4 }}>
+                {unitDescription(form.billing_unit, billingUnits)}
+              </small>
+            ) : null}
           </label>
           <label>
             Recurring amount (£)
@@ -211,24 +254,35 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
               value={form.recurring_billing_unit}
               onChange={(e) => setForm({ ...form, recurring_billing_unit: e.target.value })}
             >
-              <option value="none">None</option>
-              <option value="per_network">Per network</option>
-              <option value="per_adviser">Per adviser (slot)</option>
-              <option value="per_user">Per user (slot)</option>
-              <option value="per_website">Per website</option>
-              <option value="per_firm">Per firm</option>
+              {recurringBillingUnits.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
+            {unitDescription(form.recurring_billing_unit, recurringBillingUnits) ? (
+              <small className="muted" style={{ display: 'block', marginTop: 4 }}>
+                {unitDescription(form.recurring_billing_unit, recurringBillingUnits)}
+              </small>
+            ) : null}
           </label>
-          <label>
-            Recurring slot (1-3)
-            <input
-              type="number"
-              min="1"
-              max="3"
-              value={form.recurring_tier_slot}
-              onChange={(e) => setForm({ ...form, recurring_tier_slot: e.target.value })}
-            />
-          </label>
+          {showSlotField && (
+            <label>
+              Tier slot (1–3)
+              <input
+                type="number"
+                min="1"
+                max="3"
+                required={showSlotField}
+                value={form.recurring_tier_slot}
+                onChange={(e) => setForm({ ...form, recurring_tier_slot: e.target.value })}
+              />
+              <small className="muted" style={{ display: 'block', marginTop: 4 }}>
+                Required when one-time or recurring unit is Per user (slots). Uses the matching
+                slot table below.
+              </small>
+            </label>
+          )}
           <label className="checklist-item">
             <input
               type="checkbox"
@@ -279,13 +333,15 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
                     <td>
                       {formatMoney(row.amount, row.currency)}
                       <div className="muted" style={{ fontSize: '0.85em' }}>
-                        {row.billing_unit_label || row.billing_unit}
+                        {row.billing_unit_label ||
+                          unitLabel(row.billing_unit, billingUnits)}
                       </div>
                     </td>
                     <td>
                       {formatMoney(row.recurring_amount || 0, row.currency)}
                       <div className="muted" style={{ fontSize: '0.85em' }}>
-                        {row.recurring_billing_unit || 'none'}
+                        {row.recurring_billing_unit_label ||
+                          unitLabel(row.recurring_billing_unit, recurringBillingUnits)}
                       </div>
                     </td>
                     <td>{row.recurring_tier_slot || '-'}</td>
@@ -306,7 +362,8 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
       <div className="advisor-list-block">
         <h2>Recurring slot tables</h2>
         <p className="muted">
-          Rate from total active users with that module; import invoices charge rate × batch only.
+          Used when unit is <strong>Per user (slots)</strong>. Rate from total active users with
+          that module; import invoices charge rate × batch only.
         </p>
         {tiers.length === 0 ? (
           <p className="muted">No tiers seeded yet (run migrations).</p>

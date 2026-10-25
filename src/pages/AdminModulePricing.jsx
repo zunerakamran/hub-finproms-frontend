@@ -54,6 +54,8 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
   const { can, loading: hubLoading, actingHub, hub } = useHub()
   const [pricing, setPricing] = useState([])
   const [tiers, setTiers] = useState([])
+  const [availableSlots, setAvailableSlots] = useState([])
+  const [nextSlot, setNextSlot] = useState(1)
   const [billingUnits, setBillingUnits] = useState(DEFAULT_BILLING_UNITS)
   const [recurringBillingUnits, setRecurringBillingUnits] = useState(
     DEFAULT_RECURRING_BILLING_UNITS
@@ -92,6 +94,18 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
       const data = await api.modulePricing(apiOpts)
       setPricing(data.pricing || [])
       setTiers(data.recurring_tiers || [])
+      setAvailableSlots(
+        Array.isArray(data.available_slots)
+          ? data.available_slots.map(Number)
+          : [...new Set((data.recurring_tiers || []).map((t) => Number(t.slot)))]
+              .filter((n) => n > 0)
+              .sort((a, b) => a - b)
+      )
+      setNextSlot(
+        Number(data.next_slot) > 0
+          ? Number(data.next_slot)
+          : Math.max(0, ...(data.recurring_tiers || []).map((t) => Number(t.slot) || 0)) + 1 || 1
+      )
       if (data.billing_units?.length) setBillingUnits(data.billing_units)
       if (data.recurring_billing_units?.length) {
         setRecurringBillingUnits(data.recurring_billing_units)
@@ -143,9 +157,12 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
     setTierForm(emptyTierForm)
   }
 
-  const startCreateTier = () => {
+  const startCreateTier = (asNewSlot = false) => {
     setTierEditingId(null)
-    setTierForm(emptyTierForm)
+    setTierForm({
+      ...emptyTierForm,
+      slot: String(asNewSlot ? nextSlot : availableSlots[0] || nextSlot || 1),
+    })
     setShowTierForm(true)
   }
 
@@ -366,18 +383,27 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
           </label>
           {showSlotField && (
             <label>
-              Tier slot (1–3)
+              Tier slot number
               <input
                 type="number"
                 min="1"
-                max="3"
+                max="255"
                 required={showSlotField}
                 value={form.recurring_tier_slot}
                 onChange={(e) => setForm({ ...form, recurring_tier_slot: e.target.value })}
+                list="module-pricing-available-slots"
               />
+              <datalist id="module-pricing-available-slots">
+                {availableSlots.map((slot) => (
+                  <option key={slot} value={slot}>
+                    Slot #{slot}
+                  </option>
+                ))}
+              </datalist>
               <small className="muted" style={{ display: 'block', marginTop: 4 }}>
-                Required when one-time or recurring unit is Per user (slots). Uses the matching
-                slot table below.
+                Required when unit is Per user (slots). Existing slots:{' '}
+                {availableSlots.length ? availableSlots.map((s) => `#${s}`).join(', ') : 'none yet'}
+                . Create new slots in the table below.
               </small>
             </label>
           )}
@@ -468,9 +494,14 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
             </p>
           </div>
           {!showTierForm && (
-            <button type="button" className="btn primary" onClick={startCreateTier}>
-              Add tier band
-            </button>
+            <div className="actions">
+              <button type="button" className="btn primary" onClick={() => startCreateTier(false)}>
+                Add band to existing slot
+              </button>
+              <button type="button" className="btn ghost" onClick={() => startCreateTier(true)}>
+                Add new slot #{nextSlot}
+              </button>
+            </div>
           )}
         </div>
 
@@ -478,16 +509,30 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
           <form className="admin-form" onSubmit={onSubmitTier}>
             <h3>{tierEditingId ? 'Edit tier band' : 'New tier band'}</h3>
             <label>
-              Slot (1–3)
-              <select
+              Slot number
+              <input
+                type="number"
+                min="1"
+                max="255"
+                required
                 value={tierForm.slot}
                 onChange={(e) => setTierForm({ ...tierForm, slot: e.target.value })}
-                required
-              >
-                <option value="1">Slot #1</option>
-                <option value="2">Slot #2</option>
-                <option value="3">Slot #3</option>
-              </select>
+                list="tier-form-available-slots"
+              />
+              <datalist id="tier-form-available-slots">
+                {availableSlots.map((slot) => (
+                  <option key={slot} value={slot}>
+                    Slot #{slot}
+                  </option>
+                ))}
+                {!availableSlots.includes(nextSlot) ? (
+                  <option value={nextSlot}>New slot #{nextSlot}</option>
+                ) : null}
+              </datalist>
+              <small className="muted" style={{ display: 'block', marginTop: 4 }}>
+                Use an existing slot number to add another user band, or enter a new number (e.g.{' '}
+                {nextSlot}) to create a brand-new slot.
+              </small>
             </label>
             <label>
               Min users
@@ -564,7 +609,7 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
         )}
 
         {tiers.length === 0 ? (
-          <p className="muted">No tiers yet. Add a band for slot 1–3.</p>
+          <p className="muted">No tiers yet. Add a new slot to get started.</p>
         ) : (
           <div className="table-wrap">
             <table className="admin-table">

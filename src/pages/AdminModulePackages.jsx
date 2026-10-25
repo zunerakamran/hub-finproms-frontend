@@ -366,11 +366,11 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
           </label>
           {showSlotField && (
             <label>
-              Tier slot (1–3)
+              Tier slot number
               <input
                 type="number"
                 min="1"
-                max="3"
+                max="255"
                 required={showSlotField}
                 value={packageForm.recurring_tier_slot}
                 onChange={(e) =>
@@ -378,7 +378,8 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
                 }
               />
               <small className="muted" style={{ display: 'block', marginTop: 4 }}>
-                Required when one-time or recurring unit is Per user (slots).
+                Required when unit is Per user (slots). Use any slot number defined under Module
+                prices → Recurring slot tables (you can create new slots there).
               </small>
             </label>
           )}

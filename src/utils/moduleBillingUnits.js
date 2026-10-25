@@ -28,7 +28,7 @@ export const DEFAULT_BILLING_UNITS = [
     value: 'per_user_slots',
     label: 'Per user (slots)',
     description:
-      'User-count slots (1–3) define the rate from the recurring tier table; invoice uses that slot rate × billed users.',
+      'User-count slots define the rate from the recurring tier table (create any slot number). Invoice uses that slot’s rate × billed users.',
     requires_tier_slot: true,
   },
   {

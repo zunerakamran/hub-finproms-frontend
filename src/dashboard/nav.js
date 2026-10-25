@@ -144,6 +144,7 @@ const MODULES_ANY = [
   'dashboard_manage_modules',
   'dashboard_manage_module_pricing',
   'dashboard_manage_module_packages',
+  'dashboard_manage_module_invoice_settings',
   'dashboard_view_module_invoices',
   'dashboard_mark_module_invoices_paid',
 ]
@@ -740,6 +741,15 @@ export const DASHBOARD_LINKS = [
     title: 'Module packages',
     description: 'Create bundles of product modules with a single package one-time price.',
     capability: 'dashboard_manage_module_packages',
+    group: 'modules',
+  },
+  {
+    to: '/my-dashboard/module-invoice-settings',
+    label: 'Module invoice settings',
+    title: 'Module invoice / payment settings',
+    description:
+      'Choose who pays module invoices (network / firms / users) and optional network reseller branding.',
+    capability: 'dashboard_manage_module_invoice_settings',
     group: 'modules',
   },
   {

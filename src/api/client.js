@@ -1037,6 +1037,17 @@ export const api = {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/module-recurring-tiers/${id}`, { method: 'DELETE' })
   },
+  moduleInvoiceSettings: (options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/module-invoice-settings`)
+  },
+  updateModuleInvoiceSettings: (formData, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/module-invoice-settings`, {
+      method: 'POST',
+      body: formData,
+    })
+  },
   modulePackages: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/module-packages`)

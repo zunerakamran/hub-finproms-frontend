@@ -1019,12 +1019,23 @@ export const api = {
       body: JSON.stringify(payload),
     })
   },
+  createModuleRecurringTier: (payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/module-recurring-tiers`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
   updateModuleRecurringTier: (id, payload, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/module-recurring-tiers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     })
+  },
+  deleteModuleRecurringTier: (id, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/module-recurring-tiers/${id}`, { method: 'DELETE' })
   },
   modulePackages: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN

@@ -39,6 +39,16 @@ const emptyForm = {
   is_active: true,
 }
 
+const emptyTierForm = {
+  slot: '1',
+  min_users: '0',
+  max_users: '',
+  rate_per_user: '',
+  network_margin_per_user: '0',
+  sort_order: '0',
+  is_active: true,
+}
+
 export default function AdminModulePricing({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, actingHub, hub } = useHub()
@@ -50,6 +60,10 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
   )
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(emptyForm)
+  const [tierEditingId, setTierEditingId] = useState(null)
+  const [showTierForm, setShowTierForm] = useState(false)
+  const [tierForm, setTierForm] = useState(emptyTierForm)
+  const [savingTier, setSavingTier] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -121,6 +135,90 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
   const resetForm = () => {
     setEditingId(null)
     setForm(emptyForm)
+  }
+
+  const resetTierForm = () => {
+    setTierEditingId(null)
+    setShowTierForm(false)
+    setTierForm(emptyTierForm)
+  }
+
+  const startCreateTier = () => {
+    setTierEditingId(null)
+    setTierForm(emptyTierForm)
+    setShowTierForm(true)
+  }
+
+  const startEditTier = (tier) => {
+    setTierEditingId(tier.id)
+    setTierForm({
+      slot: String(tier.slot ?? 1),
+      min_users: String(tier.min_users ?? 0),
+      max_users: tier.max_users == null ? '' : String(tier.max_users),
+      rate_per_user: String(tier.rate_per_user ?? ''),
+      network_margin_per_user: String(tier.network_margin_per_user ?? 0),
+      sort_order: String(tier.sort_order ?? 0),
+      is_active: !!tier.is_active,
+    })
+    setShowTierForm(true)
+  }
+
+  const onSubmitTier = async (e) => {
+    e.preventDefault()
+    setSavingTier(true)
+    setError('')
+    setMessage('')
+    try {
+      const payload = {
+        slot: Number(tierForm.slot),
+        min_users: Number(tierForm.min_users || 0),
+        max_users:
+          tierForm.max_users === '' || tierForm.max_users == null
+            ? null
+            : Number(tierForm.max_users),
+        rate_per_user: Number(tierForm.rate_per_user || 0),
+        network_margin_per_user: Number(tierForm.network_margin_per_user || 0),
+        sort_order: Number(tierForm.sort_order || 0),
+        is_active: !!tierForm.is_active,
+      }
+      if (tierEditingId) {
+        await api.updateModuleRecurringTier(tierEditingId, payload, apiOpts)
+        setMessage('Recurring tier updated.')
+      } else {
+        await api.createModuleRecurringTier(payload, apiOpts)
+        setMessage('Recurring tier created.')
+      }
+      resetTierForm()
+      await load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingTier(false)
+    }
+  }
+
+  const onDeleteTier = async (tier) => {
+    const range =
+      tier.max_users == null
+        ? `${tier.min_users}+`
+        : `${tier.min_users}-${tier.max_users}`
+    if (
+      !window.confirm(
+        `Delete slot #${tier.slot} band (${range} users @ ${formatMoney(tier.rate_per_user)})?`
+      )
+    ) {
+      return
+    }
+    setError('')
+    setMessage('')
+    try {
+      await api.deleteModuleRecurringTier(tier.id, apiOpts)
+      setMessage('Recurring tier deleted.')
+      if (tierEditingId === tier.id) resetTierForm()
+      await load()
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   const onSubmit = async (e) => {
@@ -360,13 +458,113 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
       </div>
 
       <div className="advisor-list-block">
-        <h2>Recurring slot tables</h2>
-        <p className="muted">
-          Used when unit is <strong>Per user (slots)</strong>. Rate from total active users with
-          that module; import invoices charge rate × batch only.
-        </p>
+        <div className="page-head" style={{ marginBottom: 12 }}>
+          <div>
+            <h2>Recurring slot tables</h2>
+            <p className="muted">
+              Used when unit is <strong>Per user (slots)</strong>. Rate from total active users
+              with that module; import invoices charge rate × batch only. Leave max users blank
+              for “and above”.
+            </p>
+          </div>
+          {!showTierForm && (
+            <button type="button" className="btn primary" onClick={startCreateTier}>
+              Add tier band
+            </button>
+          )}
+        </div>
+
+        {showTierForm && (
+          <form className="admin-form" onSubmit={onSubmitTier}>
+            <h3>{tierEditingId ? 'Edit tier band' : 'New tier band'}</h3>
+            <label>
+              Slot (1–3)
+              <select
+                value={tierForm.slot}
+                onChange={(e) => setTierForm({ ...tierForm, slot: e.target.value })}
+                required
+              >
+                <option value="1">Slot #1</option>
+                <option value="2">Slot #2</option>
+                <option value="3">Slot #3</option>
+              </select>
+            </label>
+            <label>
+              Min users
+              <input
+                type="number"
+                min="0"
+                required
+                value={tierForm.min_users}
+                onChange={(e) => setTierForm({ ...tierForm, min_users: e.target.value })}
+              />
+            </label>
+            <label>
+              Max users (blank = onwards)
+              <input
+                type="number"
+                min="0"
+                value={tierForm.max_users}
+                onChange={(e) => setTierForm({ ...tierForm, max_users: e.target.value })}
+              />
+            </label>
+            <label>
+              Rate / user (£)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                value={tierForm.rate_per_user}
+                onChange={(e) => setTierForm({ ...tierForm, rate_per_user: e.target.value })}
+              />
+            </label>
+            <label>
+              Network margin / user (£)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={tierForm.network_margin_per_user}
+                onChange={(e) =>
+                  setTierForm({ ...tierForm, network_margin_per_user: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              Sort order
+              <input
+                type="number"
+                min="0"
+                value={tierForm.sort_order}
+                onChange={(e) => setTierForm({ ...tierForm, sort_order: e.target.value })}
+              />
+            </label>
+            <label className="checklist-item">
+              <input
+                type="checkbox"
+                checked={!!tierForm.is_active}
+                onChange={(e) => setTierForm({ ...tierForm, is_active: e.target.checked })}
+              />
+              Active
+            </label>
+            <div className="actions">
+              <button className="btn primary" disabled={savingTier}>
+                {savingTier
+                  ? 'Saving...'
+                  : tierEditingId
+                    ? 'Update tier'
+                    : 'Create tier'}
+              </button>
+              <button type="button" className="btn ghost" onClick={resetTierForm}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
         {tiers.length === 0 ? (
-          <p className="muted">No tiers seeded yet (run migrations).</p>
+          <p className="muted">No tiers yet. Add a band for slot 1–3.</p>
         ) : (
           <div className="table-wrap">
             <table className="admin-table">
@@ -376,6 +574,8 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
                   <th>Users</th>
                   <th>Rate / user</th>
                   <th>Network margin</th>
+                  <th>Active</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -388,6 +588,23 @@ export default function AdminModulePricing({ shell = 'client-admin' }) {
                     </td>
                     <td>{formatMoney(tier.rate_per_user)}</td>
                     <td>{formatMoney(tier.network_margin_per_user)}</td>
+                    <td>{tier.is_active ? 'Yes' : 'No'}</td>
+                    <td className="actions">
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        onClick={() => startEditTier(tier)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        onClick={() => onDeleteTier(tier)}
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

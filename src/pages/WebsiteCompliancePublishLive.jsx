@@ -8,6 +8,9 @@ import {
   isDeploymentOnSite,
   isDeploymentStagingPhase,
 } from '../websiteCompliance/utils/deploymentStatus'
+import WebsiteScopeCheckboxes, {
+  websiteScopeFromRequest,
+} from '../websiteCompliance/components/WebsiteScopeCheckboxes'
 
 function siteName(req) {
   return (
@@ -229,6 +232,9 @@ export default function WebsiteCompliancePublishLive() {
                         Intended live: <span className="font-mono">{req.domain_name}</span>
                       </p>
                     ) : null}
+                    <div className="mt-3">
+                      <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(req)} compact />
+                    </div>
                   </div>
                   <Link
                     to={`/my-dashboard/website-compliance/publish/${req.id}`}

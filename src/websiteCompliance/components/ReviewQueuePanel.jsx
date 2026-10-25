@@ -12,6 +12,10 @@ import {
   actorIsConflicted,
   apiValidationMessage,
 } from '../../utils/complianceSeparation'
+import WebsiteScopeCheckboxes, {
+  websiteScopeFromRequest,
+  websiteScopeLabel,
+} from './WebsiteScopeCheckboxes'
 
 const PAGE_SIZE = 20
 
@@ -170,6 +174,20 @@ export default function ReviewQueuePanel({ variant = 'active' } = {}) {
           )
         },
         filterValue: (row) => getSectionLabel(row),
+        truncate: false,
+      },
+      {
+        key: 'website_scope',
+        label: 'Website type',
+        grow: true,
+        render: (row) => (
+          <WebsiteScopeCheckboxes
+            scope={websiteScopeFromRequest(row)}
+            compact
+            className="wc-website-scope--grid"
+          />
+        ),
+        filterValue: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
         truncate: false,
       },
       {

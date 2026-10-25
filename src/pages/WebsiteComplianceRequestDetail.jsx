@@ -25,6 +25,9 @@ import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import ChangeRequestPreviewPanel from '../websiteCompliance/components/ChangeRequestPreviewPanel'
 import ChangeRequestReviewActions from '../websiteCompliance/components/ChangeRequestReviewActions'
+import WebsiteScopeCheckboxes, {
+  websiteScopeFromRequest,
+} from '../websiteCompliance/components/WebsiteScopeCheckboxes'
 import { isHistoricalRequest } from '../websiteCompliance/utils/changeRequestPreview'
 import {
   actorIsConflicted,
@@ -260,6 +263,8 @@ export default function WebsiteComplianceRequestDetail() {
       {isConflicted && (canReview || canChangeStatus) ? (
         <div className="alert">{SOD_MESSAGE}</div>
       ) : null}
+
+      <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(row)} />
 
       <div className="wc-detail-meta">
         <MetaItem icon={FaLayerGroup} label="Section">

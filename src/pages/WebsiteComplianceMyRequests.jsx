@@ -11,6 +11,10 @@ import { asList } from '../utils/apiList'
 import { formatDateTime, complianceStatusChangedAt } from '../utils/dateFormat'
 import { gridActorName } from '../utils/submissionAttribution'
 import { wcSectionTitle } from '../utils/websiteCompliance'
+import WebsiteScopeCheckboxes, {
+  websiteScopeFromRequest,
+  websiteScopeLabel,
+} from '../websiteCompliance/components/WebsiteScopeCheckboxes'
 
 export default function WebsiteComplianceMyRequests() {
   const { user } = useAuth()
@@ -85,6 +89,20 @@ export default function WebsiteComplianceMyRequests() {
       grow: true,
       render: (row) => wcSectionTitle(row),
       filterValue: (row) => wcSectionTitle(row),
+    },
+    {
+      key: 'website_scope',
+      label: 'Website type',
+      grow: true,
+      render: (row) => (
+        <WebsiteScopeCheckboxes
+          scope={websiteScopeFromRequest(row)}
+          compact
+          className="wc-website-scope--grid"
+        />
+      ),
+      filterValue: (row) => websiteScopeLabel(websiteScopeFromRequest(row)),
+      truncate: false,
     },
     {
       key: 'submitted_by',

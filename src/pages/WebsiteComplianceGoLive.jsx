@@ -245,89 +245,86 @@ export default function WebsiteComplianceGoLive() {
       {error ? <div className="alert">{error}</div> : null}
       {message ? <div className="alert success">{message}</div> : null}
 
-      <div className="card" style={{ marginBottom: '1.25rem' }}>
-        <h2 style={{ marginTop: 0, marginBottom: '0.35rem' }}>Submit go-live request</h2>
-        <p className="muted" style={{ marginTop: 0 }}>
-          Choose one of your staging sites (websites you originally requested), confirm the main
-          domain, then submit.
-        </p>
+      {loading || myStagingRequests.length > 0 ? (
+        <div className="card" style={{ marginBottom: '1.25rem' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '0.35rem' }}>Submit go-live request</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Choose one of your staging sites (websites you originally requested), confirm the main
+            domain, then submit.
+          </p>
 
-        {loading ? (
-          <p className="muted">Loading staging sites…</p>
-        ) : myStagingRequests.length === 0 ? (
-          <div className="alert" style={{ marginBottom: 0 }}>
-            No staging sites are available to request go-live for. Ask Power Admin to deploy to a
-            temporary URL first, finish compliance work, then return here.
-          </div>
-        ) : (
-          <form onSubmit={handleSubmitGoLive} className="form-grid" style={{ gap: '1rem' }}>
-            {selectedStaging ? (
-              <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(selectedStaging)} />
-            ) : null}
+          {loading ? (
+            <p className="muted">Loading staging sites…</p>
+          ) : (
+            <form onSubmit={handleSubmitGoLive} className="form-grid" style={{ gap: '1rem' }}>
+              {selectedStaging ? (
+                <WebsiteScopeCheckboxes scope={websiteScopeFromRequest(selectedStaging)} />
+              ) : null}
 
-            <label>
-              <RequiredMark>Staging website</RequiredMark>
-              <select
-                value={selectedId}
-                onChange={(e) => handleSelectStaging(e.target.value)}
-                required
-              >
-                {myStagingRequests.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    #{row.id} | {websiteScopeLabel(websiteScopeFromRequest(row))} |{' '}
-                    {row.domain_name || 'No live domain yet'}
-                    {row.staging_domain || row.cpanel_domain
-                      ? ` (staging: ${row.staging_domain || row.cpanel_domain})`
-                      : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <label>
+                <RequiredMark>Staging website</RequiredMark>
+                <select
+                  value={selectedId}
+                  onChange={(e) => handleSelectStaging(e.target.value)}
+                  required
+                >
+                  {myStagingRequests.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      #{row.id} | {websiteScopeLabel(websiteScopeFromRequest(row))} |{' '}
+                      {row.domain_name || 'No live domain yet'}
+                      {row.staging_domain || row.cpanel_domain
+                        ? ` (staging: ${row.staging_domain || row.cpanel_domain})`
+                        : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            {selectedStaging ? (
-              <div className="muted" style={{ fontSize: '0.85rem' }}>
-                <FaGlobe aria-hidden style={{ marginRight: 6 }} />
-                Currently on staging:{' '}
-                <strong>{selectedStaging.staging_domain || selectedStaging.cpanel_domain || '-'}</strong>
-                {' | '}
-                Template: <strong>{selectedStaging.template_name || '-'}</strong>
+              {selectedStaging ? (
+                <div className="muted" style={{ fontSize: '0.85rem' }}>
+                  <FaGlobe aria-hidden style={{ marginRight: 6 }} />
+                  Currently on staging:{' '}
+                  <strong>{selectedStaging.staging_domain || selectedStaging.cpanel_domain || '-'}</strong>
+                  {' | '}
+                  Template: <strong>{selectedStaging.template_name || '-'}</strong>
+                </div>
+              ) : null}
+
+              <label>
+                <RequiredMark>Main / live domain</RequiredMark>
+                <input
+                  type="text"
+                  value={liveDomain}
+                  onChange={(e) => setLiveDomain(e.target.value)}
+                  placeholder="e.g. www.advisorfirm.com"
+                  required
+                />
+                <span className="muted" style={{ fontSize: '0.8rem' }}>
+                  This is the public URL Power Admin will deploy to when they process your request.
+                </span>
+              </label>
+
+              <label>
+                Notes for Power Admin <span className="muted">(optional)</span>
+                <textarea
+                  rows={4}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Any launch notes, DNS readiness, or special instructions…"
+                  maxLength={5000}
+                />
+              </label>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button type="submit" className="btn primary" disabled={submitting || !selectedStaging}>
+                  <FaPaperPlane aria-hidden style={{ marginRight: 6 }} />
+                  {submitting ? 'Submitting…' : 'Submit go-live request'}
+                </button>
               </div>
-            ) : null}
-
-            <label>
-              <RequiredMark>Main / live domain</RequiredMark>
-              <input
-                type="text"
-                value={liveDomain}
-                onChange={(e) => setLiveDomain(e.target.value)}
-                placeholder="e.g. www.advisorfirm.com"
-                required
-              />
-              <span className="muted" style={{ fontSize: '0.8rem' }}>
-                This is the public URL Power Admin will deploy to when they process your request.
-              </span>
-            </label>
-
-            <label>
-              Notes for Power Admin <span className="muted">(optional)</span>
-              <textarea
-                rows={4}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any launch notes, DNS readiness, or special instructions…"
-                maxLength={5000}
-              />
-            </label>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button type="submit" className="btn primary" disabled={submitting || !selectedStaging}>
-                <FaPaperPlane aria-hidden style={{ marginRight: 6 }} />
-                {submitting ? 'Submitting…' : 'Submit go-live request'}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+            </form>
+          )}
+        </div>
+      ) : null}
 
       <h2 style={{ marginBottom: '0.5rem' }}>
         <FaRocket aria-hidden style={{ marginRight: 8 }} />

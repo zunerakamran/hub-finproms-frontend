@@ -5,6 +5,7 @@ export const DEFAULT_ROLE_LABELS = {
   client_admin: 'Client Admin',
   network_admin: 'Network Admin',
   firm_admin: 'Firm Admin',
+  website_admin: 'Website Admin',
   top_management: 'Top Management',
   accounts_admin: 'Accounts Admin',
   auditor: 'Auditor',

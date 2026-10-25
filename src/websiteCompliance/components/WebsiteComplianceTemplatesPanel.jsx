@@ -216,7 +216,7 @@ export default function WebsiteComplianceTemplatesPanel({
   }, [forcedTab])
   const [templates, setTemplates] = useState([])
   const [requests, setRequests] = useState([])
-  const [advisors, setAdvisors] = useState([])
+  const [websiteAdmins, setWebsiteAdmins] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -298,22 +298,16 @@ export default function WebsiteComplianceTemplatesPanel({
       }
 
       if (!canAssignAdvisor) {
-        setAdvisors([])
+        setWebsiteAdmins([])
         return
       }
 
       try {
-        const usersRes = await api.get('/advisors')
+        const usersRes = await api.get('/website-admins')
         const users = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data || []
-        setAdvisors(users.filter((u) => u.role === 'advisor' || u.role === 'editor'))
+        setWebsiteAdmins(users)
       } catch {
-        try {
-          const usersRes = await api.get('/users')
-          const users = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data || []
-          setAdvisors(users.filter((u) => u.role === 'advisor' || u.role === 'editor'))
-        } catch {
-          setAdvisors([])
-        }
+        setWebsiteAdmins([])
       }
     },
     [canViewDeployments, canManageTemplates, canAssignAdvisor, canBrowseTemplates, canRequestDeployments]
@@ -1094,7 +1088,12 @@ export default function WebsiteComplianceTemplatesPanel({
               const promoteReady = canPromoteToLive(row)
               const advisorOwned = isRequestedByAdvisor(row)
               const showAssignAdvisor = canAssignAdvisor && !advisorOwned
-              const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+              const hasAssignees = Boolean(
+                (Array.isArray(row.website_admins) && row.website_admins.length) ||
+                (Array.isArray(row.websiteAdmins) && row.websiteAdmins.length) ||
+                row.assigned_advisor ||
+                row.assignedAdvisor
+              )
               const hasAction =
                 canViewDeployments ||
                 showAssignAdvisor ||
@@ -1114,7 +1113,7 @@ export default function WebsiteComplianceTemplatesPanel({
                   {showAssignAdvisor ? (
                     <DataGridIconBtn
                       icon={FaUserCheck}
-                      label={assignedAdvisor ? 'Reassign advisor' : 'Assign advisor'}
+                      label={hasAssignees ? 'Reassign Website Admins' : 'Assign Website Admins'}
                       onClick={() => setAssignTarget(row)}
                     />
                   ) : null}
@@ -1727,7 +1726,7 @@ export default function WebsiteComplianceTemplatesPanel({
 
       {showCreateModal && canRequest && (
         <CreateDeploymentModal
-          advisors={advisors}
+          websiteAdmins={websiteAdmins}
           canAssignAdvisor={canAssignAdvisor}
           onClose={() => setShowCreateModal(false)}
           onCreated={(newRequest) => {
@@ -1746,18 +1745,25 @@ export default function WebsiteComplianceTemplatesPanel({
       {assignTarget && canAssignAdvisor && !isRequestedByAdvisor(assignTarget) && (
         <AssignAdvisorModal
           request={assignTarget}
-          advisors={advisors}
+          websiteAdmins={websiteAdmins}
           onClose={() => setAssignTarget(null)}
           onAssigned={(updatedRequest) => {
             setAssignTarget(null)
             setRequests((prev) =>
               prev.map((r) => (r.id === updatedRequest.id ? updatedRequest : r))
             )
-            const advisorName =
-              updatedRequest.assigned_advisor?.name ||
-              updatedRequest.assignedAdvisor?.name ||
-              'Advisor'
-            setMessage(`Assigned this website to ${advisorName}.`)
+            const admins =
+              updatedRequest.website_admins ||
+              updatedRequest.websiteAdmins ||
+              []
+            const names = Array.isArray(admins) && admins.length
+              ? admins.map((a) => a.name).filter(Boolean).join(', ')
+              : (
+                updatedRequest.assigned_advisor?.name ||
+                updatedRequest.assignedAdvisor?.name ||
+                'Website Admin(s)'
+              )
+            setMessage(`Assigned this website to ${names}.`)
           }}
         />
       )}

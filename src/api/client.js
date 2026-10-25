@@ -1821,6 +1821,7 @@ export const api = {
     return request(`/website-compliance/reports${query ? `?${query}` : ''}`)
   },
   websiteComplianceAdvisors: () => request('/website-compliance/advisors'),
+  websiteComplianceWebsiteAdmins: () => request('/website-compliance/website-admins'),
   websiteComplianceReviewers: (params = {}) => {
     const query = new URLSearchParams(
       Object.entries({

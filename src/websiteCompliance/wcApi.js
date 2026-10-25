@@ -88,6 +88,7 @@ async function get(path, config = {}) {
       return wrap(await hubApi.websiteComplianceReportSummary())
     }
     if (p === 'advisors') return wrap(await hubApi.websiteComplianceAdvisors())
+    if (p === 'website-admins') return wrap(await hubApi.websiteComplianceWebsiteAdmins())
     if (p === 'reviewers' || p === 'users') {
       // Approver picker: roles with wc_review_change_requests on this hub.
       const list = await hubApi.websiteComplianceReviewers()

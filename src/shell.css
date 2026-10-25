@@ -1055,9 +1055,9 @@ a.site-footer__powered:hover {
   box-sizing: border-box;
 }
 
-/* Capabilities matrix needs the full content column width on smaller screens */
+/* Capabilities page uses wrapping role chips (no wide table / no horizontal scroll). */
 .dash-content:has(.capabilities-matrix-page) {
-  max-width: none;
+  max-width: 1180px;
   overflow-x: hidden;
 }
 

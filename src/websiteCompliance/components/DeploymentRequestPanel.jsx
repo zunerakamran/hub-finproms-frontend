@@ -31,13 +31,38 @@ import { hubDomainPlaceholder, resolveHubPreviewBase } from '../utils/assetUrl'
 import { ColorSchemePicker, templateColorSchemes } from './ColorSchemeFields'
 import { truncateRichText } from '../../utils/richText'
 
-function advisorsForFirm(advisors, submitterFirm, actorRole) {
+function websiteAdminsFromRequest(request) {
+  const list = request?.website_admins || request?.websiteAdmins
+  if (Array.isArray(list) && list.length) return list
+  const single = request?.assigned_advisor || request?.assignedAdvisor
+  return single ? [single] : []
+}
+
+function isWebsiteAdminUser(u) {
+  if (!u) return false
+  if (u.role === 'website_admin') return true
+  return Array.isArray(u.roles) && u.roles.includes('website_admin')
+}
+
+function websiteAdminsForFirm(websiteAdmins, submitterFirm, actorRole) {
   const role = String(actorRole || '')
   // Power / FinProms admin creating without firm scope see the full list.
   if ((role === 'power_admin' || role === 'finproms_admin') && !submitterFirm?.id) {
-    return Array.isArray(advisors) ? advisors : []
+    return Array.isArray(websiteAdmins) ? websiteAdmins : []
   }
-  return reviewersForSubmitterFirm(advisors, submitterFirm)
+  return reviewersForSubmitterFirm(websiteAdmins, submitterFirm)
+}
+
+function formatWebsiteAdminNames(admins) {
+  if (!Array.isArray(admins) || !admins.length) return ''
+  return admins
+    .map((a) => {
+      if (!a) return ''
+      const name = a.name || a.email || ''
+      return a.firm?.name ? `${name} - ${a.firm.name}` : name
+    })
+    .filter(Boolean)
+    .join(', ')
 }
 import {
   TemplateRequestContentFields,
@@ -287,6 +312,7 @@ function BrandingUploadField({
 }
 
 export function CreateDeploymentModal({
+  websiteAdmins = [],
   advisors = [],
   canAssignAdvisor = false,
   initialTemplateName = '',
@@ -295,9 +321,10 @@ export function CreateDeploymentModal({
 }) {
   const { user } = useAuth()
   const { branding, hub, actingHub } = useHub()
-  const eligibleAdvisors = useMemo(
-    () => advisorsForFirm(advisors, user?.firm, user?.role),
-    [advisors, user?.firm, user?.role]
+  const websiteAdminList = websiteAdmins.length ? websiteAdmins : advisors
+  const eligibleWebsiteAdmins = useMemo(
+    () => websiteAdminsForFirm(websiteAdminList, user?.firm, user?.role),
+    [websiteAdminList, user?.firm, user?.role]
   )
   const previewBase = resolveHubPreviewBase({ hub, actingHub })
   const domainPlaceholder = hubDomainPlaceholder(previewBase)
@@ -318,7 +345,7 @@ export function CreateDeploymentModal({
   const [primaryColor, setPrimaryColor] = useState(hubPrimary)
   const [secondaryColor, setSecondaryColor] = useState(hubSecondary)
   const [colorSchemeKey, setColorSchemeKey] = useState('custom')
-  const [assignedAdvisorId, setAssignedAdvisorId] = useState('')
+  const [assignedWebsiteAdminIds, setAssignedWebsiteAdminIds] = useState([])
   const [services, setServices] = useState([])
   const [images, setImages] = useState([])
   const [contactDetails, setContactDetails] = useState(emptyContactDetails())
@@ -427,13 +454,18 @@ export function CreateDeploymentModal({
     serverTemplates.find(t => (t.slug || t.name) === templateName) || null
   const availableSchemes = templateColorSchemes(selectedTemplate)
   const availablePages = templateAvailablePages(selectedTemplate)
-  const selectedAdvisor = eligibleAdvisors.find(a => String(a.id) === String(assignedAdvisorId))
+  const selectedWebsiteAdmins = eligibleWebsiteAdmins.filter((a) =>
+    assignedWebsiteAdminIds.includes(String(a.id))
+  )
 
   useEffect(() => {
-    if (!assignedAdvisorId) return
-    if (eligibleAdvisors.some((a) => String(a.id) === String(assignedAdvisorId))) return
-    setAssignedAdvisorId('')
-  }, [assignedAdvisorId, eligibleAdvisors])
+    setAssignedWebsiteAdminIds((prev) => {
+      const eligibleIds = new Set(eligibleWebsiteAdmins.map((a) => String(a.id)))
+      const next = prev.filter((id) => eligibleIds.has(String(id)))
+      return next.length === prev.length ? prev : next
+    })
+  }, [eligibleWebsiteAdmins])
+
   const contentSummary = buildRequestContentPayload({
     services,
     images,
@@ -478,6 +510,14 @@ export function CreateDeploymentModal({
     })
   }
 
+  const toggleWebsiteAdminId = (id) => {
+    const key = String(id)
+    setAssignedWebsiteAdminIds((prev) =>
+      prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]
+    )
+    clearFieldError('assignedWebsiteAdminIds')
+  }
+
   const validateStep = (index) => {
     const nextErrors = {}
     let message = ''
@@ -494,10 +534,10 @@ export function CreateDeploymentModal({
         message = message || nextErrors.domainName
         firstInvalid = firstInvalid || 'domainName'
       }
-      if (canAssignAdvisor && !assignedAdvisorId) {
-        nextErrors.assignedAdvisorId = 'Assign an advisor for content editing before continuing.'
-        message = message || nextErrors.assignedAdvisorId
-        firstInvalid = firstInvalid || 'assignedAdvisorId'
+      if (canAssignAdvisor && assignedWebsiteAdminIds.length === 0) {
+        nextErrors.assignedWebsiteAdminIds = 'Assign at least one Website Admin for content editing before continuing.'
+        message = message || nextErrors.assignedWebsiteAdminIds
+        firstInvalid = firstInvalid || 'assignedWebsiteAdminIds'
       }
     }
 
@@ -544,8 +584,8 @@ export function CreateDeploymentModal({
         request_type: 'advisor_website',
         ...contentSummary,
       }
-      if (canAssignAdvisor && assignedAdvisorId) {
-        payload.assigned_advisor_id = Number(assignedAdvisorId)
+      if (canAssignAdvisor && assignedWebsiteAdminIds.length) {
+        payload.website_admin_ids = assignedWebsiteAdminIds.map(Number)
       }
       const res = await api.post('/template-requests', payload)
       onCreated(res.data)
@@ -713,40 +753,64 @@ export function CreateDeploymentModal({
             {canAssignAdvisor && (
               <FormSection
                 icon={FaUserCheck}
-                title="Assign advisor"
-                hint="Who will edit content after the site is deployed."
+                title="Assign Website Admins"
+                hint="Who will edit content after the site is deployed. You can select more than one."
               >
                 <div>
                   <label className={labelClass}>
-                    <RequiredMark>Content advisor</RequiredMark>
+                    <RequiredMark>Website Admin(s)</RequiredMark>
                   </label>
-                  <select
-                    ref={(el) => { fieldRefs.current.assignedAdvisorId = el }}
-                    value={assignedAdvisorId}
-                    onChange={e => {
-                      setAssignedAdvisorId(e.target.value)
-                      clearFieldError('assignedAdvisorId')
-                    }}
-                    className={fieldClass('assignedAdvisorId')}
-                    aria-invalid={Boolean(fieldErrors.assignedAdvisorId)}
+                  <div
+                    ref={(el) => { fieldRefs.current.assignedWebsiteAdminIds = el }}
+                    className={`max-h-48 overflow-y-auto rounded-xl border divide-y divide-gray-100 ${
+                      fieldErrors.assignedWebsiteAdminIds
+                        ? 'border-rose-400'
+                        : 'border-gray-200'
+                    }`}
+                    role="group"
+                    aria-invalid={Boolean(fieldErrors.assignedWebsiteAdminIds)}
                   >
-                    <option value="">- Select an advisor -</option>
-                    {eligibleAdvisors.map(a => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.email}){a.firm?.name ? ` - ${a.firm.name}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {fieldErrors.assignedAdvisorId ? (
-                    <p className="wc-field-error" role="alert">{fieldErrors.assignedAdvisorId}</p>
+                    {eligibleWebsiteAdmins.length === 0 ? (
+                      <p className="px-3 py-3 text-xs text-gray-500">No Website Admins available.</p>
+                    ) : (
+                      eligibleWebsiteAdmins.map((a) => {
+                        const checked = assignedWebsiteAdminIds.includes(String(a.id))
+                        return (
+                          <label
+                            key={a.id}
+                            className={`flex items-start gap-3 px-3 py-2.5 cursor-pointer transition ${
+                              checked
+                                ? 'bg-[color-mix(in_srgb,var(--brand)_8%,white)]'
+                                : 'bg-white hover:bg-gray-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleWebsiteAdminId(a.id)}
+                              className="mt-0.5 shrink-0"
+                            />
+                            <span className="min-w-0 text-sm">
+                              <span className="block font-semibold text-[var(--brand-dark)]">{a.name}</span>
+                              <span className="block text-[11px] text-gray-500">
+                                {a.email}{a.firm?.name ? ` - ${a.firm.name}` : ''}
+                              </span>
+                            </span>
+                          </label>
+                        )
+                      })
+                    )}
+                  </div>
+                  {fieldErrors.assignedWebsiteAdminIds ? (
+                    <p className="wc-field-error" role="alert">{fieldErrors.assignedWebsiteAdminIds}</p>
                   ) : null}
-                  {eligibleAdvisors.length === 0 && (
+                  {eligibleWebsiteAdmins.length === 0 && (
                     <p className="text-xs text-amber-700 mt-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                      No advisors are available for your firm&apos;s visibility settings. Add advisors in your firm, or update firm compliance visibility.
+                      No Website Admins are available for your firm&apos;s visibility settings. Add Website Admins in your firm, or update firm compliance visibility.
                     </p>
                   )}
                   <p className="text-[11px] text-gray-500 mt-1.5">
-                    Only advisors from your firm (or firms allowed by your firm&apos;s visibility settings) are listed.
+                    Only Website Admins from your firm (or firms allowed by your firm&apos;s visibility settings) are listed.
                   </p>
                 </div>
               </FormSection>
@@ -882,12 +946,8 @@ export function CreateDeploymentModal({
                 <ReviewRow label="Domain" value={domainName.trim()} mono />
                 {canAssignAdvisor && (
                   <ReviewRow
-                    label="Advisor"
-                    value={
-                      selectedAdvisor
-                        ? `${selectedAdvisor.name}${selectedAdvisor.firm?.name ? ` - ${selectedAdvisor.firm.name}` : ''}`
-                        : ''
-                    }
+                    label="Website Admins"
+                    value={formatWebsiteAdminNames(selectedWebsiteAdmins)}
                   />
                 )}
                 <ReviewRow label="Primary colour" value={primaryColor} mono />
@@ -970,43 +1030,57 @@ export function CreateDeploymentModal({
   )
 }
 
-// ─── Assign advisor modal (for existing request) ──────────────────────────────
+// ─── Assign Website Admins modal (for existing request) ───────────────────────
 
-export function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
+export function AssignAdvisorModal({ request, websiteAdmins = [], advisors = [], onClose, onAssigned }) {
   const { user } = useAuth()
   const requester = request.requested_by || request.requestedBy
   const submitterFirm = requester?.firm || user?.firm
-  const eligibleAdvisors = useMemo(
-    () => reviewersForSubmitterFirm(advisors, submitterFirm),
-    [advisors, submitterFirm]
+  const websiteAdminList = websiteAdmins.length ? websiteAdmins : advisors
+  const eligibleWebsiteAdmins = useMemo(
+    () => reviewersForSubmitterFirm(websiteAdminList, submitterFirm),
+    [websiteAdminList, submitterFirm]
   )
-  const [advisorId, setAdvisorId] = useState(
-    String(request.assigned_advisor_id || request.advisor_id || '')
-  )
+  const [selectedIds, setSelectedIds] = useState(() => {
+    const fromList = websiteAdminsFromRequest(request).map((u) => String(u.id)).filter(Boolean)
+    if (fromList.length) return fromList
+    const legacy = request.assigned_advisor_id || request.advisor_id
+    return legacy ? [String(legacy)] : []
+  })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!advisorId) return
-    if (eligibleAdvisors.some((a) => String(a.id) === String(advisorId))) return
-    setAdvisorId('')
-  }, [advisorId, eligibleAdvisors])
+    setSelectedIds((prev) => {
+      const eligibleIds = new Set(eligibleWebsiteAdmins.map((a) => String(a.id)))
+      const next = prev.filter((id) => eligibleIds.has(String(id)))
+      return next.length === prev.length ? prev : next
+    })
+  }, [eligibleWebsiteAdmins])
+
+  const toggleId = (id) => {
+    const key = String(id)
+    setSelectedIds((prev) =>
+      prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]
+    )
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!advisorId) { setError('Please select an advisor.'); return }
+    if (!selectedIds.length) { setError('Please select at least one Website Admin.'); return }
     setSubmitting(true)
     setError('')
     try {
       const res = await api.post(`/template-requests/${request.id}/assign-advisor`, {
-        assigned_advisor_id: Number(advisorId),
+        website_admin_ids: selectedIds.map(Number),
       })
       onAssigned(res.data)
     } catch (err) {
       setError(
         err.response?.data?.message
+        || err.response?.data?.errors?.website_admin_ids?.[0]
         || err.response?.data?.errors?.assigned_advisor_id?.[0]
-        || 'Failed to assign advisor.'
+        || 'Failed to assign Website Admins.'
       )
     } finally {
       setSubmitting(false)
@@ -1015,33 +1089,55 @@ export function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
 
   return (
     <ModalShell
-      title="Assign Advisor for Editing"
+      title="Assign Website Admins for Editing"
       subtitle={`Deployment: ${request.domain_name}`}
       onClose={onClose}
     >
       {error && <AlertBanner type="error" message={error} onDismiss={() => setError('')} />}
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1.5">Select Advisor</label>
-          <select
-            value={advisorId}
-            onChange={e => setAdvisorId(e.target.value)}
-            className="w-full text-sm p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] focus:border-[var(--brand)] outline-none"
-          >
-            <option value="">- Select an advisor -</option>
-            {eligibleAdvisors.map(a => (
-              <option key={a.id} value={a.id}>
-                {a.name} ({a.email}){a.firm?.name ? ` - ${a.firm.name}` : ''}
-              </option>
-            ))}
-          </select>
-          {eligibleAdvisors.length === 0 && (
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">
+            Select Website Admin(s)
+          </label>
+          <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {eligibleWebsiteAdmins.length === 0 ? (
+              <p className="px-3 py-3 text-xs text-gray-500">No Website Admins available.</p>
+            ) : (
+              eligibleWebsiteAdmins.map((a) => {
+                const checked = selectedIds.includes(String(a.id))
+                return (
+                  <label
+                    key={a.id}
+                    className={`flex items-start gap-3 px-3 py-2.5 cursor-pointer transition ${
+                      checked
+                        ? 'bg-[color-mix(in_srgb,var(--brand)_8%,white)]'
+                        : 'bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleId(a.id)}
+                      className="mt-0.5 shrink-0"
+                    />
+                    <span className="min-w-0 text-sm">
+                      <span className="block font-semibold text-[var(--brand-dark)]">{a.name}</span>
+                      <span className="block text-[11px] text-gray-500">
+                        {a.email}{a.firm?.name ? ` - ${a.firm.name}` : ''}
+                      </span>
+                    </span>
+                  </label>
+                )
+              })
+            )}
+          </div>
+          {eligibleWebsiteAdmins.length === 0 && (
             <p className="text-xs text-amber-700 mt-1">
-              No advisors are available for this requester&apos;s firm visibility settings.
+              No Website Admins are available for this requester&apos;s firm visibility settings.
             </p>
           )}
           <p className="text-[11px] text-gray-500 mt-1.5">
-            Only advisors from the requester&apos;s firm (or firms allowed by that firm&apos;s visibility settings) are listed.
+            Only Website Admins from the requester&apos;s firm (or firms allowed by that firm&apos;s visibility settings) are listed.
           </p>
         </div>
 
@@ -1049,7 +1145,7 @@ export function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
           <div className="flex items-start gap-2">
             <FaExclamationTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
             <p>
-              This assigns the website to the advisor for editing - it is <strong>not</strong> treated as the advisor&apos;s own website request.
+              This assigns the website to the selected Website Admin(s) for editing - it is <strong>not</strong> treated as their own website request.
               They will see it marked as assigned in their <strong>Deployments</strong> tab. Edits still go through the standard change request → approver approval workflow.
             </p>
           </div>
@@ -1061,11 +1157,11 @@ export function AssignAdvisorModal({ request, advisors, onClose, onAssigned }) {
           </button>
           <button
             type="submit"
-            disabled={submitting || !advisorId}
+            disabled={submitting || selectedIds.length === 0}
             className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-[var(--brand-dark)] text-white rounded-xl hover:bg-[color-mix(in_srgb,var(--brand-dark)_85%,black)] transition disabled:opacity-50 shadow-md"
           >
             <FaUserCheck className="w-3.5 h-3.5" />
-            {submitting ? 'Assigning…' : 'Assign Advisor'}
+            {submitting ? 'Assigning…' : 'Assign Website Admins'}
           </button>
         </div>
       </form>
@@ -1092,7 +1188,7 @@ export default function DeploymentRequestPanel() {
   const canAccess = canRequest || canViewAll
 
   const [requests, setRequests] = useState([])
-  const [advisors, setAdvisors] = useState([])
+  const [websiteAdmins, setWebsiteAdmins] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [message, setMessage] = useState('')
@@ -1122,24 +1218,20 @@ export default function DeploymentRequestPanel() {
     }
 
     if (!canAssignAdvisor) {
-      setAdvisors([])
+      setWebsiteAdmins([])
       setLoading(false)
       setRefreshing(false)
       return
     }
 
     try {
-      const usersRes = await api.get('/advisors')
+      const usersRes = await api.get('/website-admins')
       const users = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data || []
-      setAdvisors(users.filter(u => u.role === 'advisor' || u.role === 'editor'))
+      // Prefer explicit website_admin role when present; otherwise keep API list as-is.
+      const roleFiltered = users.filter(isWebsiteAdminUser)
+      setWebsiteAdmins(roleFiltered.length ? roleFiltered : users)
     } catch {
-      try {
-        const usersRes = await api.get('/users')
-        const users = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data || []
-        setAdvisors(users.filter(u => u.role === 'advisor' || u.role === 'editor'))
-      } catch {
-        setAdvisors([])
-      }
+      setWebsiteAdmins([])
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -1157,8 +1249,8 @@ export default function DeploymentRequestPanel() {
   const handleAssigned = (updatedRequest) => {
     setAssignTarget(null)
     setRequests(prev => prev.map(r => r.id === updatedRequest.id ? updatedRequest : r))
-    const advisorName = updatedRequest.assigned_advisor?.name || updatedRequest.assignedAdvisor?.name || 'Advisor'
-    setMessage(`Assigned this website to ${advisorName}. They can edit its content once it is deployed (this is not their own site).`)
+    const names = formatWebsiteAdminNames(websiteAdminsFromRequest(updatedRequest)) || 'Website Admin(s)'
+    setMessage(`Assigned this website to ${names}. They can edit its content once it is deployed (this is not their own site).`)
   }
 
   const filteredRequests = useMemo(() => {
@@ -1214,20 +1306,25 @@ export default function DeploymentRequestPanel() {
       },
     },
     {
-      key: 'advisor',
-      label: 'Content advisor',
+      key: 'website_admins',
+      label: 'Website Admins',
       render: (row) => {
-        const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+        const admins = websiteAdminsFromRequest(row)
+        if (admins.length) {
+          return admins.map((a) => a.name).filter(Boolean).join(', ')
+        }
         const advisorOwned = isRequestedByAdvisor(row)
-        const contentAdvisor = assignedAdvisor || (advisorOwned ? row.advisor : null)
-        if (contentAdvisor) return contentAdvisor.name
+        if (advisorOwned && row.advisor?.name) return row.advisor.name
         return <span className="muted">Unassigned</span>
       },
       filterValue: (row) => {
-        const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+        const admins = websiteAdminsFromRequest(row)
+        if (admins.length) {
+          return admins.map((a) => a.name).filter(Boolean).join(', ')
+        }
         const advisorOwned = isRequestedByAdvisor(row)
-        const contentAdvisor = assignedAdvisor || (advisorOwned ? row.advisor : null)
-        return contentAdvisor?.name || 'Unassigned'
+        if (advisorOwned && row.advisor?.name) return row.advisor.name
+        return 'Unassigned'
       },
       truncate: false,
     },
@@ -1320,7 +1417,7 @@ export default function DeploymentRequestPanel() {
         actions={(row) => {
           const advisorOwned = isRequestedByAdvisor(row)
           const showAssignAdvisor = canAssignAdvisor && !advisorOwned
-          const assignedAdvisor = row.assigned_advisor || row.assignedAdvisor
+          const hasAssignees = websiteAdminsFromRequest(row).length > 0
           return (
             <span className="inline-flex items-center gap-1.5">
               <DataGridIconBtn
@@ -1332,7 +1429,7 @@ export default function DeploymentRequestPanel() {
               {showAssignAdvisor ? (
                 <DataGridIconBtn
                   icon={FaUserCheck}
-                  label={assignedAdvisor ? 'Reassign advisor' : 'Assign advisor'}
+                  label={hasAssignees ? 'Reassign Website Admins' : 'Assign Website Admins'}
                   variant="primary"
                   onClick={() => setAssignTarget(row)}
                 />
@@ -1344,7 +1441,7 @@ export default function DeploymentRequestPanel() {
 
       {showCreateModal && canRequest && (
         <CreateDeploymentModal
-          advisors={advisors}
+          websiteAdmins={websiteAdmins}
           canAssignAdvisor={canAssignAdvisor}
           onClose={() => setShowCreateModal(false)}
           onCreated={handleCreated}
@@ -1374,7 +1471,7 @@ export default function DeploymentRequestPanel() {
       {assignTarget && canAssignAdvisor && !isRequestedByAdvisor(assignTarget) && (
         <AssignAdvisorModal
           request={assignTarget}
-          advisors={advisors}
+          websiteAdmins={websiteAdmins}
           onClose={() => setAssignTarget(null)}
           onAssigned={handleAssigned}
         />

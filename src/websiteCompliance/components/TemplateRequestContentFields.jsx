@@ -934,7 +934,22 @@ export function TemplateRequestDetailsView({ request }) {
   const hasContact = ['phone', 'email', 'address', 'website'].some((k) => String(contact[k] || '').trim())
   const requester =
     request.requested_by || request.requestedBy || request.advisor || null
-  const assignedAdvisor = request.assigned_advisor || request.assignedAdvisor || null
+  const websiteAdminsList = (() => {
+    const list = request.website_admins || request.websiteAdmins
+    if (Array.isArray(list) && list.length) return list
+    const single = request.assigned_advisor || request.assignedAdvisor
+    return single ? [single] : []
+  })()
+  const websiteAdminsLabel = websiteAdminsList.length
+    ? websiteAdminsList
+        .map((a) => {
+          if (!a) return ''
+          const name = a.name || ''
+          return a.email ? `${name} (${a.email})`.trim() : name
+        })
+        .filter(Boolean)
+        .join(', ')
+    : null
   const logoSrc = request.logo_url ? websiteComplianceAssetUrl(request.logo_url) : ''
   const whiteLogoSrc = request.white_logo_url ? websiteComplianceAssetUrl(request.white_logo_url) : ''
   const faviconSrc = request.favicon_url ? websiteComplianceAssetUrl(request.favicon_url) : ''
@@ -949,12 +964,8 @@ export function TemplateRequestDetailsView({ request }) {
         <DetailRow label="Status" value={request.status} />
         <DetailRow label="Requested by" value={requester?.name || requester?.email} />
         <DetailRow
-          label="Content advisor"
-          value={
-            assignedAdvisor
-              ? `${assignedAdvisor.name || ''}${assignedAdvisor.email ? ` (${assignedAdvisor.email})` : ''}`.trim()
-              : null
-          }
+          label="Website Admins"
+          value={websiteAdminsLabel}
         />
         <DetailRow
           label="Go-live requested"

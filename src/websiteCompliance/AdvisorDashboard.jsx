@@ -1870,10 +1870,10 @@ export default function AdvisorDashboard({
       setAssignableAdvisors([])
       return
     }
-    api.get('/advisors')
+    api.get('/website-admins')
       .then((res) => {
         const users = Array.isArray(res.data) ? res.data : res.data?.data || []
-        setAssignableAdvisors(users.filter((u) => u.role === 'advisor' || u.role === 'editor'))
+        setAssignableAdvisors(users)
       })
       .catch(() => setAssignableAdvisors([]))
   }
@@ -5255,7 +5255,7 @@ export default function AdvisorDashboard({
 
       {showTemplateModal && (
         <CreateDeploymentModal
-          advisors={assignableAdvisors}
+          websiteAdmins={assignableAdvisors}
           canAssignAdvisor={canAssignAdvisor}
           initialTemplateName={selectedTemplateName}
           onClose={() => setShowTemplateModal(false)}

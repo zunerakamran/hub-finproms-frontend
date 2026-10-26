@@ -12,27 +12,42 @@ const MODULE_CHILDREN = {
 
 const CONTENT_HUB_BASE_KEYS = ['module_shared_hub', 'module_white_label_hub']
 
-function lockedHint(item) {
-  if (!item.locked) return null
-  const packageName = item.locked_by_package?.name
-  if (item.locked_reason === 'central_hub') {
+function typeLockedReason(item) {
+  if (item.locked_reason === 'central_hub') return 'central_hub'
+  if (item.locked_reason === 'shared_hub') return 'shared_hub'
+  if (item.locked_reason === 'white_label_hub') return 'white_label_hub'
+  if (
+    item.key === 'module_central_hub' ||
+    item.key === 'module_shared_hub' ||
+    item.key === 'module_white_label_hub'
+  ) {
+    return item.key.replace('module_', '')
+  }
+  return null
+}
+
+function lockedHint(item, owningPackage = null) {
+  const packageName = owningPackage?.name || item.locked_by_package?.name
+  const typeReason = typeLockedReason(item)
+  if (typeReason === 'central_hub') {
     return 'Always enabled on Central Hub Controller (cannot be turned off). This instance is control plane only - no content catalog modules.'
   }
-  if (item.locked_reason === 'shared_hub') {
+  if (typeReason === 'shared_hub') {
     return packageName
       ? `Always enabled on the shared hub (cannot be turned off). Covered by package “${packageName}” for billing.`
       : 'Always enabled on the shared hub (cannot be turned off). Other modules depend on this.'
   }
-  if (item.locked_reason === 'white_label_hub') {
+  if (typeReason === 'white_label_hub') {
     return packageName
       ? `Always enabled on white-labelled hubs (cannot be turned off). Covered by package “${packageName}” for billing.`
       : 'Always enabled on white-labelled hubs (cannot be turned off). Other modules depend on this.'
   }
-  if (item.locked_reason === 'module_package') {
+  if (owningPackage) {
     const name = packageName || 'a module package'
     return `Included in package “${name}”. Turn the package off to select this module separately.`
   }
-  return 'This module cannot be toggled for this hub.'
+  if (typeReason) return null
+  return null
 }
 
 /** Collapse Shared + WL bases into one label in package “Includes” lists. */
@@ -120,6 +135,21 @@ export default function PowerAdminModules() {
     return map
   }, [modules])
 
+  /**
+   * Module key → package that currently owns it based on UI package checkboxes.
+   * Catalogue membership alone must NOT lock modules — only an enabled package does.
+   */
+  const ownershipByModuleKey = useMemo(() => {
+    const map = {}
+    for (const pkg of packages) {
+      if (!packageFlags[pkg.id]) continue
+      for (const key of pkg.module_keys || []) {
+        map[key] = pkg
+      }
+    }
+    return map
+  }, [packages, packageFlags])
+
   const applyPayload = (data) => {
     const rows = data.modules || []
     const pkgs = data.packages || []
@@ -190,7 +220,10 @@ export default function PowerAdminModules() {
             for (const key of other.module_keys || []) stillCovered.add(key)
           }
           for (const key of keys) {
-            if (!stillCovered.has(key)) nextFlags[key] = false
+            // Hub base stays always-on; only product modules turn off with the package.
+            if (!stillCovered.has(key) && !CONTENT_HUB_BASE_KEYS.includes(key)) {
+              nextFlags[key] = false
+            }
           }
         }
         return nextFlags
@@ -207,10 +240,12 @@ export default function PowerAdminModules() {
     setError('')
     setMessage('')
     try {
-      // Omit locked modules from the payload - backend enforces type locks, packages + deps.
+      // Omit type-locked / currently package-owned modules. Use live packageFlags so
+      // turning a package off immediately lets individual module toggles save.
       const modulePayload = {}
       for (const row of modules) {
-        if (row.locked) continue
+        if (typeLockedReason(row)) continue
+        if (ownershipByModuleKey[row.key]) continue
         modulePayload[row.key] = Boolean(flags[row.key]) && dependenciesMet(row, flags)
       }
       const packagePayload = packages.map((pkg) => ({
@@ -365,26 +400,32 @@ export default function PowerAdminModules() {
             <div className="checklist-grid">
               {modules.map((item) => {
                 const depsOk = dependenciesMet(item, flags)
-                const packageLocked = item.locked_reason === 'module_package'
-                const coveredByPackage = Boolean(item.locked_by_package)
-                const isLocked = Boolean(item.locked) || !item.available
+                const typeReason = typeLockedReason(item)
+                const packageOwner = ownershipByModuleKey[item.key] || null
+                const packageLocked = Boolean(packageOwner) && !typeReason
+                const coveredByPackage = Boolean(packageOwner)
+                // Lock only for hub-type bases or modules in a currently enabled package.
+                // Catalogue membership alone must not lock a module.
+                const isLocked = Boolean(typeReason) || packageLocked || item.available === false
                 const depsBlocked = !isLocked && !depsOk
                 const disabled = isLocked || !depsOk
-                const hint = lockedHint(item) || (!depsOk ? dependencyHint(item, labelByKey) : null)
+                const hint =
+                  lockedHint(item, packageOwner) ||
+                  (!depsOk ? dependencyHint(item, labelByKey) : null)
                 // Locked base / package modules stay checked and editable=false,
                 // but base modules are not dimmed/blurred.
                 const checked = isLocked
                   ? Boolean(flags[item.key])
                   : Boolean(flags[item.key]) && depsOk
                 const statusSuffix = packageLocked
-                  ? ` (in package${item.locked_by_package?.name ? `: ${item.locked_by_package.name}` : ''})`
-                  : item.locked && coveredByPackage
-                    ? ` (always on · in package: ${item.locked_by_package.name})`
-                    : item.locked
+                  ? ` (in package${packageOwner?.name ? `: ${packageOwner.name}` : ''})`
+                  : typeReason && coveredByPackage
+                    ? ` (always on · in package: ${packageOwner.name})`
+                    : typeReason
                       ? ' (always on)'
                       : !depsOk
                         ? ' (requires parent)'
-                        : !item.available
+                        : item.available === false
                           ? ' (coming soon)'
                           : ''
                 return (

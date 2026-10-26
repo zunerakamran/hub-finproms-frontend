@@ -161,6 +161,7 @@ const ADVISOR_ANY = [
   'advisor_excel_import',
   'advisor_excel_template',
   'advisor_excel_submit',
+  'advisor_excel_view_submissions',
   'dashboard_manage_advisor_pricing',
   'dashboard_manage_advisor_renewal',
   'dashboard_manage_network_payment_card',
@@ -838,8 +839,13 @@ export const DASHBOARD_LINKS = [
     label: 'Import Users',
     title: 'Import Users',
     description:
-      'Download template, submit a filled sheet for import, or import users. Discontinue users from Hub - Users.',
-    anyOf: ['advisor_excel_import', 'advisor_excel_template', 'advisor_excel_submit'],
+      'Download template, submit a filled sheet for import, view/download submissions, or import users. Discontinue users from Hub - Users.',
+    anyOf: [
+      'advisor_excel_import',
+      'advisor_excel_template',
+      'advisor_excel_submit',
+      'advisor_excel_view_submissions',
+    ],
     group: 'advisors',
   },
   {

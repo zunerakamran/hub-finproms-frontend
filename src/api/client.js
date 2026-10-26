@@ -925,6 +925,11 @@ export const api = {
     }
     return pollJobStatus(() => request(`${base}/advisors/import/${queued.job_id}`))
   },
+  advisorSubmissionDownloadUrl: (batchId, options = {}) => {
+    const basePath = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
+    return `${base}${basePath}/advisors/import-submissions/${batchId}/download`
+  },
   advisorBillingCheckout: (billingId, paymentMethod, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/advisor-billings/${billingId}/checkout`, {

@@ -99,8 +99,10 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
   const canImport = can('advisor_excel_import')
   const canSubmit = can('advisor_excel_submit')
+  const canViewSubmissions = can('advisor_excel_view_submissions') || canImport
   const canDownloadTemplate = can('advisor_excel_template') || canImport || canSubmit
-  const enabled = canImport || can('advisor_excel_template') || canSubmit
+  const enabled =
+    canImport || can('advisor_excel_template') || canSubmit || can('advisor_excel_view_submissions')
   const billingEnabled = advisorBillingEnabled
   const canViewInvoices = can('dashboard_view_advisor_invoices')
   const eyebrow = 'Advisors & billing'
@@ -252,6 +254,36 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     }
   }
 
+  const downloadSubmission = async (batch) => {
+    if (!batch?.id || !batch.can_download_submission) return
+    setError('')
+    try {
+      const response = await fetch(api.advisorSubmissionDownloadUrl(batch.id, apiOpts), {
+        credentials: 'include',
+        headers: {
+          Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.message || 'Could not download the submitted Excel sheet.')
+      }
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download =
+        fileDisplayName(batch.original_filename) ||
+        batch.original_filename ||
+        `advisor-import-submission-${batch.id}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   const onPay = async () => {
     const billingId = quote?.billing?.id
     if (!billingId) {
@@ -302,8 +334,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
             <h1>Import Users</h1>
             <p className="muted">
               Advisor import tools are disabled for your role on this hub. Enable
-              &quot;Import advisors&quot;, &quot;Download import Excel template&quot;, and/or
-              &quot;Submit filled Excel for import&quot; under Power Admin → Capabilities.
+              &quot;Import advisors&quot;, &quot;Download import Excel template&quot;,
+              &quot;Submit filled Excel for import&quot;, and/or
+              &quot;View submitted Excel imports&quot; under Power Admin → Capabilities.
             </p>
           </div>
         </div>
@@ -394,6 +427,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
     }
     if (canSubmit) {
       return 'Download the Excel template, fill in the users, then send the completed sheet here. An importer will process it (status Pending until then).'
+    }
+    if (canViewSubmissions && !canImport && !canSubmit && !canDownloadTemplate) {
+      return 'Review all submitted Excel sheets in history, open details, and download the filled files while they remain Pending.'
     }
     if (canDownloadTemplate && !canImport) {
       return 'Download the Excel template, fill in the users, then send the completed sheet to a colleague who can Import advisors.'
@@ -695,6 +731,9 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
         <p className="muted">
           Submitted sheets show as <strong>Pending</strong> with how many users are in the file.
           Completed imports list created / updated / skipped counts
+          {canViewSubmissions
+            ? '. With “View submitted Excel imports” (or Import) you can open full details and download the stored filled sheet while it remains Pending.'
+            : '. Enable “View submitted Excel imports” to see everyone’s submissions and download filled sheets.'}
           {historyMeta?.total != null ? ` | ${historyMeta.total} total` : ''}.
         </p>
         <DataGrid
@@ -706,18 +745,29 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
           getRowKey={(row) => row.id}
           actions={(batch) => (
             <div className="actions" style={{ gap: '0.35rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() =>
-                  setExpandedBatchId((current) => (current === batch.id ? null : batch.id))
-                }
-              >
-                {expandedBatchId === batch.id ? <FaChevronDown /> : <FaChevronRight />}
-                <span style={{ marginLeft: '0.35rem' }}>
-                  {expandedBatchId === batch.id ? 'Hide' : 'Details'}
-                </span>
-              </button>
+              {batch.details_available !== false ? (
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() =>
+                    setExpandedBatchId((current) => (current === batch.id ? null : batch.id))
+                  }
+                >
+                  {expandedBatchId === batch.id ? <FaChevronDown /> : <FaChevronRight />}
+                  <span style={{ marginLeft: '0.35rem' }}>
+                    {expandedBatchId === batch.id ? 'Hide' : 'Details'}
+                  </span>
+                </button>
+              ) : null}
+              {batch.can_download_submission ? (
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => downloadSubmission(batch)}
+                >
+                  Download sheet
+                </button>
+              ) : null}
               {canImport && batch.can_import_submission ? (
                 <button
                   type="button"
@@ -739,6 +789,17 @@ export default function AdminAdvisors({ shell = 'client-admin' }) {
                 ? ` | ${fileDisplayName(expandedBatch.original_filename) || expandedBatch.original_filename}`
                 : ''}
             </h3>
+            {expandedBatch.can_download_submission ? (
+              <div className="actions" style={{ marginBottom: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => downloadSubmission(expandedBatch)}
+                >
+                  Download submitted Excel
+                </button>
+              </div>
+            ) : null}
             <ImportBatchDetails batch={expandedBatch} />
           </div>
         ) : null}

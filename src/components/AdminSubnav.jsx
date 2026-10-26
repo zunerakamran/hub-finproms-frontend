@@ -10,7 +10,16 @@ const links = [
   { to: '/client-admin/tags', label: 'Tags', anyOf: ['dashboard_manage_tags', 'dashboard_view_tags'] },
   { to: '/client-admin/firms', label: 'Firms', capability: 'dashboard_manage_firms' },
   { to: '/client-admin/plans', label: 'Subscriptions', capability: 'dashboard_manage_plans' },
-  { to: '/client-admin/advisors', label: 'Import Users', anyOf: ['advisor_excel_import', 'advisor_excel_template', 'advisor_excel_submit'] },
+  {
+    to: '/client-admin/advisors',
+    label: 'Import Users',
+    anyOf: [
+      'advisor_excel_import',
+      'advisor_excel_template',
+      'advisor_excel_submit',
+      'advisor_excel_view_submissions',
+    ],
+  },
   {
     to: '/client-admin/payment-card',
     label: 'Payment card',

@@ -449,7 +449,14 @@ export default function App() {
                 <Route
                   path="advisors"
                   element={
-                    <HubCapabilityRoute anyOf={['advisor_excel_import', 'advisor_excel_template', 'advisor_excel_submit']}>
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'advisor_excel_import',
+                        'advisor_excel_template',
+                        'advisor_excel_submit',
+                        'advisor_excel_view_submissions',
+                      ]}
+                    >
                       <AdminAdvisors />
                     </HubCapabilityRoute>
                   }

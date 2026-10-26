@@ -22,7 +22,7 @@ function isDashboardCapabilityKey(key) {
     String(key).startsWith('firm_documents_') ||
     String(key).startsWith('taxonomy_') ||
     key === 'taxonomy_request_add' ||
-    key === 'advisor_excel_import' ||
+    String(key).startsWith('advisor_excel_') ||
     key === 'advisor_discontinue'
   )
 }
@@ -336,7 +336,7 @@ export function HubProvider({ children }) {
           String(flag).startsWith('taxonomy_') ||
           String(flag).startsWith('module_') ||
           flag === 'taxonomy_request_add' ||
-          flag === 'advisor_excel_import' ||
+          String(flag).startsWith('advisor_excel_') ||
           flag === 'advisor_discontinue'
         ) {
           if (String(flag).startsWith('firm_documents_')) {

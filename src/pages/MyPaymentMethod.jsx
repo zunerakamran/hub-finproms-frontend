@@ -77,7 +77,9 @@ export default function MyPaymentMethod() {
           <p className="eyebrow">Account</p>
           <h1>My payment method</h1>
           <p className="muted">
-            Your personal card for module invoices you pay yourself. Network/firm cards are under{' '}
+            Add your personal card here — required whenever Module invoice settings make you pay
+            your own invoices (Users pay own to the network, or Network resells where you pay the
+            hub). Network/firm cards are under{' '}
             <Link to="/my-dashboard/payment-card">Payment card</Link>. Your invoices are under{' '}
             <Link to="/my-dashboard/my-invoices">My invoices</Link>.
           </p>

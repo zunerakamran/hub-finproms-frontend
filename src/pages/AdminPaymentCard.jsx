@@ -95,7 +95,7 @@ export default function AdminPaymentCard() {
               Enable &quot;Add network payment card&quot; and/or &quot;Add firm payment card&quot; under
               Capabilities. Personal cards are on{' '}
               <Link to="/my-dashboard/my-payment-method">My payment method</Link>
-              {' '}(when Users pay own is on).
+              {' '}(when Users pay own or Network resells is on).
             </p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function AdminPaymentCard() {
             Network card is charged when the network pays module invoices (and advisor imports). Firm
             card is available while Firms pay own is on. Your personal card lives under{' '}
             <Link to="/my-dashboard/my-payment-method">My payment method</Link>
-            {' '}(when Users pay own is on).
+            {' '}(when Users pay own or Network resells is on).
           </p>
         </div>
       </div>

@@ -422,11 +422,18 @@ export function HubProvider({ children }) {
     )
   }, [user, advisorBillingEnabled, moduleChargingEnabled, can])
 
-  /** Personal “My payment method” — only while Users pay own is on. */
+  /**
+   * Personal “My payment method” — mandatory whenever the user pays their own
+   * module invoices: Users pay own (to FinProms/network) or Network resells
+   * (user pays the hub).
+   */
   const usersPayOwnModuleInvoices = useMemo(() => {
     const settings =
       hub?.acting_hub?.module_invoice_settings ?? hub?.module_invoice_settings
-    return Boolean(settings?.users_pay_own)
+    if (settings?.personal_card_required != null) {
+      return Boolean(settings.personal_card_required)
+    }
+    return Boolean(settings?.users_pay_own || settings?.network_resells)
   }, [hub])
 
   /** Staff always; remaining roles only when a dashboard capability is on. */

@@ -10,22 +10,49 @@ const MODULE_CHILDREN = {
   module_website_template_library: ['module_website_compliance'],
 }
 
+const CONTENT_HUB_BASE_KEYS = ['module_shared_hub', 'module_white_label_hub']
+
 function lockedHint(item) {
   if (!item.locked) return null
+  const packageName = item.locked_by_package?.name
   if (item.locked_reason === 'central_hub') {
     return 'Always enabled on Central Hub Controller (cannot be turned off). This instance is control plane only - no content catalog modules.'
   }
   if (item.locked_reason === 'shared_hub') {
-    return 'Always enabled on the shared hub (cannot be turned off). Other modules depend on this.'
+    return packageName
+      ? `Always enabled on the shared hub (cannot be turned off). Covered by package “${packageName}” for billing.`
+      : 'Always enabled on the shared hub (cannot be turned off). Other modules depend on this.'
   }
   if (item.locked_reason === 'white_label_hub') {
-    return 'Always enabled on white-labelled hubs (cannot be turned off). Other modules depend on this.'
+    return packageName
+      ? `Always enabled on white-labelled hubs (cannot be turned off). Covered by package “${packageName}” for billing.`
+      : 'Always enabled on white-labelled hubs (cannot be turned off). Other modules depend on this.'
   }
   if (item.locked_reason === 'module_package') {
-    const name = item.locked_by_package?.name || 'a module package'
+    const name = packageName || 'a module package'
     return `Included in package “${name}”. Turn the package off to select this module separately.`
   }
   return 'This module cannot be toggled for this hub.'
+}
+
+/** Collapse Shared + WL bases into one label in package “Includes” lists. */
+function formatPackageIncludes(pkg) {
+  const modules = pkg.modules || []
+  const keys = pkg.module_keys || modules.map((m) => m.key)
+  const labels = []
+  let sawBase = false
+  for (const key of keys) {
+    if (CONTENT_HUB_BASE_KEYS.includes(key)) {
+      if (!sawBase) {
+        labels.push('Shared / White Label Hub')
+        sawBase = true
+      }
+      continue
+    }
+    const fromModules = modules.find((m) => m.key === key)
+    labels.push(fromModules?.label || key)
+  }
+  return labels.join(', ')
 }
 
 function dependencyHint(item, labelByKey) {
@@ -268,19 +295,18 @@ export default function PowerAdminModules() {
             <div className="checklist-section" id="module-packages">
               <h2>Module packages</h2>
               <p className="muted checklist-section-hint">
-                Packages bundle several product modules at a single one-time price (create/edit under{' '}
+                Packages can bundle Shared / White Label Hub and/or product modules at a single
+                package price (create/edit under{' '}
                 <Link to="/my-dashboard/module-packages">Module packages</Link>). Enabling a package
-                turns its modules on and locks them so they cannot be selected separately. Packages
-                that share a module cannot both be on.
+                turns its product modules on and locks them; hub base stays always on but is covered
+                for billing when included. Packages that share a module cannot both be on.
               </p>
               <div className="checklist-grid">
                 {packages.map((pkg) => {
                   const checked = Boolean(packageFlags[pkg.id])
                   const conflictBlocked = !checked && pkg.available === false
                   const disabled = conflictBlocked
-                  const moduleNames = (pkg.modules || [])
-                    .map((m) => m.label)
-                    .join(', ')
+                  const moduleNames = formatPackageIncludes(pkg)
                   const hint = conflictBlocked
                     ? pkg.unavailable_reason ||
                       'One or more modules in this package are already covered by another enabled package.'
@@ -306,7 +332,7 @@ export default function PowerAdminModules() {
                           {pkg.description ||
                             (moduleNames
                               ? `Includes: ${moduleNames}`
-                              : 'Bundled product modules')}
+                              : 'Bundled modules')}
                         </small>
                         <small className="muted">
                           One-time: {formatMoney(pkg.amount, pkg.currency)}
@@ -334,12 +360,13 @@ export default function PowerAdminModules() {
             <p className="muted checklist-section-hint">
               {(hub?.type === 'central' || hub?.is_central) && !isActingRemotely
                 ? 'Central Hub Controller is the locked base module for this control plane. Content product modules (posts library, compliance, websites) are managed on Shared / White-label hubs via the hub switcher.'
-                : `Module 1 is the hub base (${isActingOnWhiteLabel || actingHub?.is_white_label ? 'White Label Hub' : 'Shared Hub'}) and is always on. Other modules are gated by dependencies: Social Media Pre Approval needs the Social Media Template Library; Website Content Pre Approval needs the Website Template Library. Turning a parent off cascades to its dependents. Modules included in an enabled package stay locked until that package is turned off.`}
+                : `Module 1 is the hub base (${isActingOnWhiteLabel || actingHub?.is_white_label ? 'White Label Hub' : 'Shared Hub'}) and is always on. Other modules are gated by dependencies: Social Media Pre Approval needs the Social Media Template Library; Website Content Pre Approval needs the Website Template Library. Turning a parent off cascades to its dependents. Product modules in an enabled package stay locked until that package is turned off; hub base stays always on and may show package billing coverage.`}
             </p>
             <div className="checklist-grid">
               {modules.map((item) => {
                 const depsOk = dependenciesMet(item, flags)
                 const packageLocked = item.locked_reason === 'module_package'
+                const coveredByPackage = Boolean(item.locked_by_package)
                 const isLocked = Boolean(item.locked) || !item.available
                 const depsBlocked = !isLocked && !depsOk
                 const disabled = isLocked || !depsOk
@@ -349,6 +376,17 @@ export default function PowerAdminModules() {
                 const checked = isLocked
                   ? Boolean(flags[item.key])
                   : Boolean(flags[item.key]) && depsOk
+                const statusSuffix = packageLocked
+                  ? ` (in package${item.locked_by_package?.name ? `: ${item.locked_by_package.name}` : ''})`
+                  : item.locked && coveredByPackage
+                    ? ` (always on · in package: ${item.locked_by_package.name})`
+                    : item.locked
+                      ? ' (always on)'
+                      : !depsOk
+                        ? ' (requires parent)'
+                        : !item.available
+                          ? ' (coming soon)'
+                          : ''
                 return (
                   <label
                     key={item.key}
@@ -366,15 +404,7 @@ export default function PowerAdminModules() {
                     <span>
                       <strong>
                         {item.label}
-                        {item.locked && !packageLocked
-                          ? ' (always on)'
-                          : packageLocked
-                            ? ` (in package${item.locked_by_package?.name ? `: ${item.locked_by_package.name}` : ''})`
-                            : !depsOk
-                              ? ' (requires parent)'
-                              : !item.available
-                                ? ' (coming soon)'
-                                : ''}
+                        {statusSuffix}
                       </strong>
                       <small className="muted">{item.description}</small>
                       {hint && <small className="muted exclusive-hint">{hint}</small>}

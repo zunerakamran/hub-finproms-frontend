@@ -35,8 +35,16 @@ const emptyPackageForm = {
   module_keys: [],
 }
 
-/** Product modules that can go in a package (base hub modules are never packaged). */
+/** Shared / White Label Hub bases (selecting either expands to both, mirrors backend). */
+const CONTENT_HUB_BASE_KEYS = ['module_shared_hub', 'module_white_label_hub']
+
+/**
+ * Modules that can go in a package (content-hub bases + product modules).
+ * Central Hub Controller is never packageable.
+ */
 const DEFAULT_PACKAGEABLE_KEYS = [
+  'module_shared_hub',
+  'module_white_label_hub',
   'module_social_media_template_library',
   'module_social_media_compliance',
   'module_website_template_library',
@@ -45,6 +53,8 @@ const DEFAULT_PACKAGEABLE_KEYS = [
 ]
 
 const PACKAGE_MODULE_LABELS = {
+  module_shared_hub: 'Shared Hub',
+  module_white_label_hub: 'White Label Hub',
   module_social_media_template_library: 'Social Media Template Library',
   module_social_media_compliance: 'Social Media Pre Approval Workflow',
   module_website_template_library: 'Website Template Library',
@@ -58,12 +68,42 @@ const PACKAGE_DEPS = {
   module_website_compliance: ['module_website_template_library'],
 }
 
-function withPackageDependencies(keys) {
+function isContentHubBaseKey(key) {
+  return CONTENT_HUB_BASE_KEYS.includes(key)
+}
+
+function withPackageDependencies(keys, orderKeys = DEFAULT_PACKAGEABLE_KEYS) {
   const set = new Set(keys)
+  let includesBase = false
   for (const key of [...set]) {
+    if (isContentHubBaseKey(key)) includesBase = true
     for (const dep of PACKAGE_DEPS[key] || []) set.add(dep)
   }
-  return DEFAULT_PACKAGEABLE_KEYS.filter((k) => set.has(k))
+  if (includesBase) {
+    for (const baseKey of CONTENT_HUB_BASE_KEYS) set.add(baseKey)
+  }
+  const order = orderKeys?.length ? orderKeys : DEFAULT_PACKAGEABLE_KEYS
+  return order.filter((k) => set.has(k))
+}
+
+/** Collapse Shared + WL bases into one label for list display. */
+function formatPackageModuleLabels(pkg) {
+  const modules = pkg.modules || []
+  const keys = pkg.module_keys || modules.map((m) => m.key)
+  const labels = []
+  let sawBase = false
+  for (const key of keys) {
+    if (isContentHubBaseKey(key)) {
+      if (!sawBase) {
+        labels.push('Shared / White Label Hub')
+        sawBase = true
+      }
+      continue
+    }
+    const fromModules = modules.find((m) => m.key === key)
+    labels.push(fromModules?.label || PACKAGE_MODULE_LABELS[key] || key)
+  }
+  return labels.join(', ')
 }
 
 export default function AdminModulePackages({ shell = 'client-admin' }) {
@@ -94,15 +134,42 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
   )
   const showSlotField = oneTimeNeedsSlot || recurringNeedsSlot
 
-  const packageableModules = useMemo(() => {
-    const keys = (availableModuleKeys?.length ? availableModuleKeys : DEFAULT_PACKAGEABLE_KEYS).filter(
-      (k) => DEFAULT_PACKAGEABLE_KEYS.includes(k)
-    )
-    return keys.map((key) => ({
-      key,
-      label: PACKAGE_MODULE_LABELS[key] || key,
-    }))
+  const orderedPackageableKeys = useMemo(() => {
+    const fromApi = availableModuleKeys?.length ? availableModuleKeys : DEFAULT_PACKAGEABLE_KEYS
+    const allowed = new Set([...DEFAULT_PACKAGEABLE_KEYS, ...fromApi])
+    const ordered = []
+    for (const key of DEFAULT_PACKAGEABLE_KEYS) {
+      if (allowed.has(key) && fromApi.includes(key)) ordered.push(key)
+    }
+    for (const key of fromApi) {
+      if (allowed.has(key) && !ordered.includes(key)) ordered.push(key)
+    }
+    return ordered.length ? ordered : DEFAULT_PACKAGEABLE_KEYS
   }, [availableModuleKeys])
+
+  /** UI rows: one combined hub-base checkbox, then product modules. */
+  const packageableModules = useMemo(() => {
+    const rows = []
+    const hasAnyBase = CONTENT_HUB_BASE_KEYS.some((k) => orderedPackageableKeys.includes(k))
+    if (hasAnyBase) {
+      rows.push({
+        key: '__content_hub_base__',
+        label: 'Shared Hub / White Label Hub',
+        hint: 'Includes the hub base fee for Shared and White Label hubs (always on; package price covers it).',
+        keys: CONTENT_HUB_BASE_KEYS.filter((k) => orderedPackageableKeys.includes(k)),
+      })
+    }
+    for (const key of orderedPackageableKeys) {
+      if (isContentHubBaseKey(key)) continue
+      rows.push({
+        key,
+        label: PACKAGE_MODULE_LABELS[key] || key,
+        hint: key,
+        keys: [key],
+      })
+    }
+    return rows
+  }, [orderedPackageableKeys])
 
   const load = async () => {
     setLoading(true)
@@ -159,26 +226,34 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
       }),
       recurring_tier_slot: pkg.recurring_tier_slot ?? '',
       is_active: !!pkg.is_active,
-      module_keys: [...(pkg.module_keys || [])],
+      module_keys: withPackageDependencies(pkg.module_keys || [], orderedPackageableKeys),
     })
     setShowPackageForm(true)
   }
 
-  const togglePackageModule = (key, checked) => {
+  const rowIsChecked = (row) => {
+    const selected = packageForm.module_keys || []
+    return row.keys.every((k) => selected.includes(k))
+  }
+
+  const togglePackageModuleRow = (row, checked) => {
     setPackageForm((prev) => {
-      let keys = new Set(prev.module_keys || [])
+      const keys = new Set(prev.module_keys || [])
       if (checked) {
-        keys.add(key)
-        keys = new Set(withPackageDependencies([...keys]))
+        for (const key of row.keys) keys.add(key)
       } else {
-        keys.delete(key)
-        for (const [child, deps] of Object.entries(PACKAGE_DEPS)) {
-          if (deps.includes(key)) keys.delete(child)
+        for (const key of row.keys) keys.delete(key)
+        if (row.key === '__content_hub_base__') {
+          for (const baseKey of CONTENT_HUB_BASE_KEYS) keys.delete(baseKey)
+        } else {
+          for (const [child, deps] of Object.entries(PACKAGE_DEPS)) {
+            if (deps.includes(row.key)) keys.delete(child)
+          }
         }
       }
       return {
         ...prev,
-        module_keys: DEFAULT_PACKAGEABLE_KEYS.filter((k) => keys.has(k)),
+        module_keys: withPackageDependencies([...keys], orderedPackageableKeys),
       }
     })
   }
@@ -186,7 +261,7 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
   const onSubmitPackage = async (e) => {
     e.preventDefault()
     if (!packageForm.module_keys?.length) {
-      setError('Select at least one product module for the package.')
+      setError('Select at least one module for the package (hub base and/or product modules).')
       return
     }
     setSavingPackage(true)
@@ -208,7 +283,7 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
             ? Number(packageForm.recurring_tier_slot)
             : null,
         is_active: !!packageForm.is_active,
-        module_keys: withPackageDependencies(packageForm.module_keys),
+        module_keys: withPackageDependencies(packageForm.module_keys, orderedPackageableKeys),
       }
       if (packageEditingId) {
         await api.updateModulePackage(packageEditingId, payload, apiOpts)
@@ -266,11 +341,12 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
           <p className="eyebrow">Modules</p>
           <h1>Module packages</h1>
           <p className="muted">
-            Bundle product modules with one-time and recurring package prices using the same units
-            as single modules (per network / firm / user / user slots / website). While a package
-            is enabled, it replaces individual catalogue charges for covered modules. Enable
-            packages on the <Link to="/my-dashboard/modules">Modules</Link> page. Per-module
-            catalogue stays under <Link to="/my-dashboard/module-pricing">Module prices</Link>.
+            Bundle Shared / White Label Hub and/or product modules with one-time and recurring
+            package prices using the same units as single modules (per network / firm / user / user
+            slots / website). While a package is enabled, it replaces individual catalogue charges
+            for covered modules (including the hub base fee when packaged). Enable packages on the{' '}
+            <Link to="/my-dashboard/modules">Modules</Link> page. Per-module catalogue stays under{' '}
+            <Link to="/my-dashboard/module-pricing">Module prices</Link>.
           </p>
         </div>
         {!showPackageForm && (
@@ -388,20 +464,21 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
               <strong>Modules in package</strong>
             </legend>
             <p className="muted checklist-section-hint">
-              Base Shared / White Label Hub is never included. Selecting a dependent module also
-              selects its required parent.
+              You can include Shared / White Label Hub (covers the hub fee on both hub types) and/or
+              product modules. Selecting a dependent module also selects its required parent. Hub
+              base stays always-on on the Modules page; packaging it only affects billing.
             </p>
             <div className="checklist-grid">
               {packageableModules.map((mod) => (
                 <label key={mod.key} className="checklist-item">
                   <input
                     type="checkbox"
-                    checked={(packageForm.module_keys || []).includes(mod.key)}
-                    onChange={(e) => togglePackageModule(mod.key, e.target.checked)}
+                    checked={rowIsChecked(mod)}
+                    onChange={(e) => togglePackageModuleRow(mod, e.target.checked)}
                   />
                   <span>
                     <strong>{mod.label}</strong>
-                    <small className="muted">{mod.key}</small>
+                    <small className="muted">{mod.hint}</small>
                   </span>
                 </label>
               ))}
@@ -462,11 +539,7 @@ export default function AdminModulePackages({ shell = 'client-admin' }) {
                         </div>
                       ) : null}
                     </td>
-                    <td>
-                      {(pkg.modules || [])
-                        .map((m) => m.label)
-                        .join(', ') || (pkg.module_keys || []).join(', ')}
-                    </td>
+                    <td>{formatPackageModuleLabels(pkg) || '—'}</td>
                     <td>
                       {formatMoney(pkg.amount, pkg.currency)}
                       <div className="muted" style={{ fontSize: '0.85em' }}>

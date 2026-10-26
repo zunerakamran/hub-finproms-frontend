@@ -378,7 +378,8 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/my-payment-method',
     label: 'My payment method',
     title: 'My payment method',
-    description: 'Your personal card for module invoices you pay yourself.',
+    description:
+      'Required personal card when you pay your own module invoices (Users pay own or Network resells).',
     usersPayOwnOnly: true,
     group: 'account',
   },
@@ -757,7 +758,8 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/module-packages',
     label: 'Module packages',
     title: 'Module packages',
-    description: 'Create bundles of product modules with a single package one-time price.',
+    description:
+      'Create bundles of Shared/White Label Hub and/or product modules with a single package price.',
     capability: 'dashboard_manage_module_packages',
     group: 'modules',
   },
@@ -798,7 +800,7 @@ export const DASHBOARD_LINKS = [
     label: 'Payment card',
     title: 'Network / firm payment card',
     description:
-      'Add the network card and/or firm card (tabs). Personal cards are under My payment method (Users pay own).',
+      'Add the network card and/or firm card (tabs). Personal cards are under My payment method (Users pay own or Network resells).',
     anyOf: ['dashboard_manage_network_payment_card', 'dashboard_manage_firm_payment_card'],
     billingOnly: true,
     group: 'modules',

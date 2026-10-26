@@ -100,10 +100,10 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
           <p className="eyebrow">{eyebrow}</p>
           <h1>Module invoices</h1>
           <p className="muted">
-            One-time and recurring module charges
-            {targetHub?.name ? ` for ${targetHub.name}` : ' for this hub'}. Charged by FinProms on
-            the billing renew day (or mark paid manually). Recurring seat invoices use Option B
-            rates from total active users with that module.
+            Module charges payable by the network and/or your firm
+            {targetHub?.name ? ` on ${targetHub.name}` : ''}. Firm admins only see invoices their
+            firm pays (per-firm units while Firms pay own is on). Network payers see network-scoped
+            invoices. User-paid invoices are under My invoices.
           </p>
         </div>
       </div>

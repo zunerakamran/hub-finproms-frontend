@@ -109,7 +109,8 @@ export default function PowerAdminDashboard() {
     {
       to: '/power-admin/module-packages',
       title: 'Module packages',
-      description: 'Create bundles of product modules with one-time and recurring package prices.',
+      description:
+        'Create bundles of Shared/White Label Hub and/or product modules with one-time and recurring package prices.',
       hubCapability: 'dashboard_manage_module_packages',
     },
     {

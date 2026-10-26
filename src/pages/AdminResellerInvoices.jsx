@@ -55,8 +55,7 @@ export default function AdminResellerInvoices({ shell = 'client-admin' }) {
             <p className="eyebrow">Modules</p>
             <h1>Reseller invoices</h1>
             <p className="muted">
-              Enable &quot;See network→user reseller invoices&quot; under Capabilities. Also turn on
-              Network resells in Module invoice settings.
+              Enable &quot;See network→user reseller invoices&quot; under Power Admin → Capabilities.
             </p>
           </div>
         </div>
@@ -71,7 +70,9 @@ export default function AdminResellerInvoices({ shell = 'client-admin' }) {
           <p className="eyebrow">Modules</p>
           <h1>Network→user reseller invoices</h1>
           <p className="muted">
-            Invoices the network raises to users when reselling. End users see their own under{' '}
+            Invoices the network raises to users when reselling. Enable Network resells under{' '}
+            <Link to="/my-dashboard/module-invoice-settings">Module invoice settings</Link> to
+            generate them. End users see their own under{' '}
             <Link to="/my-dashboard/my-invoices">My invoices</Link>.
           </p>
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
@@ -15,20 +15,36 @@ function formatCard(card) {
 }
 
 export default function AdminPaymentCard() {
-  const { canManagePaymentCard, loading: hubLoading } = useHub()
-  const [params] = useSearchParams()
+  const { canManagePaymentCard, can, loading: hubLoading } = useHub()
+  const [params, setParams] = useSearchParams()
   const [profile, setProfile] = useState(null)
+  const [scopes, setScopes] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  const load = async () => {
+  const enabledScopes = useMemo(
+    () => (scopes || []).filter((s) => s.enabled),
+    [scopes]
+  )
+
+  const scope = useMemo(() => {
+    const fromUrl = params.get('scope')
+    if (fromUrl && enabledScopes.some((s) => s.scope === fromUrl)) return fromUrl
+    if (enabledScopes[0]?.scope) return enabledScopes[0].scope
+    if (can('dashboard_manage_network_payment_card')) return 'network'
+    if (can('dashboard_manage_firm_payment_card')) return 'firm'
+    return 'network'
+  }, [params, enabledScopes, can])
+
+  const load = async (nextScope = scope) => {
     setLoading(true)
     setError('')
     try {
-      const data = await api.paymentCard()
+      const data = await api.paymentCard({ scope: nextScope })
       setProfile(data.payment_profile)
+      setScopes(data.available_scopes || [])
     } catch (err) {
       setError(err.message)
       setProfile(null)
@@ -43,19 +59,19 @@ export default function AdminPaymentCard() {
       setLoading(false)
       return
     }
-    load()
+    load(scope)
     if (params.get('canceled') === '1') {
       setMessage('Card setup canceled. No changes were saved.')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hubLoading, canManagePaymentCard])
+  }, [hubLoading, canManagePaymentCard, scope])
 
   const onSetup = async () => {
     setSaving(true)
     setError('')
     setMessage('')
     try {
-      const data = await api.setupPaymentCard()
+      const data = await api.setupPaymentCard({ scope })
       if (data.checkout_url) {
         window.location.href = data.checkout_url
         return
@@ -73,12 +89,13 @@ export default function AdminPaymentCard() {
       <section>
         <div className="page-head">
           <div>
-            <p className="eyebrow">Advisors & billing</p>
+            <p className="eyebrow">Modules</p>
             <h1>Payment card</h1>
             <p className="muted">
-              Enable &quot;Manage payment card&quot; for your role under Power Admin → Capabilities
-              (Advisors &amp; private billing). Available when advisor billing or module charging
-              is on.
+              Enable &quot;Add network payment card&quot; and/or &quot;Add firm payment card&quot; under
+              Capabilities. Personal cards are on{' '}
+              <Link to="/my-dashboard/my-payment-method">My payment method</Link>
+              {' '}(when Users pay own is on).
             </p>
           </div>
         </div>
@@ -90,11 +107,13 @@ export default function AdminPaymentCard() {
     <section>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Advisors & billing</p>
-          <h1>Payment card</h1>
+          <p className="eyebrow">Modules</p>
+          <h1>Network / firm payment card</h1>
           <p className="muted">
-            Enter the card used for advisor imports and for module invoices when the network or firm
-            pays. If Stripe is selected at import time, this card is charged and kept for renewals.
+            Network card is charged when the network pays module invoices (and advisor imports). Firm
+            card is available while Firms pay own is on. Your personal card lives under{' '}
+            <Link to="/my-dashboard/my-payment-method">My payment method</Link>
+            {' '}(when Users pay own is on).
           </p>
         </div>
       </div>
@@ -102,39 +121,46 @@ export default function AdminPaymentCard() {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
+      {enabledScopes.length > 1 ? (
+        <div className="actions" style={{ marginBottom: 16 }}>
+          {enabledScopes.map((s) => (
+            <button
+              key={s.scope}
+              type="button"
+              className={`btn ${scope === s.scope ? 'primary' : 'ghost'}`}
+              onClick={() => {
+                const next = new URLSearchParams(params)
+                next.set('scope', s.scope)
+                setParams(next)
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       {loading ? (
         <div className="state">Loading...</div>
       ) : (
         <div className="import-result">
-          <h2>Card on file</h2>
+          <h2>{scope === 'firm' ? 'Firm card on file' : 'Network card on file'}</h2>
           {profile?.has_saved_card ? (
             <p>
               <strong>{formatCard(profile.card) || 'Card saved'}</strong>
             </p>
           ) : (
-            <p className="muted">No card saved yet. Add one before importing advisors with Stripe.</p>
+            <p className="muted">No card saved yet for this scope.</p>
           )}
-          {profile?.renew_day ? (
-            <p className="muted">Auto-renew day: {profile.renew_day} of each month</p>
-          ) : null}
           {!profile?.stripe_available && (
             <p className="muted">
-              {profile?.stripe_unavailable_reason ||
-                'Stripe is not available. Ask Power Admin to configure payment methods.'}
+              Stripe is not available
+              {profile?.stripe_unavailable_reason ? `: ${profile.stripe_unavailable_reason}` : '.'}
             </p>
           )}
           <div className="actions">
-            <button
-              type="button"
-              className="btn primary"
-              disabled={saving || !profile?.stripe_available}
-              onClick={onSetup}
-            >
-              {saving
-                ? 'Opening Stripe...'
-                : profile?.has_saved_card
-                  ? 'Update card'
-                  : 'Enter card'}
+            <button className="btn primary" type="button" disabled={saving || !profile?.stripe_available} onClick={onSetup}>
+              {saving ? 'Opening Stripe...' : profile?.has_saved_card ? 'Update card' : 'Add card'}
             </button>
           </div>
         </div>

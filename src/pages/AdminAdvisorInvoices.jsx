@@ -56,9 +56,9 @@ export default function AdminAdvisorInvoices({ shell = 'client-admin' }) {
         <div className="page-head">
           <div>
             <p className="eyebrow">{eyebrow}</p>
-            <h1>Advisor invoices</h1>
+            <h1>Import users invoices</h1>
             <p className="muted">
-              Enable &quot;View advisor billing invoices&quot; for your role under Power Admin →
+              Enable &quot;View import users invoices&quot; for your role under Power Admin →
               Capabilities.
             </p>
           </div>
@@ -72,8 +72,10 @@ export default function AdminAdvisorInvoices({ shell = 'client-admin' }) {
       <div className="page-head">
         <div>
           <p className="eyebrow">{eyebrow}</p>
-          <h1>Advisor billing invoices</h1>
-          <p className="muted">Invoices for rate × advisors white-labelled hub subscription billing.</p>
+          <h1>Import users invoices</h1>
+          <p className="muted">
+            Invoices created when users are imported (Import Users billing on this hub).
+          </p>
         </div>
       </div>
 

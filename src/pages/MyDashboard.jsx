@@ -31,7 +31,7 @@ const GROUP_ORDER = ['account', 'content', 'hub', 'modules', 'advisors', 'smc', 
 
 export default function MyDashboard() {
   const { user, canPower } = useAuth()
-  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, effectiveAdvisorId, actingAdvisor, actingHubId, actingHub, canViewSitePages } = useHub()
+  const { can, branding, hub, advisorBillingEnabled, canManagePaymentCard, usersPayOwnModuleInvoices, isActingOnWhiteLabel, isActingRemotely, isControlPlane, effectiveAdvisorId, actingAdvisor, actingHubId, actingHub, canViewSitePages } = useHub()
   const dashboardNav = hub?.dashboard_nav || null
   const [data, setData] = useState(null)
   const [panelLoading, setPanelLoading] = useState(true)
@@ -73,6 +73,7 @@ export default function MyDashboard() {
           canPower,
           advisorBillingEnabled,
           canManagePaymentCard,
+          usersPayOwnModuleInvoices,
           isActingOnWhiteLabel,
           isWhiteLabelHub,
           isControlPlane,
@@ -144,7 +145,7 @@ export default function MyDashboard() {
           .sort((a, b) => (orderIndex.get(a.to) ?? 9999) - (orderIndex.get(b.to) ?? 9999)),
       }))
       .filter((g) => g.cards.length > 0)
-  }, [advisorBillingEnabled, canManagePaymentCard, can, canPower, data, dashboardNav, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, actingAdvisor, user?.role])
+  }, [advisorBillingEnabled, canManagePaymentCard, usersPayOwnModuleInvoices, can, canPower, data, dashboardNav, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, actingAdvisor, user?.role])
 
   const totalTools = groups.reduce((sum, g) => sum + g.cards.length, 0)
   const showBrowseCatalog = canViewSitePages

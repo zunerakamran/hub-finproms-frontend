@@ -410,14 +410,24 @@ export function HubProvider({ children }) {
   }, [actingChecklist])
 
   /**
-   * Payment card: Capabilities matrix `dashboard_manage_payment_card`
-   * (any granted role). Available when advisor billing or module charging is on.
+   * Network and/or firm payment card (not personal My payment method).
    */
   const canManagePaymentCard = useMemo(() => {
     if (!user) return false
     if (!advisorBillingEnabled && !moduleChargingEnabled) return false
-    return Boolean(can('dashboard_manage_payment_card'))
+    return Boolean(
+      can('dashboard_manage_network_payment_card') ||
+        can('dashboard_manage_firm_payment_card') ||
+        can('dashboard_manage_payment_card')
+    )
   }, [user, advisorBillingEnabled, moduleChargingEnabled, can])
+
+  /** Personal “My payment method” — only while Users pay own is on. */
+  const usersPayOwnModuleInvoices = useMemo(() => {
+    const settings =
+      hub?.acting_hub?.module_invoice_settings ?? hub?.module_invoice_settings
+    return Boolean(settings?.users_pay_own)
+  }, [hub])
 
   /** Staff always; remaining roles only when a dashboard capability is on. */
   const hasHubDashboardAccess = useMemo(() => {
@@ -540,6 +550,7 @@ export function HubProvider({ children }) {
         complianceStatusLabel: (status) => resolveComplianceStatusLabel(hub, status),
         advisorBillingEnabled,
         canManagePaymentCard,
+        usersPayOwnModuleInvoices,
         registrationEnabled,
         inviteOnly,
         hasHubDashboardAccess,
@@ -585,6 +596,7 @@ export function HubProvider({ children }) {
       can,
       advisorBillingEnabled,
       canManagePaymentCard,
+      usersPayOwnModuleInvoices,
       registrationEnabled,
       inviteOnly,
       hasHubDashboardAccess,

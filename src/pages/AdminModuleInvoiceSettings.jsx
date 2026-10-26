@@ -154,9 +154,13 @@ export default function AdminModuleInvoiceSettings({ shell = 'client-admin' }) {
           <h1>Module invoice / payment settings</h1>
           <p className="muted">
             Who pays module invoices for{' '}
-            <strong>{targetHub?.name || actingHub?.name || hub?.name || 'this hub'}</strong>. Card
-            details are managed on <Link to="/my-dashboard/payment-card">Payment card</Link>. View
-            invoices on <Link to="/my-dashboard/module-invoices">Module invoices</Link>.
+            <strong>{targetHub?.name || actingHub?.name || hub?.name || 'this hub'}</strong>.
+            Network/firm cards:{' '}
+            <Link to="/my-dashboard/payment-card">Payment card</Link>. Personal card:{' '}
+            <Link to="/my-dashboard/my-payment-method">My payment method</Link>
+            {' '}(Users pay own). Network/firm invoices:{' '}
+            <Link to="/my-dashboard/module-invoices">Module invoices</Link>. User invoices:{' '}
+            <Link to="/my-dashboard/my-invoices">My invoices</Link>.
           </p>
         </div>
       </div>

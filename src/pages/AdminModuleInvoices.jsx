@@ -44,7 +44,11 @@ export default function AdminModuleInvoices({ shell = 'client-admin' }) {
   const [targetHub, setTargetHub] = useState(null)
 
   const asPowerAdmin = shell === 'power-admin' || isPowerAdmin
-  const enabled = can('dashboard_view_module_invoices')
+  const enabled =
+    can('dashboard_view_network_module_invoices') ||
+    can('dashboard_view_firm_module_invoices') ||
+    can('dashboard_view_module_invoices') ||
+    can('dashboard_view_all_module_invoices')
   const eyebrow = 'Modules'
 
   useEffect(() => {

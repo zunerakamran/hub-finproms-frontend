@@ -145,6 +145,11 @@ const MODULES_ANY = [
   'dashboard_manage_module_pricing',
   'dashboard_manage_module_packages',
   'dashboard_manage_module_invoice_settings',
+  'dashboard_manage_network_payment_card',
+  'dashboard_manage_firm_payment_card',
+  'dashboard_view_network_module_invoices',
+  'dashboard_view_firm_module_invoices',
+  'dashboard_view_reseller_invoices',
   'dashboard_view_module_invoices',
   'dashboard_view_all_module_invoices',
   'dashboard_mark_module_invoices_paid',
@@ -156,7 +161,8 @@ const ADVISOR_ANY = [
   'advisor_excel_submit',
   'dashboard_manage_advisor_pricing',
   'dashboard_manage_advisor_renewal',
-  'dashboard_manage_payment_card',
+  'dashboard_manage_network_payment_card',
+  'dashboard_manage_firm_payment_card',
   'dashboard_manage_subscriber_credits',
   'dashboard_view_advisor_invoices',
 ]
@@ -369,6 +375,14 @@ export const DASHBOARD_LINKS = [
     group: 'account',
   },
   {
+    to: '/my-dashboard/my-payment-method',
+    label: 'My payment method',
+    title: 'My payment method',
+    description: 'Your personal card for module invoices you pay yourself.',
+    usersPayOwnOnly: true,
+    group: 'account',
+  },
+  {
     to: '/my-dashboard/subscription',
     label: 'Subscription',
     title: 'Subscription',
@@ -388,7 +402,8 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/my-invoices',
     label: 'My invoices',
     title: 'My invoices',
-    description: 'View receipts for subscriptions and content purchases.',
+    description:
+      'Your receipts: subscriptions, content purchases, and module invoices billed to you personally.',
     capability: 'general_show_invoices',
     group: 'account',
   },
@@ -708,8 +723,9 @@ export const DASHBOARD_LINKS = [
   {
     to: '/my-dashboard/one-time-invoices',
     label: 'One-time invoices',
-    title: 'One-time invoices',
-    description: 'View all one-time invoices for this hub (content purchases and module charges).',
+    title: 'All one-time invoices',
+    description:
+      'Every one-time invoice on this hub (who pays does not matter). Separate from Module invoices / My invoices.',
     capability: 'dashboard_view_one_time_invoices',
     group: 'hub',
   },
@@ -758,8 +774,33 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/module-invoices',
     label: 'Module invoices',
     title: 'Module invoices',
-    description: 'View one-time invoices generated when product modules are enabled.',
-    capability: 'dashboard_view_module_invoices',
+    description:
+      'Network- and firm-paid module invoices (one-time and recurring) for scopes you can see.',
+    anyOf: [
+      'dashboard_view_network_module_invoices',
+      'dashboard_view_firm_module_invoices',
+      'dashboard_view_module_invoices',
+      'dashboard_view_all_module_invoices',
+    ],
+    group: 'modules',
+  },
+  {
+    to: '/my-dashboard/reseller-invoices',
+    label: 'Reseller invoices',
+    title: 'Network→user reseller invoices',
+    description:
+      'When the network re-charges users, see those invoices here. Users still see their own under My invoices.',
+    capability: 'dashboard_view_reseller_invoices',
+    group: 'modules',
+  },
+  {
+    to: '/my-dashboard/payment-card',
+    label: 'Payment card',
+    title: 'Network / firm payment card',
+    description:
+      'Add the network card and/or firm card (tabs). Personal cards are under My payment method (Users pay own).',
+    anyOf: ['dashboard_manage_network_payment_card', 'dashboard_manage_firm_payment_card'],
+    billingOnly: true,
     group: 'modules',
   },
 
@@ -769,7 +810,6 @@ export const DASHBOARD_LINKS = [
     id: 'advisors',
     label: 'Advisors & billing',
     anyOf: ADVISOR_ANY,
-    // Also show when billing card is available (billingOnly link has no capability).
   },
   {
     to: '/my-dashboard/advisors',
@@ -778,16 +818,6 @@ export const DASHBOARD_LINKS = [
     description:
       'Download template, submit a filled sheet for import, or import users. Discontinue users from Hub - Users.',
     anyOf: ['advisor_excel_import', 'advisor_excel_template', 'advisor_excel_submit'],
-    group: 'advisors',
-  },
-  {
-    to: '/my-dashboard/payment-card',
-    label: 'Payment card',
-    title: 'Payment card',
-    description:
-      'Enter or update the card charged for advisor imports and network/firm module invoices (Stripe). Requires Manage payment card capability.',
-    capability: 'dashboard_manage_payment_card',
-    billingOnly: true,
     group: 'advisors',
   },
   {
@@ -808,9 +838,9 @@ export const DASHBOARD_LINKS = [
   },
   {
     to: '/my-dashboard/advisor-invoices',
-    label: 'Advisor invoices',
-    title: 'Advisor invoices',
-    description: 'View invoices for advisor subscriber billing on this hub.',
+    label: 'Import users invoices',
+    title: 'Import users invoices',
+    description: 'Invoices created when users are imported (Import Users billing).',
     capability: 'dashboard_view_advisor_invoices',
     group: 'advisors',
   },
@@ -1159,6 +1189,7 @@ export function isDashboardLinkVisible(
     canPower,
     advisorBillingEnabled,
     canManagePaymentCard,
+    usersPayOwnModuleInvoices,
     isActingOnWhiteLabel,
     isWhiteLabelHub,
     isControlPlane,
@@ -1178,6 +1209,7 @@ export function isDashboardLinkVisible(
   if (Array.isArray(link.exceptCapabilities) && link.exceptCapabilities.length > 0) {
     if (link.exceptCapabilities.some((flag) => Boolean(can(flag)))) return false
   }
+  if (link.usersPayOwnOnly) return Boolean(usersPayOwnModuleInvoices)
   if (link.alwaysVisible) return true
   // Payment card: capability + advisor billing / module charging (see HubContext).
   if (link.billingOnly) return Boolean(canManagePaymentCard)

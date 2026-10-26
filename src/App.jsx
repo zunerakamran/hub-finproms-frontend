@@ -34,6 +34,7 @@ const AdminOneTimeInvoices = lazy(() => import('./pages/AdminOneTimeInvoices'))
 const AdminAdvisorInvoices = lazy(() => import('./pages/AdminAdvisorInvoices'))
 const AdminAdvisorRenewal = lazy(() => import('./pages/AdminAdvisorRenewal'))
 const AdminModuleInvoices = lazy(() => import('./pages/AdminModuleInvoices'))
+const AdminResellerInvoices = lazy(() => import('./pages/AdminResellerInvoices'))
 const AdminModulePricing = lazy(() => import('./pages/AdminModulePricing'))
 const AdminModulePackages = lazy(() => import('./pages/AdminModulePackages'))
 const AdminModuleInvoiceSettings = lazy(() => import('./pages/AdminModuleInvoiceSettings'))
@@ -112,6 +113,7 @@ const MyInvoices = lazy(() => import('./pages/MyInvoices'))
 const MyPurchases = lazy(() => import('./pages/MyPurchases'))
 const MySubscription = lazy(() => import('./pages/MySubscription'))
 const Profile = lazy(() => import('./pages/Profile'))
+const MyPaymentMethod = lazy(() => import('./pages/MyPaymentMethod'))
 const PostDetail = lazy(() => import('./pages/PostDetail'))
 const Posts = lazy(() => import('./pages/Posts'))
 const PowerAdminCapabilities = lazy(() => import('./pages/PowerAdminCapabilities'))
@@ -254,6 +256,7 @@ export default function App() {
               <Route path="my-dashboard" element={<MyDashboardLayout />}>
                 <Route index element={<MyDashboard />} />
                 <Route path="profile" element={<Profile />} />
+                <Route path="my-payment-method" element={<MyPaymentMethod />} />
                 <Route
                   path="subscription"
                   element={
@@ -1116,7 +1119,14 @@ export default function App() {
                 <Route
                   path="module-invoices"
                   element={
-                    <HubCapabilityRoute capability="dashboard_view_module_invoices">
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'dashboard_view_network_module_invoices',
+                        'dashboard_view_firm_module_invoices',
+                        'dashboard_view_module_invoices',
+                        'dashboard_view_all_module_invoices',
+                      ]}
+                    >
                       <AdminModuleInvoices />
                     </HubCapabilityRoute>
                   }
@@ -1124,8 +1134,23 @@ export default function App() {
                 <Route
                   path="module-invoices/:id"
                   element={
-                    <HubCapabilityRoute capability="dashboard_view_module_invoices">
+                    <HubCapabilityRoute
+                      anyOf={[
+                        'dashboard_view_network_module_invoices',
+                        'dashboard_view_firm_module_invoices',
+                        'dashboard_view_module_invoices',
+                        'dashboard_view_all_module_invoices',
+                      ]}
+                    >
                       <InvoiceDetail />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="reseller-invoices"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_view_reseller_invoices">
+                      <AdminResellerInvoices />
                     </HubCapabilityRoute>
                   }
                 />

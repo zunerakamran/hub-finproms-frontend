@@ -19,7 +19,7 @@ import { brandLogoUrl } from '../utils/brandLogo'
 
 export default function MyDashboardLayout() {
   const { user, logout, canPower } = useAuth()
-  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, isActingOnWhiteLabel, isActingRemotely, isControlPlane, actingHub, actingHubId, actingHubSwitching, hubRefreshing, actingAdvisor, roleLabel, canViewSitePages } = useHub()
+  const { can, hub, branding, advisorBillingEnabled, canManagePaymentCard, usersPayOwnModuleInvoices, isActingOnWhiteLabel, isActingRemotely, isControlPlane, actingHub, actingHubId, actingHubSwitching, hubRefreshing, actingAdvisor, roleLabel, canViewSitePages } = useHub()
   const dashboardNav = hub?.dashboard_nav || null
   const navBusy = Boolean(hubRefreshing || actingHubSwitching)
   const navigate = useNavigate()
@@ -57,6 +57,7 @@ export default function MyDashboardLayout() {
         canPower,
         advisorBillingEnabled,
         canManagePaymentCard,
+        usersPayOwnModuleInvoices,
         isActingOnWhiteLabel,
         isWhiteLabelHub,
         isControlPlane,
@@ -64,7 +65,7 @@ export default function MyDashboardLayout() {
         userRole: user?.role,
         dashboardNav,
       }),
-    [advisorBillingEnabled, canManagePaymentCard, can, canPower, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, user?.role, dashboardNav]
+    [advisorBillingEnabled, canManagePaymentCard, usersPayOwnModuleInvoices, can, canPower, isActingOnWhiteLabel, isWhiteLabelHub, isControlPlane, isActingRemotely, user?.role, dashboardNav]
   )
 
   const activeLink = useMemo(
@@ -108,6 +109,7 @@ export default function MyDashboardLayout() {
       canPower,
       advisorBillingEnabled,
       canManagePaymentCard,
+      usersPayOwnModuleInvoices,
       isActingOnWhiteLabel,
       isWhiteLabelHub,
       isControlPlane,
@@ -125,6 +127,7 @@ export default function MyDashboardLayout() {
     canPower,
     advisorBillingEnabled,
     canManagePaymentCard,
+    usersPayOwnModuleInvoices,
     isActingOnWhiteLabel,
     isWhiteLabelHub,
     isControlPlane,

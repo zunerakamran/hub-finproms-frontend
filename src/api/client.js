@@ -945,14 +945,39 @@ export const api = {
       method: 'POST',
     })
   },
-  paymentCard: () => request(`${CLIENT_ADMIN}/payment-card`),
-  setupPaymentCard: () =>
-    request(`${CLIENT_ADMIN}/payment-card/setup`, { method: 'POST' }),
+  paymentCard: (params = {}) => {
+    const q = new URLSearchParams()
+    if (params.scope) q.set('scope', params.scope)
+    if (params.firm_id) q.set('firm_id', String(params.firm_id))
+    const query = q.toString()
+    return request(`${CLIENT_ADMIN}/payment-card${query ? `?${query}` : ''}`)
+  },
+  setupPaymentCard: (params = {}) =>
+    request(`${CLIENT_ADMIN}/payment-card/setup`, {
+      method: 'POST',
+      body: JSON.stringify({
+        scope: params.scope || 'network',
+        ...(params.firm_id ? { firm_id: params.firm_id } : {}),
+      }),
+    }),
   confirmPaymentCard: (sessionId) =>
     request(`${CLIENT_ADMIN}/payment-card/confirm`, {
       method: 'POST',
       body: JSON.stringify({ session_id: sessionId }),
     }),
+  profilePaymentCard: () => request('/profile/payment-card'),
+  setupProfilePaymentCard: () =>
+    request('/profile/payment-card/setup', { method: 'POST' }),
+  confirmProfilePaymentCard: (sessionId) =>
+    request('/profile/payment-card/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId }),
+    }),
+  resellerInvoices: (params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(params).toString()
+    return request(`${base}/reseller-invoices${query ? `?${query}` : ''}`)
+  },
   advisorBillingRenewal: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/advisor-billing-renewal`)

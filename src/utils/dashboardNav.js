@@ -16,6 +16,7 @@ export const DASHBOARD_NAV_DEFAULTS = {
   items: {
     '/my-dashboard': 'Overview',
     '/my-dashboard/profile': 'Update profile',
+    '/my-dashboard/my-payment-method': 'My payment method',
     '/my-dashboard/subscription': 'Subscription',
     '/my-dashboard/credits': 'Credits',
     '/my-dashboard/my-invoices': 'My invoices',

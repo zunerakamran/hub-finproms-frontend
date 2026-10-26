@@ -146,6 +146,7 @@ const MODULES_ANY = [
   'dashboard_manage_module_packages',
   'dashboard_manage_module_invoice_settings',
   'dashboard_view_module_invoices',
+  'dashboard_view_all_module_invoices',
   'dashboard_mark_module_invoices_paid',
 ]
 
@@ -155,6 +156,7 @@ const ADVISOR_ANY = [
   'advisor_excel_submit',
   'dashboard_manage_advisor_pricing',
   'dashboard_manage_advisor_renewal',
+  'dashboard_manage_payment_card',
   'dashboard_manage_subscriber_credits',
   'dashboard_view_advisor_invoices',
 ]
@@ -782,7 +784,9 @@ export const DASHBOARD_LINKS = [
     to: '/my-dashboard/payment-card',
     label: 'Payment card',
     title: 'Payment card',
-    description: 'Enter or update the card charged when importing advisors (Stripe).',
+    description:
+      'Enter or update the card charged for advisor imports and network/firm module invoices (Stripe). Requires Manage payment card capability.',
+    capability: 'dashboard_manage_payment_card',
     billingOnly: true,
     group: 'advisors',
   },
@@ -1175,7 +1179,7 @@ export function isDashboardLinkVisible(
     if (link.exceptCapabilities.some((flag) => Boolean(can(flag)))) return false
   }
   if (link.alwaysVisible) return true
-  // Payment card is client_admin only when advisor billing is on.
+  // Payment card: capability + advisor billing / module charging (see HubContext).
   if (link.billingOnly) return Boolean(canManagePaymentCard)
   if (Array.isArray(link.anyOf) && link.anyOf.length > 0) {
     return link.anyOf.some((flag) => can(flag))

@@ -76,7 +76,9 @@ export default function AdminPaymentCard() {
             <p className="eyebrow">Advisors & billing</p>
             <h1>Payment card</h1>
             <p className="muted">
-              Only the client admin can manage the payment card for advisor billing.
+              Enable &quot;Manage payment card&quot; for your role under Power Admin → Capabilities
+              (Advisors &amp; private billing). Available when advisor billing or module charging
+              is on.
             </p>
           </div>
         </div>
@@ -91,8 +93,8 @@ export default function AdminPaymentCard() {
           <p className="eyebrow">Advisors & billing</p>
           <h1>Payment card</h1>
           <p className="muted">
-            Enter the card used when advisors are imported. If Stripe is selected at import time,
-            this card is charged (rate × advisors) and kept for monthly auto-renew.
+            Enter the card used for advisor imports and for module invoices when the network or firm
+            pays. If Stripe is selected at import time, this card is charged and kept for renewals.
           </p>
         </div>
       </div>

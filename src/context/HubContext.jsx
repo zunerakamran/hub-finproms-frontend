@@ -402,21 +402,22 @@ export function HubProvider({ children }) {
     )
   }, [actingChecklist])
 
+  /** Module charging (one-time and/or recurring) — payment card also applies. */
+  const moduleChargingEnabled = useMemo(() => {
+    return Boolean(
+      actingChecklist.charge_amount_per_module || actingChecklist.charge_recurring_per_module
+    )
+  }, [actingChecklist])
+
   /**
-   * Payment-card: white-label client admin or Accounts Admin
-   * (matches backend AdvisorPaymentCardController). Power / FinProms staff
-   * complete import checkout against the payer card - they do not
-   * manage Payment card settings.
+   * Payment card: Capabilities matrix `dashboard_manage_payment_card`
+   * (any granted role). Available when advisor billing or module charging is on.
    */
   const canManagePaymentCard = useMemo(() => {
-    if (!user || !advisorBillingEnabled) return false
-    const roles = Array.isArray(user.roles) && user.roles.length
-      ? user.roles
-      : [user.role].filter(Boolean)
-    return roles.some((role) =>
-      ['client_admin', 'admin', 'accounts_admin'].includes(String(role))
-    )
-  }, [user, advisorBillingEnabled])
+    if (!user) return false
+    if (!advisorBillingEnabled && !moduleChargingEnabled) return false
+    return Boolean(can('dashboard_manage_payment_card'))
+  }, [user, advisorBillingEnabled, moduleChargingEnabled, can])
 
   /** Staff always; remaining roles only when a dashboard capability is on. */
   const hasHubDashboardAccess = useMemo(() => {

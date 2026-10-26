@@ -110,7 +110,16 @@ export default function AdminModuleInvoiceSettings({ shell = 'client-admin' }) {
       setSettings({ ...emptySettings, ...(data.settings || {}) })
       setLogoFile(null)
       setClearLogo(false)
-      setMessage(data.message || 'Module invoice settings updated.')
+      const synced = Array.isArray(data.capabilities_synced) ? data.capabilities_synced : []
+      let msg = data.message || 'Module invoice settings updated.'
+      if (synced.length) {
+        const summary = synced
+          .slice(0, 8)
+          .map((row) => `${row.role}: ${row.capability}`)
+          .join('; ')
+        msg += ` Enabled: ${summary}${synced.length > 8 ? '…' : ''}.`
+      }
+      setMessage(msg)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -160,6 +169,11 @@ export default function AdminModuleInvoiceSettings({ shell = 'client-admin' }) {
       ) : (
         <form className="admin-form" onSubmit={onSubmit}>
           <h2>Who pays?</h2>
+          <p className="muted">
+            Saving a payer mode also turns on matching Capabilities (payment card + who can see
+            those invoices) for the usual roles. Power Admin can still change any cell in
+            Capabilities. Caps are never auto-turned off.
+          </p>
 
           <label className="checklist-item">
             <input

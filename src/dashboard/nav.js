@@ -145,6 +145,8 @@ const MODULES_ANY = [
   'dashboard_manage_module_pricing',
   'dashboard_manage_module_packages',
   'dashboard_manage_module_invoice_settings',
+  'dashboard_manage_reseller_module_pricing',
+  'dashboard_manage_network_stripe',
   'dashboard_manage_network_payment_card',
   'dashboard_manage_firm_payment_card',
   'dashboard_view_network_module_invoices',
@@ -793,6 +795,24 @@ export const DASHBOARD_LINKS = [
     description:
       'When the network re-charges users, see those invoices here. Users still see their own under My invoices.',
     capability: 'dashboard_view_reseller_invoices',
+    group: 'modules',
+  },
+  {
+    to: '/my-dashboard/reseller-module-pricing',
+    label: 'Reseller module prices',
+    title: 'Reseller module prices',
+    description:
+      'Set what users pay the network for per-user modules when Network resells is on. Network still pays FinProms at main Module prices.',
+    capability: 'dashboard_manage_reseller_module_pricing',
+    group: 'modules',
+  },
+  {
+    to: '/my-dashboard/network-stripe',
+    label: 'Network Stripe',
+    title: 'Network Stripe keys',
+    description:
+      'Stripe account that receives user payments when Network resells is on (separate from FinProms platform keys).',
+    capability: 'dashboard_manage_network_stripe',
     group: 'modules',
   },
   {

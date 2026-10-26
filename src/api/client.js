@@ -978,6 +978,28 @@ export const api = {
     const query = new URLSearchParams(params).toString()
     return request(`${base}/reseller-invoices${query ? `?${query}` : ''}`)
   },
+  resellerModulePricing: (options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/reseller-module-pricing`)
+  },
+  updateResellerModulePricing: (moduleKey, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/reseller-module-pricing/${encodeURIComponent(moduleKey)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  networkStripe: (options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/network-stripe`)
+  },
+  updateNetworkStripe: (payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/network-stripe`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
   advisorBillingRenewal: (options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     return request(`${base}/advisor-billing-renewal`)

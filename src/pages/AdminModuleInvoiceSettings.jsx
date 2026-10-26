@@ -158,9 +158,12 @@ export default function AdminModuleInvoiceSettings({ shell = 'client-admin' }) {
             Network/firm cards:{' '}
             <Link to="/my-dashboard/payment-card">Payment card</Link>. Personal card:{' '}
             <Link to="/my-dashboard/my-payment-method">My payment method</Link>
-            {' '}(mandatory when Users pay own or Network resells). Network/firm invoices:{' '}
-            <Link to="/my-dashboard/module-invoices">Module invoices</Link>. User invoices:{' '}
-            <Link to="/my-dashboard/my-invoices">My invoices</Link>.
+            {' '}(mandatory when Users pay own or Network resells). When Network resells:{' '}
+            <Link to="/my-dashboard/reseller-module-pricing">Reseller module prices</Link>,{' '}
+            <Link to="/my-dashboard/network-stripe">Network Stripe</Link>,{' '}
+            <Link to="/my-dashboard/reseller-invoices">Reseller invoices</Link>. Network/firm
+            invoices: <Link to="/my-dashboard/module-invoices">Module invoices</Link>. User
+            invoices: <Link to="/my-dashboard/my-invoices">My invoices</Link>.
           </p>
         </div>
       </div>

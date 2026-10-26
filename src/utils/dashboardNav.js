@@ -58,6 +58,8 @@ export const DASHBOARD_NAV_DEFAULTS = {
     '/my-dashboard/module-invoice-settings': 'Module invoice settings',
     '/my-dashboard/module-invoices': 'Module invoices',
     '/my-dashboard/reseller-invoices': 'Reseller invoices',
+    '/my-dashboard/reseller-module-pricing': 'Reseller module prices',
+    '/my-dashboard/network-stripe': 'Network Stripe',
     '/my-dashboard/advisors': 'Import Users',
     '/my-dashboard/payment-card': 'Payment card',
     '/my-dashboard/advisor-renewal': 'Billing renew day',

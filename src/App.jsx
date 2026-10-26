@@ -35,6 +35,8 @@ const AdminAdvisorInvoices = lazy(() => import('./pages/AdminAdvisorInvoices'))
 const AdminAdvisorRenewal = lazy(() => import('./pages/AdminAdvisorRenewal'))
 const AdminModuleInvoices = lazy(() => import('./pages/AdminModuleInvoices'))
 const AdminResellerInvoices = lazy(() => import('./pages/AdminResellerInvoices'))
+const AdminResellerModulePricing = lazy(() => import('./pages/AdminResellerModulePricing'))
+const AdminNetworkStripe = lazy(() => import('./pages/AdminNetworkStripe'))
 const AdminModulePricing = lazy(() => import('./pages/AdminModulePricing'))
 const AdminModulePackages = lazy(() => import('./pages/AdminModulePackages'))
 const AdminModuleInvoiceSettings = lazy(() => import('./pages/AdminModuleInvoiceSettings'))
@@ -1151,6 +1153,22 @@ export default function App() {
                   element={
                     <HubCapabilityRoute capability="dashboard_view_reseller_invoices">
                       <AdminResellerInvoices />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="reseller-module-pricing"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_reseller_module_pricing">
+                      <AdminResellerModulePricing />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="network-stripe"
+                  element={
+                    <HubCapabilityRoute capability="dashboard_manage_network_stripe">
+                      <AdminNetworkStripe />
                     </HubCapabilityRoute>
                   }
                 />

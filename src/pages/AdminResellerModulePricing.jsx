@@ -3,7 +3,13 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
-import { unitLabel } from '../utils/moduleBillingUnits'
+import { normalizeBillingUnit, unitLabel } from '../utils/moduleBillingUnits'
+
+const PER_USER_UNITS = new Set(['per_user', 'per_user_slots'])
+
+function isPerUserUnit(unit, { forRecurring = false } = {}) {
+  return PER_USER_UNITS.has(normalizeBillingUnit(unit, { forRecurring }))
+}
 
 function formatMoney(amount, currency = 'gbp') {
   if (amount == null || amount === '') return '—'
@@ -15,6 +21,16 @@ function formatMoney(amount, currency = 'gbp') {
   } catch {
     return `£${Number(amount || 0).toFixed(2)}`
   }
+}
+
+function rowAllowsOneTime(row) {
+  if (typeof row?.allows_one_time === 'boolean') return row.allows_one_time
+  return isPerUserUnit(row?.main_pricing?.billing_unit)
+}
+
+function rowAllowsRecurring(row) {
+  if (typeof row?.allows_recurring === 'boolean') return row.allows_recurring
+  return isPerUserUnit(row?.main_pricing?.recurring_billing_unit, { forRecurring: true })
 }
 
 export default function AdminResellerModulePricing({ shell = 'client-admin' }) {
@@ -71,20 +87,23 @@ export default function AdminResellerModulePricing({ shell = 'client-admin' }) {
   }, [hubLoading, enabled, asPowerAdmin, actingHub?.id])
 
   const saveRow = async (moduleKey) => {
+    const row = pricing.find((r) => r.module_key === moduleKey)
     const draft = drafts[moduleKey] || {}
+    const payload = {
+      is_active: Boolean(draft.is_active),
+    }
+    if (rowAllowsOneTime(row)) {
+      payload.amount = draft.amount === '' ? 0 : Number(draft.amount)
+    }
+    if (rowAllowsRecurring(row)) {
+      payload.recurring_amount = draft.recurring_amount === '' ? 0 : Number(draft.recurring_amount)
+    }
+
     setSavingKey(moduleKey)
     setError('')
     setMessage('')
     try {
-      const data = await api.updateResellerModulePricing(
-        moduleKey,
-        {
-          amount: draft.amount === '' ? 0 : Number(draft.amount),
-          recurring_amount: draft.recurring_amount === '' ? 0 : Number(draft.recurring_amount),
-          is_active: Boolean(draft.is_active),
-        },
-        apiOpts
-      )
+      const data = await api.updateResellerModulePricing(moduleKey, payload, apiOpts)
       setMessage(data.message || 'Saved.')
       await load()
     } catch (err) {
@@ -121,8 +140,9 @@ export default function AdminResellerModulePricing({ shell = 'client-admin' }) {
             Amounts users pay the network
             {targetHub?.name ? ` on ${targetHub.name}` : ''}. Only modules whose{' '}
             <Link to="/my-dashboard/module-pricing">Module prices</Link> use per user / per user
-            (slots) appear. The network still pays FinProms at the main Module prices. Configure
-            Network resells and branding under{' '}
+            (slots) appear. Edit user one-time only when the main one-time unit is per user; edit
+            recurring only when the main recurring unit is per user. The network still pays FinProms
+            at the main Module prices. Configure Network resells and branding under{' '}
             <Link to="/my-dashboard/module-invoice-settings">Module invoice settings</Link>.
           </p>
         </div>
@@ -130,8 +150,8 @@ export default function AdminResellerModulePricing({ shell = 'client-admin' }) {
 
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
-      {note && <div className="alert">{note}</div>}
-      {!networkResells && !note && (
+      {!loading && note && <div className="alert">{note}</div>}
+      {!loading && !networkResells && !note && (
         <div className="alert">
           Network resells is off — turn it on under Module invoice settings to edit these prices.
         </div>
@@ -163,6 +183,8 @@ export default function AdminResellerModulePricing({ shell = 'client-admin' }) {
               {pricing.map((row) => {
                 const draft = drafts[row.module_key] || {}
                 const main = row.main_pricing || {}
+                const allowOneTime = rowAllowsOneTime(row)
+                const allowRecurring = rowAllowsRecurring(row)
                 return (
                   <tr key={row.module_key}>
                     <td>
@@ -176,34 +198,42 @@ export default function AdminResellerModulePricing({ shell = 'client-admin' }) {
                     <td>{formatMoney(main.amount, main.currency)}</td>
                     <td>{formatMoney(main.recurring_amount, main.currency)}</td>
                     <td>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        disabled={!networkResells}
-                        value={draft.amount ?? ''}
-                        onChange={(e) =>
-                          setDrafts((prev) => ({
-                            ...prev,
-                            [row.module_key]: { ...draft, amount: e.target.value },
-                          }))
-                        }
-                      />
+                      {allowOneTime ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          disabled={!networkResells}
+                          value={draft.amount ?? ''}
+                          onChange={(e) =>
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [row.module_key]: { ...draft, amount: e.target.value },
+                            }))
+                          }
+                        />
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        disabled={!networkResells}
-                        value={draft.recurring_amount ?? ''}
-                        onChange={(e) =>
-                          setDrafts((prev) => ({
-                            ...prev,
-                            [row.module_key]: { ...draft, recurring_amount: e.target.value },
-                          }))
-                        }
-                      />
+                      {allowRecurring ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          disabled={!networkResells}
+                          value={draft.recurring_amount ?? ''}
+                          onChange={(e) =>
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [row.module_key]: { ...draft, recurring_amount: e.target.value },
+                            }))
+                          }
+                        />
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
                     </td>
                     <td>
                       <input

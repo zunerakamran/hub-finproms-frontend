@@ -66,15 +66,29 @@ export default function AdminModuleInvoiceSettings({ shell = 'client-admin' }) {
         next.firms_pay_own = false
         next.users_pay_own = false
       }
+      // Cannot leave the “who pays?” group empty — keep Network pays all on.
+      if (key === 'network_pays_all' && !checked) {
+        if (!next.firms_pay_own && !next.users_pay_own) {
+          next.network_pays_all = true
+        }
+      }
       if (key === 'network_resells' && checked) {
         next.users_pay_own = false
       }
       if ((key === 'firms_pay_own' || key === 'users_pay_own') && checked) {
         next.network_pays_all = false
       }
+      if ((key === 'firms_pay_own' || key === 'users_pay_own') && !checked) {
+        if (!next.firms_pay_own && !next.users_pay_own) {
+          next.network_pays_all = true
+        }
+      }
       return next
     })
   }
+
+  const networkPaysAllLocked =
+    !!settings.network_pays_all && !settings.firms_pay_own && !settings.users_pay_own
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -151,6 +165,7 @@ export default function AdminModuleInvoiceSettings({ shell = 'client-admin' }) {
             <input
               type="checkbox"
               checked={!!settings.network_pays_all}
+              disabled={networkPaysAllLocked}
               onChange={(e) => setFlag('network_pays_all', e.target.checked)}
             />
             <span>
@@ -158,6 +173,9 @@ export default function AdminModuleInvoiceSettings({ shell = 'client-admin' }) {
               <small className="muted" style={{ display: 'block' }}>
                 {explanations.network_pays_all ||
                   'Network pays every pricing unit (one-time and ongoing). Unchecks firm and user options.'}
+                {networkPaysAllLocked
+                  ? ' Select firm or user pays first if you want to turn this off.'
+                  : ''}
               </small>
             </span>
           </label>

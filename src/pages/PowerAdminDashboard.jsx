@@ -107,6 +107,19 @@ export default function PowerAdminDashboard() {
       hubCapability: 'dashboard_manage_module_pricing',
     },
     {
+      to: '/power-admin/module-packages',
+      title: 'Module packages',
+      description: 'Create bundles of product modules with one-time and recurring package prices.',
+      hubCapability: 'dashboard_manage_module_packages',
+    },
+    {
+      to: '/power-admin/module-invoice-settings',
+      title: 'Module invoice settings',
+      description:
+        'Choose who pays module invoices (network / firms / users) and optional network reseller branding.',
+      hubCapability: 'dashboard_manage_module_invoice_settings',
+    },
+    {
       to: '/power-admin/module-invoices',
       title: 'Module invoices',
       description: 'View one-time invoices generated when product modules are enabled.',

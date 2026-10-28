@@ -25,6 +25,7 @@ export const GENERAL_DASHBOARD_ANY = [
  *   billingOnly?: boolean,
  *   sharedOnly?: boolean, // legacy - hide while acting on WL / on WL deploy
  *   controlPlaneOnly?: boolean, // Platform tools: only on Central Hub Controller
+ *   contentHubOnly?: boolean, // Shared / WL (or Central while acting remotely on them)
  *   hideWhenActingRemotely?: boolean, // Hide while Control hub switcher is on Shared/WL
  *   homeOnly?: boolean,
  *   alwaysVisible?: boolean,
@@ -1034,12 +1035,12 @@ export const DASHBOARD_LINKS = [
   },
   {
     to: '/my-dashboard/live-chat/access',
-    label: 'Live Chat access',
-    title: 'Live Chat access',
+    label: 'Central contacts',
+    title: 'Central contacts',
     description:
-      'Central Hub only: checkbox which Central users may use Live Chat and appear as contacts for hub users.',
+      'Shared / White-label only: checkbox which Central Hub users this hub may message. Not shown on Central Hub home.',
     capability: 'lc_manage_access',
-    controlPlaneOnly: true,
+    contentHubOnly: true,
     group: 'lc',
   },
 
@@ -1259,6 +1260,8 @@ export function isDashboardLinkVisible(
   // Hub tools on Central follow the Capabilities matrix (same as Shared /
   // White-label). Platform-only links still require isControlPlane below.
   if (link.controlPlaneOnly && !isControlPlane) return false
+  // Shared / WL pages: hide on Central home; still show while Central acts remotely.
+  if (link.contentHubOnly && isControlPlane && !isActingRemotely) return false
   if (link.hideWhenActingRemotely && isActingRemotely) return false
   if (link.sharedOnly && (isActingOnWhiteLabel || isWhiteLabelHub)) return false
   if (Array.isArray(link.exceptRoles) && link.exceptRoles.length > 0) {

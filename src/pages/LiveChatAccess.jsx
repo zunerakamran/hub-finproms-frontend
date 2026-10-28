@@ -4,10 +4,13 @@ import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
 
 export default function LiveChatAccess() {
-  const { can, loading: hubLoading, hub } = useHub()
+  const { can, loading: hubLoading, hub, isActingRemotely } = useHub()
   const moduleOn = can('live_chat')
   const canManage = can('lc_manage_access')
-  const isCentral = Boolean(hub?.is_central || hub?.is_control_plane)
+  const onCentralHome = Boolean(
+    (hub?.is_central || hub?.is_control_plane || hub?.type === 'central') && !isActingRemotely
+  )
+  const contentHubContext = !onCentralHome
 
   const [users, setUsers] = useState([])
   const [selected, setSelected] = useState(() => new Set())
@@ -18,7 +21,7 @@ export default function LiveChatAccess() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    if (hubLoading || !moduleOn || !canManage || !isCentral) {
+    if (hubLoading || !moduleOn || !canManage || !contentHubContext) {
       setLoading(false)
       return
     }
@@ -31,10 +34,10 @@ export default function LiveChatAccess() {
         if (cancelled) return
         const rows = res?.data || []
         setUsers(rows)
-        setSelected(new Set(rows.filter((u) => u.live_chat_access).map((u) => u.id)))
+        setSelected(new Set(rows.filter((u) => u.selected).map((u) => u.id)))
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message || 'Failed to load access list.')
+        if (!cancelled) setError(err.message || 'Failed to load Central Hub users.')
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -42,7 +45,7 @@ export default function LiveChatAccess() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, moduleOn, canManage, isCentral])
+  }, [hubLoading, moduleOn, canManage, contentHubContext])
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase()
@@ -89,8 +92,8 @@ export default function LiveChatAccess() {
       const res = await api.liveChatAccessUpdate({ user_ids: Array.from(selected) })
       const rows = res?.data || []
       setUsers(rows)
-      setSelected(new Set(rows.filter((u) => u.live_chat_access).map((u) => u.id)))
-      setMessage(res?.message || 'Live Chat access saved.')
+      setSelected(new Set(rows.filter((u) => u.selected).map((u) => u.id)))
+      setMessage(res?.message || 'Central contacts saved.')
     } catch (err) {
       setError(err.message || 'Failed to save.')
     } finally {
@@ -98,22 +101,38 @@ export default function LiveChatAccess() {
     }
   }
 
-  if (!hubLoading && (!moduleOn || !isCentral)) {
+  if (!hubLoading && onCentralHome) {
     return (
       <section>
         <div className="page-head">
           <div>
             <p className="eyebrow">Live Chat</p>
-            <h1>Live Chat access</h1>
+            <h1>Central contacts</h1>
             <p className="muted">
-              {!isCentral
-                ? 'Live Chat access is managed only on the Central Hub.'
-                : 'Live Chat is not enabled. Ask Power Admin to enable it under Functionalities.'}
+              Central contacts are chosen on each Shared or White-label hub. Switch to a content hub
+              (or open that hub’s dashboard) to pick which Central users its members may message.
             </p>
           </div>
           <Link className="btn ghost" to="/my-dashboard/live-chat">
             Back to Live Chat
           </Link>
+        </div>
+      </section>
+    )
+  }
+
+  if (!hubLoading && !moduleOn) {
+    return (
+      <section>
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">Live Chat</p>
+            <h1>Central contacts</h1>
+            <p className="muted">
+              Live Chat is not enabled for this hub. Ask Power Admin to enable it under
+              Functionalities.
+            </p>
+          </div>
         </div>
       </section>
     )
@@ -125,8 +144,8 @@ export default function LiveChatAccess() {
         <div className="page-head">
           <div>
             <p className="eyebrow">Live Chat</p>
-            <h1>Live Chat access</h1>
-            <p className="muted">You do not have permission to manage Live Chat access.</p>
+            <h1>Central contacts</h1>
+            <p className="muted">You do not have permission to choose Central contacts.</p>
           </div>
         </div>
       </section>
@@ -138,10 +157,10 @@ export default function LiveChatAccess() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Live Chat</p>
-          <h1>Live Chat access</h1>
+          <h1>Central contacts</h1>
           <p className="muted">
-            Check the Central Hub users who may use Live Chat and appear as contacts for Shared /
-            White-label hub users. Unchecked users cannot access the Live Chat module on Central.
+            Check which <strong>Central Hub</strong> users members of this hub may message. This is
+            not a list of this hub’s own users.
           </p>
         </div>
         <Link className="btn ghost" to="/my-dashboard/live-chat">
@@ -155,10 +174,10 @@ export default function LiveChatAccess() {
       <form onSubmit={handleSave} className="card" style={{ padding: '1rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginBottom: '0.75rem' }}>
           <label className="field" style={{ flex: '1 1 220px', margin: 0 }}>
-            <span className="sr-only">Filter users</span>
+            <span className="sr-only">Filter Central users</span>
             <input
               type="search"
-              placeholder="Filter by name, email, or role…"
+              placeholder="Filter Central users by name, email, or role…"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
@@ -170,18 +189,18 @@ export default function LiveChatAccess() {
             Uncheck filtered
           </button>
           <button type="submit" className="btn primary" disabled={saving || loading}>
-            {saving ? 'Saving…' : 'Save access'}
+            {saving ? 'Saving…' : 'Save contacts'}
           </button>
         </div>
 
         <p className="muted" style={{ marginTop: 0 }}>
-          {selected.size} selected · {filtered.length} shown · {users.length} total
+          {selected.size} selected · {filtered.length} shown · {users.length} Central users
         </p>
 
         {loading ? (
-          <p className="muted">Loading users…</p>
+          <p className="muted">Loading Central Hub users…</p>
         ) : filtered.length === 0 ? (
-          <p className="muted">No users match.</p>
+          <p className="muted">No Central Hub users found.</p>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: '60vh', overflow: 'auto' }}>
             {filtered.map((u) => (

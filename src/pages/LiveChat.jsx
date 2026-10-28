@@ -7,10 +7,14 @@ import { formatDateTime } from '../utils/dateFormat'
 const POLL_MS = 4000
 
 export default function LiveChat() {
-  const { can, loading: hubLoading, hub } = useHub()
+  const { can, loading: hubLoading, hub, isActingRemotely } = useHub()
   const moduleOn = can('live_chat')
   const canUse = can('lc_use_chat')
   const canManage = can('lc_manage_access')
+  const onCentralHome = Boolean(
+    (hub?.is_central || hub?.is_control_plane || hub?.type === 'central') && !isActingRemotely
+  )
+  const showContactsLink = canManage && !onCentralHome
 
   const [options, setOptions] = useState({ agents: [], is_central_agent: false })
   const [conversations, setConversations] = useState([])
@@ -202,13 +206,13 @@ export default function LiveChat() {
           <h1>Live Chat</h1>
           <p className="muted">
             {isCentralAgent
-              ? 'Reply to messages from Shared and White-label hub users. Only Central users checked under Live Chat access appear to hub members.'
-              : 'Message Central Hub users who have Live Chat access enabled.'}
+              ? 'Reply to messages from Shared and White-label hub users. Hubs choose which Central contacts they can message on their own Central contacts page.'
+              : 'Message the Central Hub contacts chosen for this hub.'}
           </p>
         </div>
-        {canManage && (hub?.is_central || hub?.is_control_plane) && (
+        {showContactsLink && (
           <Link className="btn ghost" to="/my-dashboard/live-chat/access">
-            Manage access
+            Central contacts
           </Link>
         )}
       </div>
@@ -257,7 +261,7 @@ export default function LiveChat() {
               <h3 style={{ fontSize: '0.95rem', margin: '0 0 0.5rem' }}>New chat</h3>
               {agents.length === 0 ? (
                 <p className="muted" style={{ fontSize: '0.85rem' }}>
-                  No Central Hub agents are available yet. Central admins must check users under Live Chat access.
+                  No Central contacts are configured yet. An admin must check Central Hub users under Central contacts.
                 </p>
               ) : (
                 <>

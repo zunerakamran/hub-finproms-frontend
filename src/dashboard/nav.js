@@ -62,6 +62,8 @@ const ST_NAV_ANY = [
   'st_comment_on_tickets',
 ]
 
+const LC_NAV_ANY = ['lc_use_chat', 'lc_manage_access']
+
 const SECMON_NAV_ANY = [
   'secmon_view_events',
   'secmon_view_report',
@@ -194,6 +196,7 @@ export const DASHBOARD_GROUPS = {
   smc: 'Social Media Compliance',
   gc: 'General Compliance',
   st: 'Support Tickets',
+  lc: 'Live Chat',
   secmon: 'Security Monitoring',
   wtl: 'Website Template Library',
   wc: 'Website Content Pre Approval',
@@ -1010,6 +1013,34 @@ export const DASHBOARD_LINKS = [
     description: 'Developer inbox - review tickets and change their status.',
     anyOf: ['st_view_all_tickets', 'st_change_ticket_status'],
     group: 'st',
+  },
+
+  // -- Live Chat --
+  {
+    kind: 'section',
+    id: 'lc',
+    label: 'Live Chat',
+    anyOf: LC_NAV_ANY,
+  },
+  {
+    to: '/my-dashboard/live-chat',
+    label: 'Live Chat',
+    title: 'Live Chat',
+    description:
+      'Chat between content-hub users and selected Central Hub users. Messages poll every few seconds.',
+    capability: 'lc_use_chat',
+    end: true,
+    group: 'lc',
+  },
+  {
+    to: '/my-dashboard/live-chat/access',
+    label: 'Live Chat access',
+    title: 'Live Chat access',
+    description:
+      'Central Hub only: checkbox which Central users may use Live Chat and appear as contacts for hub users.',
+    capability: 'lc_manage_access',
+    controlPlaneOnly: true,
+    group: 'lc',
   },
 
   // -- Website Template Library --

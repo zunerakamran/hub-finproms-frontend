@@ -87,6 +87,8 @@ const SupportTicketsMyTickets = lazy(() => import('./pages/SupportTicketsMyTicke
 const SupportTicketSubmit = lazy(() => import('./pages/SupportTicketSubmit'))
 const SupportTicketsQueue = lazy(() => import('./pages/SupportTicketsQueue'))
 const SupportTicketDetail = lazy(() => import('./pages/SupportTicketDetail'))
+const LiveChat = lazy(() => import('./pages/LiveChat'))
+const LiveChatAccess = lazy(() => import('./pages/LiveChatAccess'))
 const SecurityMonitoring = lazy(() => import('./pages/SecurityMonitoring'))
 const AccessControl = lazy(() => import('./pages/AccessControl'))
 const TaxonomyAddRequestsMy = lazy(() => import('./pages/TaxonomyAddRequestsMy'))
@@ -743,6 +745,22 @@ export default function App() {
                       ]}
                     >
                       <SupportTicketDetail />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="live-chat"
+                  element={
+                    <HubCapabilityRoute capability="lc_use_chat">
+                      <LiveChat />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
+                  path="live-chat/access"
+                  element={
+                    <HubCapabilityRoute capability="lc_manage_access">
+                      <LiveChatAccess />
                     </HubCapabilityRoute>
                   }
                 />

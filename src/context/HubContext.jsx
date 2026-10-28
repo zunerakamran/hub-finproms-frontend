@@ -331,6 +331,8 @@ export function HubProvider({ children }) {
           String(flag).startsWith('smc_') ||
           String(flag).startsWith('gc_') ||
           String(flag).startsWith('st_') ||
+          String(flag).startsWith('lc_') ||
+          String(flag).startsWith('secmon_') ||
           String(flag).startsWith('wc_') ||
           String(flag).startsWith('firm_documents_') ||
           String(flag).startsWith('taxonomy_') ||

@@ -1661,6 +1661,38 @@ export const api = {
       method: 'DELETE',
     }),
 
+  // -- Live Chat --
+  liveChatOptions: () => request('/live-chat/options'),
+  liveChatUnread: () => request('/live-chat/unread'),
+  liveChatConversations: () => request('/live-chat/conversations'),
+  liveChatShow: (id, params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/live-chat/conversations/${id}${query ? `?${query}` : ''}`)
+  },
+  liveChatStart: (payload) =>
+    request('/live-chat/conversations', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  liveChatSend: (id, payload) =>
+    request(`/live-chat/conversations/${id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  liveChatClose: (id, payload = {}) =>
+    request(`/live-chat/conversations/${id}/close`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  liveChatAccess: () => request('/live-chat/access'),
+  liveChatAccessUpdate: (payload) =>
+    request('/live-chat/access', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
   // -- Support Tickets --
   supportTicketsOptions: () => request('/support-tickets/options'),
   supportTicketsMine: (params = {}) => {

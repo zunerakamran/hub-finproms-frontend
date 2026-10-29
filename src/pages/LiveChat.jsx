@@ -198,25 +198,6 @@ export default function LiveChat() {
     }
   }
 
-  async function handleClose() {
-    if (!activeId) return
-    setSending(true)
-    setError('')
-    try {
-      await api.liveChatClose(activeId, {
-        source_hub_slug: activeSlug || undefined,
-      })
-      setActive(null)
-      setActiveId(null)
-      setActiveSlug(null)
-      await loadList()
-    } catch (err) {
-      setError(err.message || 'Could not close conversation.')
-    } finally {
-      setSending(false)
-    }
-  }
-
   if (!hubLoading && !moduleOn) {
     return (
       <section className="lc-page">
@@ -425,23 +406,6 @@ export default function LiveChat() {
                     {subtitleFor && <div className="muted">{subtitleFor}</div>}
                   </div>
                 </div>
-                <div className="lc-thread__actions">
-                  <span
-                    className={`lc-pill ${active.status === 'closed' ? 'lc-pill--closed' : 'lc-pill--open'}`}
-                  >
-                    {active.status || 'open'}
-                  </span>
-                  {active.status !== 'closed' && (
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      onClick={handleClose}
-                      disabled={sending}
-                    >
-                      Close
-                    </button>
-                  )}
-                </div>
               </div>
 
               <div className="lc-messages">
@@ -467,32 +431,28 @@ export default function LiveChat() {
                 <div ref={bottomRef} />
               </div>
 
-              {active.status === 'closed' ? (
-                <div className="lc-closed-banner">This conversation is closed.</div>
-              ) : (
-                <form className="lc-composer" onSubmit={handleSend}>
-                  <textarea
-                    ref={composerRef}
-                    className="lc-composer__input"
-                    rows={1}
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={onComposerKeyDown}
-                    placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
-                    maxLength={10000}
-                    disabled={sending}
-                  />
-                  <button
-                    className="btn primary"
-                    type="submit"
-                    disabled={sending || !draft.trim()}
-                    aria-label="Send message"
-                  >
-                    <FaPaperPlane style={{ marginRight: '0.35rem' }} />
-                    Send
-                  </button>
-                </form>
-              )}
+              <form className="lc-composer" onSubmit={handleSend}>
+                <textarea
+                  ref={composerRef}
+                  className="lc-composer__input"
+                  rows={1}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={onComposerKeyDown}
+                  placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
+                  maxLength={10000}
+                  disabled={sending}
+                />
+                <button
+                  className="btn primary"
+                  type="submit"
+                  disabled={sending || !draft.trim()}
+                  aria-label="Send message"
+                >
+                  <FaPaperPlane style={{ marginRight: '0.35rem' }} />
+                  Send
+                </button>
+              </form>
             </>
           )}
         </div>

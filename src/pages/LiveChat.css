@@ -230,32 +230,6 @@
   line-height: 1;
 }
 
-.lc-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.68rem;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0.18rem 0.5rem;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--muted);
-}
-
-.lc-pill--open {
-  color: color-mix(in srgb, #067647 80%, var(--ink));
-  background: #ecfdf3;
-  border-color: #abefc6;
-}
-
-.lc-pill--closed {
-  color: var(--muted);
-  background: #f2f4f7;
-}
-
 .lc-new {
   border-top: 1px solid var(--line);
   padding: 0.85rem 1rem 1rem;
@@ -321,13 +295,6 @@
 
 .lc-thread__who .muted {
   font-size: 0.8rem;
-}
-
-.lc-thread__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
 }
 
 .lc-messages {
@@ -433,16 +400,6 @@
   flex-shrink: 0;
   min-height: 2.75rem;
   padding-inline: 1.1rem;
-}
-
-.lc-closed-banner {
-  margin: 0 1.15rem 1rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: var(--radius-sm);
-  background: #f2f4f7;
-  color: var(--muted);
-  font-size: 0.88rem;
-  text-align: center;
 }
 
 /* —— Access page polish —— */

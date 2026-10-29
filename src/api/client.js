@@ -1681,11 +1681,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-  liveChatClose: (id, payload = {}) =>
-    request(`/live-chat/conversations/${id}/close`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
   liveChatAccess: () => request('/live-chat/access'),
   liveChatAccessUpdate: (payload) =>
     request('/live-chat/access', {

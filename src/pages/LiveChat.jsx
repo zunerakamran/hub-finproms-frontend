@@ -1,10 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  FaComments,
+  FaPaperPlane,
+  FaPlus,
+  FaTimes,
+  FaUserFriends,
+  FaCommentDots,
+} from 'react-icons/fa'
 import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
-import { formatDateTime } from '../utils/dateFormat'
+import { formatDateTime, formatTime } from '../utils/dateFormat'
+import './LiveChat.css'
 
 const POLL_MS = 4000
+
+function initials(name, email) {
+  const raw = String(name || email || '?').trim()
+  const parts = raw.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return raw.slice(0, 2).toUpperCase()
+}
+
+function shortWhen(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const now = new Date()
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  if (sameDay) return formatTime(date)
+  return formatDateTime(date)
+}
 
 export default function LiveChat() {
   const { can, loading: hubLoading, hub, isActingRemotely } = useHub()
@@ -22,6 +51,7 @@ export default function LiveChat() {
   const [activeSlug, setActiveSlug] = useState(null)
   const [active, setActive] = useState(null)
   const [draft, setDraft] = useState('')
+  const [showNew, setShowNew] = useState(false)
   const [newAgentId, setNewAgentId] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -30,6 +60,7 @@ export default function LiveChat() {
   const bottomRef = useRef(null)
   const activeIdRef = useRef(null)
   const activeSlugRef = useRef(null)
+  const composerRef = useRef(null)
 
   useEffect(() => {
     activeIdRef.current = activeId
@@ -55,6 +86,7 @@ export default function LiveChat() {
     setActive(data?.data || null)
     setActiveId(id)
     setActiveSlug(sourceHubSlug || data?.data?.source_hub_slug || null)
+    setShowNew(false)
   }, [])
 
   useEffect(() => {
@@ -102,6 +134,15 @@ export default function LiveChat() {
     return active.central_user_name || active.central_user_email || 'Central user'
   }, [active, isCentralAgent])
 
+  const subtitleFor = useMemo(() => {
+    if (!active) return null
+    if (isCentralAgent) {
+      const bits = [active.hub_user_email, active.source_hub_name].filter(Boolean)
+      return bits.join(' · ')
+    }
+    return active.central_user_email || null
+  }, [active, isCentralAgent])
+
   async function handleStart(e) {
     e.preventDefault()
     if (!newAgentId) return
@@ -114,6 +155,7 @@ export default function LiveChat() {
       })
       setNewMessage('')
       setNewAgentId('')
+      setShowNew(false)
       await loadList()
       const data = res?.data
       if (data?.id) {
@@ -129,7 +171,7 @@ export default function LiveChat() {
   }
 
   async function handleSend(e) {
-    e.preventDefault()
+    e?.preventDefault?.()
     if (!activeId || !draft.trim()) return
     setSending(true)
     setError('')
@@ -141,10 +183,18 @@ export default function LiveChat() {
       setDraft('')
       setActive(res?.data || null)
       await loadList()
+      composerRef.current?.focus()
     } catch (err) {
       setError(err.message || 'Could not send message.')
     } finally {
       setSending(false)
+    }
+  }
+
+  function onComposerKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
     }
   }
 
@@ -169,8 +219,8 @@ export default function LiveChat() {
 
   if (!hubLoading && !moduleOn) {
     return (
-      <section>
-        <div className="page-head">
+      <section className="lc-page">
+        <div className="lc-page__head">
           <div>
             <p className="eyebrow">Live Chat</p>
             <h1>Live Chat</h1>
@@ -186,8 +236,8 @@ export default function LiveChat() {
 
   if (!hubLoading && !canUse) {
     return (
-      <section>
-        <div className="page-head">
+      <section className="lc-page">
+        <div className="lc-page__head">
           <div>
             <p className="eyebrow">Live Chat</p>
             <h1>Live Chat</h1>
@@ -199,19 +249,20 @@ export default function LiveChat() {
   }
 
   return (
-    <section>
-      <div className="page-head">
+    <section className="lc-page">
+      <div className="lc-page__head">
         <div>
           <p className="eyebrow">Live Chat</p>
           <h1>Live Chat</h1>
           <p className="muted">
             {isCentralAgent
-              ? 'Reply to messages from Shared and White-label hub users. Hubs choose which Central contacts they can message on their own Central contacts page.'
+              ? 'Reply to messages from Shared and White-label hub users.'
               : 'Message the Central Hub contacts chosen for this hub.'}
           </p>
         </div>
         {showContactsLink && (
           <Link className="btn ghost" to="/my-dashboard/live-chat/access">
+            <FaUserFriends style={{ marginRight: '0.4rem' }} />
             Central contacts
           </Link>
         )}
@@ -219,37 +270,60 @@ export default function LiveChat() {
 
       {error && <div className="alert">{error}</div>}
 
-      <div className="live-chat-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 280px) 1fr', gap: '1rem', minHeight: '420px' }}>
-        <aside className="card" style={{ padding: '0.75rem', overflow: 'auto' }}>
-          <h2 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>Conversations</h2>
-          {loading && <p className="muted">Loading…</p>}
-          {!loading && conversations.length === 0 && (
-            <p className="muted" style={{ fontSize: '0.9rem' }}>No conversations yet.</p>
-          )}
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <div className="lc-shell">
+        <aside className="lc-sidebar">
+          <div className="lc-sidebar__top">
+            <h2>Conversations</h2>
+            <span className="lc-sidebar__count">{conversations.length}</span>
+          </div>
+
+          <ul className="lc-conv-list">
+            {loading && <li className="lc-conv-list__empty muted">Loading…</li>}
+            {!loading && conversations.length === 0 && (
+              <li className="lc-conv-list__empty">
+                <div className="lc-conv-list__empty-icon">
+                  <FaComments />
+                </div>
+                <strong>No conversations yet</strong>
+                <span className="muted">
+                  {isCentralAgent
+                    ? 'Waiting for hub users to message you.'
+                    : 'Start a chat with a Central contact.'}
+                </span>
+              </li>
+            )}
             {conversations.map((c) => {
-              const selected = c.id === activeId && (c.source_hub_slug || null) === (activeSlug || null)
+              const selected =
+                c.id === activeId && (c.source_hub_slug || null) === (activeSlug || null)
               const unread = isCentralAgent ? c.central_unread_count : c.hub_unread_count
-              const label = isCentralAgent
-                ? `${c.hub_user_name || 'Hub user'}${c.source_hub_name ? ` · ${c.source_hub_name}` : ''}`
+              const name = isCentralAgent
+                ? c.hub_user_name || 'Hub user'
                 : c.central_user_name || 'Central user'
+              const sub = isCentralAgent
+                ? [c.source_hub_name, c.preview].filter(Boolean).join(' · ')
+                : c.preview || c.central_user_email || c.status
               return (
                 <li key={`${c.source_hub_slug || 'local'}-${c.id}`}>
                   <button
                     type="button"
-                    className={selected ? 'btn primary' : 'btn ghost'}
-                    style={{ width: '100%', textAlign: 'left', marginBottom: '0.35rem', justifyContent: 'space-between' }}
-                    onClick={() => openConversation(c.id, c.source_hub_slug || null).catch((err) => setError(err.message || 'Failed to open'))}
+                    className={`lc-conv${selected ? ' is-active' : ''}`}
+                    onClick={() =>
+                      openConversation(c.id, c.source_hub_slug || null).catch((err) =>
+                        setError(err.message || 'Failed to open')
+                      )
+                    }
                   >
-                    <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {label}
-                      <small className="muted" style={{ display: 'block' }}>
-                        {c.last_message_at ? formatDateTime(c.last_message_at) : c.status}
-                      </small>
+                    <span className="lc-avatar" aria-hidden>
+                      {initials(name, isCentralAgent ? c.hub_user_email : c.central_user_email)}
                     </span>
-                    {unread > 0 && (
-                      <span style={{ marginLeft: '0.5rem', fontWeight: 700 }}>{unread}</span>
-                    )}
+                    <span className="lc-conv__meta">
+                      <span className="lc-conv__name">{name}</span>
+                      <span className="lc-conv__sub">{sub || '—'}</span>
+                    </span>
+                    <span className="lc-conv__aside">
+                      <span className="lc-conv__time">{shortWhen(c.last_message_at)}</span>
+                      {unread > 0 && <span className="lc-badge">{unread > 99 ? '99+' : unread}</span>}
+                    </span>
                   </button>
                 </li>
               )
@@ -257,84 +331,136 @@ export default function LiveChat() {
           </ul>
 
           {!isCentralAgent && (
-            <form onSubmit={handleStart} style={{ marginTop: '1rem', borderTop: '1px solid var(--border, #ddd)', paddingTop: '0.75rem' }}>
-              <h3 style={{ fontSize: '0.95rem', margin: '0 0 0.5rem' }}>New chat</h3>
-              {agents.length === 0 ? (
-                <p className="muted" style={{ fontSize: '0.85rem' }}>
-                  No Central contacts are configured yet. An admin must check Central Hub users under Central contacts.
-                </p>
-              ) : (
-                <>
-                  <label className="field">
-                    <span>Central user</span>
-                    <select value={newAgentId} onChange={(e) => setNewAgentId(e.target.value)} required>
-                      <option value="">Select…</option>
-                      {agents.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name} {a.email ? `(${a.email})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>First message (optional)</span>
-                    <textarea
-                      rows={2}
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      maxLength={10000}
-                    />
-                  </label>
-                  <button className="btn primary" type="submit" disabled={sending || !newAgentId}>
-                    Start chat
-                  </button>
-                </>
+            <div className="lc-new">
+              <button
+                type="button"
+                className={`btn ${showNew ? 'ghost' : 'primary'} lc-new__toggle`}
+                onClick={() => setShowNew((v) => !v)}
+              >
+                {showNew ? (
+                  <>
+                    <FaTimes style={{ marginRight: '0.4rem' }} />
+                    Cancel
+                  </>
+                ) : (
+                  <>
+                    <FaPlus style={{ marginRight: '0.4rem' }} />
+                    New chat
+                  </>
+                )}
+              </button>
+
+              {showNew && (
+                <form className="lc-new__form" onSubmit={handleStart}>
+                  {agents.length === 0 ? (
+                    <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+                      No Central contacts are configured yet. An admin must check Central Hub users
+                      under Central contacts.
+                    </p>
+                  ) : (
+                    <>
+                      <label className="field">
+                        <span>Central contact</span>
+                        <select
+                          value={newAgentId}
+                          onChange={(e) => setNewAgentId(e.target.value)}
+                          required
+                        >
+                          <option value="">Select…</option>
+                          {agents.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.name}
+                              {a.email ? ` (${a.email})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>First message (optional)</span>
+                        <textarea
+                          rows={2}
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          maxLength={10000}
+                          placeholder="Say hello…"
+                        />
+                      </label>
+                      <button
+                        className="btn primary"
+                        type="submit"
+                        disabled={sending || !newAgentId}
+                      >
+                        Start chat
+                      </button>
+                    </>
+                  )}
+                </form>
               )}
-            </form>
+            </div>
           )}
         </aside>
 
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '0.75rem', minHeight: '420px' }}>
+        <div className="lc-thread">
           {!active ? (
-            <p className="muted" style={{ margin: 'auto' }}>Select a conversation{!isCentralAgent ? ' or start a new one' : ''}.</p>
+            <div className="lc-thread__empty">
+              <div className="lc-thread__empty-icon">
+                <FaCommentDots />
+              </div>
+              <strong>Select a conversation</strong>
+              <span className="muted">
+                {isCentralAgent
+                  ? 'Pick a thread from the left to reply.'
+                  : 'Pick a thread or start a new chat with a Central contact.'}
+              </span>
+            </div>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <div>
-                  <strong>{titleFor}</strong>
-                  {active.source_hub_name && (
-                    <span className="muted"> · {active.source_hub_name}</span>
-                  )}
-                  <div className="muted" style={{ fontSize: '0.85rem' }}>
-                    Status: {active.status || 'open'}
+              <div className="lc-thread__header">
+                <div className="lc-thread__who">
+                  <span className="lc-avatar lc-avatar--lg" aria-hidden>
+                    {initials(titleFor, subtitleFor)}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <strong>{titleFor}</strong>
+                    {subtitleFor && <div className="muted">{subtitleFor}</div>}
                   </div>
                 </div>
-                {active.status !== 'closed' && (
-                  <button type="button" className="btn ghost" onClick={handleClose} disabled={sending}>
-                    Close
-                  </button>
-                )}
+                <div className="lc-thread__actions">
+                  <span
+                    className={`lc-pill ${active.status === 'closed' ? 'lc-pill--closed' : 'lc-pill--open'}`}
+                  >
+                    {active.status || 'open'}
+                  </span>
+                  {active.status !== 'closed' && (
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={handleClose}
+                      disabled={sending}
+                    >
+                      Close
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.25rem 0' }}>
+              <div className="lc-messages">
                 {(active.messages || []).map((m) => {
-                  const mine = isCentralAgent ? m.sender_side === 'central' : m.sender_side === 'hub'
+                  const mine = isCentralAgent
+                    ? m.sender_side === 'central'
+                    : m.sender_side === 'hub'
                   return (
                     <div
                       key={m.id}
-                      style={{
-                        alignSelf: mine ? 'flex-end' : 'flex-start',
-                        maxWidth: '80%',
-                        background: mine ? 'var(--primary, #2563eb)' : 'var(--surface-2, #f3f4f6)',
-                        color: mine ? '#fff' : 'inherit',
-                        borderRadius: '12px',
-                        padding: '0.55rem 0.75rem',
-                      }}
+                      className={`lc-msg ${mine ? 'lc-msg--mine' : 'lc-msg--theirs'}`}
                     >
-                      <div style={{ fontSize: '0.75rem', opacity: 0.85, marginBottom: '0.2rem' }}>
-                        {m.sender_name || m.sender_side} · {m.created_at ? formatDateTime(m.created_at) : ''}
+                      <div className="lc-bubble">
+                        <div className="lc-bubble__meta">
+                          {m.sender_name || m.sender_side}
+                          {m.created_at ? ` · ${shortWhen(m.created_at)}` : ''}
+                        </div>
+                        <div className="lc-bubble__body">{m.body}</div>
                       </div>
-                      <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
                     </div>
                   )
                 })}
@@ -342,19 +468,27 @@ export default function LiveChat() {
               </div>
 
               {active.status === 'closed' ? (
-                <p className="muted" style={{ marginTop: '0.75rem' }}>This conversation is closed.</p>
+                <div className="lc-closed-banner">This conversation is closed.</div>
               ) : (
-                <form onSubmit={handleSend} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-                  <input
-                    type="text"
+                <form className="lc-composer" onSubmit={handleSend}>
+                  <textarea
+                    ref={composerRef}
+                    className="lc-composer__input"
+                    rows={1}
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
-                    placeholder="Type a message…"
+                    onKeyDown={onComposerKeyDown}
+                    placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
                     maxLength={10000}
-                    style={{ flex: 1 }}
                     disabled={sending}
                   />
-                  <button className="btn primary" type="submit" disabled={sending || !draft.trim()}>
+                  <button
+                    className="btn primary"
+                    type="submit"
+                    disabled={sending || !draft.trim()}
+                    aria-label="Send message"
+                  >
+                    <FaPaperPlane style={{ marginRight: '0.35rem' }} />
                     Send
                   </button>
                 </form>

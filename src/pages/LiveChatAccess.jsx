@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FaArrowLeft } from 'react-icons/fa'
 import { api } from '../api/client'
 import { useHub } from '../context/HubContext'
+import './LiveChat.css'
+
+function initials(name, email) {
+  const raw = String(name || email || '?').trim()
+  const parts = raw.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return raw.slice(0, 2).toUpperCase()
+}
 
 export default function LiveChatAccess() {
   const { can, loading: hubLoading, hub, isActingRemotely } = useHub()
@@ -103,17 +112,18 @@ export default function LiveChatAccess() {
 
   if (!hubLoading && onCentralHome) {
     return (
-      <section>
-        <div className="page-head">
+      <section className="lc-page">
+        <div className="lc-page__head">
           <div>
             <p className="eyebrow">Live Chat</p>
             <h1>Central contacts</h1>
             <p className="muted">
               Central contacts are chosen on each Shared or White-label hub. Switch to a content hub
-              (or open that hub’s dashboard) to pick which Central users its members may message.
+              to pick which Central users its members may message.
             </p>
           </div>
           <Link className="btn ghost" to="/my-dashboard/live-chat">
+            <FaArrowLeft style={{ marginRight: '0.4rem' }} />
             Back to Live Chat
           </Link>
         </div>
@@ -123,8 +133,8 @@ export default function LiveChatAccess() {
 
   if (!hubLoading && !moduleOn) {
     return (
-      <section>
-        <div className="page-head">
+      <section className="lc-page">
+        <div className="lc-page__head">
           <div>
             <p className="eyebrow">Live Chat</p>
             <h1>Central contacts</h1>
@@ -140,8 +150,8 @@ export default function LiveChatAccess() {
 
   if (!hubLoading && !canManage) {
     return (
-      <section>
-        <div className="page-head">
+      <section className="lc-page">
+        <div className="lc-page__head">
           <div>
             <p className="eyebrow">Live Chat</p>
             <h1>Central contacts</h1>
@@ -153,8 +163,8 @@ export default function LiveChatAccess() {
   }
 
   return (
-    <section>
-      <div className="page-head">
+    <section className="lc-page">
+      <div className="lc-page__head">
         <div>
           <p className="eyebrow">Live Chat</p>
           <h1>Central contacts</h1>
@@ -164,6 +174,7 @@ export default function LiveChatAccess() {
           </p>
         </div>
         <Link className="btn ghost" to="/my-dashboard/live-chat">
+          <FaArrowLeft style={{ marginRight: '0.4rem' }} />
           Back to Live Chat
         </Link>
       </div>
@@ -171,13 +182,13 @@ export default function LiveChatAccess() {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
-      <form onSubmit={handleSave} className="card" style={{ padding: '1rem' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <label className="field" style={{ flex: '1 1 220px', margin: 0 }}>
+      <form onSubmit={handleSave} className="lc-access-card">
+        <div className="lc-access-toolbar">
+          <label className="field">
             <span className="sr-only">Filter Central users</span>
             <input
               type="search"
-              placeholder="Filter Central users by name, email, or role…"
+              placeholder="Filter by name, email, or role…"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
@@ -193,7 +204,7 @@ export default function LiveChatAccess() {
           </button>
         </div>
 
-        <p className="muted" style={{ marginTop: 0 }}>
+        <p className="muted lc-access-stats">
           {selected.size} selected · {filtered.length} shown · {users.length} Central users
         </p>
 
@@ -202,30 +213,24 @@ export default function LiveChatAccess() {
         ) : filtered.length === 0 ? (
           <p className="muted">No Central Hub users found.</p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: '60vh', overflow: 'auto' }}>
+          <ul className="lc-access-list">
             {filtered.map((u) => (
-              <li
-                key={u.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.45rem 0',
-                  borderBottom: '1px solid var(--border, #eee)',
-                }}
-              >
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, cursor: 'pointer' }}>
+              <li key={u.id} className="lc-access-row">
+                <label>
                   <input
                     type="checkbox"
                     checked={selected.has(u.id)}
                     onChange={() => toggle(u.id)}
                   />
-                  <span>
+                  <span className="lc-avatar" aria-hidden>
+                    {initials(u.name, u.email)}
+                  </span>
+                  <span className="lc-access-row__text">
                     <strong>{u.name || 'User'}</strong>
-                    <span className="muted"> · {u.email}</span>
-                    {(u.role_label || u.role) && (
-                      <span className="muted"> · {u.role_label || u.role}</span>
-                    )}
+                    <span className="muted">
+                      {u.email}
+                      {(u.role_label || u.role) && ` · ${u.role_label || u.role}`}
+                    </span>
                   </span>
                 </label>
               </li>

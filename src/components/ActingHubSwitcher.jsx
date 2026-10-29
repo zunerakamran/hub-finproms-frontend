@@ -80,7 +80,7 @@ export default function ActingHubSwitcher() {
           Controlling {managedName}
         </span>
       )}
-      {error && <span className="acting-hub-error">{error</span>}
+      {error && <span className="acting-hub-error">{error}</span>}
       {hubs.some((h) => h.eligible === false) && (
         <p className="muted acting-hub-switcher__hint" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
           Greyed hubs need deploy wiring (remote DB credentials) on Power Admin → Hubs.

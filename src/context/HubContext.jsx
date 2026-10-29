@@ -479,16 +479,18 @@ export function HubProvider({ children }) {
   }, [user, hasHubDashboardAccess, hasGeneralDashboardAccess])
 
   const setActingHub = useCallback(
-    async (hubId, { asPowerAdmin = false, persistSwitching = false } = {}) => {
+    async (hubId, { asPowerAdmin = false } = {}) => {
       setActingHubSwitching(true)
       try {
         const data = await api.setActingHub(hubId, { asPowerAdmin })
         const switcher = data?.hub_switcher
         if (switcher) {
-          // Apply switcher payload directly - avoids a second heavy GET /hub.
+          // Apply switcher payload directly — no second GET /hub and no hard reload.
+          // Outlet remounts via actingHubId; firm-doc rights refresh in the background.
+          const key = hubQueryKey(user?.id ?? 'guest')
           setHub((prev) => {
             if (!prev) return prev
-            return {
+            const next = {
               ...prev,
               hub_switcher: switcher,
               effective_capabilities: switcher.effective_capabilities,
@@ -496,25 +498,66 @@ export function HubProvider({ children }) {
               role_labels: switcher.role_labels ?? prev.role_labels,
               compliance_status_labels:
                 switcher.compliance_status_labels ?? prev.compliance_status_labels,
+              dashboard_nav: switcher.dashboard_nav ?? prev.dashboard_nav,
+              acting_checklist: switcher.acting_checklist ?? prev.acting_checklist,
+              module_invoice_settings:
+                switcher.module_invoice_settings ?? prev.module_invoice_settings,
+              // Clear until my-rights lands for the newly selected hub.
+              firm_document_rights: null,
             }
+            queryClient.setQueryData(key, { hub: next })
+            queryClient.setQueryData(hubBootQueryKey, { hub: next })
+            return next
           })
-          // Reload so firm_document_rights / Head unlock track the selected hub.
-          await refreshHub({ silent: true, force: true })
+          // Drop cached page data so remounted dashboard routes refetch for the new hub.
+          queryClient.removeQueries({
+            predicate: (q) => {
+              const root = q.queryKey?.[0]
+              return root !== 'hub' && root !== 'auth'
+            },
+          })
+          if (user) {
+            void api
+              .firmDocumentsMyRights()
+              .then((mine) => {
+                if (!mine?.rights) return
+                const rights = { ...mine.rights }
+                const sharedFirms = (mine.accessible_firms || []).some(
+                  (f) => f?.source === 'shared' || f?.is_central
+                )
+                if (sharedFirms) rights.can_view = true
+                setHub((prev) => {
+                  if (!prev) return prev
+                  const caps = { ...(prev.effective_capabilities || {}) }
+                  if (rights.is_firm_head || rights.can_view || sharedFirms) {
+                    caps.firm_documents_view = true
+                  }
+                  if (rights.is_firm_head || rights.can_add || rights.hub_wide?.can_add) {
+                    caps.firm_documents_add = true
+                  }
+                  const merged = {
+                    ...prev,
+                    firm_document_rights: rights,
+                    effective_capabilities: caps,
+                  }
+                  queryClient.setQueryData(key, { hub: merged })
+                  queryClient.setQueryData(hubBootQueryKey, { hub: merged })
+                  return merged
+                })
+              })
+              .catch(() => {})
+          }
         } else {
           await refreshHub({ silent: true, force: true })
         }
         return data
       } catch (err) {
-        setActingHubSwitching(false)
         throw err
       } finally {
-        // Keep the full-screen loader up when the caller will hard-reload next.
-        if (!persistSwitching) {
-          setActingHubSwitching(false)
-        }
+        setActingHubSwitching(false)
       }
     },
-    [refreshHub, setHub]
+    [refreshHub, setHub, user]
   )
 
   const value = useMemo(

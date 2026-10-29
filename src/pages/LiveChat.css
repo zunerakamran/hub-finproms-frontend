@@ -1,5 +1,36 @@
 /* Live Chat — messenger layout aligned with shell.css tokens */
 
+.lc-support-notice {
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--brand) 22%, var(--line));
+  background: color-mix(in srgb, var(--brand) 8%, var(--surface-2));
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.lc-support-notice a {
+  color: var(--brand);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.lc-access-email {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.lc-access-email > span:first-child {
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+
 .lc-page .sr-only {
   position: absolute;
   width: 1px;

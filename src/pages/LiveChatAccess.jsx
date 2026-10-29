@@ -23,6 +23,7 @@ export default function LiveChatAccess() {
 
   const [users, setUsers] = useState([])
   const [selected, setSelected] = useState(() => new Set())
+  const [supportEmail, setSupportEmail] = useState('support@fin-proms.com')
   const [filter, setFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -44,6 +45,7 @@ export default function LiveChatAccess() {
         const rows = res?.data || []
         setUsers(rows)
         setSelected(new Set(rows.filter((u) => u.selected).map((u) => u.id)))
+        if (res?.support_email) setSupportEmail(res.support_email)
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || 'Failed to load Central Hub users.')
@@ -98,10 +100,14 @@ export default function LiveChatAccess() {
     setError('')
     setMessage('')
     try {
-      const res = await api.liveChatAccessUpdate({ user_ids: Array.from(selected) })
+      const res = await api.liveChatAccessUpdate({
+        user_ids: Array.from(selected),
+        support_email: supportEmail.trim(),
+      })
       const rows = res?.data || []
       setUsers(rows)
       setSelected(new Set(rows.filter((u) => u.selected).map((u) => u.id)))
+      if (res?.support_email) setSupportEmail(res.support_email)
       setMessage(res?.message || 'Central contacts saved.')
     } catch (err) {
       setError(err.message || 'Failed to save.')
@@ -183,6 +189,22 @@ export default function LiveChatAccess() {
       {message && <div className="alert success">{message}</div>}
 
       <form onSubmit={handleSave} className="lc-access-card">
+        <label className="field lc-access-email">
+          <span>Support email shown on Live Chat</span>
+          <input
+            type="email"
+            value={supportEmail}
+            onChange={(e) => setSupportEmail(e.target.value)}
+            placeholder="support@fin-proms.com"
+            required
+            maxLength={255}
+          />
+          <span className="muted">
+            Shared / White-label Live Chat shows: “If you have any queries… email at …” using this
+            address.
+          </span>
+        </label>
+
         <div className="lc-access-toolbar">
           <label className="field">
             <span className="sr-only">Filter Central users</span>
@@ -200,7 +222,7 @@ export default function LiveChatAccess() {
             Uncheck filtered
           </button>
           <button type="submit" className="btn primary" disabled={saving || loading}>
-            {saving ? 'Saving…' : 'Save contacts'}
+            {saving ? 'Saving…' : 'Save'}
           </button>
         </div>
 

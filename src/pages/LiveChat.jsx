@@ -45,7 +45,11 @@ export default function LiveChat() {
   )
   const showContactsLink = canManage && !onCentralHome
 
-  const [options, setOptions] = useState({ agents: [], is_central_agent: false })
+  const [options, setOptions] = useState({
+    agents: [],
+    is_central_agent: false,
+    support_email: '',
+  })
   const [conversations, setConversations] = useState([])
   const [activeId, setActiveId] = useState(null)
   const [activeSlug, setActiveSlug] = useState(null)
@@ -68,6 +72,8 @@ export default function LiveChat() {
   }, [activeId, activeSlug])
 
   const isCentralAgent = Boolean(options.is_central_agent)
+  const supportEmail = String(options.support_email || '').trim()
+  const showSupportNotice = !isCentralAgent && !onCentralHome && Boolean(supportEmail)
 
   const loadList = useCallback(async () => {
     if (!moduleOn || !canUse) return
@@ -75,7 +81,9 @@ export default function LiveChat() {
       api.liveChatOptions(),
       api.liveChatConversations(),
     ])
-    setOptions(opts || { agents: [], is_central_agent: false })
+    setOptions(
+      opts || { agents: [], is_central_agent: false, support_email: '' }
+    )
     setConversations(list?.data || [])
   }, [moduleOn, canUse])
 
@@ -250,6 +258,13 @@ export default function LiveChat() {
       </div>
 
       {error && <div className="alert">{error}</div>}
+
+      {showSupportNotice && (
+        <div className="lc-support-notice" role="note">
+          If you have any queries that you want to discuss, you may drop us an email at{' '}
+          <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
+        </div>
+      )}
 
       <div className="lc-shell">
         <aside className="lc-sidebar">

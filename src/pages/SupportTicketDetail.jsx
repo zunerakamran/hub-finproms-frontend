@@ -26,7 +26,7 @@ import {
 export default function SupportTicketDetail() {
   const { id } = useParams()
   const location = useLocation()
-  const { isPowerAdmin } = useAuth()
+  const { isPowerAdmin, user } = useAuth()
   const { can, loading: hubLoading, effectiveAdvisorId } = useHub()
 
   const [row, setRow] = useState(null)
@@ -45,10 +45,10 @@ export default function SupportTicketDetail() {
   const [commentFiles, setCommentFiles] = useState([])
 
   const moduleOn = can('support_tickets')
-  const canReply = can('st_reply_to_tickets') || can('st_change_ticket_status')
-  const canViewAll =
-    can('st_view_all_tickets') || can('st_change_ticket_status') || can('st_reply_to_tickets')
-  const canComment = can('st_comment_on_tickets') && !canReply
+  // Reply is the only staff action capability (status + ETA + remarks + media).
+  const canReply = can('st_reply_to_tickets')
+  // View-all alone = queue + detail read-only; reply also opens the queue.
+  const canViewAll = can('st_view_all_tickets') || canReply
   const asPowerAdmin = isPowerAdmin
 
   const backFrom = location.state?.from
@@ -211,6 +211,15 @@ export default function SupportTicketDetail() {
   const issueModule = row.module_area_label || row.module_area || '—'
   const showSubmitterCard = canViewAll && row.submitter?.profile_detailed
   const comments = row.comments || []
+  const isOwner =
+    Boolean(user?.id) &&
+    (Number(row.user_id) === Number(user.id) ||
+      Number(row.submitter?.id) === Number(user.id))
+  // Members may follow up on their own tickets; staff use Reply instead.
+  const canComment =
+    !canReply &&
+    isOwner &&
+    (can('st_view_own_tickets') || can('st_submit_ticket'))
 
   return (
     <section className="st-detail">

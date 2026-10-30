@@ -727,7 +727,7 @@ export default function App() {
                 <Route
                   path="support-tickets/queue"
                   element={
-                    <HubCapabilityRoute anyOf={['st_view_all_tickets', 'st_change_ticket_status', 'st_reply_to_tickets']}>
+                    <HubCapabilityRoute anyOf={['st_view_all_tickets', 'st_reply_to_tickets']}>
                       <SupportTicketsQueue />
                     </HubCapabilityRoute>
                   }
@@ -740,9 +740,7 @@ export default function App() {
                         'st_view_own_tickets',
                         'st_submit_ticket',
                         'st_view_all_tickets',
-                        'st_change_ticket_status',
                         'st_reply_to_tickets',
-                        'st_comment_on_tickets',
                       ]}
                     >
                       <SupportTicketDetail />

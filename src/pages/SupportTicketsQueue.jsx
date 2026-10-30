@@ -21,9 +21,8 @@ export default function SupportTicketsQueue() {
   const asPowerAdmin = isPowerAdmin
   const moduleOn = can('support_tickets')
   const canViewAll = can('st_view_all_tickets')
-  const canChangeStatus = can('st_change_ticket_status')
   const canReply = can('st_reply_to_tickets')
-  const enabled = moduleOn && (canViewAll || canChangeStatus || canReply)
+  const enabled = moduleOn && (canViewAll || canReply)
 
   useEffect(() => {
     if (hubLoading || !enabled) {

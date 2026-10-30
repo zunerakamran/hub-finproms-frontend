@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types -- local capture controls; matches other ST helpers */
 import { useEffect, useRef, useState } from 'react'
-import { FaCheckCircle, FaFileVideo, FaTimes } from 'react-icons/fa'
+import { FaCheckCircle, FaEye, FaFileVideo, FaTimes } from 'react-icons/fa'
+import AttachmentPreview from './AttachmentPreview'
 import {
   ST_MAX_RECORD_SECONDS,
   captureScreenScreenshot,
@@ -37,6 +38,7 @@ export default function SupportTicketCapture({
   const [recording, setRecording] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [previews, setPreviews] = useState({})
+  const [previewIndex, setPreviewIndex] = useState(null)
   const sessionRef = useRef(null)
   const tickRef = useRef(null)
   const noticeRef = useRef(null)
@@ -99,8 +101,21 @@ export default function SupportTicketCapture({
 
   const removeAt = (index) => {
     if (disabled || !onChangeFiles) return
+    if (previewIndex === index) setPreviewIndex(null)
+    else if (previewIndex != null && previewIndex > index) setPreviewIndex(previewIndex - 1)
     onChangeFiles(selected.filter((_, i) => i !== index))
   }
+
+  const openPreview = (index) => {
+    const file = selected[index]
+    if (!file) return
+    if (!isImageFile(file) && !isVideoFile(file)) return
+    setPreviewIndex(index)
+  }
+
+  const previewFile = previewIndex != null ? selected[previewIndex] : null
+  const previewUrl =
+    previewFile && previews[fileKey(previewFile)] ? previews[fileKey(previewFile)] : null
 
   const takeScreenshot = async () => {
     setError('')
@@ -242,11 +257,18 @@ export default function SupportTicketCapture({
               const url = previews[key]
               const video = isVideoFile(file)
               const image = isImageFile(file)
+              const canPreview = Boolean(url && (image || video))
               return (
                 <li key={key} className="st-capture__thumb">
-                  <div className="st-capture__thumb-media">
+                  <button
+                    type="button"
+                    className="st-capture__thumb-media"
+                    disabled={!canPreview}
+                    onClick={() => openPreview(index)}
+                    aria-label={canPreview ? `Preview ${file.name}` : file.name}
+                  >
                     {image && url ? (
-                      <img src={url} alt={file.name} />
+                      <img src={url} alt="" />
                     ) : video && url ? (
                       <video src={url} muted playsInline preload="metadata" />
                     ) : (
@@ -254,12 +276,26 @@ export default function SupportTicketCapture({
                         <FaFileVideo aria-hidden />
                       </span>
                     )}
-                  </div>
+                    {canPreview ? (
+                      <span className="st-capture__thumb-overlay">
+                        <FaEye aria-hidden /> Preview
+                      </span>
+                    ) : null}
+                  </button>
                   <div className="st-capture__thumb-meta">
                     <span className="st-capture__thumb-name" title={file.name}>
                       {file.name}
                     </span>
                     <span className="muted">{formatStFileSize(file.size)}</span>
+                    {canPreview ? (
+                      <button
+                        type="button"
+                        className="btn ghost st-capture__preview-btn"
+                        onClick={() => openPreview(index)}
+                      >
+                        <FaEye aria-hidden /> Preview
+                      </button>
+                    ) : null}
                   </div>
                   {onChangeFiles ? (
                     <button
@@ -278,6 +314,17 @@ export default function SupportTicketCapture({
           </ul>
         </div>
       ) : null}
+
+      <AttachmentPreview
+        open={Boolean(previewFile && previewUrl)}
+        onClose={() => setPreviewIndex(null)}
+        url={previewUrl}
+        mime={previewFile?.type}
+        name={previewFile?.name}
+        title={
+          previewFile && isVideoFile(previewFile) ? 'Recording preview' : 'Screenshot preview'
+        }
+      />
     </div>
   )
 }

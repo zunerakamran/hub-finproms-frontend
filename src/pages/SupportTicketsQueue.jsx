@@ -4,13 +4,11 @@ import { FaEye } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
 import StStatusBadge from '../components/SupportTicketsUI'
-import { useAuth } from '../context/AuthContext'
 import { useHub } from '../context/HubContext'
 import { formatDateTime } from '../utils/dateFormat'
 import { ST_STATUSES } from '../utils/supportTickets'
 
 export default function SupportTicketsQueue() {
-  const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, actingHubId } = useHub()
   const [items, setItems] = useState([])
   const [status, setStatus] = useState('')
@@ -18,7 +16,6 @@ export default function SupportTicketsQueue() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const asPowerAdmin = isPowerAdmin
   const moduleOn = can('support_tickets')
   const canViewAll = can('st_view_all_tickets')
   const canReply = can('st_reply_to_tickets')
@@ -32,11 +29,9 @@ export default function SupportTicketsQueue() {
     let cancelled = false
     setLoading(true)
     setError('')
+    // Member /support-tickets/queue — view-all alone works for any role (no client-admin shell).
     api
-      .supportTicketsAdminList(
-        { per_page: 50, status: appliedStatus || undefined },
-        { asPowerAdmin }
-      )
+      .supportTicketsQueue({ per_page: 50, status: appliedStatus || undefined })
       .then((data) => {
         if (!cancelled) setItems(data.data || [])
       })
@@ -49,7 +44,7 @@ export default function SupportTicketsQueue() {
     return () => {
       cancelled = true
     }
-  }, [hubLoading, enabled, appliedStatus, asPowerAdmin, actingHubId])
+  }, [hubLoading, enabled, appliedStatus, actingHubId])
 
   const columns = [
     {

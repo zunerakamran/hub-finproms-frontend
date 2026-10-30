@@ -1701,14 +1701,29 @@ export const api = {
     request('/support-tickets', { method: 'POST', body: formData }),
   supportTicketsComment: (id, formData) =>
     request(`/support-tickets/${id}/comments`, { method: 'POST', body: formData }),
+  // Full hub queue — member path (view-all or reply); no client-admin shell required.
+  supportTicketsQueue: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/support-tickets/queue${query ? `?${query}` : ''}`)
+  },
   supportTicketsAdminList: (params = {}, options = {}) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
     ).toString()
+    // Prefer member queue so view-all alone works for any role; fall back to admin bases.
+    if (!options.asPowerAdmin && options.preferAdmin !== true) {
+      return request(`/support-tickets/queue${query ? `?${query}` : ''}`)
+    }
     return request(`${adminBase(options)}/support-tickets${query ? `?${query}` : ''}`)
   },
-  supportTicketsAdminShow: (id, options = {}) =>
-    request(`${adminBase(options)}/support-tickets/${id}`),
+  supportTicketsAdminShow: (id, options = {}) => {
+    if (!options.asPowerAdmin && options.preferAdmin !== true) {
+      return request(`/support-tickets/${id}`)
+    }
+    return request(`${adminBase(options)}/support-tickets/${id}`)
+  },
   supportTicketsChangeStatus: (id, payload, options = {}) =>
     request(`${adminBase(options)}/support-tickets/${id}/change-status`, {
       method: 'POST',

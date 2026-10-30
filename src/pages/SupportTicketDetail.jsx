@@ -77,16 +77,8 @@ export default function SupportTicketDetail() {
     setLoading(true)
     setError('')
     try {
-      let data
-      if (canViewAll) {
-        try {
-          data = await api.supportTicketsAdminShow(id, { asPowerAdmin })
-        } catch {
-          data = await api.supportTicketsShow(id)
-        }
-      } else {
-        data = await api.supportTicketsShow(id)
-      }
+      // Member show already returns full submitter profile for view-all / reply.
+      const data = await api.supportTicketsShow(id)
       const item = data.data
       setRow(item)
       resetReplyForm(item)

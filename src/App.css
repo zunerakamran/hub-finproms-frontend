@@ -10739,3 +10739,87 @@ button.file-name-label:hover:not(:disabled) .file-name-label__text {
     align-items: flex-start;
   }
 }
+
+/* --- Automatic system errors + React error boundary --- */
+.app-error-boundary {
+  max-width: 32rem;
+  margin: 4rem auto;
+  padding: 2rem;
+  text-align: center;
+}
+.app-error-boundary__msg {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  word-break: break-word;
+}
+.app-error-boundary__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+.st-system-error-detail {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.st-system-error-detail__panel {
+  background: var(--surface, #fff);
+  color: inherit;
+  border-radius: 12px;
+  max-width: 44rem;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+.st-system-error-detail__panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.st-system-error-detail__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+.st-system-error-detail__meta dt {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+.st-system-error-detail__meta dd {
+  margin: 0.15rem 0 0;
+}
+.st-system-error-detail__stack {
+  background: rgba(15, 23, 42, 0.06);
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  overflow: auto;
+  max-height: 14rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.st-system-error-detail__panel label {
+  display: block;
+  margin: 0.75rem 0;
+}
+.st-system-error-detail__panel textarea {
+  width: 100%;
+  margin-top: 0.35rem;
+}
+.st-system-error-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}

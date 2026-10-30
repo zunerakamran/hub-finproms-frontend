@@ -8,6 +8,7 @@ import PowerCapabilityRoute from './components/PowerCapabilityRoute'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 import { HubProvider } from './context/HubContext'
+import AppErrorBoundary from './components/AppErrorBoundary'
 import AppBootGate from './components/AppBootGate'
 import TermsGate from './components/TermsGate'
 import PrivacyGate from './components/PrivacyGate'
@@ -87,6 +88,7 @@ const SupportTicketsMyTickets = lazy(() => import('./pages/SupportTicketsMyTicke
 const SupportTicketSubmit = lazy(() => import('./pages/SupportTicketSubmit'))
 const SupportTicketsQueue = lazy(() => import('./pages/SupportTicketsQueue'))
 const SupportTicketsReports = lazy(() => import('./pages/SupportTicketsReports'))
+const SupportTicketsSystemErrors = lazy(() => import('./pages/SupportTicketsSystemErrors'))
 const SupportTicketDetail = lazy(() => import('./pages/SupportTicketDetail'))
 const LiveChat = lazy(() => import('./pages/LiveChat'))
 const LiveChatAccess = lazy(() => import('./pages/LiveChatAccess'))
@@ -153,6 +155,7 @@ function LegacyShellRedirect({ toPrefix }) {
 
 export default function App() {
   return (
+    <AppErrorBoundary>
     <AuthProvider>
       <HubProvider>
         <AppBootGate>
@@ -742,6 +745,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="support-tickets/system-errors"
+                  element={
+                    <HubCapabilityRoute capability="st_view_system_errors">
+                      <SupportTicketsSystemErrors />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
                   path="support-tickets/:id"
                   element={
                     <HubCapabilityRoute
@@ -751,6 +762,7 @@ export default function App() {
                         'st_view_all_tickets',
                         'st_reply_to_tickets',
                         'st_view_reports',
+                        'st_view_system_errors',
                       ]}
                     >
                       <SupportTicketDetail />
@@ -1260,5 +1272,6 @@ export default function App() {
         </AppBootGate>
       </HubProvider>
     </AuthProvider>
+    </AppErrorBoundary>
   )
 }

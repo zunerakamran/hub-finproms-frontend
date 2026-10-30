@@ -122,6 +122,17 @@ async function request(path, options = {}) {
       : (err?.message || 'Network error'))
     error.status = 0
     error.data = null
+    if (!String(path).includes('/system-errors')) {
+      import('../utils/systemErrorReporter')
+        .then(({ reportSystemError }) =>
+          reportSystemError({
+            message: error.message,
+            name: 'NetworkError',
+            properties: { type: 'api.network', path, method },
+          })
+        )
+        .catch(() => {})
+    }
     throw error
   }
 
@@ -155,6 +166,19 @@ async function request(path, options = {}) {
     const error = new Error(data?.message || 'Request failed')
     error.status = response.status
     error.data = data
+    // Surface unexpected server failures into the System errors feed (backend
+    // may also log the exception; this covers silent 5xx the user never reports).
+    if (response.status >= 500 && !String(path).includes('/system-errors')) {
+      import('../utils/systemErrorReporter')
+        .then(({ reportSystemError }) =>
+          reportSystemError({
+            message: error.message,
+            name: `Http${response.status}`,
+            properties: { type: 'api.http', path, method, status: response.status },
+          })
+        )
+        .catch(() => {})
+    }
     throw error
   }
 
@@ -1685,6 +1709,22 @@ export const api = {
   liveChatAccessUpdate: (payload) =>
     request('/live-chat/access', {
       method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  // -- System errors (automatic / unreported bugs) --
+  systemErrorsReport: (payload) =>
+    request('/system-errors', { method: 'POST', body: JSON.stringify(payload) }),
+  systemErrorsList: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`/system-errors${query ? `?${query}` : ''}`)
+  },
+  systemErrorsShow: (id) => request(`/system-errors/${id}`),
+  systemErrorsUpdateStatus: (id, payload) =>
+    request(`/system-errors/${id}/status`, {
+      method: 'POST',
       body: JSON.stringify(payload),
     }),
 

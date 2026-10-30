@@ -61,6 +61,7 @@ const ST_NAV_ANY = [
   'st_view_all_tickets',
   'st_reply_to_tickets',
   'st_view_reports',
+  'st_view_system_errors',
 ]
 
 const LC_NAV_ANY = ['lc_use_chat', 'lc_manage_access']
@@ -1022,6 +1023,15 @@ export const DASHBOARD_LINKS = [
     description:
       'Support ticket stats, firm/network comparison, pie charts, graphs, and CSV export.',
     capability: 'st_view_reports',
+    group: 'st',
+  },
+  {
+    to: '/my-dashboard/support-tickets/system-errors',
+    label: 'System errors',
+    title: 'System errors',
+    description:
+      'Automatically logged frontend crashes and backend exceptions — even when no user filed a ticket.',
+    capability: 'st_view_system_errors',
     group: 'st',
   },
 

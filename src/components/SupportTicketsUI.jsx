@@ -26,58 +26,71 @@ export function StScreenshotList({ attachments = [], emptyLabel = 'No screenshot
 
 export function StCommentList({ comments = [] }) {
   if (!comments.length) {
-    return <p className="muted st-activity-empty">No activity yet.</p>
+    return <p className="muted">No activity yet.</p>
   }
 
   return (
-    <ol className="st-activity">
-      {comments.map((comment) => (
-        <li key={comment.id} className="st-activity__item">
-          <div className="st-activity__rail" aria-hidden="true" />
-          <article className="st-activity__card">
-            <header className="st-activity__head">
-              <div className="st-activity__who">
-                <span className="st-avatar" aria-hidden="true">
-                  {initials(comment.author?.name || comment.author_name || 'U')}
-                </span>
-                <div>
-                  <strong>{comment.author?.name || comment.author_name || 'User'}</strong>
-                  <div className="st-activity__tags">
-                    {comment.is_staff_reply ? (
-                      <span className="st-tag st-tag--staff">Staff reply</span>
-                    ) : null}
-                    {comment.is_status_change && comment.to_status ? (
-                      <span className="st-tag">
-                        {comment.from_status ? `${comment.from_status} → ` : ''}
-                        {comment.to_status}
-                      </span>
-                    ) : null}
-                    {comment.estimated_resolve_at ? (
-                      <span className="st-tag">
-                        ETA <DateTimeText value={comment.estimated_resolve_at} />
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
+    <div className="st-versions-list">
+      {comments.map((comment, index) => {
+        const isLatest = index === comments.length - 1
+        return (
+          <article
+            key={comment.id}
+            className={`st-version${isLatest ? ' is-latest' : ''}`}
+          >
+            <header className="st-version-head">
+              <strong>
+                {comment.author?.name || comment.author_name || 'User'}
+                {comment.is_staff_reply ? (
+                  <span className="st-latest-pill">Staff reply</span>
+                ) : null}
+                {isLatest ? <span className="st-latest-pill">Latest</span> : null}
+              </strong>
+              <div className="st-version-head__meta">
+                {comment.is_status_change && comment.to_status ? (
+                  <StStatusBadge status={comment.to_status} at={comment.created_at} />
+                ) : comment.created_at ? (
+                  <span className="muted">
+                    <DateTimeText value={comment.created_at} />
+                  </span>
+                ) : null}
               </div>
-              {comment.created_at ? (
-                <time className="muted st-activity__time" dateTime={comment.created_at}>
-                  {formatStDateSafe(comment.created_at)}
-                </time>
-              ) : null}
             </header>
-            <div className="st-activity__body">
-              <RichTextDisplay html={comment.body} />
-            </div>
-            {Array.isArray(comment.attachments) && comment.attachments.length > 0 ? (
-              <div className="st-activity__files">
-                <StScreenshotList attachments={comment.attachments} emptyLabel="" />
+
+            <div className="st-version-body">
+              {comment.from_status && comment.to_status ? (
+                <div>
+                  <p className="muted label">Status change</p>
+                  <p>
+                    {comment.from_status} → {comment.to_status}
+                  </p>
+                </div>
+              ) : null}
+              {comment.estimated_resolve_at ? (
+                <div>
+                  <p className="muted label">Estimated resolve</p>
+                  <p>
+                    <DateTimeText value={comment.estimated_resolve_at} />
+                  </p>
+                </div>
+              ) : null}
+              <div>
+                <p className="muted label">
+                  {comment.is_staff_reply ? 'Remarks' : 'Comment'}
+                </p>
+                <RichTextDisplay html={comment.body} className="st-pre" />
               </div>
-            ) : null}
+              {Array.isArray(comment.attachments) && comment.attachments.length > 0 ? (
+                <div>
+                  <p className="muted label">Attachments</p>
+                  <StScreenshotList attachments={comment.attachments} emptyLabel="" />
+                </div>
+              ) : null}
+            </div>
           </article>
-        </li>
-      ))}
-    </ol>
+        )
+      })}
+    </div>
   )
 }
 
@@ -91,14 +104,6 @@ function initials(name) {
   return `${parts[0][0] || ''}${parts[parts.length - 1][0] || ''}`.toUpperCase()
 }
 
-function formatStDateSafe(value) {
-  try {
-    return new Date(value).toLocaleString()
-  } catch {
-    return value
-  }
-}
-
 /**
  * Rich submitter profile for queue/detail viewers with st_view_all_tickets.
  */
@@ -109,15 +114,10 @@ export function StSubmitterProfile({ submitter, compact = false }) {
 
   if (!submitter.profile_detailed) {
     return (
-      <div className="st-person">
-        <span className="st-avatar st-avatar--lg" aria-hidden="true">
-          {initials(submitter.name)}
-        </span>
-        <div>
-          <strong>{submitter.name || 'User'}</strong>
-          {submitter.email ? <div className="muted">{submitter.email}</div> : null}
-        </div>
-      </div>
+      <p>
+        <strong>{submitter.name || 'User'}</strong>
+        {submitter.email ? ` (${submitter.email})` : ''}
+      </p>
     )
   }
 
@@ -167,50 +167,47 @@ export function StSubmitterProfile({ submitter, compact = false }) {
         <span className="st-avatar st-avatar--lg" aria-hidden="true">
           {initials(submitter.name)}
         </span>
-        <div className="st-person__main">
-          <strong className="st-person__name">{submitter.name || 'User'}</strong>
+        <div>
+          <strong>{submitter.name || 'User'}</strong>
           {submitter.email ? (
-            <a className="st-person__email" href={`mailto:${submitter.email}`}>
-              {submitter.email}
-            </a>
+            <div>
+              <a href={`mailto:${submitter.email}`}>{submitter.email}</a>
+            </div>
           ) : null}
           {statusBits.length ? (
-            <div className="st-activity__tags" style={{ marginTop: '0.35rem' }}>
-              {statusBits.map((bit) => (
-                <span key={bit} className="st-tag st-tag--warn">
-                  {bit}
-                </span>
-              ))}
-            </div>
+            <p className="muted" style={{ margin: '0.25rem 0 0' }}>
+              {statusBits.join(' · ')}
+            </p>
           ) : null}
         </div>
       </div>
-      <dl className="st-submitter-profile">
+
+      <div className="st-version-body" style={{ marginTop: '0.85rem' }}>
         <div>
-          <dt>{orgLabel}</dt>
-          <dd>{orgName || '—'}</dd>
+          <p className="muted label">{orgLabel}</p>
+          <p>{orgName || '—'}</p>
         </div>
         <div>
-          <dt>Roles</dt>
-          <dd>{roles.length ? roles.join(', ') : '—'}</dd>
+          <p className="muted label">Roles</p>
+          <p>{roles.length ? roles.join(', ') : '—'}</p>
         </div>
         <div>
-          <dt>Last login</dt>
-          <dd>
+          <p className="muted label">Last login</p>
+          <p>
             {submitter.last_login_at ? (
               <DateTimeText value={submitter.last_login_at} />
             ) : (
               'Never / unknown'
             )}
-          </dd>
+          </p>
         </div>
         <div>
-          <dt>Account created</dt>
-          <dd>
+          <p className="muted label">Account created</p>
+          <p>
             {submitter.created_at ? <DateTimeText value={submitter.created_at} /> : '—'}
-          </dd>
+          </p>
         </div>
-      </dl>
+      </div>
     </div>
   )
 }

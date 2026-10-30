@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import useClientDataGrid, { resolveFilterType } from '../hooks/useClientDataGrid'
+import TruncatedTooltip, { tooltipTextFromContent } from './TruncatedTooltip'
 import { formatDate, formatDateTime, formatTime } from '../utils/dateFormat'
 
 export { resolveFilterType }
@@ -441,7 +442,9 @@ export default function DataGrid({
                     }
                   >
                     <div className="data-grid__th-inner">
-                      <span className="data-grid__th-label">{col.label}</span>
+                      <TruncatedTooltip className="data-grid__th-label" text={col.label}>
+                        {col.label}
+                      </TruncatedTooltip>
                       {canSort ? (
                         <SortButton
                           active={isActive}
@@ -507,6 +510,12 @@ export default function DataGrid({
                       const truncate = layout.truncate && !isActions
                       const wrap = Boolean(col.wrap) && !isActions && !truncate
                       const cellClass = cellClassName(col, layout, { truncate, wrap, isActions })
+                      const tipText =
+                        typeof col.tooltip === 'function'
+                          ? col.tooltip(row)
+                          : col.tooltip != null
+                            ? String(col.tooltip)
+                            : tooltipTextFromContent(content)
 
                       return (
                         <td
@@ -523,25 +532,28 @@ export default function DataGrid({
                                   : rowLinkState
                               }
                               className="data-grid__cell-link"
-                              title={
-                                typeof content === 'string' || typeof content === 'number'
-                                  ? String(content)
-                                  : undefined
-                              }
                             >
-                              <span className="data-grid__cell-text">{content}</span>
+                              <TruncatedTooltip
+                                className="data-grid__cell-text"
+                                text={tipText}
+                              >
+                                {content}
+                              </TruncatedTooltip>
                             </Link>
                           ) : truncate || wrap ? (
-                            <span
+                            <TruncatedTooltip
                               className="data-grid__cell-text"
-                              title={
-                                typeof content === 'string' || typeof content === 'number'
-                                  ? String(content)
-                                  : undefined
-                              }
+                              text={tipText}
                             >
                               {content}
-                            </span>
+                            </TruncatedTooltip>
+                          ) : tipText ? (
+                            <TruncatedTooltip
+                              className="data-grid__cell-text data-grid__cell-text--fit"
+                              text={tipText}
+                            >
+                              {content}
+                            </TruncatedTooltip>
                           ) : (
                             content
                           )}

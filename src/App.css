@@ -6891,6 +6891,108 @@ td.data-grid__actions {
   --dg-actions: 4.5rem;
 }
 
+/* Fit / default cells: ellipsis when plain text overflows fixed columns */
+td .data-grid__cell-text--fit {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Truncation hover tooltip (portaled; keeps grid layout unchanged) */
+.truncated-tooltip {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.truncated-tooltip__bubble {
+  position: fixed;
+  z-index: 10050;
+  box-sizing: border-box;
+  max-width: min(360px, calc(100vw - 20px));
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--brand, #0f5c45) 22%, #1e293b);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--brand, #0f5c45) 18%, #0f172a) 0%,
+      #0f172a 55%,
+      #0b1220 100%
+    );
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.28),
+    0 2px 6px rgba(15, 23, 42, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.truncated-tooltip__bubble.is-ready {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.truncated-tooltip__bubble--top.is-ready {
+  transform: translateY(0) scale(1);
+}
+
+.truncated-tooltip__bubble--bottom {
+  transform: translateY(-4px) scale(0.98);
+}
+
+.truncated-tooltip__bubble--bottom.is-ready {
+  transform: translateY(0) scale(1);
+}
+
+.truncated-tooltip__body {
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+.truncated-tooltip__arrow {
+  position: absolute;
+  left: var(--tt-arrow-left, 50%);
+  width: 10px;
+  height: 10px;
+  background: #0f172a;
+  border-right: 1px solid color-mix(in srgb, var(--brand, #0f5c45) 22%, #1e293b);
+  border-bottom: 1px solid color-mix(in srgb, var(--brand, #0f5c45) 22%, #1e293b);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.truncated-tooltip__bubble--top .truncated-tooltip__arrow {
+  bottom: -5px;
+  background: #0b1220;
+}
+
+.truncated-tooltip__bubble--bottom .truncated-tooltip__arrow {
+  top: -5px;
+  background: color-mix(in srgb, var(--brand, #0f5c45) 14%, #0f172a);
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 1px solid color-mix(in srgb, var(--brand, #0f5c45) 22%, #1e293b);
+  border-top: 1px solid color-mix(in srgb, var(--brand, #0f5c45) 22%, #1e293b);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .truncated-tooltip__bubble {
+    transition: none;
+  }
+}
+
 @media (max-width: 800px) {
   .smc-version-body,
   .smc-chart-row { grid-template-columns: 1fr; }

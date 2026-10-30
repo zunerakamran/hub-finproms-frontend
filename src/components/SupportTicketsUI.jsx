@@ -26,46 +26,69 @@ export function StScreenshotList({ attachments = [], emptyLabel = 'No screenshot
 
 export function StCommentList({ comments = [] }) {
   if (!comments.length) {
-    return <p className="muted">No comments yet.</p>
+    return <p className="muted st-activity-empty">No activity yet.</p>
   }
 
   return (
-    <div className="stack" style={{ gap: '0.75rem' }}>
+    <ol className="st-activity">
       {comments.map((comment) => (
-        <article key={comment.id} className="card" style={{ padding: '0.85rem 1rem' }}>
-          <div className="muted" style={{ marginBottom: '0.35rem' }}>
-            <strong>{comment.author?.name || 'User'}</strong>
-            {comment.is_staff_reply ? ' · Staff reply' : null}
-            {comment.is_status_change && comment.to_status && (
-              <>
-                {' | '}
-                {comment.from_status ? `${comment.from_status} → ` : ''}
-                {comment.to_status}
-              </>
-            )}
-            {comment.estimated_resolve_at ? (
-              <>
-                {' | ETA '}
-                <DateTimeText value={comment.estimated_resolve_at} />
-              </>
-            ) : null}
-            {comment.created_at && (
-              <>
-                {' | '}
-                {formatStDateSafe(comment.created_at)}
-              </>
-            )}
-          </div>
-          <RichTextDisplay html={comment.body} />
-          {Array.isArray(comment.attachments) && comment.attachments.length > 0 ? (
-            <div style={{ marginTop: '0.65rem' }}>
-              <StScreenshotList attachments={comment.attachments} emptyLabel="" />
+        <li key={comment.id} className="st-activity__item">
+          <div className="st-activity__rail" aria-hidden="true" />
+          <article className="st-activity__card">
+            <header className="st-activity__head">
+              <div className="st-activity__who">
+                <span className="st-avatar" aria-hidden="true">
+                  {initials(comment.author?.name || comment.author_name || 'U')}
+                </span>
+                <div>
+                  <strong>{comment.author?.name || comment.author_name || 'User'}</strong>
+                  <div className="st-activity__tags">
+                    {comment.is_staff_reply ? (
+                      <span className="st-tag st-tag--staff">Staff reply</span>
+                    ) : null}
+                    {comment.is_status_change && comment.to_status ? (
+                      <span className="st-tag">
+                        {comment.from_status ? `${comment.from_status} → ` : ''}
+                        {comment.to_status}
+                      </span>
+                    ) : null}
+                    {comment.estimated_resolve_at ? (
+                      <span className="st-tag">
+                        ETA <DateTimeText value={comment.estimated_resolve_at} />
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              {comment.created_at ? (
+                <time className="muted st-activity__time" dateTime={comment.created_at}>
+                  {formatStDateSafe(comment.created_at)}
+                </time>
+              ) : null}
+            </header>
+            <div className="st-activity__body">
+              <RichTextDisplay html={comment.body} />
             </div>
-          ) : null}
-        </article>
+            {Array.isArray(comment.attachments) && comment.attachments.length > 0 ? (
+              <div className="st-activity__files">
+                <StScreenshotList attachments={comment.attachments} emptyLabel="" />
+              </div>
+            ) : null}
+          </article>
+        </li>
       ))}
-    </div>
+    </ol>
   )
+}
+
+function initials(name) {
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (!parts.length) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0] || ''}${parts[parts.length - 1][0] || ''}`.toUpperCase()
 }
 
 function formatStDateSafe(value) {
@@ -86,11 +109,15 @@ export function StSubmitterProfile({ submitter, compact = false }) {
 
   if (!submitter.profile_detailed) {
     return (
-      <p>
-        <strong>{submitter.name || 'User'}</strong>
-        {submitter.email ? ` (${submitter.email})` : ''}
-        {submitter.role ? ` · ${submitter.role}` : ''}
-      </p>
+      <div className="st-person">
+        <span className="st-avatar st-avatar--lg" aria-hidden="true">
+          {initials(submitter.name)}
+        </span>
+        <div>
+          <strong>{submitter.name || 'User'}</strong>
+          {submitter.email ? <div className="muted">{submitter.email}</div> : null}
+        </div>
+      </div>
     )
   }
 
@@ -135,45 +162,55 @@ export function StSubmitterProfile({ submitter, compact = false }) {
   }
 
   return (
-    <dl className="st-submitter-profile">
-      <div>
-        <dt>Name</dt>
-        <dd>{submitter.name || '—'}</dd>
-      </div>
-      <div>
-        <dt>Email</dt>
-        <dd>{submitter.email || '—'}</dd>
-      </div>
-      <div>
-        <dt>{orgLabel}</dt>
-        <dd>{orgName || '—'}</dd>
-      </div>
-      <div>
-        <dt>Roles</dt>
-        <dd>{roles.length ? roles.join(', ') : '—'}</dd>
-      </div>
-      <div>
-        <dt>Last login</dt>
-        <dd>
-          {submitter.last_login_at ? (
-            <DateTimeText value={submitter.last_login_at} />
-          ) : (
-            'Never / unknown'
-          )}
-        </dd>
-      </div>
-      <div>
-        <dt>Account created</dt>
-        <dd>
-          {submitter.created_at ? <DateTimeText value={submitter.created_at} /> : '—'}
-        </dd>
-      </div>
-      {statusBits.length ? (
-        <div>
-          <dt>Status</dt>
-          <dd>{statusBits.join(' · ')}</dd>
+    <div className="st-person-card">
+      <div className="st-person">
+        <span className="st-avatar st-avatar--lg" aria-hidden="true">
+          {initials(submitter.name)}
+        </span>
+        <div className="st-person__main">
+          <strong className="st-person__name">{submitter.name || 'User'}</strong>
+          {submitter.email ? (
+            <a className="st-person__email" href={`mailto:${submitter.email}`}>
+              {submitter.email}
+            </a>
+          ) : null}
+          {statusBits.length ? (
+            <div className="st-activity__tags" style={{ marginTop: '0.35rem' }}>
+              {statusBits.map((bit) => (
+                <span key={bit} className="st-tag st-tag--warn">
+                  {bit}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
-      ) : null}
-    </dl>
+      </div>
+      <dl className="st-submitter-profile">
+        <div>
+          <dt>{orgLabel}</dt>
+          <dd>{orgName || '—'}</dd>
+        </div>
+        <div>
+          <dt>Roles</dt>
+          <dd>{roles.length ? roles.join(', ') : '—'}</dd>
+        </div>
+        <div>
+          <dt>Last login</dt>
+          <dd>
+            {submitter.last_login_at ? (
+              <DateTimeText value={submitter.last_login_at} />
+            ) : (
+              'Never / unknown'
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Account created</dt>
+          <dd>
+            {submitter.created_at ? <DateTimeText value={submitter.created_at} /> : '—'}
+          </dd>
+        </div>
+      </dl>
+    </div>
   )
 }

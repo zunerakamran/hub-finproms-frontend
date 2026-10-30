@@ -31,6 +31,14 @@ export function stStatusClass(status) {
   return 'gc-status gc-status--pending'
 }
 
+export function stPriorityClass(priority) {
+  const p = String(priority || '').toLowerCase()
+  if (p === 'critical') return 'st-priority st-priority--critical'
+  if (p === 'high') return 'st-priority st-priority--high'
+  if (p === 'low') return 'st-priority st-priority--low'
+  return 'st-priority st-priority--medium'
+}
+
 export function formatStDate(value) {
   return formatDateTime(value)
 }

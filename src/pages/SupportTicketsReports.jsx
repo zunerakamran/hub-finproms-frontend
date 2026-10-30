@@ -49,6 +49,7 @@ export default function SupportTicketsReports() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [exporting, setExporting] = useState(false)
+  const [showMoreFilters, setShowMoreFilters] = useState(false)
 
   const asPowerAdmin = isPowerAdmin
   const moduleOn = can('support_tickets')
@@ -68,6 +69,13 @@ export default function SupportTicketsReports() {
     }),
     [applied]
   )
+
+  const moreFilterCount = [
+    filters.module_area,
+    filters.category,
+    filters.priority,
+    filters.firm_kind,
+  ].filter(Boolean).length
 
   useEffect(() => {
     if (hubLoading || !enabled) return
@@ -278,7 +286,7 @@ export default function SupportTicketsReports() {
       </div>
 
       <form
-        className="filters-row"
+        className="filters-row st-report-filters"
         onSubmit={(e) => {
           e.preventDefault()
           setApplied({ ...filters })
@@ -310,47 +318,6 @@ export default function SupportTicketsReports() {
             </option>
           ))}
         </select>
-        <select
-          value={filters.module_area}
-          onChange={(e) => setFilters((f) => ({ ...f, module_area: e.target.value }))}
-        >
-          <option value="">All modules</option>
-          {(options?.modules || []).map((m) => (
-            <option key={m.key} value={m.key}>
-              {m.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filters.category}
-          onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
-        >
-          <option value="">All categories</option>
-          {(options?.categories || []).map((c) => (
-            <option key={c.key} value={c.key}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filters.priority}
-          onChange={(e) => setFilters((f) => ({ ...f, priority: e.target.value }))}
-        >
-          <option value="">All priorities</option>
-          {(options?.priorities || []).map((p) => (
-            <option key={p.key} value={p.key}>
-              {p.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filters.firm_kind}
-          onChange={(e) => setFilters((f) => ({ ...f, firm_kind: e.target.value }))}
-        >
-          <option value="">Firm + network</option>
-          <option value="firm">Firm only</option>
-          <option value="network">Network only</option>
-        </select>
         <input
           type="date"
           value={filters.from}
@@ -363,19 +330,76 @@ export default function SupportTicketsReports() {
           onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value, period: 'all' }))}
           aria-label="To"
         />
-        <button className="btn primary" type="submit">
-          Filter
-        </button>
-        <button
-          className="btn ghost"
-          type="button"
-          onClick={() => {
-            setFilters(emptyFilters)
-            setApplied(emptyFilters)
-          }}
-        >
-          Reset
-        </button>
+        <div className="filters-row__actions">
+          <button
+            className="btn ghost"
+            type="button"
+            aria-expanded={showMoreFilters}
+            onClick={() => setShowMoreFilters((open) => !open)}
+          >
+            {showMoreFilters ? 'Less filters' : 'More filters'}
+            {!showMoreFilters && moreFilterCount > 0 ? ` (${moreFilterCount})` : ''}
+          </button>
+          <button className="btn primary" type="submit">
+            Filter
+          </button>
+          <button
+            className="btn ghost"
+            type="button"
+            onClick={() => {
+              setFilters(emptyFilters)
+              setApplied(emptyFilters)
+              setShowMoreFilters(false)
+            }}
+          >
+            Reset
+          </button>
+        </div>
+        {showMoreFilters ? (
+          <div className="st-report-filters__more">
+            <select
+              value={filters.module_area}
+              onChange={(e) => setFilters((f) => ({ ...f, module_area: e.target.value }))}
+            >
+              <option value="">All modules</option>
+              {(options?.modules || []).map((m) => (
+                <option key={m.key} value={m.key}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filters.category}
+              onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
+            >
+              <option value="">All categories</option>
+              {(options?.categories || []).map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filters.priority}
+              onChange={(e) => setFilters((f) => ({ ...f, priority: e.target.value }))}
+            >
+              <option value="">All priorities</option>
+              {(options?.priorities || []).map((p) => (
+                <option key={p.key} value={p.key}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filters.firm_kind}
+              onChange={(e) => setFilters((f) => ({ ...f, firm_kind: e.target.value }))}
+            >
+              <option value="">Firm + network</option>
+              <option value="firm">Firm only</option>
+              <option value="network">Network only</option>
+            </select>
+          </div>
+        ) : null}
       </form>
 
       {error && <div className="alert">{error}</div>}

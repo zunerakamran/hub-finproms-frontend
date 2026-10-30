@@ -5500,6 +5500,41 @@ label {
   min-width: 200px;
   background: #fff;
 }
+.st-report-filters {
+  gap: 0.5rem;
+  align-items: center;
+}
+.st-report-filters > input,
+.st-report-filters > select {
+  min-width: 0;
+  flex: 1 1 9rem;
+  max-width: 12.5rem;
+}
+.st-report-filters > input[type='search'] {
+  flex: 1 1 12rem;
+  max-width: 16rem;
+}
+.st-report-filters > input[type='date'] {
+  flex: 0 1 9.5rem;
+  max-width: 10.5rem;
+}
+.st-report-filters .filters-row__actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+.st-report-filters__more {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+.st-report-filters__more select {
+  min-width: 0;
+  flex: 1 1 9rem;
+  max-width: 14rem;
+}
 .st-submitter-compact {
   display: flex;
   flex-direction: column;

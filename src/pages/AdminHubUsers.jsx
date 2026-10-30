@@ -664,7 +664,7 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
 
             {panel.type === 'suspend' ? (
               <form
-                className="stack"
+                className="hub-users-form"
                 onSubmit={(e) => {
                   e.preventDefault()
                   runAction(panel.user.id, () =>
@@ -672,8 +672,8 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
                   )
                 }}
               >
-                <label>
-                  Remarks (when deactivated)
+                <label className="hub-users-field">
+                  <span>Remarks (when deactivated)</span>
                   <textarea
                     rows={3}
                     value={form.remarks || ''}
@@ -688,7 +688,7 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
 
             {panel.type === 'roles' ? (
               <form
-                className="stack"
+                className="hub-users-form"
                 onSubmit={(e) => {
                   e.preventDefault()
                   runAction(panel.user.id, () =>
@@ -696,11 +696,12 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
                   )
                 }}
               >
+                <p className="hub-users-form__hint muted">Select one or more roles for this user.</p>
                 <div className="hub-users-checkboxes">
                   {roleOptions
                     .filter((r) => !CONTROL_PLANE_ROLES.has(r.key))
                     .map((r) => (
-                      <label key={r.key}>
+                      <label key={r.key} className="checkbox-row hub-users-check-row">
                         <input
                           type="checkbox"
                           checked={(form.roles || []).includes(r.key)}
@@ -711,7 +712,7 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
                             setForm({ ...form, roles: [...next] })
                           }}
                         />
-                        {r.label}
+                        <span>{r.label}</span>
                       </label>
                     ))}
                 </div>
@@ -723,7 +724,7 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
 
             {panel.type === 'modules' ? (
               <form
-                className="stack"
+                className="hub-users-form"
                 onSubmit={(e) => {
                   e.preventDefault()
                   runAction(panel.user.id, () =>
@@ -738,32 +739,35 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
                   )
                 }}
               >
-                <label>
+                <label className="checkbox-row hub-users-check-row hub-users-check-row--wide">
                   <input
                     type="checkbox"
                     checked={!!form.unrestricted}
                     onChange={(e) => setForm({ ...form, unrestricted: e.target.checked })}
-                  />{' '}
-                  All hub modules (unrestricted)
+                  />
+                  <span>All hub modules (unrestricted)</span>
                 </label>
                 {!form.unrestricted ? (
-                  <div className="hub-users-checkboxes">
-                    {moduleOptions.map((m) => (
-                      <label key={m.key}>
-                        <input
-                          type="checkbox"
-                          checked={(form.modules || []).includes(m.key)}
-                          onChange={(e) => {
-                            const next = new Set(form.modules || [])
-                            if (e.target.checked) next.add(m.key)
-                            else next.delete(m.key)
-                            setForm({ ...form, modules: [...next] })
-                          }}
-                        />
-                        {m.label}
-                      </label>
-                    ))}
-                  </div>
+                  <>
+                    <p className="hub-users-form__hint muted">Or choose specific modules:</p>
+                    <div className="hub-users-checkboxes">
+                      {moduleOptions.map((m) => (
+                        <label key={m.key} className="checkbox-row hub-users-check-row">
+                          <input
+                            type="checkbox"
+                            checked={(form.modules || []).includes(m.key)}
+                            onChange={(e) => {
+                              const next = new Set(form.modules || [])
+                              if (e.target.checked) next.add(m.key)
+                              else next.delete(m.key)
+                              setForm({ ...form, modules: [...next] })
+                            }}
+                          />
+                          <span>{m.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
                 ) : null}
                 <button type="submit" className="btn" disabled={busyId === panel.user.id}>
                   Save modules
@@ -773,7 +777,7 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
 
             {panel.type === 'email' ? (
               <form
-                className="stack"
+                className="hub-users-form"
                 onSubmit={(e) => {
                   e.preventDefault()
                   runAction(panel.user.id, () =>
@@ -781,8 +785,8 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
                   )
                 }}
               >
-                <label>
-                  New email
+                <label className="hub-users-field">
+                  <span>New email</span>
                   <input
                     type="email"
                     required
@@ -1070,9 +1074,49 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
           overflow: auto;
         }
         .hub-users-log-table-wrap { overflow: auto; }
-        .hub-users-checkboxes { display: grid; gap: 0.35rem; margin: 0.75rem 0; }
-        .stack { display: grid; gap: 0.75rem; }
-        .stack label { display: grid; gap: 0.35rem; }
+        .hub-users-form {
+          display: grid;
+          gap: 0.85rem;
+          margin-top: 0.75rem;
+        }
+        .hub-users-form__hint {
+          margin: 0;
+          font-size: 0.85rem;
+        }
+        .hub-users-field {
+          display: grid;
+          gap: 0.35rem;
+          margin: 0;
+          font-weight: 600;
+        }
+        .hub-users-field span {
+          font-size: 0.82rem;
+          color: #334155;
+        }
+        .hub-users-field textarea,
+        .hub-users-field input[type='email'] {
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .hub-users-checkboxes {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.55rem;
+          margin: 0;
+          width: 100%;
+        }
+        .hub-users-check-row {
+          margin: 0;
+          min-width: 0;
+        }
+        .hub-users-check-row--wide {
+          grid-column: 1 / -1;
+        }
+        @media (max-width: 640px) {
+          .hub-users-checkboxes {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
     </section>
   )

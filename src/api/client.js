@@ -1372,6 +1372,70 @@ export const api = {
     ).toString()
     return request(`${base}/hub-users${query ? `?${query}` : ''}`)
   },
+  hubUserLoginHistory: (userId, params = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    return request(`${base}/hub-users/${userId}/login-history${query ? `?${query}` : ''}`)
+  },
+  hubUserSecurityToggleLogs: (userId, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/hub-users/${userId}/security-toggle-logs`)
+  },
+  hubUserSuspend: (userId, payload = {}, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/hub-users/${userId}/suspend`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+  hubUserChangePassword: (userId, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/hub-users/${userId}/change-password`, { method: 'POST' })
+  },
+  hubUserUpdateRoles: (userId, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/hub-users/${userId}/roles`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  hubUserUpdateModules: (userId, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/hub-users/${userId}/modules`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  hubUserChangeEmail: (userId, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/hub-users/${userId}/email`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  hubUserToggleOtp: (userId, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/hub-users/${userId}/otp`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  hubUserToggleAuthenticator: (userId, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/hub-users/${userId}/authenticator`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  hubUserUpdateTraining: (userId, payload, options = {}) => {
+    const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
+    return request(`${base}/hub-users/${userId}/training`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
   userCapabilitiesUsers: (params = {}, options = {}) => {
     const base = options.asPowerAdmin ? '/power-admin' : CLIENT_ADMIN
     const query = new URLSearchParams(

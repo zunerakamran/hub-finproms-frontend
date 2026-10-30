@@ -60,6 +60,7 @@ const ST_NAV_ANY = [
   'st_submit_ticket',
   'st_view_all_tickets',
   'st_reply_to_tickets',
+  'st_view_reports',
 ]
 
 const LC_NAV_ANY = ['lc_use_chat', 'lc_manage_access']
@@ -1012,6 +1013,15 @@ export const DASHBOARD_LINKS = [
     title: 'All tickets',
     description: 'Developer inbox - review tickets and change their status.',
     anyOf: ['st_view_all_tickets', 'st_reply_to_tickets'],
+    group: 'st',
+  },
+  {
+    to: '/my-dashboard/support-tickets/reports',
+    label: 'Reports',
+    title: 'Reports',
+    description:
+      'Support ticket stats, firm/network comparison, pie charts, graphs, and CSV export.',
+    capability: 'st_view_reports',
     group: 'st',
   },
 

@@ -86,6 +86,7 @@ const AdminGcContentTypes = lazy(() => import('./pages/AdminGcContentTypes'))
 const SupportTicketsMyTickets = lazy(() => import('./pages/SupportTicketsMyTickets'))
 const SupportTicketSubmit = lazy(() => import('./pages/SupportTicketSubmit'))
 const SupportTicketsQueue = lazy(() => import('./pages/SupportTicketsQueue'))
+const SupportTicketsReports = lazy(() => import('./pages/SupportTicketsReports'))
 const SupportTicketDetail = lazy(() => import('./pages/SupportTicketDetail'))
 const LiveChat = lazy(() => import('./pages/LiveChat'))
 const LiveChatAccess = lazy(() => import('./pages/LiveChatAccess'))
@@ -733,6 +734,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="support-tickets/reports"
+                  element={
+                    <HubCapabilityRoute capability="st_view_reports">
+                      <SupportTicketsReports />
+                    </HubCapabilityRoute>
+                  }
+                />
+                <Route
                   path="support-tickets/:id"
                   element={
                     <HubCapabilityRoute
@@ -741,6 +750,7 @@ export default function App() {
                         'st_submit_ticket',
                         'st_view_all_tickets',
                         'st_reply_to_tickets',
+                        'st_view_reports',
                       ]}
                     >
                       <SupportTicketDetail />

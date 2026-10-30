@@ -79,6 +79,7 @@ export const DASHBOARD_NAV_DEFAULTS = {
     '/my-dashboard/support-tickets': 'My tickets',
     '/my-dashboard/support-tickets/new': 'New ticket',
     '/my-dashboard/support-tickets/queue': 'All tickets',
+    '/my-dashboard/support-tickets/reports': 'Reports',
     '/my-dashboard/live-chat': 'Live Chat',
     '/my-dashboard/live-chat/access': 'Central contacts',
     '/my-dashboard/website-compliance/request-site': 'Request a site',

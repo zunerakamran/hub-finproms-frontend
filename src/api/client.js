@@ -1739,6 +1739,58 @@ export const api = {
       method: 'POST',
       body: formData,
     }),
+  supportTicketsReport: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    if (options.asPowerAdmin) {
+      return request(
+        `${adminBase(options)}/support-tickets/reports${query ? `?${query}` : ''}`
+      )
+    }
+    return request(`/support-tickets/reports${query ? `?${query}` : ''}`)
+  },
+  supportTicketsReportExport: async (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    const path = options.asPowerAdmin
+      ? `${adminBase(options)}/support-tickets/reports/export`
+      : '/support-tickets/reports/export'
+    await ensureCsrfCookie().catch(() => {})
+    const response = await fetch(`${API_URL}${path}${query ? `?${query}` : ''}`, {
+      headers: buildHeaders({ headers: { Accept: 'text/csv' } }),
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      const error = new Error('Export failed')
+      error.status = response.status
+      throw error
+    }
+    return response.blob()
+  },
+  supportTicketsFirmComparison: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    if (options.asPowerAdmin) {
+      return request(
+        `${adminBase(options)}/support-tickets/charts/firm-comparison${query ? `?${query}` : ''}`
+      )
+    }
+    return request(`/support-tickets/charts/firm-comparison${query ? `?${query}` : ''}`)
+  },
+  supportTicketsRaisedOverTime: (params = {}, options = {}) => {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+    ).toString()
+    if (options.asPowerAdmin) {
+      return request(
+        `${adminBase(options)}/support-tickets/charts/raised-over-time${query ? `?${query}` : ''}`
+      )
+    }
+    return request(`/support-tickets/charts/raised-over-time${query ? `?${query}` : ''}`)
+  },
 
   // -- Taxonomy add requests --
   taxonomyAddRequestsOptions: () => request('/taxonomy-add-requests/options'),

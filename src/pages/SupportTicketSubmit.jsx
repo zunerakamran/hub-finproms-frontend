@@ -239,11 +239,12 @@ export default function SupportTicketSubmit() {
             onAddFiles={(incoming) =>
               setAttachments((prev) => [...prev, ...incoming].slice(0, 8))
             }
+            onChangeFiles={setAttachments}
           />
           <FileDropzone
             id="st-submit-media"
-            label="Browse or drop files"
-            hint="JPG, PNG, GIF, WebP, PDF, MP4, WebM, MOV — up to 8 files"
+            label="Or browse / drop more files"
+            hint="JPG, PNG, GIF, WebP, PDF, MP4, WebM, MOV — up to 8 files total"
             accept={ST_SUBMIT_MEDIA_ACCEPT}
             multiple
             maxFiles={8}

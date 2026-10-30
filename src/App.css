@@ -5500,28 +5500,35 @@ label {
   min-width: 200px;
   background: #fff;
 }
+.report-filters,
 .st-report-filters {
   gap: 0.5rem;
   align-items: center;
 }
+.report-filters > input,
+.report-filters > select,
 .st-report-filters > input,
 .st-report-filters > select {
   min-width: 0;
   flex: 1 1 9rem;
   max-width: 12.5rem;
 }
+.report-filters > input[type='search'],
 .st-report-filters > input[type='search'] {
   flex: 1 1 12rem;
   max-width: 16rem;
 }
+.report-filters > input[type='date'],
 .st-report-filters > input[type='date'] {
   flex: 0 1 9.5rem;
   max-width: 10.5rem;
 }
+.report-filters .filters-row__actions,
 .st-report-filters .filters-row__actions {
   flex: 0 0 auto;
   margin-left: auto;
 }
+.report-filters__more,
 .st-report-filters__more {
   flex: 1 0 100%;
   display: flex;
@@ -5530,10 +5537,21 @@ label {
   padding-top: 0.35rem;
   border-top: 1px solid rgba(15, 23, 42, 0.08);
 }
-.st-report-filters__more select {
+.report-filters__more > input,
+.report-filters__more > select,
+.st-report-filters__more > input,
+.st-report-filters__more > select {
   min-width: 0;
   flex: 1 1 9rem;
   max-width: 14rem;
+}
+.report-filters.st-queue-filters {
+  align-items: center;
+}
+.report-filters.st-queue-filters > input,
+.report-filters.st-queue-filters > select {
+  background: #fff;
+  min-width: 0;
 }
 .st-submitter-compact {
   display: flex;

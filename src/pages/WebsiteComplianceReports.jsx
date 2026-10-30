@@ -71,6 +71,8 @@ export default function WebsiteComplianceReports() {
   const [error, setError] = useState('')
   const [filters, setFilters] = useState(emptyFilters)
   const [applied, setApplied] = useState(emptyFilters)
+  const [showMoreFilters, setShowMoreFilters] = useState(false)
+  const moreFilterCount = [filters.from, filters.to].filter(Boolean).length
 
   useEffect(() => {
     if (hubLoading || !moduleOn || !canView || tab === 'summary') {
@@ -281,7 +283,7 @@ export default function WebsiteComplianceReports() {
       ) : (
         <>
           <form
-            className="filters-row"
+            className="filters-row report-filters"
             onSubmit={(e) => {
               e.preventDefault()
               setApplied({ ...filters })
@@ -304,29 +306,47 @@ export default function WebsiteComplianceReports() {
                 </option>
               ))}
             </select>
-            <input
-              type="date"
-              value={filters.from}
-              onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
-            />
-            <input
-              type="date"
-              value={filters.to}
-              onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
-            />
-            <button className="btn primary" type="submit">
-              Filter
-            </button>
-            <button
-              className="btn ghost"
-              type="button"
-              onClick={() => {
-                setFilters(emptyFilters)
-                setApplied(emptyFilters)
-              }}
-            >
-              Reset
-            </button>
+            <div className="filters-row__actions">
+              <button
+                className="btn ghost"
+                type="button"
+                aria-expanded={showMoreFilters}
+                onClick={() => setShowMoreFilters((open) => !open)}
+              >
+                {showMoreFilters ? 'Less filters' : 'More filters'}
+                {!showMoreFilters && moreFilterCount > 0 ? ` (${moreFilterCount})` : ''}
+              </button>
+              <button className="btn primary" type="submit">
+                Filter
+              </button>
+              <button
+                className="btn ghost"
+                type="button"
+                onClick={() => {
+                  setFilters(emptyFilters)
+                  setApplied(emptyFilters)
+                  setShowMoreFilters(false)
+                }}
+              >
+                Reset
+              </button>
+            </div>
+            {showMoreFilters ? (
+              <div className="report-filters__more">
+                <input
+                  type="date"
+                  value={filters.from}
+                  onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
+                  aria-label="From"
+                />
+                <input
+                  type="date"
+                  value={filters.to}
+                  onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
+                  aria-label="To"
+                />
+              </div>
+            ) : null}
           </form>
 
           {error ? <div className="alert">{error}</div> : null}

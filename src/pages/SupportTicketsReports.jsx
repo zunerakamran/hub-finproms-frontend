@@ -286,7 +286,7 @@ export default function SupportTicketsReports() {
       </div>
 
       <form
-        className="filters-row st-report-filters"
+        className="filters-row report-filters"
         onSubmit={(e) => {
           e.preventDefault()
           setApplied({ ...filters })
@@ -356,7 +356,7 @@ export default function SupportTicketsReports() {
           </button>
         </div>
         {showMoreFilters ? (
-          <div className="st-report-filters__more">
+          <div className="report-filters__more">
             <select
               value={filters.module_area}
               onChange={(e) => setFilters((f) => ({ ...f, module_area: e.target.value }))}

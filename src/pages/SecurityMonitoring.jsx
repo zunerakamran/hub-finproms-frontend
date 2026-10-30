@@ -133,6 +133,7 @@ export default function SecurityMonitoring() {
     from: '',
     to: '',
   })
+  const [showMoreFilters, setShowMoreFilters] = useState(false)
   const [declareForm, setDeclareForm] = useState({
     title: '',
     description: '',
@@ -464,7 +465,13 @@ export default function SecurityMonitoring() {
     const empty = { q: '', severity: '', category: '', status: '', from: '', to: '' }
     setFilters(empty)
     setApplied(empty)
+    setShowMoreFilters(false)
   }
+
+  const moreFilterCount = [
+    filters.category,
+    tab === 'events' || tab === 'incidents' ? filters.status : '',
+  ].filter(Boolean).length
 
   const eventColumns = [
     {
@@ -633,85 +640,89 @@ export default function SecurityMonitoring() {
       </div>
 
       {(tab === 'events' || tab === 'incidents' || tab === 'report') && (
-        <form className="filters-row st-queue-filters" onSubmit={applyFilters}>
-          <label className="filters-row__field">
-            <span className="filters-row__label">Search</span>
-            <input
-              value={filters.q}
-              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-              placeholder="Title, IP, email…"
-            />
-          </label>
-          <label className="filters-row__field">
-            <span className="filters-row__label">Severity</span>
-            <select
-              value={filters.severity}
-              onChange={(e) => setFilters((f) => ({ ...f, severity: e.target.value }))}
-            >
-              <option value="">All</option>
-              {(options?.severities || []).map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="filters-row__field">
-            <span className="filters-row__label">Category</span>
-            <select
-              value={filters.category}
-              onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
-            >
-              <option value="">All</option>
-              {(options?.categories || []).map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {(tab === 'events' || tab === 'incidents') && (
-            <label className="filters-row__field">
-              <span className="filters-row__label">Status</span>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
-              >
-                <option value="">All</option>
-                {(tab === 'incidents' ? options?.statuses : options?.event_statuses || options?.statuses || []).map(
-                  (s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  )
-                )}
-              </select>
-            </label>
-          )}
-          <label className="filters-row__field">
-            <span className="filters-row__label">From</span>
-            <input
-              type="date"
-              value={filters.from}
-              onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
-            />
-          </label>
-          <label className="filters-row__field">
-            <span className="filters-row__label">To</span>
-            <input
-              type="date"
-              value={filters.to}
-              onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
-            />
-          </label>
+        <form className="filters-row report-filters st-queue-filters" onSubmit={applyFilters}>
+          <input
+            type="search"
+            value={filters.q}
+            onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+            placeholder="Search title, IP, email…"
+            aria-label="Search"
+          />
+          <select
+            value={filters.severity}
+            onChange={(e) => setFilters((f) => ({ ...f, severity: e.target.value }))}
+            aria-label="Severity"
+          >
+            <option value="">All severities</option>
+            {(options?.severities || []).map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={filters.from}
+            onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
+            aria-label="From"
+          />
+          <input
+            type="date"
+            value={filters.to}
+            onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
+            aria-label="To"
+          />
           <div className="filters-row__actions">
+            <button
+              type="button"
+              className="btn ghost"
+              aria-expanded={showMoreFilters}
+              onClick={() => setShowMoreFilters((open) => !open)}
+              disabled={loading}
+            >
+              {showMoreFilters ? 'Less filters' : 'More filters'}
+              {!showMoreFilters && moreFilterCount > 0 ? ` (${moreFilterCount})` : ''}
+            </button>
             <button type="submit" className="btn primary" disabled={loading}>
               Apply
             </button>
-            <button type="button" className="btn" onClick={clearFilters} disabled={loading}>
+            <button type="button" className="btn ghost" onClick={clearFilters} disabled={loading}>
               Clear
             </button>
           </div>
+          {showMoreFilters ? (
+            <div className="report-filters__more">
+              <select
+                value={filters.category}
+                onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
+                aria-label="Category"
+              >
+                <option value="">All categories</option>
+                {(options?.categories || []).map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+              {(tab === 'events' || tab === 'incidents') && (
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
+                  aria-label="Status"
+                >
+                  <option value="">All statuses</option>
+                  {(tab === 'incidents'
+                    ? options?.statuses
+                    : options?.event_statuses || options?.statuses || []
+                  ).map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          ) : null}
         </form>
       )}
 

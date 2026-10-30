@@ -307,6 +307,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     status: '',
     anomaly_type: '',
   })
+  const [showMoreFilters, setShowMoreFilters] = useState(false)
   const [selectedAnomaly, setSelectedAnomaly] = useState(null)
   const [anomalyBusy, setAnomalyBusy] = useState(false)
   const [detectMessage, setDetectMessage] = useState('')
@@ -395,6 +396,7 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
     setFilters(next)
     setApplied(next)
     setPreset('30d')
+    setShowMoreFilters(false)
   }
 
   const applyPreset = (id) => {
@@ -742,8 +744,8 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           </div>
         </div>
 
-        <form className="activity-filters" onSubmit={applyFilters}>
-          <label className="activity-field">
+        <form className="activity-filters activity-filters--compact" onSubmit={applyFilters}>
+          <label className="activity-field activity-field--search">
             <span>Search</span>
             <div className="activity-field__input">
               <FaSearch aria-hidden />
@@ -759,111 +761,27 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
               />
             </div>
           </label>
-          {tab === 'anomalies' ? (
-            <>
-              <label className="activity-field">
-                <span>Severity</span>
-                <select
-                  value={anomalyFilters.severity}
-                  onChange={(e) =>
-                    setAnomalyFilters((f) => ({ ...f, severity: e.target.value }))
-                  }
-                >
-                  <option value="">Any</option>
-                  {(anomalyOptions?.severities || ['info', 'low', 'medium', 'high']).map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="activity-field">
-                <span>Status</span>
-                <select
-                  value={anomalyFilters.status}
-                  onChange={(e) => setAnomalyFilters((f) => ({ ...f, status: e.target.value }))}
-                >
-                  <option value="">Any</option>
-                  {(anomalyOptions?.statuses || ['open', 'reviewed', 'dismissed', 'escalated']).map(
-                    (s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    )
-                  )}
-                </select>
-              </label>
-              <label className="activity-field">
-                <span>Type</span>
-                <select
-                  value={anomalyFilters.anomaly_type}
-                  onChange={(e) =>
-                    setAnomalyFilters((f) => ({ ...f, anomaly_type: e.target.value }))
-                  }
-                >
-                  <option value="">Any</option>
-                  {(anomalyOptions?.anomaly_types || []).map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </>
-          ) : (
-            <>
-              <label className="activity-field">
-                <span>Action type</span>
-                <input
-                  type="text"
-                  placeholder="e.g. auth.login"
-                  value={filters.action}
-                  onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
-                  list="activity-action-suggestions"
-                />
-                <datalist id="activity-action-suggestions">
-                  {Object.keys(ACTION_LABELS).map((key) => (
-                    <option key={key} value={key}>
-                      {ACTION_LABELS[key]}
-                    </option>
-                  ))}
-                </datalist>
-              </label>
-              <label className="activity-field">
-                <span>User ID</span>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="0 = guests"
-                  value={filters.user_id}
-                  onChange={(e) => setFilters((f) => ({ ...f, user_id: e.target.value }))}
-                />
-              </label>
-            </>
-          )}
-          <label className="activity-field">
-            <span>From</span>
-            <input
-              type="date"
-              value={filters.from}
-              onChange={(e) => {
-                setPreset('custom')
-                setFilters((f) => ({ ...f, from: e.target.value }))
-              }}
-            />
-          </label>
-          <label className="activity-field">
-            <span>To</span>
-            <input
-              type="date"
-              value={filters.to}
-              onChange={(e) => {
-                setPreset('custom')
-                setFilters((f) => ({ ...f, to: e.target.value }))
-              }}
-            />
-          </label>
           <div className="activity-filters__actions">
+            <button
+              type="button"
+              className="btn ghost"
+              aria-expanded={showMoreFilters}
+              onClick={() => setShowMoreFilters((open) => !open)}
+            >
+              {showMoreFilters ? 'Less filters' : 'More filters'}
+              {!showMoreFilters &&
+              (tab === 'anomalies'
+                ? [anomalyFilters.severity, anomalyFilters.status, anomalyFilters.anomaly_type]
+                : [filters.action, filters.user_id]
+              ).filter(Boolean).length > 0
+                ? ` (${
+                    (tab === 'anomalies'
+                      ? [anomalyFilters.severity, anomalyFilters.status, anomalyFilters.anomaly_type]
+                      : [filters.action, filters.user_id]
+                    ).filter(Boolean).length
+                  })`
+                : ''}
+            </button>
             <button
               type="button"
               className="btn activity-filters__btn activity-filters__btn--reset"
@@ -872,9 +790,121 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
               Reset
             </button>
             <button type="submit" className="btn primary activity-filters__btn">
-              Apply filters
+              Apply
             </button>
           </div>
+          {showMoreFilters ? (
+            <div className="activity-filters__more">
+              {tab === 'anomalies' ? (
+                <>
+                  <label className="activity-field">
+                    <span>Severity</span>
+                    <select
+                      value={anomalyFilters.severity}
+                      onChange={(e) =>
+                        setAnomalyFilters((f) => ({ ...f, severity: e.target.value }))
+                      }
+                    >
+                      <option value="">Any</option>
+                      {(anomalyOptions?.severities || ['info', 'low', 'medium', 'high']).map(
+                        (s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </label>
+                  <label className="activity-field">
+                    <span>Status</span>
+                    <select
+                      value={anomalyFilters.status}
+                      onChange={(e) =>
+                        setAnomalyFilters((f) => ({ ...f, status: e.target.value }))
+                      }
+                    >
+                      <option value="">Any</option>
+                      {(
+                        anomalyOptions?.statuses || ['open', 'reviewed', 'dismissed', 'escalated']
+                      ).map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="activity-field">
+                    <span>Type</span>
+                    <select
+                      value={anomalyFilters.anomaly_type}
+                      onChange={(e) =>
+                        setAnomalyFilters((f) => ({ ...f, anomaly_type: e.target.value }))
+                      }
+                    >
+                      <option value="">Any</option>
+                      {(anomalyOptions?.anomaly_types || []).map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              ) : (
+                <>
+                  <label className="activity-field">
+                    <span>Action type</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. auth.login"
+                      value={filters.action}
+                      onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
+                      list="activity-action-suggestions"
+                    />
+                    <datalist id="activity-action-suggestions">
+                      {Object.keys(ACTION_LABELS).map((key) => (
+                        <option key={key} value={key}>
+                          {ACTION_LABELS[key]}
+                        </option>
+                      ))}
+                    </datalist>
+                  </label>
+                  <label className="activity-field">
+                    <span>User ID</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0 = guests"
+                      value={filters.user_id}
+                      onChange={(e) => setFilters((f) => ({ ...f, user_id: e.target.value }))}
+                    />
+                  </label>
+                </>
+              )}
+              <label className="activity-field">
+                <span>From</span>
+                <input
+                  type="date"
+                  value={filters.from}
+                  onChange={(e) => {
+                    setPreset('custom')
+                    setFilters((f) => ({ ...f, from: e.target.value }))
+                  }}
+                />
+              </label>
+              <label className="activity-field">
+                <span>To</span>
+                <input
+                  type="date"
+                  value={filters.to}
+                  onChange={(e) => {
+                    setPreset('custom')
+                    setFilters((f) => ({ ...f, to: e.target.value }))
+                  }}
+                />
+              </label>
+            </div>
+          ) : null}
         </form>
       </div>
 
@@ -1202,6 +1232,39 @@ export default function AdminActivityLogs({ shell = 'client-admin' }) {
           grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
           gap: 0.75rem;
           align-items: end;
+        }
+
+        .activity-filters--compact {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          align-items: end;
+        }
+
+        .activity-filters--compact .activity-field--search {
+          flex: 1 1 16rem;
+          min-width: 12rem;
+        }
+
+        .activity-filters--compact .activity-filters__actions {
+          grid-column: auto;
+          flex: 0 0 auto;
+          margin-left: auto;
+        }
+
+        .activity-filters--compact .activity-filters__btn {
+          flex: 0 0 auto;
+          min-width: 5.5rem;
+          min-height: 2.5rem;
+        }
+
+        .activity-filters__more {
+          flex: 1 0 100%;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 0.75rem;
+          padding-top: 0.5rem;
+          border-top: 1px solid rgba(15, 23, 42, 0.08);
         }
 
         .activity-field {

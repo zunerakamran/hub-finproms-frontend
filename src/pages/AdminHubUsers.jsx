@@ -39,30 +39,41 @@ function canManageUser(user) {
   return true
 }
 
-function BulletList({ items }) {
-  if (!items?.length) return <span className="muted">-</span>
+function ChipList({ items, empty = '-' }) {
+  if (!items?.length) return <span className="hub-users-empty">{empty}</span>
   return (
-    <ul className="hub-users-bullets">
+    <div className="hub-users-chips">
       {items.map((item) => (
-        <li key={item}>{item}</li>
+        <span key={item} className="hub-users-chip">
+          {item}
+        </span>
       ))}
-    </ul>
+    </div>
   )
 }
 
-function VerifiedFlag({ verified }) {
+function MetaLine({ label, children }) {
   return (
-    <span
-      className={`hub-users-flag ${verified ? 'hub-users-flag--ok' : 'hub-users-flag--warn'}`}
-      title={verified ? 'Email verified' : 'Email not verified'}
-    >
-      {verified ? 'Verified' : 'Not verified'}
-    </span>
+    <div className="hub-users-meta">
+      <span className="hub-users-meta__label">{label}</span>
+      <span className="hub-users-meta__value">{children}</span>
+    </div>
   )
 }
 
-function YesNo({ value }) {
-  return <span className={value ? 'hub-users-yes' : 'hub-users-no'}>{value ? 'Yes' : 'No'}</span>
+function ToggleChip({ on, label, pending = false, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`hub-users-toggle ${on ? 'is-on' : 'is-off'}${pending ? ' is-pending' : ''}`}
+      onClick={onClick}
+      title={`View ${label} history`}
+    >
+      <span className="hub-users-toggle__dot" aria-hidden="true" />
+      <span className="hub-users-toggle__label">{label}</span>
+      <span className="hub-users-toggle__state">{on ? 'On' : pending ? 'Pending' : 'Off'}</span>
+    </button>
+  )
 }
 
 export default function AdminHubUsers({ shell = 'client-admin' }) {
@@ -189,9 +200,12 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
       {
         key: 'user',
         label: 'User',
-        filterValue: (row) => row.name || '',
+        grow: true,
+        wrap: true,
+        truncate: false,
+        filterValue: (row) => `${row.name || ''} ${row.email || ''}`,
         render: (row) => (
-          <div className="hub-users-identity">
+          <div className="hub-users-person">
             {row.avatar_url ? (
               <img src={row.avatar_url} alt="" className="hub-users-avatar" />
             ) : (
@@ -199,106 +213,132 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
                 {(row.name || '?').slice(0, 1).toUpperCase()}
               </span>
             )}
-            <span>{row.name || '-'}</span>
+            <div className="hub-users-person__text">
+              <div className="hub-users-person__name">{row.name || '-'}</div>
+              <div className="hub-users-person__email" title={row.email || undefined}>
+                {row.email || '-'}
+              </div>
+              <span
+                className={`hub-users-flag ${row.email_verified ? 'is-ok' : 'is-warn'}`}
+                title={row.email_verified ? 'Email verified' : 'Email not verified'}
+              >
+                {row.email_verified ? 'Verified' : 'Not verified'}
+              </span>
+            </div>
           </div>
         ),
       },
       {
-        key: 'email',
-        label: 'Email',
-        filterValue: (row) => row.email || '',
+        key: 'security',
+        label: 'Login security',
+        wrap: true,
+        truncate: false,
+        filterValue: (row) =>
+          [
+            row.otp_enabled ? 'OTP on' : 'OTP off',
+            row.mfa_enabled ? 'MFA on' : 'MFA off',
+          ].join(' '),
         render: (row) => (
-          <div className="hub-users-email">
-            <span>{row.email || '-'}</span>
-            <VerifiedFlag verified={!!row.email_verified} />
+          <div className="hub-users-security">
+            <ToggleChip
+              on={!!row.otp_enabled}
+              label="OTP"
+              onClick={() => openToggleLogs(row, 'otp')}
+            />
+            <ToggleChip
+              on={!!row.mfa_enabled}
+              pending={!!row.mfa_pending && !row.mfa_enabled}
+              label="Authenticator"
+              onClick={() => openToggleLogs(row, 'authenticator')}
+            />
           </div>
         ),
       },
       {
-        key: 'otp',
-        label: 'OTP to login',
-        filterValue: (row) => (row.otp_enabled ? 'Yes' : 'No'),
+        key: 'dates',
+        label: 'Dates',
+        wrap: true,
+        truncate: false,
+        filterValue: (row) => row.signup_at || row.created_at || '',
         render: (row) => (
-          <button type="button" className="linkish" onClick={() => openToggleLogs(row, 'otp')}>
-            <YesNo value={!!row.otp_enabled} />
-          </button>
+          <div className="hub-users-dates">
+            <MetaLine label="Signup">
+              <DataGridDate value={row.signup_at || row.created_at} />
+            </MetaLine>
+            <MetaLine label="Password">
+              {row.password_changed_at ? (
+                <DataGridDate value={row.password_changed_at} />
+              ) : (
+                <span className="hub-users-empty">Never</span>
+              )}
+            </MetaLine>
+          </div>
         ),
-      },
-      {
-        key: 'mfa',
-        label: 'MS Authenticator',
-        filterValue: (row) => (row.mfa_enabled ? 'Yes' : 'No'),
-        render: (row) => (
-          <button type="button" className="linkish" onClick={() => openToggleLogs(row, 'authenticator')}>
-            <YesNo value={!!row.mfa_enabled} />
-            {row.mfa_pending ? <span className="muted"> (pending)</span> : null}
-          </button>
-        ),
-      },
-      {
-        key: 'signup',
-        label: 'Signup date',
-        render: (row) => <DataGridDate value={row.signup_at || row.created_at} />,
       },
       {
         key: 'training',
         label: 'Training',
+        wrap: true,
+        truncate: false,
         filterValue: (row) => (row.training_attended ? 'Attended' : 'Not yet'),
-        render: (row) => (row.training_attended ? 'Attended' : 'Not yet'),
-      },
-      {
-        key: 'password_changed_at',
-        label: 'Password last changed',
-        render: (row) =>
-          row.password_changed_at ? <DataGridDate value={row.password_changed_at} /> : <span className="muted">-</span>,
-      },
-      {
-        key: 'roles',
-        label: 'Roles',
-        filterValue: (row) => formatUserRoles(row, null, roleLabel),
         render: (row) => (
-          <BulletList
-            items={(row.role_labels?.length ? row.role_labels : userRoleKeys(row).map((r) => roleLabel?.(r) || r)) || []}
-          />
+          <span className={`hub-users-training ${row.training_attended ? 'is-done' : ''}`}>
+            {row.training_attended ? 'Attended' : 'Not yet'}
+          </span>
         ),
       },
       {
-        key: 'firm',
-        label: 'Network / Firm',
-        filterValue: (row) => row.firm?.name || '',
-        render: (row) => row.firm?.name || '-',
-      },
-      {
-        key: 'modules',
-        label: 'Availed modules',
-        filterValue: (row) => moduleLabels(row).join(', '),
-        render: (row) => <BulletList items={moduleLabels(row)} />,
-      },
-      {
-        key: 'login',
-        label: 'Login details',
-        filterType: 'none',
+        key: 'access',
+        label: 'Roles & modules',
+        grow: true,
+        wrap: true,
+        truncate: false,
+        filterValue: (row) =>
+          `${formatUserRoles(row, null, roleLabel)} ${moduleLabels(row).join(' ')} ${row.firm?.name || ''}`,
         render: (row) => (
-          <button type="button" className="btn ghost small" onClick={() => openLoginHistory(row)}>
-            View logins
-          </button>
+          <div className="hub-users-access">
+            <MetaLine label="Roles">
+              <ChipList
+                items={
+                  (row.role_labels?.length
+                    ? row.role_labels
+                    : userRoleKeys(row).map((r) => roleLabel?.(r) || r)) || []
+                }
+              />
+            </MetaLine>
+            <MetaLine label="Firm">
+              <span className="hub-users-firm">{row.firm?.name || '—'}</span>
+            </MetaLine>
+            <MetaLine label="Modules">
+              <ChipList items={moduleLabels(row)} />
+            </MetaLine>
+          </div>
         ),
       },
       {
         key: 'status',
         label: 'Status',
+        wrap: true,
+        truncate: false,
         filterValue: (row) => statusLabel(row),
         render: (row) => {
           const label = statusLabel(row)
           const ok = label === 'Active'
           return (
-            <div>
-              <span className={`badge ${ok ? 'ok' : ''}`}>{label}</span>
+            <div className="hub-users-status">
+              <span className={`badge ${ok ? 'ok' : 'hub-users-badge-inactive'}`}>{label}</span>
               {row.status_remarks ? (
-                <div className="muted" style={{ fontSize: '0.85em', marginTop: 4 }}>
+                <p className="hub-users-remarks" title={row.status_remarks}>
                   {row.status_remarks}
-                </div>
+                </p>
               ) : null}
+              <button
+                type="button"
+                className="hub-users-login-link"
+                onClick={() => openLoginHistory(row)}
+              >
+                Login history
+              </button>
             </div>
           )
         },
@@ -451,12 +491,15 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
       {message ? <div className="alert success">{message}</div> : null}
 
       <DataGrid
+        className="hub-users-grid"
         columns={columns}
         rows={users}
         loading={loading}
         getRowKey={(row) => row.id}
         emptyMessage="No users found on this hub."
         actions={anyActionCap ? renderActions : undefined}
+        actionsLabel="Actions"
+        actionsMinWidth="8.5rem"
       />
 
       {panel ? (
@@ -709,25 +752,271 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
       ) : null}
 
       <style>{`
-        .hub-users-identity { display: flex; align-items: center; gap: 0.6rem; }
-        .hub-users-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-        .hub-users-avatar--placeholder { display: inline-flex; align-items: center; justify-content: center; background: var(--border, #ddd); font-size: 0.85rem; font-weight: 600; }
-        .hub-users-email { display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-start; }
-        .hub-users-flag { font-size: 0.75rem; padding: 0.1rem 0.45rem; border-radius: 999px; font-weight: 600; }
-        .hub-users-flag--ok { background: #dcfce7; color: #166534; }
-        .hub-users-flag--warn { background: #fef3c7; color: #92400e; }
-        .hub-users-yes { color: #166534; font-weight: 600; }
-        .hub-users-no { color: #6b7280; }
-        .hub-users-bullets { margin: 0; padding-left: 1.1rem; }
-        .hub-users-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; align-items: center; justify-content: center; z-index: 80; padding: 1rem; }
-        .modal { background: var(--surface, #fff); border-radius: 12px; padding: 1.25rem; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
-        .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-        .hub-users-modal { max-width: 720px; width: min(720px, 94vw); max-height: 85vh; overflow: auto; }
+        .hub-users-grid {
+          --dg-actions: 8.75rem;
+          --dg-fit: 6.25rem;
+          --dg-date: 7.25rem;
+        }
+        .hub-users-grid .data-grid__table th,
+        .hub-users-grid .data-grid__table td {
+          vertical-align: top;
+          padding: 0.7rem 0.65rem;
+        }
+        .hub-users-grid .data-grid__table thead th {
+          white-space: normal;
+          line-height: 1.25;
+          vertical-align: bottom;
+        }
+        .hub-users-grid .data-grid__th-label {
+          white-space: normal;
+        }
+        .hub-users-grid td.data-grid__col--grow,
+        .hub-users-grid td.data-grid__cell--wrap {
+          max-width: none;
+          overflow: visible;
+          white-space: normal;
+        }
+        .hub-users-grid td.data-grid__col--fit,
+        .hub-users-grid td.data-grid__col--date,
+        .hub-users-grid td.data-grid__col--actions {
+          white-space: normal;
+        }
+        .hub-users-grid .data-grid__cell-text {
+          overflow: visible;
+          white-space: normal;
+        }
+        .hub-users-grid .data-grid__actions-inner,
+        .hub-users-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.3rem;
+          justify-content: flex-start;
+          max-width: 100%;
+        }
+        .hub-users-person {
+          display: grid;
+          grid-template-columns: 2.25rem minmax(0, 1fr);
+          gap: 0.55rem;
+          align-items: start;
+          min-width: 0;
+        }
+        .hub-users-avatar {
+          width: 2.25rem;
+          height: 2.25rem;
+          border-radius: 50%;
+          object-fit: cover;
+          flex-shrink: 0;
+          box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand, #0f5c45) 18%, transparent);
+        }
+        .hub-users-avatar--placeholder {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: color-mix(in srgb, var(--brand, #0f5c45) 12%, #f1f5f9);
+          color: var(--brand-dark, #0a3f30);
+          font-size: 0.85rem;
+          font-weight: 700;
+        }
+        .hub-users-person__text {
+          min-width: 0;
+          display: grid;
+          gap: 0.2rem;
+        }
+        .hub-users-person__name {
+          font-weight: 650;
+          color: var(--brand-dark, #0a3f30);
+          line-height: 1.25;
+          word-break: break-word;
+        }
+        .hub-users-person__email {
+          font-size: 0.72rem;
+          color: #64748b;
+          line-height: 1.3;
+          word-break: break-all;
+        }
+        .hub-users-flag {
+          justify-self: start;
+          margin-top: 0.1rem;
+          font-size: 0.62rem;
+          padding: 0.12rem 0.45rem;
+          border-radius: 999px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+        }
+        .hub-users-flag.is-ok { background: #dcfce7; color: #166534; }
+        .hub-users-flag.is-warn { background: #fef3c7; color: #92400e; }
+        .hub-users-security {
+          display: grid;
+          gap: 0.35rem;
+          min-width: 0;
+        }
+        .hub-users-toggle {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 0.35rem;
+          width: 100%;
+          border: 1px solid #e2e8f0;
+          background: #f8fafc;
+          border-radius: 8px;
+          padding: 0.28rem 0.4rem;
+          cursor: pointer;
+          font: inherit;
+          text-align: left;
+          min-width: 0;
+        }
+        .hub-users-toggle:hover { border-color: color-mix(in srgb, var(--brand, #0f5c45) 35%, #cbd5e1); }
+        .hub-users-toggle.is-on { background: #ecfdf5; border-color: #a7f3d0; }
+        .hub-users-toggle.is-off { background: #f8fafc; }
+        .hub-users-toggle.is-pending { background: #fffbeb; border-color: #fde68a; }
+        .hub-users-toggle__dot {
+          width: 0.45rem;
+          height: 0.45rem;
+          border-radius: 50%;
+          background: #94a3b8;
+        }
+        .hub-users-toggle.is-on .hub-users-toggle__dot { background: #059669; }
+        .hub-users-toggle.is-pending .hub-users-toggle__dot { background: #d97706; }
+        .hub-users-toggle__label {
+          font-size: 0.68rem;
+          font-weight: 650;
+          color: #334155;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .hub-users-toggle__state {
+          font-size: 0.62rem;
+          font-weight: 700;
+          color: #64748b;
+          text-transform: uppercase;
+        }
+        .hub-users-toggle.is-on .hub-users-toggle__state { color: #047857; }
+        .hub-users-dates,
+        .hub-users-access,
+        .hub-users-status {
+          display: grid;
+          gap: 0.4rem;
+          min-width: 0;
+        }
+        .hub-users-meta {
+          display: grid;
+          gap: 0.12rem;
+          min-width: 0;
+        }
+        .hub-users-meta__label {
+          font-size: 0.58rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: #94a3b8;
+        }
+        .hub-users-meta__value {
+          min-width: 0;
+        }
+        .hub-users-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.25rem;
+        }
+        .hub-users-chip {
+          display: inline-flex;
+          align-items: center;
+          max-width: 100%;
+          padding: 0.12rem 0.4rem;
+          border-radius: 999px;
+          background: color-mix(in srgb, var(--brand, #0f5c45) 8%, #f1f5f9);
+          color: #334155;
+          font-size: 0.65rem;
+          font-weight: 600;
+          line-height: 1.25;
+          word-break: break-word;
+        }
+        .hub-users-firm {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #334155;
+          word-break: break-word;
+        }
+        .hub-users-training {
+          display: inline-flex;
+          align-items: center;
+          padding: 0.2rem 0.5rem;
+          border-radius: 999px;
+          background: #f1f5f9;
+          color: #64748b;
+          font-size: 0.68rem;
+          font-weight: 700;
+          white-space: normal;
+        }
+        .hub-users-training.is-done {
+          background: #dcfce7;
+          color: #166534;
+        }
+        .hub-users-badge-inactive {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+        .hub-users-remarks {
+          margin: 0;
+          font-size: 0.68rem;
+          color: #64748b;
+          line-height: 1.3;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          word-break: break-word;
+        }
+        .hub-users-login-link {
+          justify-self: start;
+          border: 0;
+          background: none;
+          padding: 0;
+          color: var(--brand, #0f5c45);
+          font: inherit;
+          font-size: 0.68rem;
+          font-weight: 700;
+          cursor: pointer;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+        .hub-users-login-link:hover { opacity: 0.85; }
+        .hub-users-empty {
+          color: #94a3b8;
+          font-size: 0.72rem;
+        }
+        .modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.45);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 80;
+          padding: 1rem;
+        }
+        .modal {
+          background: var(--surface, #fff);
+          border-radius: 12px;
+          padding: 1.25rem;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+        .modal-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
+        }
+        .hub-users-modal {
+          max-width: 720px;
+          width: min(720px, 94vw);
+          max-height: 85vh;
+          overflow: auto;
+        }
         .hub-users-log-table-wrap { overflow: auto; }
         .hub-users-checkboxes { display: grid; gap: 0.35rem; margin: 0.75rem 0; }
-        .linkish { background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: inherit; text-align: left; }
-        .btn.small { padding: 0.25rem 0.55rem; font-size: 0.85rem; }
         .stack { display: grid; gap: 0.75rem; }
         .stack label { display: grid; gap: 0.35rem; }
       `}</style>

@@ -10,9 +10,18 @@ export const ST_STATUSES = [
 
 export const ST_SCREENSHOT_ACCEPT = '.jpg,.jpeg,.png,.gif,.webp,.pdf'
 
-/** Screenshots / PDF + short guidance video clips for staff replies. */
-export const ST_REPLY_MEDIA_ACCEPT =
+/** Screenshots / PDF + short video clips for New Ticket submit. */
+export const ST_SUBMIT_MEDIA_ACCEPT =
   '.jpg,.jpeg,.png,.gif,.webp,.pdf,.mp4,.webm,.mov,.m4v,video/mp4,video/webm,video/quicktime'
+
+/** Screenshots / PDF + short guidance video clips for staff replies. */
+export const ST_REPLY_MEDIA_ACCEPT = ST_SUBMIT_MEDIA_ACCEPT
+
+/** New Ticket urgency choices (API keys remain medium / high). */
+export const ST_SUBMIT_PRIORITIES = [
+  { key: 'medium', label: 'Normal' },
+  { key: 'high', label: 'High' },
+]
 
 export const ST_ETA_PRESETS = [
   { key: '1h', label: 'About 1 hour', hours: 1 },
@@ -38,6 +47,16 @@ export function stPriorityClass(priority) {
   if (p === 'low') return 'st-priority st-priority--low'
   return 'st-priority st-priority--medium'
 }
+
+export function stPriorityLabel(priority, fallback) {
+  const p = String(priority || '').toLowerCase()
+  if (p === 'medium' || p === 'normal') return 'Normal'
+  if (p === 'high') return 'High'
+  if (p === 'low') return 'Low'
+  if (p === 'critical') return 'Critical'
+  return fallback || priority || 'Normal'
+}
+
 
 export function formatStDate(value) {
   return formatDateTime(value)

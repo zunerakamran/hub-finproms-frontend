@@ -4,14 +4,23 @@ import { api } from '../api/client'
 import FileDropzone from '../components/FileDropzone'
 import RequiredMark from '../components/RequiredMark'
 import RichTextEditor, { isRichTextEmpty } from '../components/RichTextEditor'
+import SupportTicketCapture from '../components/SupportTicketCapture'
 import { useHub } from '../context/HubContext'
-import { appendScreenshots, ST_SCREENSHOT_ACCEPT } from '../utils/supportTickets'
+import {
+  appendScreenshots,
+  ST_SUBMIT_MEDIA_ACCEPT,
+  ST_SUBMIT_PRIORITIES,
+} from '../utils/supportTickets'
 
 export default function SupportTicketSubmit() {
   const { can, loading: hubLoading } = useHub()
   const navigate = useNavigate()
 
-  const [options, setOptions] = useState({ modules: [], categories: [], priorities: [] })
+  const [options, setOptions] = useState({
+    modules: [],
+    categories: [],
+    submit_priorities: ST_SUBMIT_PRIORITIES,
+  })
   const [optionsLoading, setOptionsLoading] = useState(true)
   const [subject, setSubject] = useState('')
   const [moduleArea, setModuleArea] = useState('')
@@ -19,12 +28,14 @@ export default function SupportTicketSubmit() {
   const [priority, setPriority] = useState('medium')
   const [description, setDescription] = useState('')
   const [pageUrl, setPageUrl] = useState(() => window.location.href)
-  const [screenshots, setScreenshots] = useState([])
+  const [attachments, setAttachments] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const moduleOn = can('support_tickets')
   const canSubmit = can('st_submit_ticket')
+  const urgencyOptions =
+    options.submit_priorities?.length > 0 ? options.submit_priorities : ST_SUBMIT_PRIORITIES
 
   useEffect(() => {
     if (hubLoading || !moduleOn || !canSubmit) {
@@ -40,7 +51,8 @@ export default function SupportTicketSubmit() {
         setOptions({
           modules: data.modules || [],
           categories: data.categories || [],
-          priorities: data.priorities || [],
+          submit_priorities:
+            data.submit_priorities?.length > 0 ? data.submit_priorities : ST_SUBMIT_PRIORITIES,
         })
       })
       .catch((err) => {
@@ -65,7 +77,7 @@ export default function SupportTicketSubmit() {
       return
     }
     if (isRichTextEmpty(description)) {
-      setError('Please describe the issue.')
+      setError('Please add remarks describing the issue.')
       return
     }
     setSaving(true)
@@ -79,7 +91,7 @@ export default function SupportTicketSubmit() {
       form.append('description', description)
       if (pageUrl.trim()) form.append('page_url', pageUrl.trim())
       form.append('browser_info', navigator.userAgent || '')
-      appendScreenshots(form, screenshots)
+      appendScreenshots(form, attachments)
       const data = await api.supportTicketsSubmit(form)
       navigate(`/my-dashboard/support-tickets/${data.data.id}`, {
         state: { from: 'submit' },
@@ -116,8 +128,8 @@ export default function SupportTicketSubmit() {
           <p className="eyebrow">Support Tickets</p>
           <h1>Report an issue</h1>
           <p className="muted">
-            Tell us which module has the problem, describe what went wrong, and attach screenshots if
-            you can.
+            Choose the module and type of issue, set urgency, add remarks, and attach screenshots or
+            a short screen recording of the error.
           </p>
         </div>
         <Link to="/my-dashboard/support-tickets" className="btn ghost">
@@ -159,10 +171,17 @@ export default function SupportTicketSubmit() {
           </select>
         </label>
 
-        <div className="admin-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div
+          className="admin-form-row"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}
+        >
           <label>
-            Category
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <RequiredMark>Type of issue</RequiredMark>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              disabled={optionsLoading}
+            >
               {options.categories.map((item) => (
                 <option key={item.key} value={item.key}>
                   {item.label}
@@ -171,9 +190,9 @@ export default function SupportTicketSubmit() {
             </select>
           </label>
           <label>
-            Priority
+            <RequiredMark>Urgency</RequiredMark>
             <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-              {options.priorities.map((item) => (
+              {urgencyOptions.map((item) => (
                 <option key={item.key} value={item.key}>
                   {item.label}
                 </option>
@@ -184,7 +203,7 @@ export default function SupportTicketSubmit() {
 
         <div className="admin-field">
           <span className="field-label-text">
-            <RequiredMark>What is the issue?</RequiredMark>
+            <RequiredMark>Remarks</RequiredMark>
           </span>
           <RichTextEditor
             rows={6}
@@ -206,16 +225,32 @@ export default function SupportTicketSubmit() {
           />
         </label>
 
-        <FileDropzone
-          id="st-submit-screenshots"
-          label="Screenshots (optional)"
-          hint="JPG, PNG, GIF, WebP or PDF - up to 8 files"
-          accept={ST_SCREENSHOT_ACCEPT}
-          multiple
-          maxFiles={8}
-          files={screenshots}
-          onChange={setScreenshots}
-        />
+        <div className="admin-field">
+          <span className="field-label-text">Attachments (optional)</span>
+          <p className="muted" style={{ margin: '0 0 0.65rem' }}>
+            Upload screenshots / PDF, or a short video of the error (up to 8 files; images/PDF ≤ 5
+            MB, video ≤ 25 MB). Or capture directly in the app:
+          </p>
+          <SupportTicketCapture
+            files={attachments}
+            maxFiles={8}
+            disabled={saving}
+            onAddFiles={(incoming) =>
+              setAttachments((prev) => [...prev, ...incoming].slice(0, 8))
+            }
+          />
+          <FileDropzone
+            id="st-submit-media"
+            label="Browse or drop files"
+            hint="JPG, PNG, GIF, WebP, PDF, MP4, WebM, MOV — up to 8 files"
+            accept={ST_SUBMIT_MEDIA_ACCEPT}
+            multiple
+            maxFiles={8}
+            files={attachments}
+            onChange={setAttachments}
+            disabled={saving}
+          />
+        </div>
 
         <div className="actions">
           <button className="btn primary" disabled={saving || optionsLoading}>

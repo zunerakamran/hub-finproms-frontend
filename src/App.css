@@ -5553,6 +5553,22 @@ label {
   background: #fff;
   min-width: 0;
 }
+.st-capture {
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.st-capture__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.st-capture__hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.85rem;
+}
 .st-submitter-compact {
   display: flex;
   flex-direction: column;

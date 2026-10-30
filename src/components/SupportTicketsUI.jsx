@@ -103,15 +103,6 @@ export function StSubmitterProfile({ submitter, compact = false }) {
           ? [submitter.role_label]
           : []
 
-  const moduleLabels =
-    submitter.modules?.unrestricted
-      ? ['All hub modules']
-      : Array.isArray(submitter.modules?.labels) && submitter.modules.labels.length
-        ? submitter.modules.labels
-        : Array.isArray(submitter.modules?.effective_keys)
-          ? submitter.modules.effective_keys
-          : []
-
   const orgKind = submitter.firm_or_network_kind || submitter.firm?.kind
   const orgLabel =
     orgKind === 'network' ? 'Network' : orgKind === 'firm' ? 'Firm' : 'Network / firm'
@@ -160,10 +151,6 @@ export function StSubmitterProfile({ submitter, compact = false }) {
       <div>
         <dt>Roles</dt>
         <dd>{roles.length ? roles.join(', ') : '—'}</dd>
-      </div>
-      <div>
-        <dt>Modules</dt>
-        <dd>{moduleLabels.length ? moduleLabels.join(', ') : '—'}</dd>
       </div>
       <div>
         <dt>Last login</dt>

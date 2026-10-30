@@ -22,6 +22,15 @@ import {
   ST_STATUSES,
 } from '../utils/supportTickets'
 
+function MetaItem({ label, children }) {
+  return (
+    <div className="st-detail-meta__item">
+      <span className="st-detail-meta__label">{label}</span>
+      <span className="st-detail-meta__value">{children}</span>
+    </div>
+  )
+}
+
 export default function SupportTicketDetail() {
   const { id } = useParams()
   const location = useLocation()
@@ -47,7 +56,6 @@ export default function SupportTicketDetail() {
   const canReply = can('st_reply_to_tickets') || can('st_change_ticket_status')
   const canViewAll =
     can('st_view_all_tickets') || can('st_change_ticket_status') || can('st_reply_to_tickets')
-  // Member follow-up comments (not the staff Reply form).
   const canComment = can('st_comment_on_tickets') && !canReply
   const asPowerAdmin = isPowerAdmin
 
@@ -171,7 +179,7 @@ export default function SupportTicketDetail() {
 
   if (!hubLoading && !moduleOn) {
     return (
-      <section>
+      <section className="st-detail">
         <div className="page-head">
           <div>
             <p className="eyebrow">Support Tickets</p>
@@ -185,7 +193,7 @@ export default function SupportTicketDetail() {
 
   if (loading) {
     return (
-      <section>
+      <section className="st-detail">
         <p className="muted">Loading ticket…</p>
       </section>
     )
@@ -193,7 +201,7 @@ export default function SupportTicketDetail() {
 
   if (!row) {
     return (
-      <section>
+      <section className="st-detail">
         <div className="page-head">
           <div>
             <p className="eyebrow">Support Tickets</p>
@@ -208,23 +216,17 @@ export default function SupportTicketDetail() {
     )
   }
 
+  const issueModule = row.module_area_label || row.module_area || '—'
+  const showSubmitterCard = canViewAll && row.submitter?.profile_detailed
+
   return (
-    <section>
+    <section className="st-detail">
       <div className="page-head">
         <div>
           <p className="eyebrow">Support Tickets</p>
           <h1>
-            Ticket #{row.id}: {row.subject}
+            <span className="st-detail-id">#{row.id}</span> {row.subject}
           </h1>
-          <p className="muted">
-            <StStatusBadge status={row.status} at={row.status_changed_at || row.updated_at} />
-            {' | '}
-            {row.module_area_label || row.module_area}
-            {' | '}
-            {row.priority_label || row.priority}
-            {' | '}
-            {row.category_label || row.category}
-          </p>
         </div>
         <Link to={backTo} className="btn ghost">
           {backLabel}
@@ -234,188 +236,237 @@ export default function SupportTicketDetail() {
       {error && <div className="alert">{error}</div>}
       {message && <div className="alert success">{message}</div>}
 
-      <div className="stack" style={{ gap: '1.25rem' }}>
-        {canViewAll && row.submitter?.profile_detailed ? (
-          <div className="card" style={{ padding: '1rem 1.25rem' }}>
-            <h2 style={{ marginTop: 0 }}>Submitter</h2>
-            <StSubmitterProfile submitter={row.submitter} />
-          </div>
+      <div className="st-detail-meta" aria-label="Ticket summary">
+        <MetaItem label="Status">
+          <StStatusBadge status={row.status} at={row.status_changed_at || row.updated_at} />
+        </MetaItem>
+        <MetaItem label="Module with issue">
+          <span className="st-detail-chip st-detail-chip--module">{issueModule}</span>
+        </MetaItem>
+        <MetaItem label="Priority">{row.priority_label || row.priority || '—'}</MetaItem>
+        <MetaItem label="Category">{row.category_label || row.category || '—'}</MetaItem>
+        <MetaItem label="Submitted">
+          <DateTimeText value={row.created_at} />
+        </MetaItem>
+        {row.estimated_resolve_at ? (
+          <MetaItem label="Estimated resolve">
+            <DateTimeText value={row.estimated_resolve_at} />
+          </MetaItem>
         ) : null}
+      </div>
 
-        <div className="card" style={{ padding: '1rem 1.25rem' }}>
-          <h2 style={{ marginTop: 0 }}>Details</h2>
-          {!(canViewAll && row.submitter?.profile_detailed) ? (
-            <p>
-              <strong>Submitted by:</strong> {row.submitter?.name || '-'}
-              {row.submitter?.email ? ` (${row.submitter.email})` : ''}
-            </p>
+      <div className={`st-detail-layout${canReply || canComment ? ' st-detail-layout--split' : ''}`}>
+        <div className="st-detail-main stack" style={{ gap: '1.25rem' }}>
+          {showSubmitterCard ? (
+            <div className="card st-detail-card">
+              <h2 className="st-detail-card__title">Submitted by</h2>
+              <StSubmitterProfile submitter={row.submitter} />
+            </div>
           ) : null}
-          <p>
-            <strong>Submitted:</strong> <DateTimeText value={row.created_at} />
-          </p>
-          {row.estimated_resolve_at ? (
-            <p>
-              <strong>Estimated resolve:</strong>{' '}
-              <DateTimeText value={row.estimated_resolve_at} />
-            </p>
-          ) : null}
-          {row.page_url && (
-            <p>
-              <strong>Page URL:</strong>{' '}
-              <a href={row.page_url} target="_blank" rel="noreferrer">
-                {row.page_url}
-              </a>
-            </p>
-          )}
-          {row.status_note && (
-            <p>
-              <strong>Latest note:</strong> {row.status_note}
-            </p>
-          )}
-          <h3>Issue</h3>
-          <RichTextDisplay html={row.description} />
-          <h3>Attachments</h3>
-          <StScreenshotList attachments={row.attachments || []} />
+
+          <div className="card st-detail-card">
+            <h2 className="st-detail-card__title">Issue</h2>
+            <dl className="st-detail-facts">
+              {!showSubmitterCard ? (
+                <div>
+                  <dt>Submitted by</dt>
+                  <dd>
+                    {row.submitter?.name || '—'}
+                    {row.submitter?.email ? (
+                      <span className="muted"> ({row.submitter.email})</span>
+                    ) : null}
+                  </dd>
+                </div>
+              ) : null}
+              <div>
+                <dt>Module with issue</dt>
+                <dd>
+                  <span className="st-detail-chip st-detail-chip--module">{issueModule}</span>
+                </dd>
+              </div>
+              {row.page_url ? (
+                <div>
+                  <dt>Page URL</dt>
+                  <dd>
+                    <a href={row.page_url} target="_blank" rel="noreferrer" className="st-detail-link">
+                      {row.page_url}
+                    </a>
+                  </dd>
+                </div>
+              ) : null}
+              {row.browser_info ? (
+                <div>
+                  <dt>Browser</dt>
+                  <dd>{row.browser_info}</dd>
+                </div>
+              ) : null}
+              {row.status_note ? (
+                <div>
+                  <dt>Latest staff note</dt>
+                  <dd>{row.status_note}</dd>
+                </div>
+              ) : null}
+            </dl>
+
+            <div className="st-detail-section">
+              <h3 className="st-detail-section__title">Description</h3>
+              <div className="st-detail-description">
+                <RichTextDisplay html={row.description} />
+              </div>
+            </div>
+
+            <div className="st-detail-section">
+              <h3 className="st-detail-section__title">Attachments</h3>
+              <StScreenshotList
+                attachments={row.attachments || []}
+                emptyLabel="No screenshots or files attached."
+              />
+            </div>
+          </div>
+
+          <div className="card st-detail-card">
+            <h2 className="st-detail-card__title">Activity</h2>
+            <StCommentList comments={row.comments || []} />
+          </div>
         </div>
 
-        <div className="card" style={{ padding: '1rem 1.25rem' }}>
-          <h2 style={{ marginTop: 0 }}>Activity</h2>
-          <StCommentList comments={row.comments || []} />
-        </div>
+        {(canReply || canComment) && (
+          <aside className="st-detail-aside stack" style={{ gap: '1.25rem' }}>
+            {canReply && (
+              <form className="admin-form card st-detail-card" onSubmit={saveReply}>
+                <h2 className="st-detail-card__title">Reply to ticket</h2>
+                <p className="muted st-detail-aside__hint">
+                  Update status, set an ETA, add remarks, and optionally attach screenshots or a
+                  short video.
+                </p>
+                <fieldset>
+                  <legend>
+                    <RequiredMark>Current status</RequiredMark>
+                  </legend>
+                  <div className="radio-row st-detail-status-row">
+                    {ST_STATUSES.map((status) => (
+                      <label key={status} className="st-detail-status-option">
+                        <input
+                          type="radio"
+                          name="st-reply-status"
+                          value={status}
+                          checked={replyStatus === status}
+                          onChange={() => setReplyStatus(status)}
+                        />
+                        {status}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
 
-        {canReply && (
-          <form className="admin-form card" style={{ padding: '1rem 1.25rem' }} onSubmit={saveReply}>
-            <h2 style={{ marginTop: 0 }}>Reply to ticket</h2>
-            <p className="muted" style={{ marginTop: 0 }}>
-              Set the current status, an estimated resolve time, remarks for the end user, and
-              optional screenshots or a short video clip.
-            </p>
-            <fieldset>
-              <legend>
-                <RequiredMark>Current status</RequiredMark>
-              </legend>
-              <div className="radio-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                {ST_STATUSES.map((status) => (
-                  <label key={status} style={{ display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
+                <div className="admin-field">
+                  <span className="field-label-text">Estimated time to resolve</span>
+                  <div className="st-eta-row">
+                    <select
+                      value={etaPreset}
+                      disabled={clearEta || Boolean(etaCustom)}
+                      onChange={(e) => {
+                        setEtaPreset(e.target.value)
+                        if (e.target.value) setEtaCustom('')
+                      }}
+                    >
+                      <option value="">Keep current / choose…</option>
+                      {ST_ETA_PRESETS.map((preset) => (
+                        <option key={preset.key} value={preset.key}>
+                          {preset.label}
+                        </option>
+                      ))}
+                    </select>
                     <input
-                      type="radio"
-                      name="st-reply-status"
-                      value={status}
-                      checked={replyStatus === status}
-                      onChange={() => setReplyStatus(status)}
+                      type="datetime-local"
+                      value={etaCustom}
+                      disabled={clearEta || Boolean(etaPreset)}
+                      onChange={(e) => {
+                        setEtaCustom(e.target.value)
+                        if (e.target.value) setEtaPreset('')
+                      }}
+                      aria-label="Custom estimated resolve time"
                     />
-                    {status}
+                  </div>
+                  <label className="st-eta-clear">
+                    <input
+                      type="checkbox"
+                      checked={clearEta}
+                      onChange={(e) => {
+                        setClearEta(e.target.checked)
+                        if (e.target.checked) {
+                          setEtaPreset('')
+                          setEtaCustom('')
+                        }
+                      }}
+                    />
+                    Clear estimated resolve time
                   </label>
-                ))}
-              </div>
-            </fieldset>
+                </div>
 
-            <div className="admin-field">
-              <span className="field-label-text">Estimated time to resolve</span>
-              <div className="st-eta-row">
-                <select
-                  value={etaPreset}
-                  disabled={clearEta || Boolean(etaCustom)}
-                  onChange={(e) => {
-                    setEtaPreset(e.target.value)
-                    if (e.target.value) setEtaCustom('')
-                  }}
-                >
-                  <option value="">Keep current / choose…</option>
-                  {ST_ETA_PRESETS.map((preset) => (
-                    <option key={preset.key} value={preset.key}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="datetime-local"
-                  value={etaCustom}
-                  disabled={clearEta || Boolean(etaPreset)}
-                  onChange={(e) => {
-                    setEtaCustom(e.target.value)
-                    if (e.target.value) setEtaPreset('')
-                  }}
-                  aria-label="Custom estimated resolve time"
+                <div className="admin-field">
+                  <span className="field-label-text">
+                    <RequiredMark>Remarks</RequiredMark>
+                  </span>
+                  <RichTextEditor
+                    rows={5}
+                    value={replyRemarks}
+                    onChange={setReplyRemarks}
+                    placeholder="Explain the solution or what the user should do next…"
+                    required
+                  />
+                </div>
+
+                <FileDropzone
+                  id="st-reply-attachments"
+                  label="Screenshots or short video (optional)"
+                  hint="Images/PDF up to 5 MB each; video clips (mp4, webm, mov) up to 25 MB. Max 8 files."
+                  accept={ST_REPLY_MEDIA_ACCEPT}
+                  multiple
+                  maxFiles={8}
+                  files={replyFiles}
+                  onChange={setReplyFiles}
                 />
-              </div>
-              <label className="st-eta-clear" style={{ display: 'inline-flex', gap: '0.4rem', marginTop: '0.5rem' }}>
-                <input
-                  type="checkbox"
-                  checked={clearEta}
-                  onChange={(e) => {
-                    setClearEta(e.target.checked)
-                    if (e.target.checked) {
-                      setEtaPreset('')
-                      setEtaCustom('')
-                    }
-                  }}
+                <div className="actions">
+                  <button className="btn primary" disabled={saving}>
+                    {saving ? 'Posting…' : 'Post reply'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {canComment && (
+              <form className="admin-form card st-detail-card" onSubmit={saveComment}>
+                <h2 className="st-detail-card__title">Add comment</h2>
+                <div className="admin-field">
+                  <span className="field-label-text">
+                    <RequiredMark>Comment</RequiredMark>
+                  </span>
+                  <RichTextEditor
+                    rows={4}
+                    value={commentBody}
+                    onChange={setCommentBody}
+                    placeholder="Add a follow-up…"
+                    required
+                  />
+                </div>
+                <FileDropzone
+                  id="st-comment-screenshots"
+                  label="Attach screenshots (optional)"
+                  accept={ST_SCREENSHOT_ACCEPT}
+                  multiple
+                  maxFiles={8}
+                  files={commentFiles}
+                  onChange={setCommentFiles}
                 />
-                Clear estimated resolve time
-              </label>
-            </div>
-
-            <div className="admin-field">
-              <span className="field-label-text">
-                <RequiredMark>Remarks</RequiredMark>
-              </span>
-              <RichTextEditor
-                rows={5}
-                value={replyRemarks}
-                onChange={setReplyRemarks}
-                placeholder="Explain the solution or what the user should do next…"
-                required
-              />
-            </div>
-
-            <FileDropzone
-              id="st-reply-attachments"
-              label="Screenshots or short video (optional)"
-              hint="Images/PDF up to 5 MB each; video clips (mp4, webm, mov) up to 25 MB. Max 8 files."
-              accept={ST_REPLY_MEDIA_ACCEPT}
-              multiple
-              maxFiles={8}
-              files={replyFiles}
-              onChange={setReplyFiles}
-            />
-            <div className="actions">
-              <button className="btn primary" disabled={saving}>
-                {saving ? 'Posting…' : 'Post reply'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {canComment && (
-          <form className="admin-form card" style={{ padding: '1rem 1.25rem' }} onSubmit={saveComment}>
-            <h2 style={{ marginTop: 0 }}>Add comment</h2>
-            <div className="admin-field">
-              <span className="field-label-text">
-                <RequiredMark>Comment</RequiredMark>
-              </span>
-              <RichTextEditor
-                rows={4}
-                value={commentBody}
-                onChange={setCommentBody}
-                placeholder="Add a follow-up…"
-                required
-              />
-            </div>
-            <FileDropzone
-              id="st-comment-screenshots"
-              label="Attach screenshots (optional)"
-              accept={ST_SCREENSHOT_ACCEPT}
-              multiple
-              maxFiles={8}
-              files={commentFiles}
-              onChange={setCommentFiles}
-            />
-            <div className="actions">
-              <button className="btn primary" disabled={saving}>
-                {saving ? 'Posting…' : 'Post comment'}
-              </button>
-            </div>
-          </form>
+                <div className="actions">
+                  <button className="btn primary" disabled={saving}>
+                    {saving ? 'Posting…' : 'Post comment'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </aside>
         )}
       </div>
     </section>

@@ -76,6 +76,60 @@ function ToggleChip({ on, label, pending = false, onClick }) {
   )
 }
 
+/** Prefer same-origin /api/media for local Vite proxy; keep absolute remote hub URLs. */
+function resolveAvatarSrc(url) {
+  if (!url || typeof url !== 'string') return ''
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+
+  try {
+    const parsed = new URL(trimmed, window.location.origin)
+    const marker = parsed.pathname.match(/\/(?:api\/)?media\/(.+)$/i)
+    if (!marker) return trimmed
+
+    const mediaPath = marker[1]
+    // Same host as the SPA (or relative) → use Vite/production proxy path.
+    if (parsed.origin === window.location.origin || trimmed.startsWith('/')) {
+      return `/api/media/${mediaPath}`
+    }
+
+    // Local backend host while SPA is on Vite — rewrite through proxy.
+    if (
+      /^(localhost|127\.0\.0\.1)$/i.test(parsed.hostname) &&
+      /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)
+    ) {
+      return `/api/media/${mediaPath}`
+    }
+
+    return trimmed
+  } catch {
+    if (trimmed.startsWith('/api/media/') || trimmed.startsWith('/media/')) {
+      return trimmed.startsWith('/media/') ? `/api${trimmed}` : trimmed
+    }
+    return trimmed
+  }
+}
+
+function UserAvatar({ user }) {
+  const [failed, setFailed] = useState(false)
+  const src = resolveAvatarSrc(user?.avatar_url)
+  const initial = String(user?.name || '?').slice(0, 1).toUpperCase()
+
+  if (!src || failed) {
+    return (
+      <span className="hub-users-avatar hub-users-avatar--placeholder" aria-hidden="true">
+        {initial}
+      </span>
+    )
+  }
+
+  return (
+    <span className="hub-users-avatar" aria-hidden="true">
+      <img src={src} alt="" onError={() => setFailed(true)} />
+    </span>
+  )
+}
+
 export default function AdminHubUsers({ shell = 'client-admin' }) {
   const { isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, actingHub, isActingRemotely, roleLabel } = useHub()
@@ -206,13 +260,7 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
         filterValue: (row) => `${row.name || ''} ${row.email || ''}`,
         render: (row) => (
           <div className="hub-users-person">
-            {row.avatar_url ? (
-              <img src={row.avatar_url} alt="" className="hub-users-avatar" />
-            ) : (
-              <span className="hub-users-avatar hub-users-avatar--placeholder">
-                {(row.name || '?').slice(0, 1).toUpperCase()}
-              </span>
-            )}
+            <UserAvatar user={row} />
             <div className="hub-users-person__text">
               <div className="hub-users-person__name">{row.name || '-'}</div>
               <div className="hub-users-person__email" title={row.email || undefined}>
@@ -804,15 +852,21 @@ export default function AdminHubUsers({ shell = 'client-admin' }) {
           width: 2.25rem;
           height: 2.25rem;
           border-radius: 50%;
-          object-fit: cover;
+          overflow: hidden;
           flex-shrink: 0;
-          box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand, #0f5c45) 18%, transparent);
-        }
-        .hub-users-avatar--placeholder {
           display: inline-flex;
           align-items: center;
           justify-content: center;
           background: color-mix(in srgb, var(--brand, #0f5c45) 12%, #f1f5f9);
+          box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand, #0f5c45) 18%, transparent);
+        }
+        .hub-users-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .hub-users-avatar--placeholder {
           color: var(--brand-dark, #0a3f30);
           font-size: 0.85rem;
           font-weight: 700;

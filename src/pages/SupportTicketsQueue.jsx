@@ -22,7 +22,8 @@ export default function SupportTicketsQueue() {
   const moduleOn = can('support_tickets')
   const canViewAll = can('st_view_all_tickets')
   const canChangeStatus = can('st_change_ticket_status')
-  const enabled = moduleOn && (canViewAll || canChangeStatus)
+  const canReply = can('st_reply_to_tickets')
+  const enabled = moduleOn && (canViewAll || canChangeStatus || canReply)
 
   useEffect(() => {
     if (hubLoading || !enabled) {
@@ -68,8 +69,48 @@ export default function SupportTicketsQueue() {
     {
       key: 'submitter',
       label: 'Submitted by',
-      render: (row) => row.submitter?.name || '-',
-      filterValue: (row) => row.submitter?.name || '',
+      render: (row) => {
+        const s = row.submitter
+        if (!s) return '-'
+        const org = s.firm_or_network_name || s.firm?.name
+        return (
+          <div>
+            <div>{s.name || '-'}</div>
+            {s.email ? <div className="muted">{s.email}</div> : null}
+            {org ? (
+              <div className="muted">
+                {s.firm_or_network_kind === 'network' || s.firm?.kind === 'network'
+                  ? 'Network'
+                  : 'Firm'}
+                : {org}
+              </div>
+            ) : null}
+          </div>
+        )
+      },
+      filterValue: (row) => {
+        const s = row.submitter
+        if (!s) return ''
+        return [s.name, s.email, s.firm_or_network_name || s.firm?.name]
+          .filter(Boolean)
+          .join(' ')
+      },
+      truncate: false,
+    },
+    {
+      key: 'roles',
+      label: 'Roles',
+      fit: true,
+      render: (row) => {
+        const labels = row.submitter?.role_labels || row.submitter?.roles
+        if (Array.isArray(labels) && labels.length) return labels.join(', ')
+        return row.submitter?.role_label || row.submitter?.role || '-'
+      },
+      filterValue: (row) => {
+        const labels = row.submitter?.role_labels || row.submitter?.roles
+        if (Array.isArray(labels) && labels.length) return labels.join(' ')
+        return row.submitter?.role_label || row.submitter?.role || ''
+      },
     },
     {
       key: 'module',

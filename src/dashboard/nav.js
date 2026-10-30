@@ -60,6 +60,7 @@ const ST_NAV_ANY = [
   'st_submit_ticket',
   'st_view_all_tickets',
   'st_change_ticket_status',
+  'st_reply_to_tickets',
   'st_comment_on_tickets',
 ]
 
@@ -1012,7 +1013,7 @@ export const DASHBOARD_LINKS = [
     label: 'All tickets',
     title: 'All tickets',
     description: 'Developer inbox - review tickets and change their status.',
-    anyOf: ['st_view_all_tickets', 'st_change_ticket_status'],
+    anyOf: ['st_view_all_tickets', 'st_change_ticket_status', 'st_reply_to_tickets'],
     group: 'st',
   },
 

@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+﻿import { Suspense } from 'react'
 import { lazyWithRetry as lazy } from './lazyWithRetry'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import HubCapabilityRoute from './components/HubCapabilityRoute'
@@ -727,7 +727,7 @@ export default function App() {
                 <Route
                   path="support-tickets/queue"
                   element={
-                    <HubCapabilityRoute anyOf={['st_view_all_tickets', 'st_change_ticket_status']}>
+                    <HubCapabilityRoute anyOf={['st_view_all_tickets', 'st_change_ticket_status', 'st_reply_to_tickets']}>
                       <SupportTicketsQueue />
                     </HubCapabilityRoute>
                   }
@@ -741,6 +741,7 @@ export default function App() {
                         'st_submit_ticket',
                         'st_view_all_tickets',
                         'st_change_ticket_status',
+                        'st_reply_to_tickets',
                         'st_comment_on_tickets',
                       ]}
                     >
@@ -1216,7 +1217,7 @@ export default function App() {
               </Route>
             </Route>
 
-            {/* Legacy URLs → universal dashboard */}
+            {/* Legacy URLs â†’ universal dashboard */}
             <Route path="my-purchases" element={<Navigate to="/my-dashboard/purchases" replace />} />
             <Route path="my-invoices" element={<Navigate to="/my-dashboard/my-invoices" replace />} />
             <Route path="invoices/:id" element={<LegacyInvoiceRedirect />} />

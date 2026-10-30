@@ -1714,6 +1714,11 @@ export const api = {
       method: 'POST',
       body: payload instanceof FormData ? payload : JSON.stringify(payload),
     }),
+  supportTicketsReply: (id, payload, options = {}) =>
+    request(`${adminBase(options)}/support-tickets/${id}/reply`, {
+      method: 'POST',
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
+    }),
   supportTicketsAdminComment: (id, formData, options = {}) =>
     request(`${adminBase(options)}/support-tickets/${id}/comments`, {
       method: 'POST',

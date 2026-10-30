@@ -5560,6 +5560,18 @@ label {
   border-radius: 12px;
   background: #f8fafc;
 }
+.st-capture__steps {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: #334155;
+}
+.st-capture__steps ol {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+.st-capture__steps li {
+  margin: 0.2rem 0;
+}
 .st-capture__actions {
   display: flex;
   flex-wrap: wrap;

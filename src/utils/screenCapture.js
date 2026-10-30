@@ -18,19 +18,56 @@ function waitForVideoFrame(video) {
 }
 
 /**
- * Ask the user to share a screen/window/tab, capture one still as a PNG File.
- * Requires a secure context (HTTPS or localhost) and browser permission.
+ * Build getDisplayMedia options that steer the user toward another
+ * screen / window / tab (where the bug is) — not this New Ticket page.
+ *
+ * Chromium supports selfBrowserSurface: 'exclude' to hide the current tab.
  */
-export async function captureScreenScreenshot() {
+export function displayMediaOptions({ audio = false } = {}) {
+  return {
+    video: {
+      // Prefer full monitor / another window; user can still pick a Chrome tab.
+      displaySurface: 'monitor',
+    },
+    audio: Boolean(audio),
+    // Never bias the picker toward this ticket-form tab.
+    preferCurrentTab: false,
+    // Hide this tab from the picker when the browser supports it (Chrome/Edge).
+    selfBrowserSurface: 'exclude',
+    surfaceSwitching: 'include',
+    monitorTypeSurfaces: 'include',
+  }
+}
+
+async function requestDisplayMedia({ audio = false } = {}) {
   if (!navigator.mediaDevices?.getDisplayMedia) {
     throw new Error('Screen capture is not supported in this browser.')
   }
 
-  const stream = await navigator.mediaDevices.getDisplayMedia({
-    video: { displaySurface: 'browser' },
-    audio: false,
-    preferCurrentTab: true,
-  })
+  const preferred = displayMediaOptions({ audio })
+  try {
+    return await navigator.mediaDevices.getDisplayMedia(preferred)
+  } catch (err) {
+    // Older browsers reject unknown constraint keys — retry with a plain request.
+    if (err?.name === 'TypeError' || err?.name === 'OverconstrainedError') {
+      return navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: Boolean(audio),
+      })
+    }
+    throw err
+  }
+}
+
+/**
+ * Ask the user to share a screen/window/tab, capture one still as a PNG File.
+ * Requires a secure context (HTTPS or localhost) and browser permission.
+ *
+ * Important: does NOT prefer the current (ticket form) tab — pick the page
+ * that shows the error.
+ */
+export async function captureScreenScreenshot() {
+  const stream = await requestDisplayMedia({ audio: false })
 
   try {
     const video = document.createElement('video')
@@ -39,6 +76,9 @@ export async function captureScreenScreenshot() {
     video.srcObject = stream
     await video.play()
     await waitForVideoFrame(video)
+
+    // Give the shared surface a moment to paint (other tab / window).
+    await new Promise((r) => setTimeout(r, 250))
 
     const canvas = document.createElement('canvas')
     canvas.width = video.videoWidth
@@ -72,18 +112,11 @@ export async function captureScreenScreenshot() {
  * }>}
  */
 export async function startScreenRecording({ maxSeconds = ST_MAX_RECORD_SECONDS } = {}) {
-  if (!navigator.mediaDevices?.getDisplayMedia) {
-    throw new Error('Screen recording is not supported in this browser.')
-  }
   if (typeof MediaRecorder === 'undefined') {
     throw new Error('MediaRecorder is not available in this browser.')
   }
 
-  const stream = await navigator.mediaDevices.getDisplayMedia({
-    video: true,
-    audio: true,
-    preferCurrentTab: true,
-  })
+  const stream = await requestDisplayMedia({ audio: true })
 
   const mimeCandidates = [
     'video/webm;codecs=vp9,opus',

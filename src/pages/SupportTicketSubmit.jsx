@@ -229,7 +229,8 @@ export default function SupportTicketSubmit() {
           <span className="field-label-text">Attachments (optional)</span>
           <p className="muted" style={{ margin: '0 0 0.65rem' }}>
             Upload screenshots / PDF, or a short video of the error (up to 8 files; images/PDF ≤ 5
-            MB, video ≤ 25 MB). Or capture directly in the app:
+            MB, video ≤ 25 MB). To capture in-app, open the broken module page in another tab first,
+            then share that tab/window/screen (not this form):
           </p>
           <SupportTicketCapture
             files={attachments}

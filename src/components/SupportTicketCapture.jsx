@@ -103,6 +103,18 @@ export default function SupportTicketCapture({
 
   return (
     <div className="st-capture">
+      <p className="st-capture__steps">
+        <strong>Capture the page with the error</strong> — not this New Ticket form:
+        <ol>
+          <li>Open the broken page in another browser tab or window first.</li>
+          <li>
+            Click capture / record, then in the browser picker choose that{' '}
+            <em>Entire screen</em>, <em>Window</em>, or <em>Chrome tab</em> (this form tab is
+            excluded when the browser allows it).
+          </li>
+          <li>Reproduce the issue while recording, then stop.</li>
+        </ol>
+      </p>
       <div className="st-capture__actions">
         <button
           type="button"
@@ -110,7 +122,7 @@ export default function SupportTicketCapture({
           disabled={!canCapture || recording}
           onClick={takeScreenshot}
         >
-          {busy === 'screenshot' ? 'Capturing…' : 'Capture screenshot'}
+          {busy === 'screenshot' ? 'Capturing…' : 'Capture other screen / tab'}
         </button>
         {!recording ? (
           <button
@@ -119,7 +131,7 @@ export default function SupportTicketCapture({
             disabled={!canCapture}
             onClick={startRecording}
           >
-            {busy === 'record-start' ? 'Starting…' : 'Record screen'}
+            {busy === 'record-start' ? 'Starting…' : 'Record other screen / tab'}
           </button>
         ) : (
           <button
@@ -135,8 +147,8 @@ export default function SupportTicketCapture({
         )}
       </div>
       <p className="muted st-capture__hint">
-        Browser will ask which screen, window, or tab to share. Recordings stop automatically after{' '}
-        {ST_MAX_RECORD_SECONDS} seconds. Works best on Chrome / Edge over HTTPS.
+        Recordings stop automatically after {ST_MAX_RECORD_SECONDS} seconds. Works best on Chrome /
+        Edge over HTTPS.
       </p>
       {error ? <div className="alert">{error}</div> : null}
     </div>

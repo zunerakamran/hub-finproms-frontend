@@ -58,6 +58,23 @@ export default function SocialMediaComplianceMyRequests() {
       filterValue: (row) => String(row.current_version ?? ''),
     },
     {
+      key: 'image',
+      label: 'Image',
+      filterable: false,
+      render: (row) =>
+        row.image_url ? (
+          <a href={row.image_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+            {/\.(mp4|mov|webm)(\?|$)/i.test(row.image_url) ? (
+              <video src={row.image_url} className="smc-thumb-sm" muted />
+            ) : (
+              <img src={row.image_url} alt="" className="smc-thumb-sm" />
+            )}
+          </a>
+        ) : (
+          '-'
+        ),
+    },
+    {
       key: 'submitted_by',
       label: 'Submitted by',
       render: (row) => gridActorName(row, 'submitter'),

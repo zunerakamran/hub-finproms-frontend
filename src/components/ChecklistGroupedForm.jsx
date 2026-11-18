@@ -38,8 +38,10 @@ export default function ChecklistGroupedForm({ items, flags, setFlags, onSubmit,
           <h2>{section.label}</h2>
           <p className="muted checklist-section-hint">
             How this hub works (access, credits, content distribution). Opposite options
-            auto-uncheck. Product modules are managed under Modules. User capabilities are
-            managed under Capabilities.
+            auto-uncheck. Public access and Private access always keep one selected:
+            public shows the home page before login and the register page; private hides
+            both until an existing user signs in. Product modules are managed under Modules.
+            User capabilities are managed under Capabilities.
           </p>
           <div className="checklist-grid">
             {section.items.map((item) => {
@@ -61,7 +63,13 @@ export default function ChecklistGroupedForm({ items, flags, setFlags, onSubmit,
                     disabled={inactive}
                     onChange={(e) =>
                       setFlags((prev) =>
-                        toggleChecklistFlag(prev, item.key, e.target.checked, item.exclusive_with)
+                        toggleChecklistFlag(
+                          prev,
+                          item.key,
+                          e.target.checked,
+                          item.exclusive_with,
+                          item.keep_one_enabled
+                        )
                       )
                     }
                   />

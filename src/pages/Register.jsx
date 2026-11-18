@@ -10,6 +10,10 @@ import { markNavigationContinuity } from '../security/navigationContinuity'
 export default function Register() {
   const { register, isAuthenticated } = useAuth()
   const { hub, branding, loading: hubLoading, registrationEnabled } = useHub()
+  const deployRegistrationEnabled =
+    typeof hub?.auth?.registration_enabled === 'boolean'
+      ? hub.auth.registration_enabled
+      : registrationEnabled
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -28,27 +32,8 @@ export default function Register() {
     return <Navigate to="/my-dashboard" replace />
   }
 
-  if (!hubLoading && !registrationEnabled) {
-    return (
-      <AuthScreen>
-        <div className="auth-screen__panel">
-          <div className="auth-screen__brand">
-            <AuthFavicon />
-            <div>
-              <p className="eyebrow">{brandName}</p>
-              <h1>Invite only</h1>
-            </div>
-          </div>
-          <p className="muted">
-            Public registration is disabled for this hub. Access is for invited advisors only -
-            please sign in with the account from your invite list.
-          </p>
-          <p className="muted center">
-            Already invited? <Link to="/login">Login</Link>
-          </p>
-        </div>
-      </AuthScreen>
-    )
+  if (!hubLoading && !deployRegistrationEnabled) {
+    return <Navigate to="/login" replace />
   }
 
   const onResend = async () => {

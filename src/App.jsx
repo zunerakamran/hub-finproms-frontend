@@ -166,7 +166,7 @@ export default function App() {
             <NavigationSecurityBootstrap />
             <Suspense fallback={<PageLoader />}>
             <Routes>
-            {/* Home - public on shared hubs; login required on white-labelled */}
+            {/* Home - public when Public access is on; login required when Private access is on */}
             <Route element={<Layout />}>
               <Route index element={<HomeRoute />} />
             </Route>

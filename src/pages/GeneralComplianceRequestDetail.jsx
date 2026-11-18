@@ -167,7 +167,9 @@ export default function GeneralComplianceRequestDetail() {
     setMessage('')
     try {
       const data = await api.generalComplianceAssign(id, user.id, { asPowerAdmin })
-      setRow(data.data)
+      // Prefer assign payload (now includes versions/audit_trail); keep prior detail
+      // fields if a skinny response is ever returned.
+      setRow((prev) => ({ ...(prev || {}), ...(data.data || {}) }))
       setMessage('Assigned to you. You can review this request now.')
     } catch (err) {
       setError(apiValidationMessage(err, 'Could not assign this request to you.'))

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { FaEye, FaHandPointer, FaUserPlus } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
@@ -21,6 +21,7 @@ import { gridActorName } from '../utils/submissionAttribution'
  */
 export default function SocialMediaComplianceQueue({ variant = 'history' }) {
   const isReview = variant === 'review'
+  const navigate = useNavigate()
   const { user, isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, complianceStatusLabel, actingHubId } = useHub()
   const [items, setItems] = useState([])
@@ -119,8 +120,10 @@ export default function SocialMediaComplianceQueue({ variant = 'history' }) {
         )
       }
       setMessage(assignedTo ? 'Assigned.' : 'Unassigned.')
+      return true
     } catch (err) {
       setError(apiValidationMessage(err, 'Assign failed.'))
+      return false
     } finally {
       setAssigning(null)
     }
@@ -135,9 +138,12 @@ export default function SocialMediaComplianceQueue({ variant = 'history' }) {
       )
       return
     }
-    await assign(requestId, user.id)
+    const ok = await assign(requestId, user.id)
+    if (!ok) return
     setMessage('Picked up. Opening request…')
-    // Navigation happens via the Review link; keep a clear success message.
+    navigate(`/my-dashboard/social-media-compliance/${requestId}`, {
+      state: { from: 'review' },
+    })
   }
 
   const columns = [

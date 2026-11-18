@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { FaEye, FaHandPointer, FaUserPlus } from 'react-icons/fa'
 import { api } from '../api/client'
 import DataGrid, { DataGridDate, DataGridIconBtn } from '../components/DataGrid'
@@ -20,6 +20,7 @@ import { resolveComplianceAttachments } from '../utils/complianceSupportingFiles
  */
 export default function GeneralComplianceQueue({ variant = 'history' }) {
   const isReview = variant === 'review'
+  const navigate = useNavigate()
   const { user, isPowerAdmin } = useAuth()
   const { can, loading: hubLoading, complianceStatusLabel, actingHubId } = useHub()
   const [items, setItems] = useState([])
@@ -117,8 +118,10 @@ export default function GeneralComplianceQueue({ variant = 'history' }) {
         )
       }
       setMessage(assignedTo ? 'Assigned.' : 'Unassigned.')
+      return true
     } catch (err) {
       setError(apiValidationMessage(err, 'Assign failed.'))
+      return false
     } finally {
       setAssigning(null)
     }
@@ -133,8 +136,12 @@ export default function GeneralComplianceQueue({ variant = 'history' }) {
       )
       return
     }
-    await assign(requestId, user.id)
-    setMessage('Picked up. You can open and review this request.')
+    const ok = await assign(requestId, user.id)
+    if (!ok) return
+    setMessage('Picked up. Opening request…')
+    navigate(`/my-dashboard/general-compliance/${requestId}`, {
+      state: { from: 'review' },
+    })
   }
 
   const columns = [
